@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "nopCommerce Plugin Manifest",
+  "type": "object",
+  "required": ["systemName", "friendlyName", "version", "assemblyName"],
+  "properties": {
+    "systemName": {
+      "type": "string",
+      "description": "Unique system name (e.g., Payments.PayPal)",
+      "pattern": "^[A-Za-z0-9.]+$"
+    },
+    "friendlyName": {
+      "type": "string",
+      "description": "Display name for the plugin"
+    },
+    "version": {
+      "type": "string",
+      "description": "Plugin version (semver format)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "author": {
+      "type": "string",
+      "description": "Plugin author name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Plugin description"
+    },
+    "assemblyName": {
+      "type": "string",
+      "description": "Main assembly file name (e.g., Nop.Plugin.Payments.PayPal.dll)"
+    },
+    "supportedVersions": {
+      "type": "array",
+      "description": "Supported nopCommerce versions",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Plugin dependencies (system names)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "category": {
+      "type": "string",
+      "description": "Plugin category",
+      "enum": ["Payment", "Shipping", "Tax", "Widget", "ExchangeRate", "Discount", "Authentication", "Misc"]
+    },
+    "displayOrder": {
+      "type": "integer",
+      "description": "Display order in lists",
+      "default": 1
+    }
+  }
+}

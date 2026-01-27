@@ -1,0 +1,57 @@
+@model Nop.Core.Domain.Catalog.Category
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = Model?.Id > 0 ? "Edit Category" : "Create Category";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<div class="card">
+    <form method="post" action="/Admin/Category/@(Model?.Id > 0 ? "Edit" : "Create")">
+        @if (Model?.Id > 0)
+        {
+            <input type="hidden" name="id" value="@Model.Id" />
+        }
+        
+        <div class="form-group">
+            <label>Category Name *</label>
+            <input type="text" name="name" value="@Model?.Name" required />
+        </div>
+        
+        <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" rows="4">@Model?.Description</textarea>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label>Display Order</label>
+                <input type="number" name="displayOrder" value="@Model?.DisplayOrder" />
+            </div>
+            
+            <div class="form-group">
+                <label>Parent Category</label>
+                <select name="parentCategoryId">
+                    <option value="0">None</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="published" value="true" @(Model?.Published == true ? "checked" : "") />
+                Published
+            </label>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success">Save</button>
+            <a href="/Admin/Category" class="btn btn-secondary">Cancel</a>
+            @if (Model?.Id > 0)
+            {
+                <button type="submit" formaction="/Admin/Category/Delete/@Model.Id" class="btn btn-danger" onclick="return confirm('Delete this category?')">Delete</button>
+            }
+        </div>
+    </form>
+</div>

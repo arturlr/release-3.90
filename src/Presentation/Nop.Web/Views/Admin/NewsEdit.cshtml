@@ -1,0 +1,55 @@
+@model Nop.Core.Domain.News.NewsItem
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = Model?.Id > 0 ? "Edit News" : "Create News";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<div class="card">
+    <form method="post" action="/Admin/News/@(Model?.Id > 0 ? "Edit" : "Create")">
+        @if (Model?.Id > 0)
+        {
+            <input type="hidden" name="id" value="@Model.Id" />
+        }
+        
+        <div class="form-group">
+            <label>Title *</label>
+            <input type="text" name="title" value="@Model?.Title" required />
+        </div>
+        
+        <div class="form-group">
+            <label>Short Description</label>
+            <textarea name="short" rows="3">@Model?.Short</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Full Content</label>
+            <textarea name="full" rows="8">@Model?.Full</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="published" value="true" @(Model?.Published == true ? "checked" : "") />
+                Published
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="allowComments" value="true" @(Model?.AllowComments == true ? "checked" : "") />
+                Allow Comments
+            </label>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success">Save</button>
+            <a href="/Admin/News" class="btn btn-secondary">Cancel</a>
+            @if (Model?.Id > 0)
+            {
+                <button type="submit" formaction="/Admin/News/Delete/@Model.Id" class="btn btn-danger" onclick="return confirm('Delete this news item?')">Delete</button>
+            }
+        </div>
+    </form>
+</div>

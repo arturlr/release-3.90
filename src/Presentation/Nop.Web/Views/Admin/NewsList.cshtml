@@ -1,0 +1,49 @@
+@model IList<Nop.Core.Domain.News.NewsItem>
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "News Management";
+}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>News</h1>
+    <a href="/Admin/News/Create" class="btn btn-success">+ Add News Item</a>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Published</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model == null || !Model.Any())
+            {
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #666;">No news items found</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var news in Model)
+                {
+                    <tr>
+                        <td>@news.Id</td>
+                        <td><strong>@news.Title</strong></td>
+                        <td>@(news.Published ? "✓ Yes" : "✗ No")</td>
+                        <td>@news.CreatedOnUtc.ToString("MMM dd, yyyy")</td>
+                        <td>
+                            <a href="/Admin/News/Edit/@news.Id" class="btn btn-sm">Edit</a>
+                            <a href="/News/NewsItem/@news.Id" class="btn btn-sm btn-secondary" target="_blank">View</a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

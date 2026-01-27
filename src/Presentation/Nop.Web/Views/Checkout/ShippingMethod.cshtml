@@ -1,73 +1,49 @@
-﻿@model CheckoutShippingMethodModel
-@using Nop.Web.Models.Checkout;
 @{
-    Layout = "~/Views/Shared/_ColumnsOne.cshtml";
-
-    //title
-    Html.AddTitleParts(T("PageTitle.Checkout").Text);
-    //page class
-    Html.AppendPageCssClassParts("html-checkout-page");
-    Html.AppendPageCssClassParts("html-shipping-method-page");
+    ViewData["Title"] = "Shipping Method";
 }
-<div class="page checkout-page shipping-method-page">
-    @Html.Action("CheckoutProgress", "Checkout", new { step = CheckoutProgressStep.Shipping })
-    <div class="page-title">
-        <h1>@T("Checkout.SelectShippingMethod")</h1>
-    </div>
-    <div class="page-body checkout-data">
-        <div class="section shipping-method">
-            @using (Html.BeginRouteForm("CheckoutShippingMethod", FormMethod.Post))
-            {
-                @Html.Widget("checkout_shipping_method_top")
-                if (Model.Warnings.Count == 0)
-                {
-                <ul class="method-list">
-                    @for (int i = 0; i < Model.ShippingMethods.Count; i++)
-                    {
-                        var shippingMethod = Model.ShippingMethods[i];
-                        <li>
-                            <div class="method-name">
-                                <input id="shippingoption_@(i)" type="radio" name="shippingoption" value="@(shippingMethod.Name)___@(shippingMethod.ShippingRateComputationMethodSystemName)" checked="@shippingMethod.Selected" />
-                                <label for="shippingoption_@(i)">@T("Checkout.SelectShippingMethod.MethodAndFee", shippingMethod.Name, shippingMethod.Fee)</label>
-                            </div>
-                            @if (!String.IsNullOrEmpty(shippingMethod.Description))
-                            {
-                                <div class="method-description">
-                                    @Html.Raw(shippingMethod.Description)
-                                </div>
-                            }
-                        </li>
-                    }
-                </ul>
-                if (Model.NotifyCustomerAboutShippingFromMultipleLocations)
-                {
-                    <div class="multiple-locations">
-                        @T("Checkout.ShippingMethod.ShippingFromMultipleLocations")
+
+<h1 style="margin-bottom: 2rem;">Checkout - Shipping Method</h1>
+
+<div style="max-width: 600px;">
+    <form method="post" action="/Checkout/ShippingMethod">
+        <div style="display: grid; gap: 15px; margin-bottom: 2rem;">
+            <label style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border: 2px solid #007bff; border-radius: 4px; cursor: pointer; background: #f0f8ff;">
+                <div style="display: flex; align-items: center;">
+                    <input type="radio" name="shippingMethod" value="1" checked style="margin-right: 10px;" />
+                    <div>
+                        <strong>Standard Shipping</strong>
+                        <p style="color: #666; font-size: 0.9rem; margin: 5px 0 0 0;">5-7 business days</p>
                     </div>
-                }
-                <div class="buttons">
-                    <input type="submit" name="nextstep" value="@T("Checkout.NextButton")" class="button-1 shipping-method-next-step-button" />
                 </div>
-                }
-                else
-                {
-                <div class="message-error">
-                    <ul>
-                        @foreach (var warning in Model.Warnings)
-                        {
-                            <li>@warning</li>
-                        }
-                    </ul>
+                <strong style="color: #007bff;">$5.00</strong>
+            </label>
+
+            <label style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                <div style="display: flex; align-items: center;">
+                    <input type="radio" name="shippingMethod" value="2" style="margin-right: 10px;" />
+                    <div>
+                        <strong>Express Shipping</strong>
+                        <p style="color: #666; font-size: 0.9rem; margin: 5px 0 0 0;">2-3 business days</p>
+                    </div>
                 </div>
-                }
-                @Html.Widget("checkout_shipping_method_bottom")
-            }
+                <strong>$15.00</strong>
+            </label>
+
+            <label style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                <div style="display: flex; align-items: center;">
+                    <input type="radio" name="shippingMethod" value="3" style="margin-right: 10px;" />
+                    <div>
+                        <strong>Overnight Shipping</strong>
+                        <p style="color: #666; font-size: 0.9rem; margin: 5px 0 0 0;">Next business day</p>
+                    </div>
+                </div>
+                <strong>$25.00</strong>
+            </label>
         </div>
-        <div class="section order-summary">
-            <div class="title">
-                <strong>@T("Checkout.OrderSummary")</strong>
-            </div>
-            @Html.Action("OrderSummary", "ShoppingCart")
+        
+        <div style="display: flex; gap: 10px;">
+            <a href="/Checkout/ShippingAddress" class="btn btn-secondary" style="flex: 1; text-align: center;">Back</a>
+            <button type="submit" class="btn" style="flex: 1;">Continue</button>
         </div>
-    </div>
+    </form>
 </div>

@@ -1,0 +1,48 @@
+@model Nop.Core.Domain.Catalog.Manufacturer
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = Model?.Id > 0 ? "Edit Manufacturer" : "Create Manufacturer";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<div class="card">
+    <form method="post" action="/Admin/Manufacturer/@(Model?.Id > 0 ? "Edit" : "Create")">
+        @if (Model?.Id > 0)
+        {
+            <input type="hidden" name="id" value="@Model.Id" />
+        }
+        
+        <div class="form-group">
+            <label>Manufacturer Name *</label>
+            <input type="text" name="name" value="@Model?.Name" required />
+        </div>
+        
+        <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" rows="4">@Model?.Description</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Display Order</label>
+            <input type="number" name="displayOrder" value="@Model?.DisplayOrder" />
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="published" value="true" @(Model?.Published == true ? "checked" : "") />
+                Published
+            </label>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success">Save</button>
+            <a href="/Admin/Manufacturer" class="btn btn-secondary">Cancel</a>
+            @if (Model?.Id > 0)
+            {
+                <button type="submit" formaction="/Admin/Manufacturer/Delete/@Model.Id" class="btn btn-danger" onclick="return confirm('Delete this manufacturer?')">Delete</button>
+            }
+        </div>
+    </form>
+</div>

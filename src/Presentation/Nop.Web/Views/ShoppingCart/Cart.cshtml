@@ -1,23 +1,71 @@
-﻿@model ShoppingCartModel
-@using Nop.Web.Models.Checkout
-@using Nop.Web.Models.ShoppingCart;
-@{
-    Layout = "~/Views/Shared/_ColumnsOne.cshtml";
+@model IList<Nop.Core.Domain.Orders.ShoppingCartItem>
 
-    //title
-    Html.AddTitleParts(T("PageTitle.ShoppingCart").Text);
-    //page class
-    Html.AppendPageCssClassParts("html-shopping-cart-page");
+@{
+    ViewData["Title"] = "Shopping Cart";
 }
-@if (!Model.OnePageCheckoutEnabled)
+
+<h1 style="margin-bottom: 2rem;">Shopping Cart</h1>
+
+@if (Model == null || !Model.Any())
 {
-    @Html.Action("CheckoutProgress", "Checkout", new {step = CheckoutProgressStep.Cart})
+    <div style="text-align: center; padding: 3rem 0;">
+        <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">Your cart is empty</p>
+        <a href="/Catalog" class="btn">Continue Shopping</a>
+    </div>
 }
-<div class="page shopping-cart-page">
-    <div class="page-title">
-        <h1>@T("ShoppingCart")</h1>
+else
+{
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
+        <thead>
+            <tr style="border-bottom: 2px solid #ddd;">
+                <th style="text-align: left; padding: 10px;">Product</th>
+                <th style="text-align: center; padding: 10px;">Price</th>
+                <th style="text-align: center; padding: 10px;">Quantity</th>
+                <th style="text-align: right; padding: 10px;">Total</th>
+                <th style="padding: 10px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                decimal cartTotal = 0;
+            }
+            @foreach (var item in Model)
+            {
+                var itemTotal = item.Product.Price * item.Quantity;
+                cartTotal += itemTotal;
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 15px;">
+                        <strong>@item.Product.Name</strong>
+                    </td>
+                    <td style="text-align: center; padding: 15px;">$@item.Product.Price</td>
+                    <td style="text-align: center; padding: 15px;">
+                        <form method="post" action="/ShoppingCart/UpdateCart" style="display: inline;">
+                            <input type="hidden" name="cartItemId" value="@item.Id" />
+                            <input type="number" name="quantity" value="@item.Quantity" min="1" style="width: 60px; text-align: center;" />
+                            <button type="submit" class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.9rem;">Update</button>
+                        </form>
+                    </td>
+                    <td style="text-align: right; padding: 15px; font-weight: bold;">$@itemTotal</td>
+                    <td style="text-align: center; padding: 15px;">
+                        <form method="post" action="/ShoppingCart/DeleteCartItem" style="display: inline;">
+                            <input type="hidden" name="cartItemId" value="@item.Id" />
+                            <button type="submit" class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.9rem;">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr style="border-top: 2px solid #ddd;">
+                <td colspan="3" style="text-align: right; padding: 15px; font-size: 1.2rem;"><strong>Total:</strong></td>
+                <td style="text-align: right; padding: 15px; font-size: 1.2rem; font-weight: bold; color: #007bff;">$@cartTotal</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+    
+    <div style="text-align: right;">
+        <a href="/Catalog" class="btn btn-secondary" style="margin-right: 10px;">Continue Shopping</a>
+        <a href="/Checkout" class="btn">Proceed to Checkout</a>
     </div>
-    <div class="page-body">
-        @Html.Partial("OrderSummary", Model)
-    </div>
-</div>
+}

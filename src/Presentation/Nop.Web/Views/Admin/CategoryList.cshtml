@@ -1,0 +1,49 @@
+@model IList<Nop.Core.Domain.Catalog.Category>
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Categories";
+}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>Categories</h1>
+    <a href="/Admin/Category/Create" class="btn btn-success">+ Add New Category</a>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Display Order</th>
+                <th>Published</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model == null || !Model.Any())
+            {
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #666;">No categories found</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var category in Model)
+                {
+                    <tr>
+                        <td>@category.Id</td>
+                        <td><strong>@category.Name</strong></td>
+                        <td>@category.DisplayOrder</td>
+                        <td>@(category.Published ? "✓ Yes" : "✗ No")</td>
+                        <td>
+                            <a href="/Admin/Category/Edit/@category.Id" class="btn btn-sm">Edit</a>
+                            <a href="/Category/@category.Id" class="btn btn-sm btn-secondary" target="_blank">View</a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

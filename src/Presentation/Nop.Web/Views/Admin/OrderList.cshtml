@@ -1,0 +1,47 @@
+@model IList<Nop.Core.Domain.Orders.Order>
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Orders";
+}
+
+<h1>Orders</h1>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Order #</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model == null || !Model.Any())
+            {
+                <tr>
+                    <td colspan="6" style="text-align: center; color: #666;">No orders found</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var order in Model)
+                {
+                    <tr>
+                        <td><strong>#@order.Id</strong></td>
+                        <td>Customer #@order.CustomerId</td>
+                        <td>@order.CreatedOnUtc.ToString("MMM dd, yyyy")</td>
+                        <td>@order.OrderStatus</td>
+                        <td><strong>$@order.OrderTotal</strong></td>
+                        <td>
+                            <a href="/Admin/Order/Edit/@order.Id" class="btn btn-sm">View/Edit</a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

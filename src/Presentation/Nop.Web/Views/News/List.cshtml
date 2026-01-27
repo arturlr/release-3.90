@@ -1,47 +1,34 @@
-﻿@model NewsItemListModel
-@using Nop.Web.Models.News;
-@{
-    Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
+@model IList<Nop.Core.Domain.News.NewsItem>
 
-    //title
-    Html.AddTitleParts(T("PageTitle.NewsArchive").Text);
-    //page class
-    Html.AppendPageCssClassParts("html-news-list-page");
+@{
+    ViewData["Title"] = "News";
 }
-<div class="page news-list-page">
-    <div class="page-title">
-        <a href="@Url.RouteUrl("NewsRSS", new { languageId = Model.WorkingLanguageId })" class="link-rss" title="@T("News.RSS.Hint")">@T("News.RSS")</a>
-        <h1>@T("News")</h1>
-    </div>
-    <div class="page-body">
-        @Html.Widget("newslist_page_before_items")
-        <div class="news-items">
-            @foreach (var item in Model.NewsItems)
-            {
-                <div class="news-item">
-                    <div class="news-head">
-                        <a class="news-title" href="@Url.RouteUrl("NewsItem", new { SeName = item.SeName })">@item.Title</a>
-                        <span class="news-date">-@item.CreatedOn.ToString("D")</span>
-                    </div>
-                    <div class="news-body">
-                        @Html.Raw(item.Short)
-                    </div>
-                    <div class="buttons">
-                        <a href="@Url.RouteUrl("NewsItem", new { SeName = item.SeName })" class="read-more">@T("News.MoreInfo")</a>
-                    </div>
-                    @Html.Widget("newslist_page_inside_item", item.Id)
-                </div>
-            }
-        </div>
-        @{
-            var pager = Html.Pager(Model.PagingFilteringContext).QueryParam("pagenumber");
-        }
-        @if (!pager.IsEmpty())
+
+<h1 style="margin-bottom: 2rem;">Latest News</h1>
+
+@if (Model == null || !Model.Any())
+{
+    <p>No news available.</p>
+}
+else
+{
+    <div style="display: grid; gap: 20px;">
+        @foreach (var news in Model)
         {
-            <div class="pager">
-                @pager
+            <div style="border: 1px solid #ddd; padding: 20px; border-radius: 4px;">
+                <h2 style="margin-bottom: 0.5rem;">
+                    <a href="/News/NewsItem/@news.Id" style="color: #333; text-decoration: none;">@news.Title</a>
+                </h2>
+                <p style="color: #999; font-size: 0.9rem; margin-bottom: 1rem;">
+                    @news.CreatedOnUtc.ToString("MMMM dd, yyyy")
+                </p>
+                <p style="color: #666; line-height: 1.6;">@news.Short</p>
+                <a href="/News/NewsItem/@news.Id" style="color: #007bff;">Read more &rarr;</a>
             </div>
         }
-        @Html.Widget("newslist_page_after_items")
     </div>
-</div>
+
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="/News?page=1" class="btn btn-secondary">Load More</a>
+    </div>
+}

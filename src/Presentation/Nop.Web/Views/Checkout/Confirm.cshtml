@@ -1,101 +1,76 @@
-﻿@model CheckoutConfirmModel
-@using Nop.Web.Models.Checkout;
 @{
-    Layout = "~/Views/Shared/_ColumnsOne.cshtml";
-
-    //title
-    Html.AddTitleParts(T("PageTitle.Checkout").Text);
-    //page class
-    Html.AppendPageCssClassParts("html-checkout-page");
-    Html.AppendPageCssClassParts("html-order-confirm-page");
+    ViewData["Title"] = "Confirm Order";
 }
-<div class="page checkout-page order-confirm-page">
-    @Html.Action("CheckoutProgress", "Checkout", new { step = CheckoutProgressStep.Confirm })
-    <div class="page-title">
-        <h1>@T("Checkout.ConfirmYourOrder")</h1>
-    </div>
-    <div class="page-body checkout-data">
-        @Html.Widget("checkout_confirm_top")
-        <div class="section confirm-order">
-            @using (Html.BeginRouteForm("CheckoutConfirm", FormMethod.Post, new { id = "confirm-order-form" }))
-            {
-                <script type="text/javascript">
-                    $(document).ready(function () {
-                        $('.confirm-order-next-step-button').click(function () {
-                            //terms of service
-                            var termOfServiceOk = true;
-                            if ($('#termsofservice').length > 0) {
-                                //terms of service element exists
-                                if (!$('#termsofservice').is(':checked')) {
-                                    $("#terms-of-service-warning-box").dialog();
-                                    termOfServiceOk = false;
-                                } else {
-                                    termOfServiceOk = true;
-                                }
-                            }
-                            if (termOfServiceOk) {
-                                //$('#confirm-order-form').submit();
-                                //$('.confirm-order-next-step-button').attr('disabled', 'disabled');
-                                return true;
-                            } else {
-                                return false;
-                            }
-                        });
-                    });
-                </script>
-                if (!String.IsNullOrEmpty(Model.MinOrderTotalWarning))
-                {
-                <span class="min-order-warning">@Model.MinOrderTotalWarning</span>
-                }
-                else
-                {
-                    if (Model.TermsOfServiceOnOrderConfirmPage)
-                    {
-                        <div id="terms-of-service-warning-box" title="@T("Checkout.TermsOfService")" style="display: none;">
-                            <p>@T("Checkout.TermsOfService.PleaseAccept")</p>
-                        </div>
-                        <div class="terms-of-service">
-                            <input id="termsofservice" type="checkbox" name="termsofservice"/>
-                            <label for="termsofservice">@T("Checkout.TermsOfService.IAccept")</label>
-                            <a class="read" id="read-terms">@T("Checkout.TermsOfService.Read")</a>
-                            <script>
-                                $(document).ready(function() {
-                                    $('#read-terms').on('click', function(e) {
-                                        e.preventDefault();
-                                        displayPopupContentFromUrl('@Url.RouteUrl("TopicPopup", new {SystemName = "conditionsofuse"})', '@T("Checkout.TermsOfService")');
-                                    });
-                                });
-                            </script>
-                        </div>
-                    }
-                    <div class="buttons">
-                        <input type="submit" name="nextstep" value="@T("Checkout.ConfirmButton")" class="button-1 confirm-order-next-step-button" />
-                    </div>
-					<script>
-                        $('#confirm-order-form').on('submit', function () {
-                            var button = $(this).find('input[type="submit"][name="nextstep"]');
-                            setTimeout(function() {
-                                button.attr('disabled', 'disabled');
-                            }, 0);
-                        });
-                    </script>
-                }
-                if (Model.Warnings.Count > 0)
-                {
-                <div class="message-error">
-                    <ul>
-                        @foreach (var warning in Model.Warnings)
-                        {
-                            <li>@warning</li>
-                        }
-                    </ul>
-                </div>
-                }
-            }
+
+<h1 style="margin-bottom: 2rem;">Confirm Your Order</h1>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+    <div>
+        <div style="border: 1px solid #ddd; padding: 20px; border-radius: 4px; margin-bottom: 20px;">
+            <h2 style="margin-bottom: 1rem;">Billing Address</h2>
+            <p style="line-height: 1.6;">
+                John Doe<br />
+                123 Main Street<br />
+                New York, NY 10001<br />
+                john@example.com
+            </p>
         </div>
-        @Html.Widget("checkout_confirm_bottom")
-        <div class="section order-summary">
-            @Html.Action("OrderSummary", "ShoppingCart", new { prepareAndDisplayOrderReviewData = true })
+
+        <div style="border: 1px solid #ddd; padding: 20px; border-radius: 4px; margin-bottom: 20px;">
+            <h2 style="margin-bottom: 1rem;">Shipping Address</h2>
+            <p style="line-height: 1.6;">
+                John Doe<br />
+                123 Main Street<br />
+                New York, NY 10001
+            </p>
+        </div>
+
+        <div style="border: 1px solid #ddd; padding: 20px; border-radius: 4px; margin-bottom: 20px;">
+            <h2 style="margin-bottom: 1rem;">Shipping Method</h2>
+            <p><strong>Standard Shipping</strong> - $5.00</p>
+            <p style="color: #666; font-size: 0.9rem;">5-7 business days</p>
+        </div>
+
+        <div style="border: 1px solid #ddd; padding: 20px; border-radius: 4px;">
+            <h2 style="margin-bottom: 1rem;">Payment Method</h2>
+            <p><strong>Credit Card</strong></p>
+            <p style="color: #666; font-size: 0.9rem;">**** **** **** 1234</p>
+        </div>
+    </div>
+
+    <div>
+        <div style="border: 1px solid #ddd; padding: 20px; border-radius: 4px; background: #f8f9fa;">
+            <h3 style="margin-bottom: 1rem;">Order Summary</h3>
+            <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Subtotal:</span>
+                    <span>$99.99</span>
+                </div>
+            </div>
+            <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Shipping:</span>
+                    <span>$5.00</span>
+                </div>
+            </div>
+            <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Tax:</span>
+                    <span>$8.50</span>
+                </div>
+            </div>
+            <div style="padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold;">
+                    <span>Total:</span>
+                    <span style="color: #007bff;">$113.49</span>
+                </div>
+            </div>
+            
+            <form method="post" action="/Checkout/ConfirmOrder">
+                <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Place Order</button>
+            </form>
+            
+            <a href="/Checkout/PaymentMethod" class="btn btn-secondary" style="width: 100%; text-align: center; margin-top: 10px;">Back</a>
         </div>
     </div>
 </div>

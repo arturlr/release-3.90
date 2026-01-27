@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Nop.Web.Framework</AssemblyName>
+    <RootNamespace>Nop.Web.Framework</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Autofac" Version="8.0.0" />
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.NetStandard.csproj" />
+    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.NetStandard.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exclude old .NET Framework files, include only .NET 8 files -->
+    <Compile Remove="**/*.cs" />
+    <Compile Include="**/*.Net8.cs" />
+  </ItemGroup>
+
+</Project>

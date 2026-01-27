@@ -1,0 +1,105 @@
+@model Nop.Core.Domain.Orders.Order
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = $"Order #{Model?.Id}";
+}
+
+<div style="margin-bottom: 20px;">
+    <a href="/Admin/Order" style="color: #3498db;">&larr; Back to Orders</a>
+</div>
+
+<h1>Order #@Model?.Id</h1>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+    <div>
+        <div class="card">
+            <h2>Order Information</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <strong>Order Status:</strong><br />
+                    <select name="orderStatus" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <option>@Model?.OrderStatus</option>
+                        <option>Pending</option>
+                        <option>Processing</option>
+                        <option>Complete</option>
+                        <option>Cancelled</option>
+                    </select>
+                </div>
+                <div>
+                    <strong>Payment Status:</strong><br />
+                    <select name="paymentStatus" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <option>@Model?.PaymentStatus</option>
+                        <option>Pending</option>
+                        <option>Authorized</option>
+                        <option>Paid</option>
+                        <option>Refunded</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-success" style="margin-top: 15px;">Update Status</button>
+        </div>
+
+        <div class="card">
+            <h2>Customer Information</h2>
+            <p>
+                <strong>Customer ID:</strong> @Model?.CustomerId<br />
+                <a href="/Admin/Customer/Edit/@Model?.CustomerId" class="btn btn-sm" style="margin-top: 10px;">View Customer</a>
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>Billing Address</h2>
+            <p>
+                @Model?.BillingAddress?.FirstName @Model?.BillingAddress?.LastName<br />
+                @Model?.BillingAddress?.Address1<br />
+                @Model?.BillingAddress?.City, @Model?.BillingAddress?.ZipPostalCode
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>Shipping Address</h2>
+            <p>
+                @Model?.ShippingAddress?.FirstName @Model?.ShippingAddress?.LastName<br />
+                @Model?.ShippingAddress?.Address1<br />
+                @Model?.ShippingAddress?.City, @Model?.ShippingAddress?.ZipPostalCode
+            </p>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <h2>Order Totals</h2>
+            <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Subtotal:</span>
+                    <span>$@Model?.OrderSubtotalInclTax</span>
+                </div>
+            </div>
+            <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Shipping:</span>
+                    <span>$@Model?.OrderShippingInclTax</span>
+                </div>
+            </div>
+            <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Tax:</span>
+                    <span>$@Model?.OrderTax</span>
+                </div>
+            </div>
+            <div style="padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold;">
+                    <span>Total:</span>
+                    <span style="color: #27ae60;">$@Model?.OrderTotal</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Actions</h2>
+            <button class="btn btn-danger" style="width: 100%; margin-bottom: 10px;">Cancel Order</button>
+            <button class="btn" style="width: 100%;">Print Invoice</button>
+        </div>
+    </div>
+</div>

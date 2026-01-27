@@ -1,16 +1,15 @@
-﻿@{
-    Layout = "~/Views/Shared/_ColumnsOne.cshtml";
-
-    //title
-    Html.AddTitleParts(T("PageTitle.PageNotFound").Text);
-    //page class
-    Html.AppendPageCssClassParts("html-not-found-page");
+@{
+    ViewData["Title"] = "Page Not Found";
 }
-<div class="page not-found-page">
-    <div class="page-title">
-        <h1>@T("PageTitle.PageNotFound")</h1>
-    </div>
-    <div class="page-body">
-        @Html.Action("TopicBlock", "Topic", new { systemName = "PageNotFound" })
+
+<div style="text-align: center; padding: 4rem 0;">
+    <div style="font-size: 6rem; color: #ddd; margin-bottom: 1rem;">404</div>
+    <h1 style="margin-bottom: 1rem;">Page Not Found</h1>
+    <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">
+        Sorry, the page you're looking for doesn't exist.
+    </p>
+    <div style="display: flex; gap: 10px; justify-content: center;">
+        <a href="/" class="btn">Go Home</a>
+        <a href="/Catalog" class="btn btn-secondary">Browse Catalog</a>
     </div>
 </div>

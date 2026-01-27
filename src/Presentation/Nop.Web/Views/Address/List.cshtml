@@ -1,0 +1,41 @@
+@model IList<Nop.Core.Domain.Common.Address>
+
+@{
+    ViewData["Title"] = "My Addresses";
+}
+
+<h1 style="margin-bottom: 2rem;">My Addresses</h1>
+
+<div style="margin-bottom: 2rem;">
+    <a href="/Address/Add" class="btn">Add New Address</a>
+</div>
+
+@if (Model == null || !Model.Any())
+{
+    <p style="color: #666;">You don't have any saved addresses yet.</p>
+}
+else
+{
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+        @foreach (var address in Model)
+        {
+            <div style="border: 1px solid #ddd; padding: 20px; border-radius: 4px;">
+                <h3 style="margin-bottom: 1rem;">@address.FirstName @address.LastName</h3>
+                <p style="color: #666; line-height: 1.6; margin-bottom: 1rem;">
+                    @address.Address1<br />
+                    @if (!string.IsNullOrEmpty(address.Address2))
+                    {
+                        @address.Address2<br />
+                    }
+                    @address.City, @address.ZipPostalCode
+                </p>
+                <div style="display: flex; gap: 10px;">
+                    <a href="/Address/Edit/@address.Id" class="btn btn-secondary" style="flex: 1; text-align: center; padding: 8px;">Edit</a>
+                    <form method="post" action="/Address/Delete/@address.Id" style="flex: 1;">
+                        <button type="submit" class="btn btn-secondary" style="width: 100%; padding: 8px;" onclick="return confirm('Delete this address?')">Delete</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+}

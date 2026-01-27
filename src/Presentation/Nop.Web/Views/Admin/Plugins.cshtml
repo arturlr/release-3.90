@@ -1,0 +1,77 @@
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Plugins";
+}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>Plugins</h1>
+    <button class="btn btn-success" onclick="alert('Upload plugin feature coming soon')">+ Upload Plugin</button>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <h2>Installed Plugins</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Plugin Name</th>
+                <th>Version</th>
+                <th>Author</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Payment.PayPalStandard</strong></td>
+                <td>1.0.0</td>
+                <td>nopCommerce</td>
+                <td><span style="color: #28a745;">✓ Active</span></td>
+                <td>
+                    <button class="btn btn-sm">Configure</button>
+                    <button class="btn btn-sm btn-secondary">Deactivate</button>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Shipping.FixedRate</strong></td>
+                <td>1.0.0</td>
+                <td>nopCommerce</td>
+                <td><span style="color: #28a745;">✓ Active</span></td>
+                <td>
+                    <button class="btn btn-sm">Configure</button>
+                    <button class="btn btn-sm btn-secondary">Deactivate</button>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Tax.FixedRate</strong></td>
+                <td>1.0.0</td>
+                <td>nopCommerce</td>
+                <td><span style="color: #666;">○ Inactive</span></td>
+                <td>
+                    <button class="btn btn-sm btn-success">Activate</button>
+                    <button class="btn btn-sm btn-danger">Uninstall</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Available Plugins</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+        <div style="border: 1px solid #ddd; padding: 15px; border-radius: 4px;">
+            <h3 style="margin-top: 0;">Widget.Slider</h3>
+            <p style="color: #666; font-size: 14px;">Homepage slider widget</p>
+            <button class="btn btn-sm btn-success">Install</button>
+        </div>
+        <div style="border: 1px solid #ddd; padding: 15px; border-radius: 4px;">
+            <h3 style="margin-top: 0;">Payment.Stripe</h3>
+            <p style="color: #666; font-size: 14px;">Stripe payment gateway</p>
+            <button class="btn btn-sm btn-success">Install</button>
+        </div>
+        <div style="border: 1px solid #ddd; padding: 15px; border-radius: 4px;">
+            <h3 style="margin-top: 0;">Shipping.UPS</h3>
+            <p style="color: #666; font-size: 14px;">UPS shipping integration</p>
+            <button class="btn btn-sm btn-success">Install</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Nop.Services</AssemblyName>
+    <RootNamespace>Nop.Services</RootNamespace>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <PackageReference Include="Autofac" Version="6.5.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nop.Core\Nop.Core.NetStandard.csproj" />
+    <ProjectReference Include="..\Nop.Data\Nop.Data.EfCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exclude System.Web dependent files -->
+    <Compile Remove="Web References\**" />
+    <!-- Include only .NET 8 service files -->
+    <Compile Include="Common\WebWorkContext.Net8.cs" />
+    <Compile Include="Common\IAddressService.Net8.cs" />
+    <Compile Include="Common\AddressService.Net8.cs" />
+    <Compile Include="Catalog\IProductService.Net8.cs" />
+    <Compile Include="Catalog\ProductService.Net8.cs" />
+    <Compile Include="Catalog\ICategoryService.Net8.cs" />
+    <Compile Include="Catalog\CategoryService.Net8.cs" />
+    <Compile Include="Catalog\IManufacturerService.Net8.cs" />
+    <Compile Include="Catalog\ManufacturerService.Net8.cs" />
+    <Compile Include="Customers\ICustomerService.Net8.cs" />
+    <Compile Include="Customers\CustomerService.Net8.cs" />
+    <Compile Include="Customers\IAuthenticationService.Net8.cs" />
+    <Compile Include="Customers\AuthenticationService.Net8.cs" />
+    <Compile Include="Orders\IShoppingCartService.Net8.cs" />
+    <Compile Include="Orders\ShoppingCartService.Net8.cs" />
+    <Compile Include="Orders\IOrderService.Net8.cs" />
+    <Compile Include="Orders\OrderService.Net8.cs" />
+    <Compile Include="News\INewsService.Net8.cs" />
+    <Compile Include="News\NewsService.Net8.cs" />
+    <Compile Include="Polls\IPollService.Net8.cs" />
+    <Compile Include="Polls\PollService.Net8.cs" />
+    <Compile Include="Messages\INewsLetterSubscriptionService.Net8.cs" />
+    <Compile Include="Messages\NewsLetterSubscriptionService.Net8.cs" />
+    <Compile Include="Stores\IStoreService.Net8.cs" />
+    <Compile Include="Stores\StoreService.Net8.cs" />
+    <Compile Include="Localization\ILanguageService.Net8.cs" />
+    <Compile Include="Localization\LanguageService.Net8.cs" />
+    <Compile Include="Directory\ICurrencyService.Net8.cs" />
+    <Compile Include="Directory\CurrencyService.Net8.cs" />
+    <Compile Include="Directory\ICountryService.Net8.cs" />
+    <Compile Include="Directory\CountryService.Net8.cs" />
+    <Compile Include="Shipping\IShippingService.Net8.cs" />
+    <Compile Include="Shipping\ShippingService.Net8.cs" />
+    <Compile Include="Payments\IPaymentService.Net8.cs" />
+    <Compile Include="Payments\PaymentService.Net8.cs" />
+    <Compile Include="Tax\ITaxService.Net8.cs" />
+    <Compile Include="Tax\TaxService.Net8.cs" />
+    <Compile Include="Discounts\IDiscountService.Net8.cs" />
+    <Compile Include="Discounts\DiscountService.Net8.cs" />
+    <Compile Include="Vendors\IVendorService.Net8.cs" />
+    <Compile Include="Vendors\VendorService.Net8.cs" />
+  </ItemGroup>
+
+</Project>

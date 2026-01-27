@@ -1,0 +1,12 @@
+{
+  "systemName": "Payments.PayPal",
+  "friendlyName": "PayPal Standard",
+  "version": "1.0.0",
+  "author": "nopCommerce team",
+  "description": "PayPal Standard payment processor plugin",
+  "assemblyName": "Nop.Plugin.Payments.PayPal.dll",
+  "supportedVersions": ["4.70"],
+  "dependencies": [],
+  "category": "Payment",
+  "displayOrder": 1
+}

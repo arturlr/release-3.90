@@ -1,0 +1,106 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultContentItems>false</EnableDefaultContentItems>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nop.Web.Framework\Nop.Web.Framework.Net8.csproj" />
+    <ProjectReference Include="..\..\Libraries\Nop.Data\Nop.Data.EfCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exclude old files, include only new .NET 8 files -->
+    <Compile Remove="**/*.cs" />
+    <Content Remove="Views\**\*.cshtml" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\ProductController.Net8.cs" />
+    <Compile Include="Controllers\ShoppingCartController.Net8.cs" />
+    <Compile Include="Controllers\CustomerController.Net8.cs" />
+    <Compile Include="Controllers\CheckoutController.Net8.cs" />
+    <Compile Include="Controllers\OrderController.Net8.cs" />
+    <Compile Include="Controllers\CatalogController.Net8.cs" />
+    <Compile Include="Controllers\CommonController.Net8.cs" />
+    <Compile Include="Controllers\TopicController.Net8.cs" />
+    <Compile Include="Controllers\AddressController.Net8.cs" />
+    <Compile Include="Controllers\NewsController.Net8.cs" />
+    <Compile Include="Controllers\PollController.Net8.cs" />
+    <Compile Include="Controllers\NewsletterController.Net8.cs" />
+    <Compile Include="Controllers\BlogController.Net8.cs" />
+    <Compile Include="Controllers\DownloadController.Net8.cs" />
+    <Compile Include="Controllers\WidgetController.Net8.cs" />
+    <Compile Include="Controllers\VendorController.Net8.cs" />
+    <Compile Include="Controllers\ReturnRequestController.Net8.cs" />
+    <Compile Include="Controllers\BackInStockSubscriptionController.Net8.cs" />
+    <Compile Include="Controllers\AdminController.Net8.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Views\_ViewStart.cshtml" />
+    <Content Include="Views\Shared\_Layout.cshtml" />
+    <Content Include="Views\Shared\_AdminLayout.cshtml" />
+    <Content Include="Views\Shared\_Notifications.cshtml" />
+    <Content Include="Views\Home\Index.cshtml" />
+    <Content Include="Views\Home\Error.cshtml" />
+    <Content Include="Views\Product\ProductDetails.cshtml" />
+    <Content Include="Views\Product\Search.cshtml" />
+    <Content Include="Views\Catalog\Index.cshtml" />
+    <Content Include="Views\Catalog\Category.cshtml" />
+    <Content Include="Views\ShoppingCart\Cart.cshtml" />
+    <Content Include="Views\ShoppingCart\Wishlist.cshtml" />
+    <Content Include="Views\Customer\Login.cshtml" />
+    <Content Include="Views\Customer\Register.cshtml" />
+    <Content Include="Views\Customer\Info.cshtml" />
+    <Content Include="Views\Checkout\Index.cshtml" />
+    <Content Include="Views\Checkout\BillingAddress.cshtml" />
+    <Content Include="Views\Checkout\ShippingAddress.cshtml" />
+    <Content Include="Views\Checkout\ShippingMethod.cshtml" />
+    <Content Include="Views\Checkout\PaymentMethod.cshtml" />
+    <Content Include="Views\Checkout\Confirm.cshtml" />
+    <Content Include="Views\Checkout\Completed.cshtml" />
+    <Content Include="Views\Order\CustomerOrders.cshtml" />
+    <Content Include="Views\Order\Details.cshtml" />
+    <Content Include="Views\News\List.cshtml" />
+    <Content Include="Views\News\NewsItem.cshtml" />
+    <Content Include="Views\Blog\List.cshtml" />
+    <Content Include="Views\Blog\BlogPost.cshtml" />
+    <Content Include="Views\Common\ContactUs.cshtml" />
+    <Content Include="Views\Common\Sitemap.cshtml" />
+    <Content Include="Views\Common\PageNotFound.cshtml" />
+    <Content Include="Views\Address\List.cshtml" />
+    <Content Include="Views\Address\Add.cshtml" />
+    <Content Include="Views\Topic\TopicDetails.cshtml" />
+    <Content Include="Views\Vendor\All.cshtml" />
+    <Content Include="Views\Vendor\Info.cshtml" />
+    <Content Include="Views\BackInStockSubscription\CustomerSubscriptions.cshtml" />
+    <Content Include="Views\ReturnRequest\CustomerReturnRequests.cshtml" />
+    <Content Include="Views\Admin\Index.cshtml" />
+    <Content Include="Views\Admin\ProductList.cshtml" />
+    <Content Include="Views\Admin\ProductEdit.cshtml" />
+    <Content Include="Views\Admin\CategoryList.cshtml" />
+    <Content Include="Views\Admin\CategoryEdit.cshtml" />
+    <Content Include="Views\Admin\ManufacturerList.cshtml" />
+    <Content Include="Views\Admin\ManufacturerEdit.cshtml" />
+    <Content Include="Views\Admin\OrderList.cshtml" />
+    <Content Include="Views\Admin\OrderEdit.cshtml" />
+    <Content Include="Views\Admin\CustomerList.cshtml" />
+    <Content Include="Views\Admin\CustomerEdit.cshtml" />
+    <Content Include="Views\Admin\NewsList.cshtml" />
+    <Content Include="Views\Admin\NewsEdit.cshtml" />
+    <Content Include="Views\Admin\Reports.cshtml" />
+    <Content Include="Views\Admin\Plugins.cshtml" />
+    <Content Include="Views\Admin\Settings.cshtml" />
+    <Content Include="Views\Admin\SystemLog.cshtml" />
+  </ItemGroup>
+
+</Project>

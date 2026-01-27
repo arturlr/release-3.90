@@ -1,0 +1,47 @@
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1>Dashboard</h1>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="label">Total Orders</div>
+        <div class="value">0</div>
+        <a href="/Admin/Order">View Orders →</a>
+    </div>
+    
+    <div class="stat-card">
+        <div class="label">Total Customers</div>
+        <div class="value">0</div>
+        <a href="/Admin/Customer">View Customers →</a>
+    </div>
+    
+    <div class="stat-card">
+        <div class="label">Total Products</div>
+        <div class="value">0</div>
+        <a href="/Admin/Product">View Products →</a>
+    </div>
+    
+    <div class="stat-card">
+        <div class="label">Revenue (Today)</div>
+        <div class="value">$0</div>
+        <a href="/Admin/Order">View Orders →</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Recent Orders</h2>
+    <p style="color: #666;">No recent orders</p>
+</div>
+
+<div class="card">
+    <h2>Quick Actions</h2>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="/Admin/Product/Create" class="btn btn-success">+ Add Product</a>
+        <a href="/Admin/Category/Create" class="btn btn-success">+ Add Category</a>
+        <a href="/Admin/Customer/List" class="btn">View Customers</a>
+        <a href="/Admin/Order/List" class="btn">View Orders</a>
+    </div>
+</div>

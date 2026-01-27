@@ -1,0 +1,35 @@
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "System Log";
+}
+
+<h1>System Log</h1>
+
+<div class="card">
+    <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+        <select style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <option>All Levels</option>
+            <option>Error</option>
+            <option>Warning</option>
+            <option>Information</option>
+        </select>
+        <button class="btn btn-secondary">Filter</button>
+        <button class="btn btn-danger" style="margin-left: auto;">Clear Log</button>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Level</th>
+                <th>Message</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td colspan="4" style="text-align: center; color: #666;">No log entries</td>
+            </tr>
+        </tbody>
+    </table>
+</div>

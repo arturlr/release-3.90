@@ -1,40 +1,28 @@
-﻿@model CheckoutCompletedModel
-@using Nop.Web.Models.Checkout;
 @{
-    Layout = "~/Views/Shared/_ColumnsOne.cshtml";
-
-    //title
-    Html.AddTitleParts(T("PageTitle.Checkout").Text);
-    //page class
-    Html.AppendPageCssClassParts("html-checkout-page");
-    Html.AppendPageCssClassParts("html-order-completed-page");
+    ViewData["Title"] = "Order Completed";
+    var orderId = Context.Request.Query["orderId"].ToString();
 }
-<div class="page checkout-page order-completed-page">
-    @if (!Model.OnePageCheckoutEnabled)
+
+<div style="text-align: center; padding: 3rem 0;">
+    <div style="font-size: 4rem; color: #28a745; margin-bottom: 1rem;">✓</div>
+    <h1 style="margin-bottom: 1rem;">Thank You!</h1>
+    <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">Your order has been placed successfully</p>
+    
+    @if (!string.IsNullOrEmpty(orderId))
     {
-        @Html.Action("CheckoutProgress", "Checkout", new { step = CheckoutProgressStep.Complete })
-    }
-    <div class="page-title">
-        <h1>@T("Checkout.ThankYou")</h1>
-    </div>
-    <div class="page-body checkout-data">
-        @Html.Widget("checkout_completed_top", Model.OrderId)
-        <div class="section order-completed">
-            <div class="title">
-                <strong>@T("Checkout.YourOrderHasBeenSuccessfullyProcessed")</strong>
-            </div>
-            <div class="details">
-                <div class="order-number">
-                    <strong>@T("Checkout.OrderNumber"): @Model.CustomOrderNumber</strong>
-                </div>
-                <div class="details-link">
-                    <a href="@Url.RouteUrl("OrderDetails", new { orderID = Model.OrderId })">@T("Checkout.PlacedOrderDetails")</a>
-                </div>
-            </div>
-            <div class="buttons">
-                <input type="button" value="@T("Checkout.ThankYou.Continue")" class="button-1 order-completed-continue-button" onclick="setLocation('@Url.RouteUrl("HomePage")')" />
-            </div>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 4px; max-width: 500px; margin: 0 auto 2rem;">
+            <p style="margin-bottom: 10px;">Order Number:</p>
+            <p style="font-size: 1.5rem; font-weight: bold; color: #007bff;">#@orderId</p>
         </div>
-        @Html.Widget("checkout_completed_bottom", Model.OrderId)
+    }
+    
+    <p style="color: #666; margin-bottom: 2rem;">
+        We've sent a confirmation email to your email address.<br />
+        You can track your order status in your account.
+    </p>
+    
+    <div style="display: flex; gap: 10px; justify-content: center;">
+        <a href="/Order/CustomerOrders" class="btn">View Orders</a>
+        <a href="/Catalog" class="btn btn-secondary">Continue Shopping</a>
     </div>
 </div>

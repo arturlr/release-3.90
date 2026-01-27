@@ -1,102 +1,49 @@
-﻿@model SitemapModel
-@using Nop.Web.Models.Common;
 @{
-    Layout = "~/Views/Shared/_ColumnsOne.cshtml";
-
-    //title
-    Html.AddTitleParts(T("PageTitle.Sitemap").Text);
-    //page class
-    Html.AppendPageCssClassParts("html-sitemap-page");
+    ViewData["Title"] = "Sitemap";
 }
-<div class="page sitemap-page">
-    <div class="page-title">
-        <h1>@T("Sitemap")</h1>
+
+<h1 style="margin-bottom: 2rem;">Sitemap</h1>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 30px;">
+    <div>
+        <h3 style="margin-bottom: 1rem; color: #007bff;">Shop</h3>
+        <ul style="list-style: none; line-height: 2;">
+            <li><a href="/Catalog">Catalog</a></li>
+            <li><a href="/Product/Search">Search</a></li>
+            <li><a href="/ShoppingCart/Cart">Shopping Cart</a></li>
+            <li><a href="/ShoppingCart/Wishlist">Wishlist</a></li>
+            <li><a href="/Vendor/All">Vendors</a></li>
+        </ul>
     </div>
-    <div class="page-body">
-        <div class="description">
-            @T("Sitemap.Description")
-        </div>
-        @Html.Widget("sitemap_before")
-        <div class="entity">
-            <div class="entity-title">
-                <h2>@T("Sitemap.General")</h2>
-            </div>
-            <div class="entity-body">
-                <ul>
-                    <li><a href="@Url.RouteUrl("HomePage")">@T("HomePage")</a></li>
-                    <li><a href="@Url.RouteUrl("ProductSearch")">@T("Search")</a></li>
-                    @if (Model.NewsEnabled)
-                    {
-                        <li><a href="@Url.RouteUrl("NewsArchive")">@T("News")</a></li>
-                    }
-                    @if (Model.BlogEnabled)
-                    {
-                        <li><a href="@Url.RouteUrl("Blog")">@T("Blog")</a></li>
-                    }
-                    @if (Model.ForumEnabled)
-                    {
-                        <li><a href="@Url.RouteUrl("Boards")">@T("Forum.Forums")</a></li>
-                    }
-                    <li><a href="@Url.RouteUrl("ContactUs")">@T("ContactUs")</a></li>
-                    <li><a href="@Url.RouteUrl("CustomerInfo")">@T("Account.MyAccount")</a></li>
-                    @if (Model.Topics.Count > 0)
-                    {
-                        foreach (var item in Model.Topics)
-                        {
-                            <li><a href="@Url.RouteUrl("Topic", new {Sename = Html.GetTopicSeName(item.SystemName)})">@item.Title</a></li>
-                        }
-                    }
-                </ul>
-            </div>
-        </div>
-        @if (Model.Categories.Count > 0)
-        {
-            <div class="entity">
-                <div class="entity-title">
-                    <h2>@T("Sitemap.Categories")</h2>
-                </div>
-                <div class="entity-body">
-                    <ul>
-                        @foreach (var category in Model.Categories)
-                        { 
-                            <li><a href="@Url.RouteUrl("Category", new { SeName = category.SeName })">@category.Name</a></li>
-                        }
-                    </ul>
-                </div>
-            </div>
-        }
-        @if (Model.Manufacturers.Count > 0)
-        {
-            <div class="entity">
-                <div class="entity-title">
-                    <h2>@T("Sitemap.Manufacturers")</h2>
-                </div>
-                <div class="entity-body">
-                    <ul>
-                        @foreach (var manufacturer in Model.Manufacturers)
-                        { 
-                            <li><a href="@Url.RouteUrl("Manufacturer", new { SeName = manufacturer.SeName })">@manufacturer.Name</a></li>
-                        }
-                    </ul>
-                </div>
-            </div>
-        }
-        @if (Model.Products.Count > 0)
-        {
-            <div class="entity">
-                <div class="entity-title">
-                    <h2>@T("Sitemap.Products")</h2>
-                </div>
-                <div class="entity-body">
-                    <ul>
-                        @foreach (var product in Model.Products)
-                        { 
-                            <li><a href="@Url.RouteUrl("Product", new { SeName = product.SeName })">@product.Name</a></li>
-                        }
-                    </ul>
-                </div>
-            </div>
-        }
-        @Html.Widget("sitemap_after")
+
+    <div>
+        <h3 style="margin-bottom: 1rem; color: #007bff;">Account</h3>
+        <ul style="list-style: none; line-height: 2;">
+            <li><a href="/Customer/Login">Login</a></li>
+            <li><a href="/Customer/Register">Register</a></li>
+            <li><a href="/Customer/Info">My Account</a></li>
+            <li><a href="/Order/CustomerOrders">My Orders</a></li>
+            <li><a href="/Address/List">My Addresses</a></li>
+        </ul>
+    </div>
+
+    <div>
+        <h3 style="margin-bottom: 1rem; color: #007bff;">Content</h3>
+        <ul style="list-style: none; line-height: 2;">
+            <li><a href="/News">News</a></li>
+            <li><a href="/Blog">Blog</a></li>
+            <li><a href="/Topic/TopicDetails/about-us">About Us</a></li>
+            <li><a href="/Common/ContactUs">Contact Us</a></li>
+        </ul>
+    </div>
+
+    <div>
+        <h3 style="margin-bottom: 1rem; color: #007bff;">Information</h3>
+        <ul style="list-style: none; line-height: 2;">
+            <li><a href="/Topic/TopicDetails/privacy">Privacy Policy</a></li>
+            <li><a href="/Topic/TopicDetails/terms">Terms of Service</a></li>
+            <li><a href="/Topic/TopicDetails/shipping">Shipping Info</a></li>
+            <li><a href="/Topic/TopicDetails/returns">Returns</a></li>
+        </ul>
     </div>
 </div>

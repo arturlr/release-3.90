@@ -1,0 +1,47 @@
+@model IList<Nop.Core.Domain.Customers.Customer>
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Customers";
+}
+
+<h1>Customers</h1>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Username</th>
+                <th>Active</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model == null || !Model.Any())
+            {
+                <tr>
+                    <td colspan="6" style="text-align: center; color: #666;">No customers found</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var customer in Model)
+                {
+                    <tr>
+                        <td>@customer.Id</td>
+                        <td><strong>@customer.Email</strong></td>
+                        <td>@customer.Username</td>
+                        <td>@(customer.Active ? "✓ Yes" : "✗ No")</td>
+                        <td>@customer.CreatedOnUtc.ToString("MMM dd, yyyy")</td>
+                        <td>
+                            <a href="/Admin/Customer/Edit/@customer.Id" class="btn btn-sm">Edit</a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

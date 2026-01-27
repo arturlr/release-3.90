@@ -1,0 +1,49 @@
+@model Nop.Core.Domain.Catalog.Product
+
+@{
+    ViewData["Title"] = Model?.Name ?? "Product";
+}
+
+@if (Model == null)
+{
+    <div class="alert alert-error">Product not found</div>
+}
+else
+{
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 2rem;">
+        <div>
+            <div style="border: 1px solid #ddd; padding: 20px; text-align: center; background: #f8f9fa;">
+                <p style="color: #999; font-size: 3rem;">📷</p>
+                <p style="color: #666;">Product Image</p>
+            </div>
+        </div>
+        <div>
+            <h1 style="margin-bottom: 1rem;">@Model.Name</h1>
+            <div class="price" style="font-size: 2rem; color: #007bff; margin: 1rem 0;">$@Model.Price</div>
+            
+            @if (!string.IsNullOrEmpty(Model.ShortDescription))
+            {
+                <p style="margin: 1rem 0; color: #666;">@Model.ShortDescription</p>
+            }
+            
+            <form method="post" action="/ShoppingCart/AddProductToCart" style="margin-top: 2rem;">
+                <input type="hidden" name="productId" value="@Model.Id" />
+                <div class="form-group">
+                    <label>Quantity:</label>
+                    <input type="number" name="quantity" value="1" min="1" style="width: 100px;" />
+                </div>
+                <button type="submit" class="btn" style="font-size: 1.1rem; padding: 12px 30px;">Add to Cart</button>
+            </form>
+        </div>
+    </div>
+    
+    @if (!string.IsNullOrEmpty(Model.FullDescription))
+    {
+        <div style="margin-top: 3rem;">
+            <h2>Description</h2>
+            <div style="margin-top: 1rem; line-height: 1.8;">
+                @Html.Raw(Model.FullDescription)
+            </div>
+        </div>
+    }
+}

@@ -1,0 +1,78 @@
+@model Nop.Core.Domain.Customers.Customer
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Edit Customer";
+}
+
+<div style="margin-bottom: 20px;">
+    <a href="/Admin/Customer" style="color: #3498db;">&larr; Back to Customers</a>
+</div>
+
+<h1>Edit Customer</h1>
+
+<div class="card">
+    <form method="post" action="/Admin/Customer/Edit">
+        <input type="hidden" name="id" value="@Model?.Id" />
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label>Email *</label>
+                <input type="email" name="email" value="@Model?.Email" required />
+            </div>
+            
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" value="@Model?.Username" />
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="active" value="true" @(Model?.Active == true ? "checked" : "") />
+                Active
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label>Customer Roles</label>
+            <div style="border: 1px solid #ddd; padding: 15px; border-radius: 4px;">
+                <label style="display: block; margin-bottom: 5px;">
+                    <input type="checkbox" name="roles" value="Administrators" />
+                    Administrators
+                </label>
+                <label style="display: block; margin-bottom: 5px;">
+                    <input type="checkbox" name="roles" value="Registered" checked />
+                    Registered
+                </label>
+                <label style="display: block;">
+                    <input type="checkbox" name="roles" value="Guests" />
+                    Guests
+                </label>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success">Save</button>
+            <a href="/Admin/Customer" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Customer Statistics</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div>
+            <strong>Total Orders:</strong><br />
+            <span style="font-size: 1.5rem; color: #3498db;">0</span>
+        </div>
+        <div>
+            <strong>Total Spent:</strong><br />
+            <span style="font-size: 1.5rem; color: #27ae60;">$0.00</span>
+        </div>
+        <div>
+            <strong>Last Activity:</strong><br />
+            <span style="font-size: 0.9rem;">@Model?.LastActivityDateUtc.ToString("MMM dd, yyyy")</span>
+        </div>
+    </div>
+</div>

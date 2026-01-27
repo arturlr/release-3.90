@@ -1,0 +1,72 @@
+@model Nop.Core.Domain.Catalog.Product
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = Model?.Id > 0 ? "Edit Product" : "Create Product";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<div class="card">
+    <form method="post" action="/Admin/Product/@(Model?.Id > 0 ? "Edit" : "Create")">
+        @if (Model?.Id > 0)
+        {
+            <input type="hidden" name="id" value="@Model.Id" />
+        }
+        
+        <div class="form-group">
+            <label>Product Name *</label>
+            <input type="text" name="name" value="@Model?.Name" required />
+        </div>
+        
+        <div class="form-group">
+            <label>Short Description</label>
+            <textarea name="shortDescription" rows="3">@Model?.ShortDescription</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Full Description</label>
+            <textarea name="fullDescription" rows="6">@Model?.FullDescription</textarea>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label>Price *</label>
+                <input type="number" name="price" value="@Model?.Price" step="0.01" required />
+            </div>
+            
+            <div class="form-group">
+                <label>Old Price</label>
+                <input type="number" name="oldPrice" value="@Model?.OldPrice" step="0.01" />
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label>SKU</label>
+                <input type="text" name="sku" value="@Model?.Sku" />
+            </div>
+            
+            <div class="form-group">
+                <label>Stock Quantity</label>
+                <input type="number" name="stockQuantity" value="@Model?.StockQuantity" />
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="published" value="true" @(Model?.Published == true ? "checked" : "") />
+                Published
+            </label>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success">Save</button>
+            <a href="/Admin/Product" class="btn btn-secondary">Cancel</a>
+            @if (Model?.Id > 0)
+            {
+                <button type="submit" formaction="/Admin/Product/Delete/@Model.Id" class="btn btn-danger" onclick="return confirm('Delete this product?')">Delete</button>
+            }
+        </div>
+    </form>
+</div>

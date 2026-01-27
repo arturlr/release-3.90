@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin - nopCommerce</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f5f5f5; }
+        
+        /* Admin Header */
+        .admin-header { background: #1a1a1a; color: #fff; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .admin-header h1 { font-size: 1.3rem; }
+        .admin-header h1 a { color: #fff; text-decoration: none; }
+        .admin-header .user-menu { display: flex; gap: 15px; align-items: center; }
+        .admin-header .user-menu a { color: #fff; text-decoration: none; padding: 8px 12px; border-radius: 4px; }
+        .admin-header .user-menu a:hover { background: rgba(255,255,255,0.1); }
+        
+        /* Admin Layout */
+        .admin-container { display: flex; min-height: calc(100vh - 60px); }
+        
+        /* Sidebar */
+        .admin-sidebar { width: 250px; background: #2c2c2c; color: #fff; padding: 20px 0; }
+        .admin-sidebar nav a { display: block; color: #ccc; text-decoration: none; padding: 12px 20px; transition: all 0.2s; }
+        .admin-sidebar nav a:hover, .admin-sidebar nav a.active { background: #3a3a3a; color: #fff; border-left: 3px solid #3498db; }
+        .admin-sidebar .menu-section { margin-top: 20px; }
+        .admin-sidebar .menu-section h3 { color: #888; font-size: 0.8rem; text-transform: uppercase; padding: 0 20px; margin-bottom: 10px; }
+        
+        /* Main Content */
+        .admin-content { flex: 1; padding: 30px; }
+        .admin-content h1 { margin-bottom: 20px; color: #333; }
+        
+        /* Cards */
+        .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card h2 { margin-bottom: 15px; color: #333; font-size: 1.2rem; }
+        
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-card .value { font-size: 2rem; font-weight: bold; color: #3498db; margin: 10px 0; }
+        .stat-card .label { color: #666; font-size: 0.9rem; }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; background: #fff; }
+        table th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; }
+        table td { padding: 12px; border-bottom: 1px solid #dee2e6; }
+        table tr:hover { background: #f8f9fa; }
+        
+        /* Buttons */
+        .btn { display: inline-block; padding: 10px 20px; background: #3498db; color: #fff; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; }
+        .btn:hover { background: #2980b9; }
+        .btn-success { background: #27ae60; }
+        .btn-success:hover { background: #229954; }
+        .btn-danger { background: #e74c3c; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-secondary { background: #95a5a6; }
+        .btn-secondary:hover { background: #7f8c8d; }
+        .btn-sm { padding: 6px 12px; font-size: 0.9rem; }
+        
+        /* Forms */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: #3498db; }
+        
+        /* Alerts */
+        .alert { padding: 12px 20px; margin-bottom: 20px; border-radius: 4px; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <h1><a href="/Admin">⚙️ Admin Panel</a></h1>
+        <div class="user-menu">
+            <a href="/">🏠 View Store</a>
+            <a href="/Admin/Logout">Logout</a>
+        </div>
+    </div>
+    
+    <div class="admin-container">
+        <aside class="admin-sidebar">
+            <nav>
+                <a href="/Admin" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">📊 Dashboard</a>
+                
+                <div class="menu-section">
+                    <h3>Catalog</h3>
+                    <a href="/Admin/Product">Products</a>
+                    <a href="/Admin/Category">Categories</a>
+                    <a href="/Admin/Manufacturer">Manufacturers</a>
+                </div>
+                
+                <div class="menu-section">
+                    <h3>Sales</h3>
+                    <a href="/Admin/Order">Orders</a>
+                    <a href="/Admin/Customer">Customers</a>
+                </div>
+                
+                <div class="menu-section">
+                    <h3>Content</h3>
+                    <a href="/Admin/News">News</a>
+                    <a href="/Admin/Blog">Blog</a>
+                    <a href="/Admin/Topic">Topics</a>
+                </div>
+                
+                <div class="menu-section">
+                    <h3>Configuration</h3>
+                    <a href="/Admin/Setting">Settings</a>
+                    <a href="/Admin/Plugin">Plugins</a>
+                </div>
+                
+                <div class="menu-section">
+                    <h3>System</h3>
+                    <a href="/Admin/Log">System Log</a>
+                    <a href="/Admin/SystemInfo">System Info</a>
+                </div>
+            </nav>
+        </aside>
+        
+        <main class="admin-content">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-error">@TempData["ErrorMessage"]</div>
+            }
+            
+            @RenderBody()
+        </main>
+    </div>
+</body>
+</html>

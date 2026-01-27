@@ -1,0 +1,18 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Nop.Core.Domain.Forums;
+
+namespace Nop.Data.Mapping.Forums
+{
+    public partial class ForumTopicMap : NopEntityTypeConfiguration<ForumTopic>
+    {
+        public override void Configure(EntityTypeBuilder<ForumTopic> builder)
+        {
+            builder.ToTable("Forums_Topic");
+            builder.HasKey(ft => ft.Id);
+            builder.Property(ft => ft.Subject).IsRequired().HasMaxLength(450);
+            builder.HasOne(ft => ft.Forum).WithMany().HasForeignKey(ft => ft.ForumId).IsRequired();
+            base.Configure(builder);
+        }
+    }
+}

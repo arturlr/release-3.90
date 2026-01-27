@@ -1,0 +1,49 @@
+@model IList<Nop.Core.Domain.Catalog.Manufacturer>
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Manufacturers";
+}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>Manufacturers</h1>
+    <a href="/Admin/Manufacturer/Create" class="btn btn-success">+ Add New Manufacturer</a>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Display Order</th>
+                <th>Published</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model == null || !Model.Any())
+            {
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #666;">No manufacturers found</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var manufacturer in Model)
+                {
+                    <tr>
+                        <td>@manufacturer.Id</td>
+                        <td><strong>@manufacturer.Name</strong></td>
+                        <td>@manufacturer.DisplayOrder</td>
+                        <td>@(manufacturer.Published ? "✓ Yes" : "✗ No")</td>
+                        <td>
+                            <a href="/Admin/Manufacturer/Edit/@manufacturer.Id" class="btn btn-sm">Edit</a>
+                            <a href="/Manufacturer/@manufacturer.Id" class="btn btn-sm btn-secondary" target="_blank">View</a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

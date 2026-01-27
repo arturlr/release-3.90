@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>Nop.Core</AssemblyName>
+    <RootNamespace>Nop.Core</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Autofac" Version="6.5.0" />
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="AutoMapper" Version="10.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="StackExchange.Redis" Version="2.6.122" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
+    <PackageReference Include="System.Text.Json" Version="6.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exclude System.Web dependent files -->
+    <Compile Remove="Fakes\**" />
+    <Compile Remove="WebHelper.cs" />
+    <Compile Remove="Infrastructure\WebAppTypeFinder.cs" />
+    <Compile Remove="Infrastructure\NopStarter.cs" />
+    <Compile Remove="Infrastructure\EngineContext.cs" />
+    <Compile Remove="Plugins\PluginManager.cs" />
+    <Compile Remove="Plugins\PluginDescriptor.cs" />
+    <Compile Remove="Plugins\PluginLoadContext.cs" />
+    <Compile Remove="Plugins\PluginLoader.cs" />
+    <Compile Remove="Plugins\PluginFinder.cs" />
+    <Compile Remove="Plugins\PluginServiceExtensions.cs" />
+    <Compile Remove="Plugins\PluginExtensions.cs" />
+    <Compile Remove="Plugins\BasePlugin.cs" />
+    <Compile Remove="Plugins\PluginFileParser.cs" />
+    <Compile Remove="Caching\MemoryCacheManager.cs" />
+    <Compile Remove="Caching\PerRequestCacheManager.cs" />
+    <Compile Remove="Caching\RedisConnectionWrapper.cs" />
+    <Compile Remove="Caching\RedisCacheManager.cs" />
+    <Compile Remove="CommonHelper.cs" />
+    <Compile Remove="Configuration\NopConfig.cs" />
+    <Compile Remove="Infrastructure\DependencyManagement\ContainerManager.cs" />
+    <Compile Remove="Infrastructure\NopEngine.cs" />
+    <Compile Remove="Infrastructure\IEngine.cs" />
+    <Compile Remove="Infrastructure\DependencyManagement\IDependencyRegistrar.cs" />
+    <Compile Remove="IWebHelper.cs" />
+    <Compile Remove="Data\DataSettingsManager.cs" />
+    <Compile Remove="Data\DataSettingsHelper.cs" />
+    <Compile Remove="Html\BBCodeHelper.cs" />
+    <Compile Remove="Html\HtmlHelper.cs" />
+  </ItemGroup>
+
+</Project>

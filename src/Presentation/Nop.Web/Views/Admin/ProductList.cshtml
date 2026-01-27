@@ -1,0 +1,49 @@
+@model IList<Nop.Core.Domain.Catalog.Product>
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Products";
+}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>Products</h1>
+    <a href="/Admin/Product/Create" class="btn btn-success">+ Add New Product</a>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Published</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model == null || !Model.Any())
+            {
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #666;">No products found</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var product in Model)
+                {
+                    <tr>
+                        <td>@product.Id</td>
+                        <td><strong>@product.Name</strong></td>
+                        <td>$@product.Price</td>
+                        <td>@(product.Published ? "✓ Yes" : "✗ No")</td>
+                        <td>
+                            <a href="/Admin/Product/Edit/@product.Id" class="btn btn-sm">Edit</a>
+                            <a href="/Product/ProductDetails/@product.Id" class="btn btn-sm btn-secondary" target="_blank">View</a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

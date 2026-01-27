@@ -1,0 +1,31 @@
+@model IList<Nop.Core.Domain.Catalog.Category>
+
+@{
+    ViewData["Title"] = "Catalog";
+}
+
+<h1 style="margin-bottom: 2rem;">Browse Categories</h1>
+
+@if (Model == null || !Model.Any())
+{
+    <p>No categories available.</p>
+}
+else
+{
+    <div class="product-grid">
+        @foreach (var category in Model)
+        {
+            <div class="product-item">
+                <div style="text-align: center; padding: 20px; background: #f8f9fa; margin-bottom: 10px;">
+                    <p style="font-size: 2rem;">📁</p>
+                </div>
+                <h3>@category.Name</h3>
+                @if (!string.IsNullOrEmpty(category.Description))
+                {
+                    <p style="color: #666; margin: 10px 0;">@category.Description</p>
+                }
+                <a href="/Category/@category.Id" class="btn">View Products</a>
+            </div>
+        }
+    </div>
+}

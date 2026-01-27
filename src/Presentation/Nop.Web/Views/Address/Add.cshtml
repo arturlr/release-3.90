@@ -1,0 +1,48 @@
+@{
+    ViewData["Title"] = "Add Address";
+}
+
+<div style="max-width: 600px; margin: 0 auto;">
+    <div style="margin-bottom: 2rem;">
+        <a href="/Address/List" style="color: #007bff;">&larr; Back to Addresses</a>
+    </div>
+
+    <h1 style="margin-bottom: 2rem;">Add New Address</h1>
+    
+    <form method="post" action="/Address/Add">
+        <div class="form-group">
+            <label>First Name:</label>
+            <input type="text" name="firstName" required />
+        </div>
+        
+        <div class="form-group">
+            <label>Last Name:</label>
+            <input type="text" name="lastName" required />
+        </div>
+        
+        <div class="form-group">
+            <label>Address Line 1:</label>
+            <input type="text" name="address1" required />
+        </div>
+        
+        <div class="form-group">
+            <label>Address Line 2:</label>
+            <input type="text" name="address2" />
+        </div>
+        
+        <div class="form-group">
+            <label>City:</label>
+            <input type="text" name="city" required />
+        </div>
+        
+        <div class="form-group">
+            <label>Zip/Postal Code:</label>
+            <input type="text" name="zip" required />
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn" style="flex: 1;">Save Address</button>
+            <a href="/Address/List" class="btn btn-secondary" style="flex: 1; text-align: center;">Cancel</a>
+        </div>
+    </form>
+</div>

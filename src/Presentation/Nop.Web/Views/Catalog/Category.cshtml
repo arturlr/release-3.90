@@ -1,0 +1,41 @@
+@model (Nop.Core.Domain.Catalog.Category Category, IList<Nop.Core.Domain.Catalog.Product> Products)
+
+@{
+    ViewData["Title"] = Model.Category?.Name ?? "Category";
+}
+
+<div style="margin-bottom: 2rem;">
+    <a href="/Catalog" style="color: #007bff;">&larr; Back to Categories</a>
+</div>
+
+<h1 style="margin-bottom: 1rem;">@Model.Category?.Name</h1>
+
+@if (!string.IsNullOrEmpty(Model.Category?.Description))
+{
+    <p style="color: #666; margin-bottom: 2rem;">@Model.Category.Description</p>
+}
+
+@if (Model.Products == null || !Model.Products.Any())
+{
+    <p>No products found in this category.</p>
+}
+else
+{
+    <div class="product-grid">
+        @foreach (var product in Model.Products)
+        {
+            <div class="product-item">
+                <div style="text-align: center; padding: 20px; background: #f8f9fa; margin-bottom: 10px;">
+                    <p style="font-size: 2rem;">📦</p>
+                </div>
+                <h3>@product.Name</h3>
+                @if (!string.IsNullOrEmpty(product.ShortDescription))
+                {
+                    <p style="color: #666; margin: 10px 0; font-size: 0.9rem;">@product.ShortDescription</p>
+                }
+                <div class="price">$@product.Price</div>
+                <a href="/Product/ProductDetails/@product.Id" class="btn">View Details</a>
+            </div>
+        }
+    </div>
+}

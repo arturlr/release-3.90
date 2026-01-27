@@ -1,0 +1,48 @@
+@model IList<Nop.Core.Domain.Catalog.Product>
+
+@{
+    ViewData["Title"] = "Search Results";
+    var query = Context.Request.Query["q"].ToString();
+}
+
+<h1 style="margin-bottom: 1rem;">Search Results</h1>
+<p style="color: #666; margin-bottom: 2rem;">Showing results for: <strong>@query</strong></p>
+
+@if (Model == null || !Model.Any())
+{
+    <div style="text-align: center; padding: 3rem 0;">
+        <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">No products found matching your search</p>
+        <a href="/Catalog" class="btn">Browse Catalog</a>
+    </div>
+}
+else
+{
+    <p style="margin-bottom: 2rem;">Found @Model.Count product(s)</p>
+    
+    <div class="product-grid">
+        @foreach (var product in Model)
+        {
+            <div class="product-item">
+                <div style="text-align: center; padding: 20px; background: #f8f9fa; margin-bottom: 10px;">
+                    <p style="font-size: 2rem;">📦</p>
+                </div>
+                <h3>@product.Name</h3>
+                @if (!string.IsNullOrEmpty(product.ShortDescription))
+                {
+                    <p style="color: #666; margin: 10px 0; font-size: 0.9rem;">@product.ShortDescription</p>
+                }
+                <div class="price">$@product.Price</div>
+                <a href="/Product/ProductDetails/@product.Id" class="btn">View Details</a>
+            </div>
+        }
+    </div>
+}
+
+<div style="margin-top: 2rem;">
+    <form method="get" action="/Product/Search" style="max-width: 600px;">
+        <div style="display: flex; gap: 10px;">
+            <input type="text" name="q" value="@query" placeholder="Search products..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" />
+            <button type="submit" class="btn">Search</button>
+        </div>
+    </form>
+</div>

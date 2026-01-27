@@ -1,23 +1,44 @@
-﻿@{
-    Layout = "~/Views/Shared/_ColumnsOne.cshtml";
-
-    //page class
-    Html.AppendPageCssClassParts("html-home-page");
+@{
+    ViewData["Title"] = "Home";
 }
-<div class="page home-page">
-    <div class="page-body">
-        @Html.Widget("home_page_top")
-        @Html.Action("TopicBlock", "Topic", new { systemName = "HomePageText" })
-        @Html.Widget("home_page_before_categories")
-        @Html.Action("HomepageCategories", "Catalog")
-        @Html.Widget("home_page_before_products")
-        @Html.Action("HomepageProducts", "Product")
-        @Html.Widget("home_page_before_best_sellers")
-        @Html.Action("HomepageBestSellers", "Product")
-        @Html.Widget("home_page_before_news")
-        @Html.Action("HomePageNews", "News")
-        @Html.Widget("home_page_before_poll")
-        @Html.Action("HomePagePolls", "Poll")
-        @Html.Widget("home_page_bottom")
+
+<div style="text-align: center; padding: 3rem 0;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Welcome to nopCommerce</h1>
+    <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">Your one-stop shop for everything</p>
+    <a href="/Catalog" class="btn" style="font-size: 1.1rem; padding: 15px 30px;">Shop Now</a>
+</div>
+
+<div style="margin-top: 3rem;">
+    <h2 style="margin-bottom: 1.5rem;">Featured Categories</h2>
+    <div class="product-grid">
+        <div class="product-item">
+            <h3>Electronics</h3>
+            <p>Latest gadgets and devices</p>
+            <a href="/Category/1" class="btn">Browse</a>
+        </div>
+        <div class="product-item">
+            <h3>Clothing</h3>
+            <p>Fashion for everyone</p>
+            <a href="/Category/2" class="btn">Browse</a>
+        </div>
+        <div class="product-item">
+            <h3>Books</h3>
+            <p>Expand your knowledge</p>
+            <a href="/Category/3" class="btn">Browse</a>
+        </div>
+        <div class="product-item">
+            <h3>Home & Garden</h3>
+            <p>Everything for your home</p>
+            <a href="/Category/4" class="btn">Browse</a>
+        </div>
+    </div>
+</div>
+
+<div style="margin-top: 3rem;">
+    <h2 style="margin-bottom: 1.5rem;">Latest News</h2>
+    <div style="border: 1px solid #ddd; padding: 20px; border-radius: 4px;">
+        <h3>Welcome to our new store!</h3>
+        <p style="color: #666; margin: 10px 0;">We're excited to announce the launch of our new online store...</p>
+        <a href="/News">Read more</a>
     </div>
 </div>
