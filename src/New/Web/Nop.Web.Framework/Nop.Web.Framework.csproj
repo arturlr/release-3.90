@@ -3,6 +3,9 @@
     <RootNamespace>Nop.Web.Framework</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\Core\Nop.Core\Nop.Core.csproj" />
     <ProjectReference Include="..\..\Services\Nop.Services\Nop.Services.csproj" />
   </ItemGroup>

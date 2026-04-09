@@ -115,10 +115,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1
   - Done: 2026-04-09. ISettingService (async-first), SettingService (cached dictionary, TypeDescriptor serialization, prefix-based invalidation, event publishing). SettingExtensions (key from expression). 29 Settings POCOs in Nop.Core/Domain/ (BlogSettings, CatalogSettings, ProductEditorSettings, WidgetSettings, AddressSettings, AdminAreaSettings, CommonSettings, DisplayDefaultMenuItemSettings, PdfSettings, CustomerSettings, ExternalAuthenticationSettings, RewardPointsSettings, CurrencySettings, MeasureSettings, ForumSettings, LocalizationSettings, MediaSettings, EmailAccountSettings, MessageTemplatesSettings, NewsSettings, OrderSettings, ShoppingCartSettings, PaymentSettings, SecuritySettings, SeoSettings, ShippingSettings, StoreInformationSettings, TaxSettings, VendorSettings).
 
-- [ ] [3.2] Store services — IStoreService, IStoreMappingService, IStoreContext
+- [x] [3.2] Store services — IStoreService, IStoreMappingService, IStoreContext
   - Spec: specs/svc-stores.md
   - Scope: Nop.Services/Stores
   - Depends on: 1.5, 2.1
+  - Done: 2026-04-09. IStoreService/StoreService (cached CRUD, prefix invalidation, event publishing). IStoreMappingService/StoreMappingService (entity-store mapping, cached GetStoreIdsWithAccess, Authorize with CatalogSettings.IgnoreStoreLimitations bypass). WebStoreContext in Nop.Web.Framework (IHttpContextAccessor host resolution, per-request caching). StoreExtensions.ContainsHostValue replaced with private static ContainsHost method. FrameworkReference added to Web.Framework csproj.
 
 - [ ] [3.3] Directory services — ICountryService, IStateProvinceService, ICurrencyService, IMeasureService, IGeoLookupService
   - Spec: specs/svc-directory.md

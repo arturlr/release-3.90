@@ -641,3 +641,32 @@ Performed exhaustive verification across all dimensions:
 - [4.1] Customer services: `CustomerCustomerRoleMapping` repository available for role management
 - [8.x] Data migration: must handle TripleDES→AES re-encryption of sensitive data
 - Any service needing customer roles must inject `IRepository<CustomerCustomerRoleMapping>` — this is a cross-cutting pattern
+
+## 2026-04-09 — [3.2] Store Services / Implementation
+
+### StoreExtensions Eliminated
+- Legacy `StoreExtensions.ParseHostValues()` and `ContainsHostValue()` were extension methods on `Store` entity in `Nop.Core.Domain.Stores`
+- New code uses a private static `ContainsHost(Store, string)` method inside `WebStoreContext` — no extension method needed since host matching is only used during store resolution
+- Uses `StringSplitOptions.TrimEntries` (modern .NET) instead of manual `.Trim()` loop
+
+### WebStoreContext Sync-over-Async Pattern
+- `IStoreContext.CurrentStore` is a sync property (matching legacy contract used by `StoreMappingService.Authorize` and many other consumers)
+- `IStoreService.GetAllStoresAsync()` is async — `WebStoreContext` uses `.GetAwaiter().GetResult()` to bridge
+- Safe because `MemoryCacheManager` operations are effectively synchronous (in-memory) and the store list is cached after first call
+- Per-request caching via `_cachedStore` field prevents repeated calls — `WebStoreContext` should be registered as Scoped
+
+### StoreMappingService CatalogSettings Dependency
+- Legacy injected `CatalogSettings` directly (resolved by Autofac from `ISettingService`)
+- New code also takes `CatalogSettings` as constructor parameter — requires DI registration to resolve via `ISettingService.LoadSettingAsync<CatalogSettings>()`
+- This is a pattern that will repeat for all services depending on Settings POCOs — DI composition root must register each Settings class
+
+### FrameworkReference in Nop.Web.Framework
+- Added `<FrameworkReference Include="Microsoft.AspNetCore.App" />` to `Nop.Web.Framework.csproj` for `IHttpContextAccessor`
+- This is the standard pattern for class libraries that need ASP.NET Core types without being a web project themselves
+- All future Web.Framework components (filters, middleware, tag helpers) will benefit from this reference
+
+### Impact on Future Items
+- [2.3] Localization: `LanguageService.GetAllLanguagesAsync` can now add `IStoreMappingService` filtering (was deferred)
+- [3.3-3.14] Services: `IStoreMappingService` available for entity visibility filtering
+- [4.4] Catalog: `IStoreMappingService.AuthorizeAsync` used for product/category/manufacturer store filtering
+- DI composition root: must register `IStoreService → StoreService` (Scoped), `IStoreMappingService → StoreMappingService` (Scoped), `IStoreContext → WebStoreContext` (Scoped), `CatalogSettings` (from ISettingService)
