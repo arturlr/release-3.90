@@ -315,3 +315,32 @@ Compared all 117 service interfaces in `src/Libraries/Nop.Services/` against spe
 ### No New Specs or Plan Items
 - All gaps were enrichment of existing specs (6 specs updated: svc-seo.md, nop-web-public.md, nop-admin.md, svc-installation.md, svc-media.md, svc-messages.md, nop-web-framework.md)
 - 67 specs and 173 plan items remain stable
+
+## 2026-04-09 — Refine Iteration 10
+
+### Comprehensive Gap Analysis: No New Gaps Found
+Performed exhaustive verification across all dimensions:
+
+- **117/117 service interfaces** in `Nop.Services/` confirmed covered in specs (0 missing)
+- **All Nop.Core interfaces** confirmed covered (only `IOfficialFeedManager` excluded — intentional, iteration 3)
+- **54 admin controllers + 27 public controllers** all mapped to plan items (accounting for combined items [5.78], [5.82], [5.28])
+- **All 26 domain subdirectories** confirmed covered
+- **All Nop.Web.Framework subdirectories** (Controllers, Events, Kendoui, Localization, Menu, Mvc, Security, Seo, Themes, UI, Validators, ViewEngines) confirmed in spec
+- **All Nop.Core subdirectories** (Caching, ComponentModel, Configuration, Data, Domain, Events, Fakes, Html, Infrastructure, Plugins) confirmed in specs
+- **12 stored procedures/functions + 61 indexes** in `App_Data/Install/` confirmed covered by `data-migration-sqlserver.md` and `nop-data.md`
+- **All 67 spec files** referenced by at least one plan item
+- **All 173 plan items** reference a valid spec file
+- **All specs** have ≥3 acceptance criteria
+- **No large files (>500 LOC)** found uncovered — model factories, plugin processors, admin models all covered by parent specs
+
+### NuGet Package Audit
+- 43 unique NuGet packages across all `packages.config` files
+- All meaningful packages confirmed covered in specs or discoveries
+- Remaining unmentioned packages are framework-level (.NET Framework, ASP.NET MVC, OWIN, System.* BCL) that are replaced wholesale by .NET 10 — no individual spec needed
+- `Microsoft.Azure.KeyVault.Core` is a transitive dependency from Azure Storage SDK (binding redirect only, no code usage)
+
+### Plan Convergence
+- Specs: 67 (stable since iteration 3)
+- Plan items: 173 (stable since iteration 7)
+- No new components, interfaces, controllers, or integrations discovered
+- Plan has reached convergence — all codebase artifacts are mapped to specs and plan items
