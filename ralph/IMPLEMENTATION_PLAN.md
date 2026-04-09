@@ -121,10 +121,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1
   - Done: 2026-04-09. IStoreService/StoreService (cached CRUD, prefix invalidation, event publishing). IStoreMappingService/StoreMappingService (entity-store mapping, cached GetStoreIdsWithAccess, Authorize with CatalogSettings.IgnoreStoreLimitations bypass). WebStoreContext in Nop.Web.Framework (IHttpContextAccessor host resolution, per-request caching). StoreExtensions.ContainsHostValue replaced with private static ContainsHost method. FrameworkReference added to Web.Framework csproj.
 
-- [ ] [3.3] Directory services — ICountryService, IStateProvinceService, ICurrencyService, IMeasureService, IGeoLookupService
+- [x] [3.3] Directory services — ICountryService, IStateProvinceService, ICurrencyService, IMeasureService, IGeoLookupService
   - Spec: specs/svc-directory.md
   - Scope: Nop.Services/Directory
   - Depends on: 1.5, 2.1, 3.1
+  - Done: 2026-04-09. CountryService (cached, store mapping filter via join query), StateProvinceService (cached by country+language+showHidden), CurrencyService (cached, store mapping post-filter, conversion via exchange rates), MeasureService (dimension+weight CRUD, ratio-based conversions), NullGeoLookupService (MaxMind deferred to [7.15]). Exchange rate provider methods (IPluginFinder) deferred to [2.10].
 
 - [ ] [3.4] SEO services — IUrlRecordService, ISitemapGenerator, slug generation
   - Spec: specs/svc-seo.md

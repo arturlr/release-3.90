@@ -670,3 +670,34 @@ Performed exhaustive verification across all dimensions:
 - [3.3-3.14] Services: `IStoreMappingService` available for entity visibility filtering
 - [4.4] Catalog: `IStoreMappingService.AuthorizeAsync` used for product/category/manufacturer store filtering
 - DI composition root: must register `IStoreService → StoreService` (Scoped), `IStoreMappingService → StoreMappingService` (Scoped), `IStoreContext → WebStoreContext` (Scoped), `CatalogSettings` (from ISettingService)
+
+## 2026-04-09 — [3.3] Directory Services / Implementation
+
+### Exchange Rate Provider Methods Deferred
+- Legacy `ICurrencyService` included `GetCurrencyLiveRates`, `LoadActiveExchangeRateProvider`, `LoadExchangeRateProviderBySystemName`, `LoadAllExchangeRateProviders` — all depend on `IPluginFinder` (plugin system [2.10])
+- These methods are NOT included in the new `ICurrencyService` interface. They will be added when the plugin system is built
+- `IExchangeRateProvider` interface (extends `IPlugin`) also deferred to [2.10]
+- `UpdateExchangeRateTask` (scheduled task) deferred to [3.6]
+
+### CountryService Store Mapping Pattern
+- Legacy used inline LINQ join between `Country` and `StoreMapping` tables for store filtering
+- New code preserves this pattern using `IRepository<StoreMapping>` join query (not `IStoreMappingService.AuthorizeAsync`) because the filtering happens inside a cached query — calling an async service per-entity inside a LINQ query would be inefficient
+- `CurrencyService` uses a different pattern: post-cache filter via `IStoreMappingService.AuthorizeAsync` (matching legacy which also filtered after cache retrieval)
+
+### Sync Conversion Methods
+- `ConvertCurrency`, `ConvertDimension`, `ConvertWeight` and their primary-conversion variants are sync methods (matching legacy signatures)
+- They call `GetCurrencyByIdAsync`/`GetMeasureDimensionByIdAsync`/`GetMeasureWeightByIdAsync` via `.GetAwaiter().GetResult()` — safe because these resolve from `IStaticCacheManager` which is in-memory
+- Future: if callers are made async, these can be converted to async variants
+
+### Localized Sorting Deferred
+- Legacy `CountryService.GetAllCountries` and `StateProvinceService.GetStateProvincesByCountryId` sorted by localized names when `languageId > 0` using `entity.GetLocalized(x => x.Name, languageId)`
+- New code does NOT implement localized sorting — `GetLocalized` extension requires `ILocalizedEntityService` and `ILanguageService` parameters (per [2.3] discovery about service locator elimination)
+- Localized sorting will be added when a helper method or the calling layer can pass the required services
+- The `languageId` parameter is kept in the interface for API compatibility
+
+### Impact on Future Items
+- [2.10] Plugin system: add `IExchangeRateProvider`, exchange rate provider methods to `ICurrencyService`
+- [3.6] Scheduled tasks: implement `UpdateExchangeRateTask`
+- [4.6] Tax services: can now use `ICountryService`, `IStateProvinceService` for tax jurisdiction lookups
+- [4.7] Shipping services: can now use `ICountryService`, `IMeasureService` for shipping calculations
+- [7.15] MaxMind GeoIP2: replace `NullGeoLookupService` with full implementation
