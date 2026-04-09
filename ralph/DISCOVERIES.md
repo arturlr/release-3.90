@@ -430,3 +430,38 @@ Performed exhaustive verification across all dimensions:
 - [2.9] Domain events: Implement `IEventPublisher` in Nop.Services consuming `EntityInserted<T>` etc.
 - [3.1] Configuration: `ISettingService` uses `ISettings` marker to identify settings classes
 - [5.1] Web.Framework: Implement `WebWorkContext`, `WebStoreContext`, `WebHelper` against interfaces
+
+## 2026-04-09 — [1.5] Nop.Data / Implementation
+
+### EF Core Configuration Approach
+- No navigation properties in domain entities (stripped in [1.3]), so no FK relationship configurations needed
+- EF Core convention-based FK discovery works via property names ending in `Id` (e.g., `CustomerId` → FK to Customer table)
+- Legacy many-to-many relationships (Product_ProductTag_Mapping, Customer_CustomerRole_Mapping, Discount_AppliedToCategories, etc.) used EF6 `.HasMany().WithMany().Map()` — these will need explicit join entity configurations when services need them, but are NOT configured now since domain entities have no nav properties
+- `ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly())` replaces legacy reflection-based config discovery
+
+### Enum Property Pattern
+- All enum properties use backing `int` Id fields (e.g., `ProductTypeId` + `ProductType` computed property)
+- EF Core Ignore on the enum property, store the int Id — same pattern as legacy EF6
+- Nullable enum: `DiscountRequirement.InteractionType` uses `int?` backing field — Ignore works the same
+
+### Computed Read-Only Properties
+- `ForumTopic.NumReplies` — computed from `NumPosts`, no setter → must be Ignored
+- `EmailAccount.FriendlyName` — computed from `Email` + `DisplayName`, no setter → must be Ignored
+- `Setting.ToString()` — override of `object.ToString()`, EF Core doesn't try to map it
+
+### Decimal Precision
+- Money fields: `HasPrecision(18, 4)` — matches legacy exactly
+- Currency rates: `HasPrecision(18, 8)` — `Currency.Rate`
+- Measure ratios: `HasPrecision(18, 8)` — `MeasureDimension.Ratio`, `MeasureWeight.Ratio`
+
+### EfRepository<T> Design
+- Simplified from legacy: removed `IDbContext` abstraction, takes `NopDbContext` directly
+- Uses `ArgumentNullException.ThrowIfNull()` instead of manual null checks
+- Uses `AddRange`/`RemoveRange` for batch operations (EF Core native, more efficient than legacy per-item loop)
+- `SaveChanges()` called per operation (same as legacy) — future optimization: unit of work pattern
+
+### Impact on Future Items
+- [1.6] EF Core migration: Can now generate initial migration from these configurations
+- [2.1] Caching: `EfRepository<T>` is the injection point for cache-aside pattern
+- [3.x-4.x] Services: All services inject `IRepository<T>`, resolved to `EfRepository<T>` via DI
+- Many-to-many join tables (Product_ProductTag_Mapping, Customer_CustomerRole_Mapping, etc.) will need explicit join entities when services require cross-entity queries
