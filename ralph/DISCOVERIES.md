@@ -854,3 +854,52 @@ Performed exhaustive verification across all dimensions:
 - [5.19] Public VendorController: can now use `IVendorService` for vendor listing/detail pages
 - [5.67] Admin VendorController: can now use `IVendorService` for vendor CRUD + notes management
 - Admin controller will need to handle vendor note insert/update via `IRepository<VendorNote>` directly (matching legacy pattern) or add methods to `IVendorService`
+
+## 2026-04-09 — [3.7] Media Services / Implementation
+
+### ImageResizer → SixLabors.ImageSharp
+- Legacy used `ImageResizer` 4.0.5 NuGet (`ImageBuilder.Current.Build()`) and `System.Drawing.Bitmap` for image loading/resizing
+- New code uses `SixLabors.ImageSharp` 3.1.12 — cross-platform, no GDI+ dependency, Apache 2.0 license
+- ImageSharp 3.x API breaking change: `Image.Load(byte[], out IImageFormat)` no longer exists for byte[] overloads. Must use `Image.DetectFormat(byte[])` separately
+- Initial version 3.1.7 had a known moderate vulnerability (GHSA-rxmq-m78w-7wmc) — upgraded to 3.1.12
+
+### System.IO.Directory Namespace Conflict
+- `System.IO.Directory` conflicts with `Nop.Services.Directory` namespace when implicit usings are enabled
+- Solution: `using IODirectory = System.IO.Directory;` alias at top of PictureService.cs
+- This is the same pattern used by legacy code (`System.IO.Directory` vs `Nop.Core.Domain.Directory`)
+- Impact: any future service in `Nop.Services` that uses `System.IO.Directory` must use the alias
+
+### CommonHelper.MapPath → IWebHostEnvironment
+- Legacy used `CommonHelper.MapPath("~/content/images/")` for file system paths
+- New code uses `IWebHostEnvironment.WebRootPath` + `Path.Combine` — standard ASP.NET Core pattern
+- `IWebHostEnvironment` injected via constructor (available because Nop.Services has `<FrameworkReference Include="Microsoft.AspNetCore.App" />`)
+
+### Mutex Replaced with File.Exists Check
+- Legacy used `new Mutex(false, thumbFileName)` for thread-safe thumbnail generation — heavyweight OS-level synchronization
+- New code uses simple `File.Exists(thumbFilePath)` check — ImageSharp is thread-safe for independent operations
+- Worst case: two threads generate the same thumbnail simultaneously, one overwrites the other with identical content — no data corruption risk
+- If contention becomes an issue, can add `ConcurrentDictionary<string, SemaphoreSlim>` per-file locking
+
+### IsDownloadAllowed/IsLicenseDownloadAllowed Deferred
+- Legacy `DownloadService.IsDownloadAllowed(OrderItem)` accessed `orderItem.Order` and `orderItem.Product` nav properties
+- Nav properties were stripped in [1.3] — these methods need Order and Product passed as parameters
+- These are really order-domain logic (check order status, payment status, activation, expiration)
+- Deferred to [4.9] Order services where Order/Product entities are readily available
+
+### GetPicturesHash Dropped
+- Legacy used SQL Server `HASHBYTES('sha1', ...)` via raw SQL for picture binary hashing
+- Only used by `ImportManager` for `MediaSettings.ImportProductImagesUsingHash` optimization
+- Dropped from interface — can be re-added in [4.10] Export/Import if needed, using C# `SHA1.HashData()` instead of SQL
+
+### Extensions.cs (Media) Not Migrated
+- Legacy `Extensions.cs` had `GetDownloadBits(HttpPostedFileBase)`, `GetPictureBits(HttpPostedFileBase)` — ASP.NET MVC 5 specific
+- ASP.NET Core uses `IFormFile.OpenReadStream()` — these extension methods are obsolete
+- `GetProductPicture(Product, string, IPictureService, IProductAttributeParser)` depends on `IProductAttributeParser` ([4.4]) — deferred
+
+### Impact on Future Items
+- [4.4] Catalog: can now use `IPictureService` for product/category/manufacturer pictures
+- [4.9] Order services: must implement `IsDownloadAllowed`/`IsLicenseDownloadAllowed` logic
+- [4.10] Export/Import: may need `GetPicturesHash` equivalent using C# SHA1
+- [5.21] Public DownloadController: can now use `IDownloadService`
+- [5.78] Admin PictureController/DownloadController: can now use both services
+- [7.14] Azure Blob Storage: `AzurePictureService` extends `PictureService` — virtual methods preserved for override

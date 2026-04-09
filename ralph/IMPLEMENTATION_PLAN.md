@@ -144,10 +144,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Nop.Services/Tasks
   - Depends on: 1.5
 
-- [ ] [3.7] Media services — IPictureService, IDownloadService
+- [x] [3.7] Media services — IPictureService, IDownloadService
   - Spec: specs/svc-media.md
   - Scope: Nop.Services/Media
   - Depends on: 1.5, 3.1
+  - Done: 2026-04-09. IDownloadService/DownloadService (async CRUD, event publishing). IPictureService/PictureService (file system + DB dual storage, SixLabors.ImageSharp 3.1.12 for thumbnail generation replacing ImageResizer, IWebHostEnvironment for path resolution replacing CommonHelper.MapPath, StoreInDb property migrates pictures between storage modes). GetPicturesHash dropped (SQL Server HASHBYTES specific). IsDownloadAllowed/IsLicenseDownloadAllowed deferred to [4.9] (depend on Order/Product nav properties). IODirectory alias for System.IO.Directory namespace conflict.
 
 - [x] [3.8] Common services — IAddressService, IAddressAttributeService, IAddressAttributeParser, IAddressAttributeFormatter, IGenericAttributeService, ISearchTermService, IFulltextService, IPdfService
   - Spec: specs/svc-common.md
