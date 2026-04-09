@@ -1454,3 +1454,33 @@ Performed exhaustive verification across all dimensions:
 - [5.42] Admin PaymentController: can now use `IPaymentService` for payment method management
 - [6.1-6.5] Payment plugins: will implement `IPaymentMethod` interface (CheckMoneyOrder, Manual, PurchaseOrder, PayPalStandard, PayPalDirect)
 - DI registration: `services.AddScoped<IPaymentService, PaymentService>()` + each `IPaymentMethod` implementation
+
+## 2026-04-09 — [4.9] Order Services (Partial) / Implementation
+
+### Services Implemented (9 of 12)
+- **ICustomNumberFormatter/CustomNumberFormatter**: Mask-based formatting with `{ID}`, `{YYYY}`, `{YY}`, `{MM}`, `{DD}` tokens. Primary constructor pattern.
+- **IRewardPointService/RewardPointService**: Points balance with deferred activation via `ActivatePendingPoints`. `RewardPointsHistory` entity has no `UsedWithOrder`/`Customer` nav properties — uses FK IDs. `AddRewardPointsHistoryEntryAsync` takes `int? usedWithOrderId` instead of `Order usedWithOrder`.
+- **IReturnRequestService/ReturnRequestService**: CRUD for return requests + actions + reasons. No caching (matching legacy).
+- **ICheckoutAttributeService/CheckoutAttributeService**: Cached CRUD with store mapping via inline LINQ join (same pattern as CountryService). Dual-prefix cache invalidation.
+- **ICheckoutAttributeParser/CheckoutAttributeParser**: XML format preserved (`<Attributes><CheckoutAttribute ID="1"><CheckoutAttributeValue><Value>...</Value></CheckoutAttributeValue></CheckoutAttribute></Attributes>`). `EnsureOnlyActiveAttributesAsync` conservatively keeps all attributes — checking `Product.IsShipEnabled` per cart item requires `IProductService` which would create circular dependency.
+- **ICheckoutAttributeFormatter/CheckoutAttributeFormatter**: HTML display with tax-adjusted prices via `ITaxService.GetCheckoutAttributePriceAsync`. Removed `ICurrencyService` dependency (not needed for formatting).
+- **IGiftCardService/GiftCardService**: CRUD, GUID-based 13-char coupon code generation, usage history via `IRepository<GiftCardUsageHistory>`. `GetGiftCardRemainingAmountAsync` replaces nav-property-based `GiftCardExtensions.GetGiftCardRemainingAmount`. `GetActiveGiftCardsAppliedByCustomerAsync` parses XML coupon codes from `GenericAttribute` (uses `IGenericAttributeService.GetAttributesForEntityAsync` directly, not extension method). No caching (matching legacy).
+- **IOrderService/OrderService**: Full CRUD for orders, order items, order notes, recurring payments. `SearchOrdersAsync` with billing address join, product filter join, order notes join. Soft delete for orders and recurring payments. Added `GetOrderItemsByOrderIdAsync`, `GetOrderNotesByOrderIdAsync`, `GetRecurringPaymentHistoryAsync`, `InsertOrderNoteAsync`, `InsertRecurringPaymentHistoryAsync` — methods that replace nav property access. Vendor filtering deferred (needs `IRepository<Product>` which would add dependency on Catalog domain).
+- **IOrderReportService/OrderReportService**: Country report, average report, bestsellers, also-purchased, never-sold, profit report. All use LINQ joins replacing nav properties. `IRepository<Product>` injected for `ProductsNeverSoldAsync`.
+
+### Plan Split
+- [4.9] was too large for a single iteration — split into [4.9] (done: 9 services), [4.9a] (IShoppingCartService), [4.9b] (IOrderTotalCalculationService), [4.9c] (IOrderProcessingService)
+- Each sub-item depends on the previous — ShoppingCartService needed by OrderTotalCalculationService, both needed by OrderProcessingService
+
+### Key Patterns
+- **No nav properties**: All cross-entity queries use explicit LINQ joins via `IRepository<T>`. This is consistent with all previous services.
+- **Async-first**: All interfaces use `Task<T>` return types. Sync repository calls wrapped in `Task.FromResult`.
+- **Primary constructors**: All services use C# 12 primary constructor syntax (matching established pattern).
+- **No caching for order services**: Orders, gift cards, return requests, reward points — all low-to-medium volume entities where caching adds complexity without benefit. Only checkout attributes are cached (matching legacy).
+
+### Impact on Future Items
+- [4.9a] IShoppingCartService: can now use ICheckoutAttributeParser, ICheckoutAttributeService for checkout attribute validation
+- [4.9b] IOrderTotalCalculationService: can now use IRewardPointService, IGiftCardService, ICheckoutAttributeParser
+- [4.9c] IOrderProcessingService: can now use IOrderService, ICustomNumberFormatter, IGiftCardService
+- [4.10] Export/Import: can now use IOrderService, IOrderReportService
+- [5.34] Admin OrderController: can now use IOrderService, IOrderReportService

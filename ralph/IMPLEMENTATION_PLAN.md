@@ -261,6 +261,22 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Spec: specs/svc-orders.md
   - Scope: Nop.Services/Orders
   - Depends on: 1.5, 2.1, 2.9, 3.1, 4.1, 4.2, 4.4, 4.5, 4.6, 4.7, 4.8
+  - Partial: 2026-04-09. Implemented 9 of 12 services: ICustomNumberFormatter, IRewardPointService, IReturnRequestService, ICheckoutAttributeService, ICheckoutAttributeParser, ICheckoutAttributeFormatter, IGiftCardService, IOrderService, IOrderReportService. Remaining: IShoppingCartService, IOrderTotalCalculationService, IOrderProcessingService.
+
+- [ ] [4.9a] IShoppingCartService — cart add/update/remove/migrate/validate
+  - Spec: specs/svc-orders.md
+  - Scope: Nop.Services/Orders/ShoppingCartService
+  - Depends on: 4.9
+
+- [ ] [4.9b] IOrderTotalCalculationService — subtotal, tax, shipping, discount, total
+  - Spec: specs/svc-orders.md
+  - Scope: Nop.Services/Orders/OrderTotalCalculationService
+  - Depends on: 4.9, 4.9a
+
+- [ ] [4.9c] IOrderProcessingService — PlaceOrder, status transitions, payment operations
+  - Spec: specs/svc-orders.md
+  - Scope: Nop.Services/Orders/OrderProcessingService
+  - Depends on: 4.9, 4.9a, 4.9b
 
 - [ ] [4.10] Export/Import services — IExportManager, IImportManager
   - Spec: specs/svc-export-import.md
