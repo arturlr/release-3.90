@@ -1315,3 +1315,54 @@ Performed exhaustive verification across all dimensions:
 - [5.40] Admin DiscountController: can now use `IDiscountService` for discount CRUD
 - [6.14] Plugin: DiscountRules.CustomerRoles: will implement `IDiscountRequirementRule`
 - [6.15] Plugin: DiscountRules.HasOneProduct: will implement `IDiscountRequirementRule`
+
+## 2026-04-09 — [4.6] Tax Services / Implementation
+
+### Customer Entity: BillingAddressId/ShippingAddressId Added
+- Legacy `Customer` had `BillingAddress` and `ShippingAddress` nav properties (stripped in [1.3])
+- Legacy EF6 config: `HasOptional(c => c.BillingAddress)` / `HasOptional(c => c.ShippingAddress)` — these created `BillingAddress_Id` and `ShippingAddress_Id` FK columns in the DB
+- New code adds `int? BillingAddressId` and `int? ShippingAddressId` as explicit FK properties on `Customer` entity
+- Impact: [1.5] Nop.Data EF Core config for Customer may need updating if convention-based FK discovery doesn't pick these up (convention expects `AddressId` not `BillingAddressId`). [8.2] Data migration must map `BillingAddress_Id` → `BillingAddressId` column rename
+- Any service that previously accessed `customer.BillingAddress` or `customer.ShippingAddress` must now use `IAddressService.GetAddressByIdAsync(customer.BillingAddressId.Value)`
+
+### Async-First with Tuples Instead of Out Parameters
+- Legacy `ITaxService` used `out decimal taxRate` parameters extensively (7 methods with out params)
+- C# async methods cannot have `out` parameters — replaced all with `Task<(decimal price, decimal taxRate)>` tuple returns
+- Legacy `GetVatNumberStatus` used `out string name, out string address` — replaced with `Task<(VatNumberStatus status, string name, string address)>`
+- Legacy `DoVatCheck` used `out string name, out string address, out Exception exception` — replaced with `Task<(VatNumberStatus status, string name, string address, Exception? exception)>`
+- Impact: all downstream consumers (OrderTotalCalculationService, ShoppingCartService, etc.) must destructure tuples instead of using out params
+
+### CheckoutAttribute Passed Explicitly (No Nav Properties)
+- Legacy `GetCheckoutAttributePrice(CheckoutAttributeValue cav)` accessed `cav.CheckoutAttribute` nav property for `IsTaxExempt` and `TaxCategoryId`
+- Nav properties stripped in [1.3] — new signature: `GetCheckoutAttributePriceAsync(CheckoutAttributeValue cav, CheckoutAttribute checkoutAttribute, ...)`
+- Impact: [4.9] Order services must load `CheckoutAttribute` separately via `IRepository<CheckoutAttribute>` and pass it to tax calculation
+
+### Tax Provider Resolution Deferred to [2.10]
+- Legacy `LoadActiveTaxProvider`, `LoadTaxProviderBySystemName`, `LoadAllTaxProviders` all depend on `IPluginFinder` (plugin system)
+- These methods are NOT in the new `ITaxService` interface — will be added when plugin system is built
+- `GetTaxRateAsync` currently returns `(0m, true)` (0% tax rate, taxable) when no provider is available
+- Impact: until [2.10] + [6.13] (Tax.FixedOrByCountryStateZip plugin), all products are taxed at 0%
+
+### Customer Role Tax Exemption via Repository Join
+- Legacy used `customer.CustomerRoles.Where(cr => cr.Active).Any(cr => cr.TaxExempt)` nav property
+- New code uses LINQ join: `CustomerCustomerRoleMapping` → `CustomerRole` where `Active && TaxExempt`
+- Same pattern as [2.4] Security (PermissionService) and [2.5] Authentication (CookieAuthenticationService)
+
+### VIES VAT Check Deferred to [7.12]
+- `DoVatCheckAsync` returns `(VatNumberStatus.Unknown, "", "", null)` until VIES HTTP client is implemented
+- Legacy used SOAP web reference `EuropaCheckVatService.checkVatService` — will be replaced with `HttpClient` calling VIES REST endpoint
+- Impact: EU VAT number validation always returns Unknown status until [7.12]
+
+### VAT Number Regex Modernized
+- Legacy created `new Regex(@"^(\w{2})(.*)")` per call — allocates regex object each time
+- New code uses `[GeneratedRegex]` source generator — compiled at build time, zero allocation
+- `TaxService` is `partial class` to support `GeneratedRegex`
+
+### Impact on Future Items
+- [4.7] Shipping: can now use `ITaxService.GetShippingPriceAsync` for shipping tax
+- [4.8] Payment: can now use `ITaxService.GetPaymentMethodAdditionalFeeAsync` for payment fee tax
+- [4.9] Orders: can now use all `ITaxService` methods for order total calculation; must pass `CheckoutAttribute` explicitly to `GetCheckoutAttributePriceAsync`
+- [5.43] Admin TaxController: can now use `ITaxCategoryService` for tax category CRUD
+- [6.13] Plugin: Tax.FixedOrByCountryStateZip: will implement `ITaxProvider` interface
+- [7.12] VIES VAT: must implement `DoVatCheckAsync` with HTTP client
+- [8.2] Data migration: must handle `BillingAddress_Id` → `BillingAddressId` column mapping

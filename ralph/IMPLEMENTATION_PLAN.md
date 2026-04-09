@@ -239,10 +239,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1, 4.1, 4.4
   - Done: 2026-04-09. IDiscountService/DiscountService (async-first, cached GetAllDiscounts with prefix invalidation, no DiscountForCaching — cache Discount entities directly). DiscountCategoryMapping/DiscountManufacturerMapping/DiscountProductMapping join entities with EF Core configs and DbSets. DiscountExtensions (GetDiscountAmount with proper decimal math, GetPreferredDiscount with cumulative support, ContainsDiscount). Hierarchical AND/OR requirement evaluation (leaf rules pass by default until plugin system [2.10]). Usage history with Order join for customer filtering. DiscountValidationResult, DiscountRequirementValidationRequest/Result, IDiscountRequirementRule (no IPlugin dependency). Plugin-dependent methods (LoadDiscountRequirementRuleBySystemName, LoadAllDiscountRequirementRules) deferred to [2.10].
 
-- [ ] [4.6] Tax services — ITaxService, ITaxCategoryService
+- [x] [4.6] Tax services — ITaxService, ITaxCategoryService
   - Spec: specs/svc-tax.md
   - Scope: Nop.Services/Tax
   - Depends on: 1.5, 2.1, 3.1, 3.3, 4.1
+  - Done: 2026-04-09. ITaxCategoryService/TaxCategoryService (cached CRUD), ITaxService/TaxService (async-first, tuples instead of out params, address-based tax basis, EU VAT consumer detection, tax exemptions via customer role join). Added BillingAddressId/ShippingAddressId to Customer entity. CheckoutAttribute passed explicitly (no nav properties). ITaxProvider interface (no IPlugin dependency — deferred to [2.10]). CalculateTaxRequest/CalculateTaxResult DTOs. VIES VAT check deferred to [7.12]. Tax provider resolution returns 0% until [2.10] plugin system.
 
 - [ ] [4.7] Shipping services — IShippingService, IShipmentService, IDateRangeService
   - Spec: specs/svc-shipping.md

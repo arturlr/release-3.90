@@ -25,6 +25,10 @@ namespace Nop.Core.Domain.Customers
 
         public int VendorId { get; set; }
 
+        public int? BillingAddressId { get; set; }
+
+        public int? ShippingAddressId { get; set; }
+
         public bool HasShoppingCartItems { get; set; }
 
         public bool RequireReLogin { get; set; }
