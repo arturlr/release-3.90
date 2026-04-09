@@ -80,10 +80,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 2.4
   - Done: 2026-04-09. IAuthenticationService (async: SignInAsync, SignOutAsync, GetAuthenticatedCustomerAsync). CookieAuthenticationService uses ASP.NET Core cookie auth with CustomerGuid claim (stable identifier). NopAuthenticationDefaults (scheme + claim type constants). No ICustomerService dependency — uses IRepository<Customer> + join tables directly to avoid circular dependency. Validates Active, !RequireReLogin, !Deleted, IsRegistered (via CustomerCustomerRoleMapping join). Impersonation remains in WebWorkContext (not auth service) via GenericAttribute ImpersonatedCustomerId — matching legacy pattern. External auth (IOpenAuthenticationService etc.) deferred to [6.17].
 
-- [ ] [2.6] Authorization — ASP.NET Core policies, permission-based authorization, admin area protection
+- [x] [2.6] Authorization — ASP.NET Core policies, permission-based authorization, admin area protection
   - Spec: specs/xcut-authorization.md
   - Scope: Authorization policies + IPermissionService integration
   - Depends on: 2.4, 2.5
+  - Done: 2026-04-09. NopPermissionRequirement (IAuthorizationRequirement per permission system name), NopPermissionHandler (AuthorizationHandler delegates to IPermissionService.Authorize), NopAuthorizationPolicyProvider (dynamic IAuthorizationPolicyProvider creates policies per permission system name — any [Authorize(Policy = "ManageProducts")] auto-resolves). Replaces legacy AdminAuthorizeAttribute + service locator pattern. AdminVendorValidation deferred to [5.1] (presentation-layer filter). DI registration (services.AddSingleton<IAuthorizationPolicyProvider, NopAuthorizationPolicyProvider>() + services.AddScoped<IAuthorizationHandler, NopPermissionHandler>()) deferred to Nop.Web Program.cs.
 
 - [ ] [2.7] Error handling — global exception handler, ProblemDetails, custom error pages
   - Spec: specs/xcut-error-handling.md

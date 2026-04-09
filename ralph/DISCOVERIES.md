@@ -1023,3 +1023,30 @@ Performed exhaustive verification across all dimensions:
 - [5.1] Web.Framework: `WebWorkContext` must call `IAuthenticationService.GetAuthenticatedCustomerAsync()` then check impersonation via GenericAttribute
 - [5.6] Public CustomerController: login/logout actions use `IAuthenticationService.SignInAsync/SignOutAsync`
 - DI registration: `services.AddScoped<IAuthenticationService, CookieAuthenticationService>()`
+
+## 2026-04-09 — [2.6] Authorization / Implementation
+
+### Dynamic Policy Provider Pattern
+- Legacy used custom `AdminAuthorizeAttribute` (IAuthorizationFilter) with service locator (`EngineContext.Current.Resolve<IPermissionService>()`) to check `AccessAdminPanel` permission
+- New approach uses ASP.NET Core's built-in authorization pipeline: `IAuthorizationPolicyProvider` + `IAuthorizationHandler`
+- `NopAuthorizationPolicyProvider.GetPolicyAsync(policyName)` creates a policy with `NopPermissionRequirement(policyName)` for ANY policy name — no need to pre-register policies
+- `NopPermissionHandler` resolves `IPermissionService` via constructor injection (no service locator) and calls `Authorize(systemName)`
+- Usage: `[Authorize(Policy = "ManageProducts")]` on controllers/actions — the policy name IS the permission system name
+
+### AdminVendorValidation Deferred to [5.1]
+- Legacy `AdminVendorValidation` is a presentation-layer filter that checks `IWorkContext.CurrentCustomer.IsVendor()` and validates `IWorkContext.CurrentVendor != null`
+- This is NOT an authorization concern — it's a vendor account validation filter
+- Will be implemented as an ASP.NET Core action filter (IAsyncActionFilter) in [5.1] Nop.Web.Framework, not as an authorization handler
+- Reason: authorization handlers should only check permissions, not business rules about vendor account status
+
+### DI Registration Pattern
+- `NopAuthorizationPolicyProvider` must be registered as Singleton (replaces the default `DefaultAuthorizationPolicyProvider`)
+- `NopPermissionHandler` must be registered as Scoped (matches `IPermissionService` lifetime — it depends on `IWorkContext` which is scoped)
+- Registration: `services.AddSingleton<IAuthorizationPolicyProvider, NopAuthorizationPolicyProvider>()` + `services.AddScoped<IAuthorizationHandler, NopPermissionHandler>()`
+- Must be registered AFTER `services.AddAuthorization()` in the DI pipeline
+
+### Impact on Future Items
+- [5.1] Web.Framework: implement `AdminVendorValidation` as IAsyncActionFilter
+- [5.30-5.82] Admin controllers: use `[Authorize(Policy = "AccessAdminPanel")]` on base admin controller, individual permission checks via `[Authorize(Policy = "ManageProducts")]` on actions or inline `IPermissionService.Authorize()` calls
+- [5.2-5.28] Public controllers: use `[Authorize(Policy = "PublicStoreAllowNavigation")]` where needed
+- Nop.Web Program.cs: must register `NopAuthorizationPolicyProvider` and `NopPermissionHandler` in DI
