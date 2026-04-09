@@ -301,3 +301,12 @@ public class StockQuantityHistoryConfiguration : IEntityTypeConfiguration<StockQ
         builder.HasKey(sqh => sqh.Id);
     }
 }
+
+public class ProductProductTagMappingConfiguration : IEntityTypeConfiguration<ProductProductTagMapping>
+{
+    public void Configure(EntityTypeBuilder<ProductProductTagMapping> builder)
+    {
+        builder.ToTable("Product_ProductTag_Mapping");
+        builder.HasKey(m => m.Id);
+    }
+}

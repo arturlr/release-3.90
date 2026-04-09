@@ -1219,3 +1219,57 @@ Performed exhaustive verification across all dimensions:
 - [5.x] Admin GDPR controller: will use `IGdprService` for consent log display and customer deletion
 - [4.9] Order services: order history preserved after customer deletion (addresses anonymized, not deleted)
 - [8.x] Data migration: `GdprLog` table is new — no migration from legacy needed
+
+## 2026-04-09 — [4.4] Catalog Services / Implementation
+
+### ProductProductTagMapping Join Entity Created
+- Legacy `Product.ProductTags` nav property was stripped in [1.3] — many-to-many relationship between Product and ProductTag had no join entity
+- Created `ProductProductTagMapping` (table: `Product_ProductTag_Mapping`) with `ProductId` and `ProductTagId` properties
+- EF Core configuration and DbSet added to NopDbContext
+- `ProductTagService.UpdateProductTagsAsync` and `GetProductCountAsync` use this join entity for all product-tag queries
+
+### Product Entity Does Not Have SpecialPrice
+- Legacy `Product` entity does NOT have `SpecialPrice`, `SpecialPriceStartDateTimeUtc`, `SpecialPriceEndDateTimeUtc` properties
+- The new `Product` entity also lacks these — they were never part of the nopCommerce 3.x domain model
+- `PriceCalculationService` was initially coded with SpecialPrice logic — removed during build fix
+- Price calculation uses: base Price → tier pricing → attribute adjustments → rental periods → (discounts deferred to [4.5])
+
+### ProductAttributeMapping.IsNonCombinable Is Not a Property
+- Legacy `IsNonCombinable()` was an extension method in `ProductAttributeExtensions` that returned `!ShouldHaveValues(mapping)`
+- `ShouldHaveValues` checks `AttributeControlType` — TextBox, MultilineTextbox, Datepicker, FileUpload are non-combinable
+- New code uses `ShouldHaveValues(mapping.AttributeControlTypeId)` directly in `ProductAttributeParser` instead of an extension method
+- Impact: any future code checking combinability should use the same `ShouldHaveValues` logic
+
+### ICopyProductService — Interface Only
+- `CopyProductService` (33K LOC legacy) depends on: IProductService, ICategoryService, IManufacturerService, IProductAttributeService, IProductAttributeParser, ISpecificationAttributeService, IPictureService, IUrlRecordService, ILocalizedEntityService, ILanguageService, IStoreMappingService, IAclService, IDownloadService, IProductTagService
+- All dependencies now exist, but implementation is complex and low-priority (admin-only feature)
+- Interface created for DI registration; implementation can be added when admin controllers need it
+
+### SearchProducts — LINQ Only, No Stored Procedure
+- Legacy `SearchProducts` had two paths: stored procedure `[ProductLoadAllPaged]` (when `CommonSettings.UseStoredProceduresIfSupported`) and LINQ fallback
+- New code uses LINQ-only approach — simpler, portable, no stored procedure dependency
+- Performance: acceptable for typical catalog sizes; can add stored procedure optimization later if needed
+- `filterableSpecificationAttributeOptionIds` computed from all matching products (not just current page) — matches legacy behavior
+
+### Cookie-Based Services Pattern
+- `CompareProductsService` and `RecentlyViewedProductsService` use `IHttpContextAccessor` for cookie-based state
+- Cookie format: comma-separated product IDs (e.g., "42,17,8")
+- Cookie names: `.Nop.CompareProducts`, `.Nop.RecentlyViewedProducts`
+- HttpOnly cookies with 10-day expiration
+- Max items controlled by `CatalogSettings.CompareProductsNumber` and `CatalogSettings.RecentlyViewedProductsNumber`
+
+### PriceCalculationService — Discounts Deferred
+- Legacy `PriceCalculationService` depended on `IDiscountService` for `GetAllowedDiscounts`, `GetPreferredDiscount`, `DiscountForCaching`
+- `IDiscountService` is plan item [4.5] — not yet built
+- New `PriceCalculationService` implements: base price, tier pricing (with customer role filtering), attribute price adjustments, rental period multiplication
+- Discount application will be added when [4.5] is implemented
+- `GetFinalPriceWithDiscountAsync` returns `discountAmount = 0m` until then
+
+### Impact on Future Items
+- [4.5] Discounts: can now use `IProductService`, `ICategoryService`, `IManufacturerService` for discount-entity associations; must add discount logic to `PriceCalculationService`
+- [4.6] Tax: can now use `IPriceCalculationService` for pre-tax price calculation
+- [4.7] Shipping: can now use `IProductService` for product weight/dimensions
+- [4.9] Orders: can now use all catalog services for order processing
+- [5.4] Public CatalogController: can now use `ICategoryService`, `IManufacturerService`, `IProductService.SearchProducts`
+- [5.5] Public ProductController: can now use `IProductService`, `IPriceCalculationService`, `IPriceFormatter`
+- [5.31-5.33] Admin Product/Category/Manufacturer controllers: can now use all catalog services

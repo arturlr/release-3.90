@@ -227,10 +227,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Nop.Services/Forums
   - Depends on: 1.5, 2.1, 4.1, 4.2
 
-- [ ] [4.4] Catalog services — IProductService, ICategoryService, IManufacturerService, IProductAttributeService, IProductAttributeParser, IProductAttributeFormatter, IPriceCalculationService, IPriceFormatter, IProductTagService, ISpecificationAttributeService, ICopyProductService, IBackInStockSubscriptionService, IRecentlyViewedProductsService, ICompareProductsService, ICategoryTemplateService, IManufacturerTemplateService, IProductTemplateService
+- [x] [4.4] Catalog services — IProductService, ICategoryService, IManufacturerService, IProductAttributeService, IProductAttributeParser, IProductAttributeFormatter, IPriceCalculationService, IPriceFormatter, IProductTagService, ISpecificationAttributeService, ICopyProductService, IBackInStockSubscriptionService, IRecentlyViewedProductsService, ICompareProductsService, ICategoryTemplateService, IManufacturerTemplateService, IProductTemplateService
   - Spec: specs/svc-catalog.md
   - Scope: Nop.Services/Catalog
   - Depends on: 1.5, 2.1, 2.3, 2.9, 3.1, 3.2, 3.4, 3.7, 4.1
+  - Done: 2026-04-09. 17 interfaces + 16 implementations: CategoryTemplateService, ManufacturerTemplateService, ProductTemplateService (simple CRUD), CategoryService (cached, ACL+store mapping joins, parent-child hierarchy), ManufacturerService (cached, ACL+store mapping joins), ProductTagService (ProductProductTagMapping join entity, cached product counts), SpecificationAttributeService (CRUD for spec attrs/options/product-spec mappings), ProductAttributeService (CRUD for attrs/mappings/values/predefined/combinations, cached), ProductAttributeParser (XML format preserved, gift card attributes), ProductAttributeFormatter (HTML-encoded attribute display), ProductService (SearchProducts with 20+ params, CRUD, related/cross-sell, reviews, pictures, inventory, stock history), PriceCalculationService (tier pricing, attribute adjustments, rental periods — discounts deferred to [4.5]), PriceFormatter (currency formatting), BackInStockSubscriptionService, CompareProductsService (cookie-based), RecentlyViewedProductsService (cookie-based). ICopyProductService interface only (implementation deferred — depends on many services).
 
 - [ ] [4.5] Discount services — IDiscountService
   - Spec: specs/svc-discounts.md

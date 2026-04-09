@@ -61,6 +61,7 @@ public class NopDbContext : DbContext
     public DbSet<ProductReviewHelpfulness> ProductReviewHelpfulness => Set<ProductReviewHelpfulness>();
     public DbSet<ProductSpecificationAttribute> ProductSpecificationAttributes => Set<ProductSpecificationAttribute>();
     public DbSet<ProductTag> ProductTags => Set<ProductTag>();
+    public DbSet<ProductProductTagMapping> ProductProductTagMappings => Set<ProductProductTagMapping>();
     public DbSet<ProductTemplate> ProductTemplates => Set<ProductTemplate>();
     public DbSet<ProductWarehouseInventory> ProductWarehouseInventory => Set<ProductWarehouseInventory>();
     public DbSet<RelatedProduct> RelatedProducts => Set<RelatedProduct>();
