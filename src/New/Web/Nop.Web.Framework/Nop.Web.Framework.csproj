@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Nop.Web.Framework</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Nop.Core\Nop.Core.csproj" />
+    <ProjectReference Include="..\..\Services\Nop.Services\Nop.Services.csproj" />
+  </ItemGroup>
+</Project>

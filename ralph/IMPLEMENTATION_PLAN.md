@@ -7,10 +7,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
 
 ## Phase 1: Foundation
 
-- [ ] [1.1] Solution scaffold — .sln, Directory.Build.props, global.json, nuget.config
+- [x] [1.1] Solution scaffold — .sln, Directory.Build.props, global.json, nuget.config
   - Spec: specs/solution-scaffold.md
   - Scope: New solution structure
   - Depends on: nothing
+  - Done: 2026-04-09. .NET 8 SDK (8.0.413). 6 source + 5 test projects. src/New/ layout.
 
 - [ ] [1.2] CI/CD pipeline — build, test, publish
   - Spec: specs/solution-scaffold.md

@@ -344,3 +344,33 @@ Performed exhaustive verification across all dimensions:
 - Plan items: 173 (stable since iteration 7)
 - No new components, interfaces, controllers, or integrations discovered
 - Plan has reached convergence — all codebase artifacts are mapped to specs and plan items
+
+## 2026-04-09 — [1.1] Solution Scaffold / Implementation
+
+### SDK Version
+- Plan targets .NET 10 but installed SDK is .NET 8.0.413
+- Pinned `global.json` to 8.0.413 with `rollForward: latestFeature` so upgrading to .NET 10 later only requires updating global.json
+- All .csproj files inherit `net8.0` from `Directory.Build.props` — single-point TFM change when upgrading
+
+### New Code Layout
+- New source code lives under `src/New/` to coexist with legacy `src/Libraries/`, `src/Presentation/`, `src/Plugins/`
+- Test projects live under `tests/` (top-level, separate from legacy `src/Tests/`)
+- Solution file: `src/NopCommerce.New.sln`
+
+### Project Structure
+- 6 source projects: `Nop.Core.Domain` → `Nop.Core` → `Nop.Data`, `Nop.Services` → `Nop.Web.Framework` → `Nop.Web`
+- 5 test projects: one per source project except Web.Framework (tested via Nop.Web.Tests)
+- Separated `Nop.Core.Domain` from `Nop.Core` — domain entities have zero dependencies, infrastructure (IRepository, IEngine, etc.) lives in Nop.Core
+
+### Build Properties (Directory.Build.props)
+- `Nullable: enable` — all new code uses nullable reference types
+- `ImplicitUsings: enable` — reduces boilerplate
+- `TreatWarningsAsErrors: true` — enforces clean code from day one
+- `LangVersion: latest` — access to newest C# features
+
+### Impact on Future Items
+- [1.3] Nop.Core.Domain: add entity files to `src/New/Core/Nop.Core.Domain/`
+- [1.4] Nop.Core.Infrastructure: add to `src/New/Core/Nop.Core/`
+- [1.5] Nop.Data: add to `src/New/Data/Nop.Data/`
+- [1.7] Test scaffold: test projects already created with xunit — just add test files
+- TFM upgrade to .NET 10: change one line in `Directory.Build.props`
