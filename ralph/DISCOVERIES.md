@@ -465,3 +465,26 @@ Performed exhaustive verification across all dimensions:
 - [2.1] Caching: `EfRepository<T>` is the injection point for cache-aside pattern
 - [3.x-4.x] Services: All services inject `IRepository<T>`, resolved to `EfRepository<T>` via DI
 - Many-to-many join tables (Product_ProductTag_Mapping, Customer_CustomerRole_Mapping, etc.) will need explicit join entities when services require cross-entity queries
+
+## 2026-04-09 — [2.1] Caching / Implementation
+
+### Pattern: Prefix-Based Invalidation vs Regex
+- Legacy used regex-based `RemoveByPattern()` — created a new `Regex` per call, iterated all keys
+- New approach uses prefix-based invalidation (`RemoveByPrefixAsync(string prefix)`) with `ConcurrentDictionary<string, byte>` key tracking
+- `PostEvictionCallback` on each cache entry auto-cleans the key set when entries expire or are evicted
+- Prefix matching is simpler, faster, and sufficient — all legacy cache key patterns were prefix-based in practice (e.g., `Nop.product.id-{0}` → prefix `Nop.product.`)
+
+### DI Registration Pattern
+- `MemoryCacheManager` should be registered as Singleton (wraps singleton `IMemoryCache`)
+- `NopRequestCache` should be registered as Scoped (per-HTTP-request lifetime)
+- DI registration deferred — no central DI composition root exists yet. Will be wired in Nop.Web `Program.cs` or a dedicated `ServiceCollectionExtensions` when services are implemented
+
+### Redis Deferred
+- `IDistributedCache` (Redis) implementation deferred to plan item [7.2]
+- `MemoryCacheManager` is sufficient for single-instance deployment
+- `NopConfig.RedisCachingEnabled` flag already exists for future conditional registration
+
+### Impact on Future Items
+- All Phase 3/4 services will inject `IStaticCacheManager` and `NopRequestCache`
+- Cache key constants will be defined per service (e.g., `ProductCacheKeys`, `CategoryCacheKeys`)
+- [2.9] Domain events: cache event consumers will call `RemoveByPrefixAsync` on entity changes

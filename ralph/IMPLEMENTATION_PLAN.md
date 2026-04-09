@@ -50,10 +50,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
 
 ## Phase 2: Cross-Cutting Concerns
 
-- [ ] [2.1] Caching — IMemoryCache + IDistributedCache + pattern invalidation + per-request cache
+- [x] [2.1] Caching — IMemoryCache + IDistributedCache + pattern invalidation + per-request cache
   - Spec: specs/xcut-caching.md
   - Scope: Caching infrastructure
   - Depends on: 1.4
+  - Done: 2026-04-09. MemoryCacheManager (IMemoryCache wrapper, ConcurrentDictionary key tracking, PostEviction cleanup, prefix-based invalidation). NopRequestCache (scoped Dictionary). CachingDefaults (60-min default). Microsoft.Extensions.Caching.Memory 8.0.1. Redis IDistributedCache deferred to [7.2].
 
 - [ ] [2.2] Logging — ILogger (DB), ICustomerActivityService, Microsoft.Extensions.Logging integration
   - Spec: specs/xcut-logging.md

@@ -3,6 +3,9 @@
     <RootNamespace>Nop.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Nop.Core.Domain\Nop.Core.Domain.csproj" />
   </ItemGroup>
 </Project>
