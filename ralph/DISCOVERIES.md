@@ -1366,3 +1366,46 @@ Performed exhaustive verification across all dimensions:
 - [6.13] Plugin: Tax.FixedOrByCountryStateZip: will implement `ITaxProvider` interface
 - [7.12] VIES VAT: must implement `DoVatCheckAsync` with HTTP client
 - [8.2] Data migration: must handle `BillingAddress_Id` → `BillingAddressId` column mapping
+
+## 2026-04-09 — [4.7] Shipping Services / Implementation
+
+### ShippingMethodCountryMapping Join Entity Created
+- Legacy `ShippingMethod.RestrictedCountries` nav property was stripped in [1.3] — many-to-many relationship between ShippingMethod and Country had no join entity
+- Created `ShippingMethodCountryMapping` (table: `ShippingMethodRestrictions`) with `ShippingMethodId` and `CountryId` properties
+- EF Core configuration and DbSet added to NopDbContext
+- `GetAllShippingMethodsAsync(filterByCountryId)` queries this join entity to exclude restricted shipping methods — matching legacy behavior where restricted countries mean the method is NOT available in that country
+
+### ShipmentService — Multi-Table Joins Replace Nav Properties
+- Legacy `GetAllShipments` used `s.Order.ShippingAddress.CountryId` (3-level nav property chain: Shipment→Order→Address)
+- New code uses explicit joins: `Shipment` → `Order` (on OrderId) → `Address` (on ShippingAddressId)
+- Legacy vendor filtering used `orderItem.Product.VendorId` and `s.ShipmentItems.Select(si => si.OrderItemId)` — both nav property chains
+- New code uses: `ShipmentItem` → `OrderItem` (on OrderItemId) → `Product` (on ProductId) for vendor filtering
+- Legacy `GetQuantityInShipments` used `si.Shipment.Order.Deleted` and `si.Shipment.Order.OrderStatusId` — nav property chains
+- New code joins: `ShipmentItem` → `Shipment` → `Order` with explicit join conditions
+
+### GetShipmentItemsByShipmentIdAsync — New Method
+- Legacy `IShipmentService` did not have a method to get shipment items by shipment ID — it relied on `shipment.ShipmentItems` nav property
+- Nav properties stripped in [1.3] — added `GetShipmentItemsByShipmentIdAsync(int shipmentId)` to the interface
+- Impact: all code that previously accessed `shipment.ShipmentItems` must now call this method
+
+### Plugin-Dependent Methods Deferred to [2.10]
+- Legacy `IShippingService` had 9 plugin-dependent methods: `LoadActiveShippingRateComputationMethods`, `LoadShippingRateComputationMethodBySystemName`, `LoadAllShippingRateComputationMethods`, `LoadActivePickupPointProviders`, `LoadPickupPointProviderBySystemName`, `LoadAllPickupPointProviders`, `GetShippingOptions`, `GetPickupPoints`
+- All depend on `IPluginFinder` (plugin system [2.10]) — NOT included in new `IShippingService` interface
+- `IShippingRateComputationMethod` and `IPickupPointProvider` interfaces also deferred (extend `IPlugin`)
+- `ShippingExtensions` (IsShippingRateComputationMethodActive, IsPickupPointProviderActive, CountryRestrictionExists) also deferred
+
+### Workflow Methods Deferred
+- `GetShoppingCartItemWeight`, `GetTotalWeight`, `GetDimensions`, `GetAssociatedProductDimensions`, `CreateShippingOptionRequests` all depend on:
+  - `ShoppingCartItem.Product` nav property (stripped in [1.3])
+  - `IProductAttributeParser` (for associated product weight/dimensions)
+  - `ICheckoutAttributeParser` (for checkout attribute weight)
+  - `IGenericAttributeService` (for customer checkout attributes)
+  - `IProductService` (for associated product lookup)
+- These will be added when [4.9] Order services is built (which provides `IShoppingCartService` with cart item queries)
+- `GetShippingOptionRequest` DTO not recreated in services — it's a domain DTO in `Nop.Core.Domain.Shipping` already. The service-layer version with `PackageItem` nested class will be created when workflow methods are implemented
+
+### Impact on Future Items
+- [4.8] Payment: no direct dependency on shipping services
+- [4.9] Orders: can now use `IShipmentService` for shipment management, `IShippingService` for warehouse/method lookups; must implement workflow methods (weight, dimensions, package creation)
+- [5.41] Admin ShippingController: can now use all three shipping services for CRUD
+- [6.6-6.12] Shipping plugins: will implement `IShippingRateComputationMethod` / `IPickupPointProvider` interfaces

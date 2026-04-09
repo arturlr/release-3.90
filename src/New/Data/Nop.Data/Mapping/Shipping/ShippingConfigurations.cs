@@ -53,6 +53,15 @@ public class ShippingMethodConfiguration : IEntityTypeConfiguration<ShippingMeth
     }
 }
 
+public class ShippingMethodCountryMappingConfiguration : IEntityTypeConfiguration<ShippingMethodCountryMapping>
+{
+    public void Configure(EntityTypeBuilder<ShippingMethodCountryMapping> builder)
+    {
+        builder.ToTable("ShippingMethodRestrictions");
+        builder.HasKey(m => m.Id);
+    }
+}
+
 public class WarehouseConfiguration : IEntityTypeConfiguration<Warehouse>
 {
     public void Configure(EntityTypeBuilder<Warehouse> builder)

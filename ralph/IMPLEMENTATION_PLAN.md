@@ -245,10 +245,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1, 3.1, 3.3, 4.1
   - Done: 2026-04-09. ITaxCategoryService/TaxCategoryService (cached CRUD), ITaxService/TaxService (async-first, tuples instead of out params, address-based tax basis, EU VAT consumer detection, tax exemptions via customer role join). Added BillingAddressId/ShippingAddressId to Customer entity. CheckoutAttribute passed explicitly (no nav properties). ITaxProvider interface (no IPlugin dependency — deferred to [2.10]). CalculateTaxRequest/CalculateTaxResult DTOs. VIES VAT check deferred to [7.12]. Tax provider resolution returns 0% until [2.10] plugin system.
 
-- [ ] [4.7] Shipping services — IShippingService, IShipmentService, IDateRangeService
+- [x] [4.7] Shipping services — IShippingService, IShipmentService, IDateRangeService
   - Spec: specs/svc-shipping.md
   - Scope: Nop.Services/Shipping
   - Depends on: 1.5, 2.1, 3.1, 3.3, 4.4
+  - Done: 2026-04-09. IDateRangeService/DateRangeService (simple CRUD for DeliveryDate and ProductAvailabilityRange, no caching). IShipmentService/ShipmentService (CRUD for Shipment/ShipmentItem, GetAllShipmentsAsync with Order→Address joins for address filtering, vendor/warehouse filtering via ShipmentItem→OrderItem→Product joins, GetQuantityInShipmentsAsync with multi-table join). IShippingService/ShippingService (shipping method CRUD with country restriction filtering via ShippingMethodCountryMapping join entity table ShippingMethodRestrictions, warehouse CRUD with prefix-based cache invalidation, GetNearestWarehouseAsync). DTOs: GetShippingOptionResponse, GetPickupPointsResponse, ShipmentStatusEvent, ShippingRateComputationMethodType. Plugin-dependent methods (LoadActive*, GetShippingOptions, GetPickupPoints) deferred to [2.10]. Workflow methods (GetShoppingCartItemWeight, GetTotalWeight, GetDimensions, CreateShippingOptionRequests) deferred — depend on Product nav properties on ShoppingCartItem + IProductAttributeParser + ICheckoutAttributeParser.
 
 - [ ] [4.8] Payment services — IPaymentService
   - Spec: specs/svc-payments.md

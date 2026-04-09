@@ -176,6 +176,7 @@ public class NopDbContext : DbContext
     public DbSet<Shipment> Shipments => Set<Shipment>();
     public DbSet<ShipmentItem> ShipmentItems => Set<ShipmentItem>();
     public DbSet<ShippingMethod> ShippingMethods => Set<ShippingMethod>();
+    public DbSet<ShippingMethodCountryMapping> ShippingMethodCountryMappings => Set<ShippingMethodCountryMapping>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
 
     // Stores
