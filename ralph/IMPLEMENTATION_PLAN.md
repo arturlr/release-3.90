@@ -186,10 +186,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1, 2.3
   - Done: 2026-04-09. IBlogService/BlogService (async-first, no caching, store mapping join for GetAllBlogPosts, tag-based filtering loads all then filters in-memory, event publishing). BlogExtensions.ParseTags (static method, StringSplitOptions.TrimEntries). Follows PollService pattern.
 
-- [ ] [3.14] News services — INewsService
+- [x] [3.14] News services — INewsService
   - Spec: specs/svc-news.md
   - Scope: Nop.Services/News
   - Depends on: 1.5, 2.1, 2.3
+  - Done: 2026-04-09. INewsService/NewsService (async-first, no caching, store mapping join for GetAllNews, comment filtering with multiple optional params, event publishing). Follows BlogService pattern exactly. No tags (unlike Blog).
 
 - [ ] [3.15] CMS/Widget services — IWidgetService
   - Spec: specs/svc-cms.md

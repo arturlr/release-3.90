@@ -972,3 +972,16 @@ Performed exhaustive verification across all dimensions:
 - [5.10] Public BlogController: can now use `IBlogService` for blog display
 - [5.44] Admin BlogController: can now use `IBlogService` for blog CRUD
 - [3.14] News services: `INewsService` follows the same pattern — nearly identical structure to BlogService
+
+## 2026-04-09 — [3.14] News Services / Implementation
+
+### Simple Leaf Service — No Surprises
+- NewsService is structurally identical to BlogService: CRUD for NewsItem + NewsComment, store mapping join for GetAllNews, comment filtering with multiple optional params, GetNewsCommentsCount, batch delete
+- No caching (matching legacy) — news items are low-to-medium volume entities
+- No tags (unlike Blog) — simpler interface, no ParseTags/GetAllByTag/GetAllTags methods
+- Store mapping uses inline LINQ join (same pattern as CountryService, TopicService, BlogService) — efficient for filtered queries
+- Comment text search includes both CommentText and CommentTitle (matching legacy)
+
+### Impact on Future Items
+- [5.11] Public NewsController: can now use `INewsService` for news display
+- [5.45] Admin NewsController: can now use `INewsService` for news CRUD
