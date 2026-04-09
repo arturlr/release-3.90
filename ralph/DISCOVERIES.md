@@ -701,3 +701,41 @@ Performed exhaustive verification across all dimensions:
 - [4.6] Tax services: can now use `ICountryService`, `IStateProvinceService` for tax jurisdiction lookups
 - [4.7] Shipping services: can now use `ICountryService`, `IMeasureService` for shipping calculations
 - [7.15] MaxMind GeoIP2: replace `NullGeoLookupService` with full implementation
+
+## 2026-04-09 — [3.4] SEO Services / Implementation
+
+### Service Locator Elimination in SeoExtensions
+- Legacy `SeoExtensions` used `EngineContext.Current.Resolve<T>()` extensively for `IUrlRecordService`, `IWorkContext`, `ILanguageService`, `SeoSettings`
+- New `SeoExtensions` takes all dependencies as explicit parameters — no service locator calls
+- `GetSeNameAsync<T>` takes `IUrlRecordService` and optional `ILanguageService` as parameters
+- `ValidateSeNameAsync` takes `IUrlRecordService` and `SeoSettings` as parameters
+- `GetSeName(string)` takes `convertNonWesternChars` and `allowUnicodeCharsInUrls` booleans directly
+- Impact: all callers (controllers, model factories, services) must pass dependencies explicitly
+
+### Character Transliteration Table Modernization
+- Legacy used `Dictionary<string, string>` with lazy initialization + lock pattern (1029 entries, keyed by string)
+- New code uses `FrozenDictionary<char, string>` (1028 entries, keyed by char) — immutable, thread-safe, zero-allocation lookups
+- `01BE` (LATIN LETTER INVERTED GLOTTAL STOP WITH STROKE) was commented out in legacy — excluded from new table
+- `ToUnichar()` helper eliminated — char literals used directly (`'\u00C0'` instead of `ToUnichar("00C0")`)
+
+### UrlRecordForCaching DTO Eliminated
+- Legacy `UrlRecordService` used nested `UrlRecordForCaching` class to cache URL records separately from EF entities
+- New code caches `UrlRecord` entities directly from `TableNoTracking` — consistent with pattern established in [2.2] Logging and [2.3] Localization
+- Safe because cached entities are read-only (not tracked by EF Core)
+
+### ISitemapGenerator Implementation Deferred
+- `ISitemapGenerator` interface created but implementation deferred — depends on `ICategoryService`, `IProductService`, `IManufacturerService`, `ITopicService` (Phase 4)
+- Legacy `SitemapGenerator` also depends on `IStoreContext`, `IWebHelper`, `CommonSettings`, `BlogSettings`, `NewsSettings`, `ForumSettings`, `SecuritySettings`
+- Implementation will be created when Phase 4 services are available
+- Legacy `UpdateFrequency` enum not migrated — will be created with the implementation
+
+### Entity-Specific GetSeName Extensions Dropped
+- Legacy had entity-specific `GetSeName()` extension methods for `ProductTag`, `ForumGroup`, `Forum`, `ForumTopic` that generated slugs from entity names directly (not from URL records)
+- These used service locator to resolve `IWorkContext` and `ILocalizationService`
+- New code only provides `GetSeNameAsync<T>` (URL record lookup) and `GetSeName(string)` (slug generation from raw text)
+- Entity-specific slug generation will be handled by calling `GetSeName(entity.Name, ...)` directly in services/controllers
+
+### Impact on Future Items
+- [3.10] Vendors, [3.11] Topics, [4.4] Catalog: can now use `IUrlRecordService.SaveSlugAsync` and `SeoExtensions.ValidateSeNameAsync`
+- [5.x] Controllers: must pass `IUrlRecordService` and `SeoSettings` to `ValidateSeNameAsync` calls
+- ISitemapGenerator implementation: add as sub-item when Phase 4 services are complete

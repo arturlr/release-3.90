@@ -127,10 +127,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1, 3.1
   - Done: 2026-04-09. CountryService (cached, store mapping filter via join query), StateProvinceService (cached by country+language+showHidden), CurrencyService (cached, store mapping post-filter, conversion via exchange rates), MeasureService (dimension+weight CRUD, ratio-based conversions), NullGeoLookupService (MaxMind deferred to [7.15]). Exchange rate provider methods (IPluginFinder) deferred to [2.10].
 
-- [ ] [3.4] SEO services — IUrlRecordService, ISitemapGenerator, slug generation
+- [x] [3.4] SEO services — IUrlRecordService, ISitemapGenerator, slug generation
   - Spec: specs/svc-seo.md
   - Scope: Nop.Services/Seo
   - Depends on: 1.5, 2.1
+  - Done: 2026-04-09. IUrlRecordService/UrlRecordService (async-first, cached slug lookup, dual-mode LoadAllUrlRecordsOnStartup). ISitemapGenerator interface only (implementation deferred — depends on Phase 4 services). SeoExtensions (FrozenDictionary 1028-entry transliteration table, GetSeName slug generator, ValidateSeNameAsync uniqueness enforcement). No service locator — all dependencies passed as parameters.
 
 - [ ] [3.5] Helpers — IDateTimeHelper, IUserAgentHelper
   - Spec: specs/svc-helpers.md
