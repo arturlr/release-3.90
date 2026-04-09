@@ -9,6 +9,7 @@ using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Discounts;
 using Nop.Core.Domain.Forums;
+using Nop.Core.Domain.Gdpr;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Logging;
 using Nop.Core.Domain.Media;
@@ -99,6 +100,9 @@ public class NopDbContext : DbContext
     public DbSet<Discount> Discounts => Set<Discount>();
     public DbSet<DiscountRequirement> DiscountRequirements => Set<DiscountRequirement>();
     public DbSet<DiscountUsageHistory> DiscountUsageHistory => Set<DiscountUsageHistory>();
+
+    // Gdpr
+    public DbSet<GdprLog> GdprLogs => Set<GdprLog>();
 
     // Forums
     public DbSet<Forum> Forums => Set<Forum>();

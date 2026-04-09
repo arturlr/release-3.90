@@ -200,10 +200,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Nop.Services/Cms
   - Depends on: 1.5, 2.10
 
-- [ ] [3.16] GDPR services — data export, anonymization, consent
+- [x] [3.16] GDPR services — data export, anonymization, consent
   - Spec: specs/svc-gdpr.md
   - Scope: Nop.Services/Gdpr
   - Depends on: 1.5
+  - Done: 2026-04-09. GdprRequestType enum (ConsentAgree/Disagree, ExportData, DeleteCustomer), GdprLog entity, GdprLogConfiguration (EF Core), IGdprService/GdprService (log CRUD, PermanentDeleteCustomerAsync with full anonymization: deletes forum content, blog/news comments, product reviews, activity/system logs, shopping cart, back-in-stock subscriptions, private messages, forum subscriptions, generic attributes, passwords, role mappings; anonymizes order addresses; marks customer as deleted with anonymized email). No caching (low-volume admin operations). No legacy code — greenfield feature.
 
 ---
 

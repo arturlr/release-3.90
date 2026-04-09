@@ -1192,3 +1192,30 @@ Performed exhaustive verification across all dimensions:
 - [5.15] Public NewsletterController: can now use `INewsLetterSubscriptionService`
 - [5.53-5.57] Admin email/template/campaign controllers: can now use all message services
 - [7.1] SMTP integration: already implemented via MailKit in `EmailSender`
+
+## 2026-04-09 — [3.16] GDPR Services / Implementation
+
+### Greenfield Feature — No Legacy Code
+- No `Gdpr` directory exists in legacy `Nop.Services/` or `Nop.Core.Domain/`
+- DISCOVERIES.md iteration 1 noted "No GDPR service directory exists in legacy — GDPR features may be spread across CustomerService" — confirmed: no GDPR-specific code exists anywhere in legacy
+- Created entirely new: `GdprRequestType` enum, `GdprLog` entity, EF Core config, `IGdprService`/`GdprService`
+
+### PermanentDeleteCustomerAsync — Comprehensive Cleanup
+- Deletes 12 categories of customer-related data: forum posts/topics/subscriptions, blog comments, news comments, product reviews (+ helpfulness records), activity logs, system logs, shopping cart items, back-in-stock subscriptions, private messages, generic attributes, passwords, customer-role mappings
+- Anonymizes order addresses (preserves order history integrity): FirstName→"Deleted", LastName→"Customer", nulls PII fields
+- Anonymizes customer record: email→`deleted-{guid}@anonymized.invalid`, nulls username/admin comment/IP, sets Active=false, Deleted=true
+- Logs the deletion via `InsertLogAsync` after anonymization
+
+### Data Export Not Implemented in Service Layer
+- Spec mentions "customer data export produces complete data package" — this is a presentation-layer concern (controller assembles data from multiple services into export format)
+- `IGdprService` provides the consent logging and deletion infrastructure; data export will be assembled by the admin GDPR controller when Phase 5 is built
+- No separate `ExportCustomerDataAsync` method needed — the controller will query each service directly
+
+### No Caching Needed
+- GDPR operations are low-volume admin actions (consent logging, customer deletion)
+- No cache event consumers needed — consistent with other low-volume services (VendorService, AffiliateService, PollService)
+
+### Impact on Future Items
+- [5.x] Admin GDPR controller: will use `IGdprService` for consent log display and customer deletion
+- [4.9] Order services: order history preserved after customer deletion (addresses anonymized, not deleted)
+- [8.x] Data migration: `GdprLog` table is new — no migration from legacy needed
