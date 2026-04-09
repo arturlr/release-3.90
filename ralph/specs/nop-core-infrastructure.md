@@ -9,6 +9,7 @@ Core infrastructure — DI engine, type finding, caching abstractions, event sys
 - `src/Libraries/Nop.Core/Events/` — EntityInserted, EntityUpdated, EntityDeleted
 - `src/Libraries/Nop.Core/Plugins/` — IPlugin, BasePlugin, IPluginFinder, PluginManager, PluginDescriptor (14 files)
 - `src/Libraries/Nop.Core/Data/` — IRepository<T>, DataSettings, IDataProvider
+- `src/Libraries/Nop.Core/Configuration/` — NopConfig (IConfigurationSectionHandler, XML-based app config), ISettings (marker interface for all DB-backed settings classes)
 - `src/Libraries/Nop.Core/IWorkContext.cs`, `IStoreContext.cs`, `IWebHelper.cs`
 - `src/Libraries/Nop.Core/ComponentModel/`, `Html/`, `Fakes/`
 
@@ -30,6 +31,8 @@ Core infrastructure — DI engine, type finding, caching abstractions, event sys
 - `Extensions` — extension methods on common types
 - `HtmlHelper`, `BBCodeHelper`, `ResolveLinksHelper` — HTML sanitization and formatting utilities
 - `GenericDictionaryTypeConverter<T>`, `GenericListTypeConverter<T>` — custom type converters for comma-separated values
+- `NopConfig` — legacy XML config section handler (Redis, Azure Blob, web farms, user agent DB paths, installation flags)
+- `ISettings` — marker interface for all DB-backed settings classes (CatalogSettings, OrderSettings, etc.)
 
 ## External Dependencies
 - Autofac 4.4.0 → replace with `Microsoft.Extensions.DependencyInjection` (built-in .NET 10)
@@ -50,6 +53,8 @@ Core infrastructure — DI engine, type finding, caching abstractions, event sys
 - `Fakes/` directory → drop entirely; ASP.NET Core provides `WebApplicationFactory` and `TestServer` for integration testing
 - `Html/CodeFormatter/` → evaluate if still needed; consider Markdig or similar for rich text processing
 - `ComponentModel/` type converters → port as-is, used by settings system for comma-separated list storage
+- `NopConfig` (XML config section) → replace with `appsettings.json` + `IOptions<NopConfig>` pattern; all properties (Redis, Azure Blob, web farms, installation) become strongly-typed configuration sections
+- `ISettings` marker interface → keep as-is; used by `ISettingService` to identify settings classes for DB persistence
 
 ## Acceptance Criteria
 - [ ] DI container bootstraps using `Microsoft.Extensions.DependencyInjection` with no Autofac dependency

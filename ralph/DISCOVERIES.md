@@ -176,3 +176,35 @@ Compared all 117 service interfaces in `src/Libraries/Nop.Services/` against spe
 - All gaps were enrichment of existing specs (more detail in Key Entities, Migration Notes, Acceptance Criteria)
 - No new components discovered — 67 specs and 171 plan items remain stable
 - Admin area confirmed to NOT use model factories (inline model construction in controllers)
+
+## 2026-04-09 — Refine Iteration 6
+
+### Gap Analysis: IPermissionProvider + StandardPermissionProvider
+- `IPermissionProvider` (interface) and `StandardPermissionProvider` (40+ permission constants) in `Nop.Services/Security/` were not mentioned in any spec
+- `StandardPermissionProvider` defines all admin permissions (ManageProducts, ManageOrders, AccessAdminPanel, etc.) and public permissions (DisplayPrices, EnableShoppingCart, EnableWishlist, PublicStoreAllowNavigation)
+- `IPermissionProvider` is the extension point for plugins to register custom permissions
+- `PermissionService.InstallPermissions()` discovers all `IPermissionProvider` implementations to seed permission records
+- Added to `xcut-authorization.md`: Legacy Source, Key Entities, Migration Notes, and new acceptance criterion
+
+### Gap Analysis: NopConfig (XML App Config)
+- `NopConfig` in `Nop.Core/Configuration/` implements `IConfigurationSectionHandler` — legacy XML config section from web.config
+- Contains app-level settings: Redis connection, Azure Blob storage, web farm mode, user agent DB paths, installation flags
+- Not mentioned in any spec. Added to `nop-core-infrastructure.md`: Legacy Source, Key Entities, Migration Notes
+- Migration: replace with `appsettings.json` + `IOptions<NopConfig>` pattern
+
+### Gap Analysis: ISettings Marker Interface
+- `ISettings` in `Nop.Core/Configuration/` is the marker interface for all DB-backed settings classes (CatalogSettings, OrderSettings, etc.)
+- Was mentioned in `svc-configuration.md` but not in `nop-core-infrastructure.md` where it physically lives
+- Added to `nop-core-infrastructure.md` Key Entities and Migration Notes
+
+### Comprehensive Cross-Check Results
+- All 117 service interfaces verified against specs — only `IPermissionProvider` was missing (now fixed)
+- All 55 admin controllers and 28 public controllers confirmed in plan
+- All 67 spec files referenced in plan items
+- All domain subdirectories (26) and service subdirectories (30+) verified covered
+- Google Shopping plugin confirmed as feed generator (no external API calls) — no missing integration item
+- `Nop.Services/Extensions.cs` (enum-to-SelectList helper) — minor utility, covered implicitly by web framework migration
+
+### No New Specs or Plan Items
+- All gaps were enrichment of existing specs (3 specs updated: xcut-authorization.md, nop-core-infrastructure.md)
+- 67 specs and 171 plan items remain stable
