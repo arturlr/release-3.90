@@ -101,6 +101,9 @@ public class NopDbContext : DbContext
     public DbSet<Discount> Discounts => Set<Discount>();
     public DbSet<DiscountRequirement> DiscountRequirements => Set<DiscountRequirement>();
     public DbSet<DiscountUsageHistory> DiscountUsageHistory => Set<DiscountUsageHistory>();
+    public DbSet<DiscountCategoryMapping> DiscountCategoryMappings => Set<DiscountCategoryMapping>();
+    public DbSet<DiscountManufacturerMapping> DiscountManufacturerMappings => Set<DiscountManufacturerMapping>();
+    public DbSet<DiscountProductMapping> DiscountProductMappings => Set<DiscountProductMapping>();
 
     // Gdpr
     public DbSet<GdprLog> GdprLogs => Set<GdprLog>();

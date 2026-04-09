@@ -233,10 +233,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1, 2.3, 2.9, 3.1, 3.2, 3.4, 3.7, 4.1
   - Done: 2026-04-09. 17 interfaces + 16 implementations: CategoryTemplateService, ManufacturerTemplateService, ProductTemplateService (simple CRUD), CategoryService (cached, ACL+store mapping joins, parent-child hierarchy), ManufacturerService (cached, ACL+store mapping joins), ProductTagService (ProductProductTagMapping join entity, cached product counts), SpecificationAttributeService (CRUD for spec attrs/options/product-spec mappings), ProductAttributeService (CRUD for attrs/mappings/values/predefined/combinations, cached), ProductAttributeParser (XML format preserved, gift card attributes), ProductAttributeFormatter (HTML-encoded attribute display), ProductService (SearchProducts with 20+ params, CRUD, related/cross-sell, reviews, pictures, inventory, stock history), PriceCalculationService (tier pricing, attribute adjustments, rental periods — discounts deferred to [4.5]), PriceFormatter (currency formatting), BackInStockSubscriptionService, CompareProductsService (cookie-based), RecentlyViewedProductsService (cookie-based). ICopyProductService interface only (implementation deferred — depends on many services).
 
-- [ ] [4.5] Discount services — IDiscountService
+- [x] [4.5] Discount services — IDiscountService
   - Spec: specs/svc-discounts.md
   - Scope: Nop.Services/Discounts
   - Depends on: 1.5, 2.1, 4.1, 4.4
+  - Done: 2026-04-09. IDiscountService/DiscountService (async-first, cached GetAllDiscounts with prefix invalidation, no DiscountForCaching — cache Discount entities directly). DiscountCategoryMapping/DiscountManufacturerMapping/DiscountProductMapping join entities with EF Core configs and DbSets. DiscountExtensions (GetDiscountAmount with proper decimal math, GetPreferredDiscount with cumulative support, ContainsDiscount). Hierarchical AND/OR requirement evaluation (leaf rules pass by default until plugin system [2.10]). Usage history with Order join for customer filtering. DiscountValidationResult, DiscountRequirementValidationRequest/Result, IDiscountRequirementRule (no IPlugin dependency). Plugin-dependent methods (LoadDiscountRequirementRuleBySystemName, LoadAllDiscountRequirementRules) deferred to [2.10].
 
 - [ ] [4.6] Tax services — ITaxService, ITaxCategoryService
   - Spec: specs/svc-tax.md

@@ -38,3 +38,30 @@ public class DiscountUsageHistoryConfiguration : IEntityTypeConfiguration<Discou
         builder.HasKey(duh => duh.Id);
     }
 }
+
+public class DiscountCategoryMappingConfiguration : IEntityTypeConfiguration<DiscountCategoryMapping>
+{
+    public void Configure(EntityTypeBuilder<DiscountCategoryMapping> builder)
+    {
+        builder.ToTable("Discount_AppliedToCategories");
+        builder.HasKey(m => m.Id);
+    }
+}
+
+public class DiscountManufacturerMappingConfiguration : IEntityTypeConfiguration<DiscountManufacturerMapping>
+{
+    public void Configure(EntityTypeBuilder<DiscountManufacturerMapping> builder)
+    {
+        builder.ToTable("Discount_AppliedToManufacturers");
+        builder.HasKey(m => m.Id);
+    }
+}
+
+public class DiscountProductMappingConfiguration : IEntityTypeConfiguration<DiscountProductMapping>
+{
+    public void Configure(EntityTypeBuilder<DiscountProductMapping> builder)
+    {
+        builder.ToTable("Discount_AppliedToProducts");
+        builder.HasKey(m => m.Id);
+    }
+}

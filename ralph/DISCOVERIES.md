@@ -1273,3 +1273,45 @@ Performed exhaustive verification across all dimensions:
 - [5.4] Public CatalogController: can now use `ICategoryService`, `IManufacturerService`, `IProductService.SearchProducts`
 - [5.5] Public ProductController: can now use `IProductService`, `IPriceCalculationService`, `IPriceFormatter`
 - [5.31-5.33] Admin Product/Category/Manufacturer controllers: can now use all catalog services
+
+## 2026-04-09 — [4.5] Discount Services / Implementation
+
+### DiscountForCaching DTO Eliminated
+- Legacy used `DiscountForCaching` (separate DTO class) to cache discounts separately from EF entities
+- New code caches `Discount` entities directly from `TableNoTracking` — consistent with pattern established in [2.2] Logging, [2.3] Localization, [3.4] SEO
+- `MapDiscount()` extension method eliminated — no mapping overhead
+- All extension methods (`GetDiscountAmount`, `GetPreferredDiscount`, `ContainsDiscount`) operate on `Discount` directly
+
+### Float-Cast Percentage Bug Fixed
+- Legacy `GetDiscountAmount` used `(decimal)((((float)amount) * ((float)discount.DiscountPercentage)) / 100f)` — casts to float (32-bit) losing precision for large amounts
+- New code uses `amount * discount.DiscountPercentage / 100m` — pure decimal arithmetic, no precision loss
+- Impact: discount amounts may differ by fractions of a cent for large order totals — acceptable improvement
+
+### Plugin-Dependent Methods Deferred
+- Legacy `LoadDiscountRequirementRuleBySystemName` and `LoadAllDiscountRequirementRules` depend on `IPluginFinder` (plugin system [2.10])
+- These methods are NOT included in the new `IDiscountService` interface — will be added when plugin system is built
+- Leaf discount requirements pass by default in `EvaluateRequirementsAsync` until plugin system provides `IDiscountRequirementRule` implementations
+
+### Gift Card Validation Deferred
+- Legacy `ValidateDiscount` checked `customer.ShoppingCartItems.Any(x => x.Product.IsGiftCard)` to prevent discounts on gift card purchases
+- This requires `ShoppingCartItem` nav property on Customer and `Product` nav property on ShoppingCartItem — both stripped in [1.3]
+- Gift card validation will be added when [4.9] Order services provides `IShoppingCartService` with cart item queries
+- Impact: until [4.9], order-total and order-subtotal discounts can be applied to carts containing gift cards
+
+### Join Entities for Discount-Entity Mappings
+- Created `DiscountCategoryMapping` (table: `Discount_AppliedToCategories`), `DiscountManufacturerMapping` (table: `Discount_AppliedToManufacturers`), `DiscountProductMapping` (table: `Discount_AppliedToProducts`)
+- Legacy used EF6 `HasMany().WithMany().Map()` for these many-to-many relationships via nav properties
+- New code uses explicit join entities with `IRepository<T>` queries — consistent with `CustomerCustomerRoleMapping`, `PermissionRecordRoleMapping`, `ProductProductTagMapping` patterns
+
+### Validation Uses ICustomerService for Registered Check
+- Legacy `ValidateDiscount` called `customer.IsRegistered()` extension method (service locator)
+- New code uses `ICustomerService.GetCustomerRoleIdsAsync` + `GetCustomerRoleBySystemNameAsync` to check if customer has Registered role
+- More explicit, no service locator dependency
+
+### Impact on Future Items
+- [4.6] Tax: no direct dependency on discounts
+- [4.9] Orders: can now use `IDiscountService` for order total/subtotal discount application; must add gift card validation to `ValidateDiscountAsync`
+- [4.4] Catalog: `PriceCalculationService` can now integrate discount logic (currently returns `discountAmount = 0m`)
+- [5.40] Admin DiscountController: can now use `IDiscountService` for discount CRUD
+- [6.14] Plugin: DiscountRules.CustomerRoles: will implement `IDiscountRequirementRule`
+- [6.15] Plugin: DiscountRules.HasOneProduct: will implement `IDiscountRequirementRule`
