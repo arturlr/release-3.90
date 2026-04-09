@@ -1147,3 +1147,48 @@ Performed exhaustive verification across all dimensions:
 - [2.1] Caching: `ClearCacheTask` can now implement `ITask`
 - [3.3] Directory: `UpdateExchangeRateTask` can now implement `ITask`
 - [5.73] Admin ScheduleTaskController: can now use `IScheduleTaskService` for task CRUD
+
+## 2026-04-09 — [4.2] Message Services / Implementation
+
+### System.Net.Mail → MailKit 4.3.0
+- Legacy `EmailSender` used `System.Net.Mail.SmtpClient` (obsolete in .NET Core, no async support)
+- New code uses `MailKit.Net.Smtp.SmtpClient` with `MimeKit.MimeMessage` — full async, cross-platform, actively maintained
+- `SecureSocketOptions.SslOnConnect` when `EnableSsl=true`, `StartTlsWhenAvailable` otherwise
+- `UseDefaultCredentials` handled by skipping `AuthenticateAsync` call (MailKit doesn't have a `DefaultNetworkCredentials` equivalent — if no credentials needed, just don't authenticate)
+- Download attachments use `BodyBuilder.Attachments.Add(fileName, bytes)` instead of `System.Net.Mail.Attachment(MemoryStream)`
+
+### System.Linq.Dynamic → Simple Condition Evaluator
+- Legacy `Tokenizer.ReplaceConditionalStatements` used `System.Linq.Dynamic` `.Where(conditionString)` for evaluating conditional expressions in templates
+- `System.Linq.Dynamic` is a heavy dependency for a simple feature (conditional token display)
+- New code uses a simple evaluator: supports `==`, `!=` comparisons and truthy/falsy checks (non-empty, non-"false", non-"0")
+- Trade-off: less expressive than full LINQ dynamic queries, but covers all practical template conditions
+- If complex conditions are needed, can add `System.Linq.Dynamic.Core` NuGet later
+
+### MessageTokenProvider — Minimal Order/Shipment Tokens
+- Legacy `MessageTokenProvider` had 20+ dependencies including `IOrderService`, `IPriceFormatter`, `ICurrencyService`, `IPaymentService`, `IProductAttributeParser`, `IAddressAttributeFormatter`, `IShippingService`
+- Most of these services don't exist yet (Phase 4)
+- New code implements Store, Customer, Vendor, Newsletter, Forum, Product (basic), GiftCard tokens fully
+- Order, Shipment, ReturnRequest tokens are minimal (ID, basic fields) — will be enriched when [4.9] Order services is built
+- This is intentional: the interfaces are complete, the token values will improve as dependencies become available
+
+### NewsLetterSubscriptionService — No IDbContext.LoadOriginalCopy
+- Legacy used `IDbContext.LoadOriginalCopy(entity)` to snapshot original values before update (for subscribe/unsubscribe event logic)
+- EF Core doesn't have this method. New code queries `TableNoTracking` by ID to get the original state
+- This adds one extra DB query per update, but newsletter updates are low-frequency operations
+
+### MessageTemplateService — Cache Nullable Pattern
+- `IStaticCacheManager.GetAsync<T>` returns `T?` but the acquire function expects `Func<Task<T>>`
+- For `GetMessageTemplateByNameAsync` which can legitimately return null (template not found), used null-forgiving operator `!` on `FirstOrDefault()` since the cache itself returns `T?`
+- For `GetAllMessageTemplatesAsync` which should never return null, used `?? []` null-coalescing
+
+### EventPublisher Extensions for Messages
+- Legacy had `PublishNewsletterSubscribe`, `PublishNewsletterUnsubscribe`, `EntityTokensAdded`, `MessageTokensAdded` extension methods
+- New code creates dedicated event classes: `EmailSubscribedEvent`, `EmailUnsubscribedEvent`, `EntityTokensAddedEvent<T,U>`, `MessageTokensAddedEvent<U>`
+- Events published via `IEventPublisher.PublishAsync` — consistent with async-first pattern
+
+### Impact on Future Items
+- [4.3] Forums: can now use `IWorkflowMessageService` for forum notification emails
+- [4.9] Orders: can now use `IWorkflowMessageService` for order notification emails; must enrich `MessageTokenProvider.AddOrderTokensAsync` with full order details
+- [5.15] Public NewsletterController: can now use `INewsLetterSubscriptionService`
+- [5.53-5.57] Admin email/template/campaign controllers: can now use all message services
+- [7.1] SMTP integration: already implemented via MailKit in `EmailSender`
