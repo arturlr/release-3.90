@@ -1,0 +1,64 @@
+Order Processing Data Flow
+==========================
+
+1. Customer Initiates Checkout
+   [Customer] --> Shopping Cart Data --> [Checkout Controller]
+
+2. Address Collection
+   [Checkout Controller] --> Billing Address --> [OrderProcessingService]
+   [Checkout Controller] --> Shipping Address --> [OrderProcessingService]
+
+3. Shipping Calculation
+   [OrderProcessingService] --> Shipping Request --> [ShippingService]
+   [ShippingService] --> Carrier API Calls --> [External Shipping APIs]
+   [External Shipping APIs] --> Rates --> [ShippingService]
+   [ShippingService] --> Available Options --> [Customer Selection]
+
+4. Tax Calculation
+   [OrderProcessingService] --> Tax Request --> [TaxService]
+   [TaxService] --> Tax Rules + Address --> [Tax Calculation Engine]
+   [Tax Calculation Engine] --> Tax Amount --> [Order Totals]
+
+5. Discount Application
+   [OrderProcessingService] --> Cart + Coupons --> [DiscountService]
+   [DiscountService] --> Validation Rules --> [Discount Evaluation]
+   [Discount Evaluation] --> Applied Discounts --> [Order Totals]
+
+6. Payment Processing
+   [OrderProcessingService] --> Payment Request --> [PaymentService]
+   [PaymentService] --> Card Data + Amount --> [Payment Gateway Plugin]
+   [Payment Gateway Plugin] --> API Call --> [External Payment Gateway]
+   [External Payment Gateway] --> Authorization Result --> [PaymentService]
+   [PaymentService] --> Payment Status --> [OrderProcessingService]
+
+7. Order Creation (if payment success)
+   [OrderProcessingService] --> Order Data --> [OrderService]
+   [OrderService] --> INSERT Order --> [Database]
+   [OrderService] --> INSERT OrderItems --> [Database]
+   [OrderService] --> UPDATE Inventory --> [Database]
+   [Database] --> Order ID --> [OrderService]
+
+8. Post-Processing
+   [OrderService] --> Order Event --> [Event Publisher]
+   [Event Publisher] --> Notifications --> [Message Queue]
+   [Message Queue] --> Email Templates --> [Email Service]
+   [Email Service] --> Confirmation Email --> [Customer]
+   [Email Service] --> Order Notification --> [Store Owner]
+
+9. Order Confirmation
+   [OrderProcessingService] --> Order Details --> [Checkout Controller]
+   [Checkout Controller] --> Confirmation Page --> [Customer Browser]
+
+Data Stores:
+- Shopping Cart (Session/Database)
+- Customer Data (Database)
+- Product Catalog (Database + Cache)
+- Order Data (Database)
+- Payment Transactions (Database + Gateway)
+- Email Queue (Database)
+
+External Systems:
+- Payment Gateways (Stripe, PayPal, etc.)
+- Shipping Carriers (UPS, FedEx, USPS, etc.)
+- Tax Services (Avalara, TaxJar, etc. - optional)
+- Email Service (SMTP Server)

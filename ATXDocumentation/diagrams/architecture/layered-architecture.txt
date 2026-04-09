@@ -1,0 +1,86 @@
+nopCommerce Layered Architecture Diagram
+===========================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      PRESENTATION LAYER                          │
+│                                                                  │
+│  ┌──────────┐  ┌──────────────────┐  ┌──────────────────────┐ │
+│  │Nop.Admin │  │Nop.Web.Framework │  │      Nop.Web         │ │
+│  │          │  │                  │  │                      │ │
+│  │- Admin   │  │- Base Controllers│  │- Public Controllers  │ │
+│  │  Control │  │- HTML Helpers    │  │- Customer Views      │ │
+│  │- Mgmt    │  │- MVC Filters     │  │- Themes              │ │
+│  │  Views   │  │- Security        │  │- Assets              │ │
+│  └────┬─────┘  └────────┬─────────┘  └──────────┬───────────┘ │
+│       └─────────────────┼───────────────────────┘             │
+└──────────────────────────┼──────────────────────────────────────┘
+                           │ Uses Services
+┌──────────────────────────┼──────────────────────────────────────┐
+│                      SERVICE LAYER                               │
+│                     (Nop.Services)                               │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐               │
+│  │  Catalog   │  │ Customers  │  │   Orders   │               │
+│  │  Services  │  │  Services  │  │  Services  │               │
+│  │            │  │            │  │            │               │
+│  │- Product   │  │- Customer  │  │- Order     │  Payment      │
+│  │- Category  │  │- Reg/Auth  │  │- Cart      │  Shipping     │
+│  │- Manufact. │  │- Roles     │  │- Checkout  │  Security     │
+│  └────────────┘  └────────────┘  └────────────┘  Localization  │
+│                                                   Messages      │
+│  Business Logic | Workflows | Events | Caching                 │
+└──────────────────────────┼──────────────────────────────────────┘
+                           │ Uses Repositories
+┌──────────────────────────┼──────────────────────────────────────┐
+│                    DATA ACCESS LAYER                             │
+│                       (Nop.Data)                                 │
+│  ┌─────────────────────────────────────────────────────┐        │
+│  │     IRepository<T> - Generic Repository Interface   │        │
+│  └─────────────────┬───────────────────────┬───────────┘        │
+│                    │                       │                    │
+│  ┌─────────────────┴────┐    ┌─────────────┴──────────┐        │
+│  │  EfRepository<T>     │    │ Entity Mappings        │        │
+│  │  - CRUD Operations   │    │ - ProductMap           │        │
+│  │  - LINQ Queries      │    │ - CustomerMap          │        │
+│  │  - Table/NoTracking  │    │ - OrderMap             │        │
+│  └──────────┬───────────┘    │ - 100+ mappings        │        │
+│             │                └────────────────────────┘        │
+│     ┌───────┴────────┐                                         │
+│     │NopObjectContext│                                         │
+│     │(DbContext EF6) │                                         │
+│     └────────┬───────┘                                         │
+└──────────────┼─────────────────────────────────────────────────┘
+               │ ORM Mapping
+┌──────────────┼─────────────────────────────────────────────────┐
+│                      DOMAIN LAYER                               │
+│                       (Nop.Core)                                │
+│  ┌──────────────────────────────────────────────────┐          │
+│  │       Domain Entities (100+ classes)             │          │
+│  │ Product | Customer | Order | Category | ...      │          │
+│  └──────────────────────────────────────────────────┘          │
+│                                                                 │
+│  ┌───────────┐  ┌────────────────┐  ┌─────────────────┐      │
+│  │Interfaces │  │Infrastructure  │  │ Plugin System   │      │
+│  │IRepository│  │- IoC Engine    │  │- IPlugin        │      │
+│  │IEngine    │  │- Caching       │  │- Discovery      │      │
+│  │IWorkCntxt │  │- Events        │  │- Dynamic Load   │      │
+│  └───────────┘  └────────────────┘  └─────────────────┘      │
+│                                                                 │
+│  No Internal Dependencies - Only External Packages             │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                        PLUGIN LAYER                              │
+│                  (Dynamically Loaded Modules)                    │
+│                                                                  │
+│  Payment | Shipping | Tax | Widgets | Auth | Discounts          │
+│                                                                  │
+│  Dependencies: Nop.Core + Nop.Services + Nop.Web.Framework      │
+└─────────────────────────────────────────────────────────────────┘
+
+External Dependencies:
+- .NET Framework 4.5.1
+- Entity Framework 6.1.3
+- Autofac 4.4.0
+- ASP.NET MVC 5.2.3
+- StackExchange.Redis 1.2.1
+- Newtonsoft.Json 9.0.1

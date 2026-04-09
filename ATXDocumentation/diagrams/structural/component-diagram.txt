@@ -1,0 +1,60 @@
+nopCommerce Component Diagram
+=============================
+
+PRESENTATION LAYER
+├── Nop.Web (Public Website)
+│   ├── Controllers
+│   ├── Views
+│   └── Models
+├── Nop.Admin (Admin Panel)
+│   ├── Admin Controllers
+│   ├── Admin Views
+│   └── Configuration
+└── Nop.Web.Framework (Shared Infrastructure)
+    ├── Filters & Attributes
+    ├── HTML Helpers
+    └── Security
+
+SERVICE LAYER
+└── Nop.Services
+    ├── Catalog Services
+    ├── Order Services
+    ├── Customer Services
+    ├── Payment Services
+    ├── Shipping Services
+    ├── Tax Services
+    ├── Messaging Services
+    ├── Localization Services
+    └── Security Services
+
+DATA ACCESS LAYER
+└── Nop.Data
+    ├── Entity Framework DbContext
+    ├── Repository<T> Implementations
+    └── Entity Mappings (Fluent API)
+
+DOMAIN LAYER
+└── Nop.Core
+    ├── Domain Entities
+    │   ├── Product
+    │   ├── Customer
+    │   ├── Order
+    │   └── etc.
+    └── Infrastructure
+        ├── Engine
+        ├── Caching
+        └── Events
+
+PLUGIN LAYER
+├── Payment Plugins
+├── Shipping Plugins
+├── Widget Plugins
+├── Tax Plugins
+└── Other Extensions
+
+DATABASE
+└── SQL Server / SQL Server Compact Edition
+
+Dependency Flow:
+Presentation → Services → Data Access → Domain
+Plugins → Services, Domain

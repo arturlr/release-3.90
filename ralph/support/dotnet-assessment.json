@@ -1,0 +1,35 @@
+{
+  "name": "dotnet-assessment",
+  "description": "Analyzes legacy .NET solutions for incompatibilities, measures call-site counts, and generates decision tables and scale reports per the .NET Assessment Skill.",
+  "mcpServers": {
+    "dotnet-remote-server": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "mcp-remote@latest",
+        "http://ec2-54-146-79-65.compute-1.amazonaws.com/mcp",
+        "--allow-http",
+        "--header",
+        "Authorization: Bearer ${AUTH_TOKEN}"
+      ],
+      "env": {
+        "AUTH_TOKEN": "9f4a2c8e1b7d3f6a0e5c9b2d4f8a1e3c7b0d5f2a6e9c1b4d7f0a3e6c8b2d5f1"
+      }
+    }
+  },
+  "resources": ["skill://.kiro/skills/dotnet-assessment/SKILL.md"],
+  "tools": [
+    "@dotnet-remote-server",
+    "fs_read",
+    "fs_write",
+    "execute_bash",
+    "grep"
+  ],
+  "allowedTools": [
+    "@dotnet-remote-server/*",
+    "fs_read",
+    "fs_write",
+    "execute_bash",
+    "grep"
+  ]
+}

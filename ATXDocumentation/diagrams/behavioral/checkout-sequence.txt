@@ -1,0 +1,68 @@
+Checkout Process Sequence Diagram
+=================================
+
+Customer    CheckoutController    OrderService    PaymentService    Database
+   |                |                   |                |              |
+   |--Click Checkout-->|                |                |              |
+   |                |                   |                |              |
+   |                |--Validate Cart--->|                |              |
+   |                |                   |--Query Cart--->|              |
+   |                |                   |                |--SELECT----->|
+   |                |                   |                |<--Results----|
+   |                |<--Cart Valid------|                |              |
+   |                |                   |                |              |
+   |<--Show Billing Address Form-------|                |              |
+   |                |                   |                |              |
+   |--Submit Address-->|                |                |              |
+   |                |--Validate-------->|                |              |
+   |                |<--Valid-----------|                |              |
+   |                |                   |                |              |
+   |<--Show Shipping Method-------------|                |              |
+   |                |                   |                |              |
+   |--Select Shipping-->|               |                |              |
+   |                |                   |                |              |
+   |<--Show Payment Method--------------|                |              |
+   |                |                   |                |              |
+   |--Select Payment--->|               |                |              |
+   |                |                   |                |              |
+   |<--Show Order Review----------------|                |              |
+   |                |                   |                |              |
+   |--Confirm Order--->|                |                |              |
+   |                |--Place Order----->|                |              |
+   |                |                   |--Process Payment-->          |
+   |                |                   |                |--Gateway---->|
+   |                |                   |                |<--Approved---|
+   |                |                   |<--Payment OK---|              |
+   |                |                   |                |              |
+   |                |                   |--Create Order---------------->|
+   |                |                   |--Save Items------------------>|
+   |                |                   |--Reduce Inventory------------>|
+   |                |                   |<--Order Saved----------------|
+   |                |<--Order Created---|                |              |
+   |                |                   |                |              |
+   |                |--Send Confirmation Email------------------------->|
+   |                |                   |                |              |
+   |<--Order Confirmation Page---------|                |              |
+   |                |                   |                |              |
+
+Alternative Flow: Payment Failed
+================================
+
+   |--Confirm Order--->|                |                |              |
+   |                |--Place Order----->|                |              |
+   |                |                   |--Process Payment-->          |
+   |                |                   |                |--Gateway---->|
+   |                |                   |                |<--Declined---|
+   |                |                   |<--Payment Failed|            |
+   |                |<--Error: Payment Failed------------|            |
+   |<--Show Error + Retry Option-------|                |              |
+   |                |                   |                |              |
+   (Order NOT created, inventory NOT reduced)
+
+Key Points:
+- Cart validated before checkout begins
+- Multi-step process with validation at each step
+- Payment processed BEFORE order creation
+- Order only created if payment succeeds
+- Inventory reduced atomically with order creation
+- Confirmation sent after successful order placement
