@@ -133,10 +133,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1
   - Done: 2026-04-09. IUrlRecordService/UrlRecordService (async-first, cached slug lookup, dual-mode LoadAllUrlRecordsOnStartup). ISitemapGenerator interface only (implementation deferred — depends on Phase 4 services). SeoExtensions (FrozenDictionary 1028-entry transliteration table, GetSeName slug generator, ValidateSeNameAsync uniqueness enforcement). No service locator — all dependencies passed as parameters.
 
-- [ ] [3.5] Helpers — IDateTimeHelper, IUserAgentHelper
+- [x] [3.5] Helpers — IDateTimeHelper, IUserAgentHelper
   - Spec: specs/svc-helpers.md
   - Scope: Nop.Services/Helpers
   - Depends on: 1.4
+  - Done: 2026-04-09. DateTimeSettings (Nop.Core/Domain/Common). IDateTimeHelper/DateTimeHelper (UTC↔user timezone conversion, customer timezone via IRepository<GenericAttribute>, DefaultStoreTimeZone falls back to UTC). IUserAgentHelper/UserAgentHelper (FrozenSet<string> 25 crawler tokens, IHttpContextAccessor). FrameworkReference added to Nop.Services.csproj. Legacy BrowscapXmlHelper replaced. Property setters removed from interface (mutation belongs in controllers).
 
 - [ ] [3.6] Scheduled tasks — IScheduleTaskService, IHostedService integration
   - Spec: specs/svc-tasks.md

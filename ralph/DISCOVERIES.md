@@ -739,3 +739,34 @@ Performed exhaustive verification across all dimensions:
 - [3.10] Vendors, [3.11] Topics, [4.4] Catalog: can now use `IUrlRecordService.SaveSlugAsync` and `SeoExtensions.ValidateSeNameAsync`
 - [5.x] Controllers: must pass `IUrlRecordService` and `SeoSettings` to `ValidateSeNameAsync` calls
 - ISitemapGenerator implementation: add as sub-item when Phase 4 services are complete
+
+## 2026-04-09 — [3.5] Helpers / Implementation
+
+### BrowscapXmlHelper Replaced with FrozenSet Crawler Detection
+- Legacy `UserAgentHelper` used `BrowscapXmlHelper` — parsed large XML files from Browser Capabilities Project, stored regex patterns in a `List<string>`, matched via `Regex.IsMatch` per pattern per request
+- Heavy: XML parsing on first request, Singleton pattern with double-checked locking, regex compilation per match
+- New approach: `FrozenSet<string>` of 25 well-known crawler tokens (googlebot, bingbot, etc.) with case-insensitive `string.Contains` matching
+- Trade-off: less comprehensive than full browscap database but covers all major search engines. Can be extended by adding tokens
+- Impact: `NopConfig.UserAgentStringsPath` and `NopConfig.CrawlerOnlyUserAgentStringsPath` config properties are no longer needed
+
+### IDateTimeHelper Property Setters Removed
+- Legacy `IDateTimeHelper.DefaultStoreTimeZone { get; set; }` setter called `ISettingService.SaveSetting(DateTimeSettings)` — mutating DB state from a property setter is a side-effect anti-pattern
+- Legacy `IDateTimeHelper.CurrentTimeZone { get; set; }` setter called `IGenericAttributeService.SaveAttribute` — same issue
+- New interface has read-only properties. Timezone mutation will be handled by admin controllers calling `ISettingService`/`IGenericAttributeService` directly
+- Impact: admin SettingController [5.38] must save `DateTimeSettings.DefaultStoreTimeZoneId` directly via `ISettingService`
+
+### DateTimeHelper Uses IRepository<GenericAttribute> Directly
+- `IGenericAttributeService` not built yet ([3.8])
+- Instead of deferring customer timezone lookup, `DateTimeHelper` queries `IRepository<GenericAttribute>` directly for `TimeZoneId` attribute
+- When [3.8] is built, can optionally refactor to use `IGenericAttributeService` — but direct repository access is simpler and avoids an unnecessary abstraction layer for a single query
+
+### DefaultStoreTimeZone Falls Back to UTC
+- Legacy fell back to `TimeZoneInfo.Local` (server's local timezone) — this is server-dependent and causes inconsistent behavior across deployments
+- New code falls back to `TimeZoneInfo.Utc` — deterministic, server-agnostic
+- Impact: stores that relied on server timezone matching their business timezone must now explicitly set `DateTimeSettings.DefaultStoreTimeZoneId`
+
+### FrameworkReference Added to Nop.Services.csproj
+- `UserAgentHelper` needs `IHttpContextAccessor` from `Microsoft.AspNetCore.Http.Abstractions`
+- Added `<FrameworkReference Include="Microsoft.AspNetCore.App" />` to `Nop.Services.csproj`
+- This is the same pattern used by `Nop.Web.Framework.csproj`
+- Impact: future services in Nop.Services can now use ASP.NET Core types (IHttpContextAccessor, etc.) without additional references
