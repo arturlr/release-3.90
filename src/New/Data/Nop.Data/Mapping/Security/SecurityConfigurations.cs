@@ -25,3 +25,12 @@ public class PermissionRecordConfiguration : IEntityTypeConfiguration<Permission
         builder.Property(pr => pr.Category).IsRequired().HasMaxLength(255);
     }
 }
+
+public class PermissionRecordRoleMappingConfiguration : IEntityTypeConfiguration<PermissionRecordRoleMapping>
+{
+    public void Configure(EntityTypeBuilder<PermissionRecordRoleMapping> builder)
+    {
+        builder.ToTable("PermissionRecord_Role_Mapping");
+        builder.HasKey(m => m.Id);
+    }
+}

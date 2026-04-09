@@ -68,10 +68,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1
   - Done: 2026-04-09. ILanguageService/LanguageService (cached, event publishing), ILocalizationService/LocalizationService (dual-mode resource lookup, XML import/export), ILocalizedEntityService/LocalizedEntityService (dual-mode property lookup, expression-based save), LocalizationExtensions (entity/enum/setting localization). Dropped service locator pattern. Plugin extensions deferred to [2.10], permission extensions to [2.4]. IStoreMappingService filtering deferred to [3.2].
 
-- [ ] [2.4] Security — IPermissionService, IAclService, IEncryptionService
+- [x] [2.4] Security — IPermissionService, IAclService, IEncryptionService
   - Spec: specs/xcut-security.md
   - Scope: Nop.Services/Security
   - Depends on: 1.5
+  - Done: 2026-04-09. IEncryptionService/EncryptionService (AES encrypt/decrypt, SHA1/SHA256/MD5/SHA384/SHA512 hashing, RandomNumberGenerator salt). IAclService/AclService (entity-level ACL via customer roles, cached role ID lookup, CatalogSettings.IgnoreAcl bypass). IPermissionService/PermissionService (cached per-role permission check, install/uninstall with role mappings, localized permission names). StandardPermissionProvider (50 permissions, 5 default role mappings). IPermissionProvider interface. Created join entities CustomerCustomerRoleMapping and PermissionRecordRoleMapping with EF Core configs and DbSets. Permission localization extensions added to LocalizationExtensions.
 
 - [ ] [2.5] Authentication — cookie auth, sign-in/sign-out, impersonation
   - Spec: specs/xcut-authentication.md

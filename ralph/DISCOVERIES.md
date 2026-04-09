@@ -603,3 +603,41 @@ Performed exhaustive verification across all dimensions:
 - [3.2] Store services: add `IStoreMappingService` filtering to `LanguageService.GetAllLanguagesAsync`
 - [5.1] Web.Framework: implement localized routes, `ILocalizedModel<T>`, `NopResourceDisplayName`
 - All Phase 3/4 services that need localized entity properties will use `GetLocalizedAsync` extension
+
+## 2026-04-09 — [2.4] Security / Implementation
+
+### Join Entities for Many-to-Many Relationships
+- Legacy `Customer.CustomerRoles` and `CustomerRole.PermissionRecords` nav properties were stripped in [1.3]
+- Created `CustomerCustomerRoleMapping` (table: `Customer_CustomerRole_Mapping`) and `PermissionRecordRoleMapping` (table: `PermissionRecord_Role_Mapping`) as explicit join entities
+- All services that need customer→role or role→permission lookups must query via these join entity repositories
+- EF Core configurations and DbSets added for both
+
+### Encryption Modernization
+- **TripleDES → AES**: Legacy used `TripleDESCryptoServiceProvider` (obsolete, weak). New code uses `Aes.Create()` with `EncryptCbc`/`DecryptCbc`
+- **Key derivation changed**: Legacy used 16-char key (first 16 bytes for key, bytes 8-16 for 8-byte IV). New code uses 24-char key (first 16 bytes for AES-128 key, bytes 8-24 for 16-byte IV). This is a **breaking change** — existing encrypted data cannot be decrypted with the new service
+- **Data migration impact**: Plan item [8.3] or a dedicated migration step must re-encrypt any TripleDES-encrypted data (credit card numbers, etc.) during migration
+- **Hash modernization**: `HashAlgorithm.Create()` → static `SHA1.HashData()`, `SHA256.HashData()`, etc. `BitConverter.ToString().Replace("-","")` → `Convert.ToHexString()`. `RNGCryptoServiceProvider` → `RandomNumberGenerator.GetBytes()`
+- Legacy hash algorithms (SHA1, MD5) kept for migration compatibility — existing password hashes must still verify
+
+### Permission Service Pattern: No ICustomerService Dependency
+- Legacy `PermissionService` depended on `ICustomerService` for `GetCustomerRoleBySystemName()` during `InstallPermissions()`
+- New code queries `IRepository<CustomerRole>` directly — avoids circular dependency risk (ICustomerService depends on IPermissionService in some patterns)
+- `InstallPermissions` creates missing roles directly via repository
+
+### Sync-over-Async Pattern in Security Services
+- `IStaticCacheManager` and `IEventPublisher` are async-first, but security service methods match legacy sync signatures
+- Used `.GetAwaiter().GetResult()` for cache invalidation and event publishing in sync methods
+- `MemoryCacheManager` operations are effectively synchronous (in-memory), so no deadlock risk in non-ASP.NET-Core-request contexts
+- Future: consider making security service methods async when downstream consumers are updated
+
+### Permission Localization Extensions
+- Added `SaveLocalizedPermissionName` and `DeleteLocalizedPermissionName` extension methods to `LocalizationExtensions.cs`
+- These were deferred from [2.3] to [2.4] per DISCOVERIES.md
+- Both are sync wrappers over async `AddOrUpdateLocaleResourceAsync`/`DeleteLocaleResourceAsync`
+
+### Impact on Future Items
+- [2.5] Authentication: can now use `IPermissionService` for permission checks during sign-in
+- [2.6] Authorization: can now build ASP.NET Core authorization policies backed by `IPermissionService`
+- [4.1] Customer services: `CustomerCustomerRoleMapping` repository available for role management
+- [8.x] Data migration: must handle TripleDES→AES re-encryption of sensitive data
+- Any service needing customer roles must inject `IRepository<CustomerCustomerRoleMapping>` — this is a cross-cutting pattern

@@ -3,6 +3,7 @@ using System.Reflection;
 using Nop.Core;
 using Nop.Core.Configuration;
 using Nop.Core.Domain.Localization;
+using Nop.Core.Domain.Security;
 using Nop.Services.Configuration;
 
 namespace Nop.Services.Localization;
@@ -165,5 +166,29 @@ public static class LocalizationExtensions
             if (lsr != null)
                 await localizationService.DeleteLocaleStringResourceAsync(lsr);
         }
+    }
+
+    /// <summary>
+    /// Save localized permission name across all languages.
+    /// </summary>
+    public static void SaveLocalizedPermissionName(this PermissionRecord permissionRecord,
+        ILocalizationService localizationService, ILanguageService languageService)
+    {
+        ArgumentNullException.ThrowIfNull(permissionRecord);
+        var resourceName = $"Permission.{permissionRecord.SystemName}";
+        AddOrUpdateLocaleResourceAsync(localizationService, languageService, resourceName, permissionRecord.Name ?? string.Empty)
+            .GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Delete localized permission name across all languages.
+    /// </summary>
+    public static void DeleteLocalizedPermissionName(this PermissionRecord permissionRecord,
+        ILocalizationService localizationService, ILanguageService languageService)
+    {
+        ArgumentNullException.ThrowIfNull(permissionRecord);
+        var resourceName = $"Permission.{permissionRecord.SystemName}";
+        DeleteLocaleResourceAsync(localizationService, languageService, resourceName)
+            .GetAwaiter().GetResult();
     }
 }

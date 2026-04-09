@@ -59,6 +59,15 @@ public class CustomerRoleConfiguration : IEntityTypeConfiguration<CustomerRole>
     }
 }
 
+public class CustomerCustomerRoleMappingConfiguration : IEntityTypeConfiguration<CustomerCustomerRoleMapping>
+{
+    public void Configure(EntityTypeBuilder<CustomerCustomerRoleMapping> builder)
+    {
+        builder.ToTable("Customer_CustomerRole_Mapping");
+        builder.HasKey(m => m.Id);
+    }
+}
+
 public class ExternalAuthenticationRecordConfiguration : IEntityTypeConfiguration<ExternalAuthenticationRecord>
 {
     public void Configure(EntityTypeBuilder<ExternalAuthenticationRecord> builder)

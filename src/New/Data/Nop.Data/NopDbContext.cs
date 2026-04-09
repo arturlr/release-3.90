@@ -84,6 +84,7 @@ public class NopDbContext : DbContext
     public DbSet<CustomerAttributeValue> CustomerAttributeValues => Set<CustomerAttributeValue>();
     public DbSet<CustomerPassword> CustomerPasswords => Set<CustomerPassword>();
     public DbSet<CustomerRole> CustomerRoles => Set<CustomerRole>();
+    public DbSet<CustomerCustomerRoleMapping> CustomerCustomerRoleMappings => Set<CustomerCustomerRoleMapping>();
     public DbSet<ExternalAuthenticationRecord> ExternalAuthenticationRecords => Set<ExternalAuthenticationRecord>();
     public DbSet<RewardPointsHistory> RewardPointsHistory => Set<RewardPointsHistory>();
 
@@ -156,6 +157,7 @@ public class NopDbContext : DbContext
     // Security
     public DbSet<AclRecord> AclRecords => Set<AclRecord>();
     public DbSet<PermissionRecord> PermissionRecords => Set<PermissionRecord>();
+    public DbSet<PermissionRecordRoleMapping> PermissionRecordRoleMappings => Set<PermissionRecordRoleMapping>();
 
     // Seo
     public DbSet<UrlRecord> UrlRecords => Set<UrlRecord>();
