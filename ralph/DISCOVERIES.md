@@ -770,3 +770,51 @@ Performed exhaustive verification across all dimensions:
 - Added `<FrameworkReference Include="Microsoft.AspNetCore.App" />` to `Nop.Services.csproj`
 - This is the same pattern used by `Nop.Web.Framework.csproj`
 - Impact: future services in Nop.Services can now use ASP.NET Core types (IHttpContextAccessor, etc.) without additional references
+
+## 2026-04-09 — [3.8] Common Services / Implementation
+
+### GenericAttribute Service Locator Elimination
+- Legacy `GenericAttributeExtensions.GetAttribute<T>()` used `EngineContext.Current.Resolve<IGenericAttributeService>()` (service locator)
+- New `GenericAttributeExtensions.GetAttributeAsync<T>()` takes `IGenericAttributeService` as explicit parameter
+- Impact: all callers (controllers, services) must pass `IGenericAttributeService` explicitly
+- Legacy `GetUnproxiedEntityType()` replaced with `GetType()` — EF Core doesn't use proxy types for no-tracking queries
+
+### Address Attribute XML Format Preserved
+- Legacy address attributes stored as XML (`<Attributes><AddressAttribute ID="1"><AddressAttributeValue><Value>...</Value></AddressAttributeValue></AddressAttribute></Attributes>`)
+- New code preserves this XML format for backward compatibility with data migration
+- Plan item [8.3] (AttributesXml → JSON conversion) will handle format migration if desired
+
+### AddressAttributeFormatter/Parser Localization Simplified
+- Legacy used `attribute.GetLocalized(a => a.Name, _workContext.WorkingLanguage.Id)` for localized attribute names
+- New code uses `attribute.Name` directly — localized name resolution requires `ILocalizedEntityService` + `ILanguageService` parameters (per [2.3] discovery about service locator elimination)
+- When presentation layer is built, controllers/model factories can pass localized names if needed
+- `ShouldHaveValues` logic duplicated as private static method in both Parser and Formatter — could extract to shared utility
+
+### AddressService Validation Pattern
+- Legacy `IsAddressValid` had a quirk: if ANY required custom attributes exist, address is always invalid (regardless of whether they're filled in)
+- This is because the method doesn't receive the custom attributes XML — it only checks the `Address` entity properties
+- New code preserves this behavior with a comment explaining the limitation
+- Full custom attribute validation requires `IAddressAttributeParser.GetAttributeWarningsAsync(attributesXml)` which is called separately by controllers
+
+### SearchTermService — No Caching, No Events
+- Search terms are write-heavy analytics data (incremented on every search)
+- Legacy didn't cache search terms either — only read operations are GetByKeyword (single lookup) and GetStats (reporting)
+- Event publishing kept for CRUD operations (matching legacy pattern) but no cache consumers needed
+
+### FulltextService — Direct NopDbContext Dependency
+- Legacy used `IDataProvider` + `IDbContext` abstractions for stored procedure calls
+- New code uses `NopDbContext.Database.SqlQueryRaw<int>()` and `ExecuteSqlRawAsync()` directly
+- Simpler, no abstraction layer needed since we only support SQL Server
+- `IsFullTextSupportedAsync` has try/catch fallback — returns false if stored procedures don't exist
+
+### IPdfService — Interface Only
+- Legacy `PdfService` is 74K LOC using iTextSharp (AGPL licensed)
+- Implementation depends on: Order, Product, Shipment entities (exist), IOrderService, IProductService, ILocalizationService, IWorkContext, IPictureService, IStoreService, IStoreContext, ISettingService, IAddressService, ICountryService, IStateProvinceService, ICurrencyService, IMeasureService, IPaymentService, IDateTimeHelper (many not yet built)
+- PDF library choice deferred: QuestPDF (MIT), iText7 (AGPL/commercial), or SkiaSharp-based
+- `PrintProductsToPdf` dropped from interface — legacy feature rarely used, can be added later
+
+### Impact on Future Items
+- [3.5] Helpers: `DateTimeHelper` already uses `IRepository<GenericAttribute>` directly — can optionally refactor to use `IGenericAttributeService` now that it exists
+- [4.1] Customer services: `IGenericAttributeService` available for customer attribute storage (timezone, language, currency preferences)
+- [4.9] Order services: `IPdfService` interface available for order invoice generation
+- [5.x] Controllers: must pass `IGenericAttributeService` to `GetAttributeAsync` extension method calls

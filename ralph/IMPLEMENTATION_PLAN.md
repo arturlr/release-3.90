@@ -149,10 +149,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Nop.Services/Media
   - Depends on: 1.5, 3.1
 
-- [ ] [3.8] Common services — IAddressService, IAddressAttributeService, IAddressAttributeParser, IAddressAttributeFormatter, IGenericAttributeService, ISearchTermService, IFulltextService, IPdfService
+- [x] [3.8] Common services — IAddressService, IAddressAttributeService, IAddressAttributeParser, IAddressAttributeFormatter, IGenericAttributeService, ISearchTermService, IFulltextService, IPdfService
   - Spec: specs/svc-common.md
   - Scope: Nop.Services/Common
   - Depends on: 1.5, 2.1
+  - Done: 2026-04-09. GenericAttributeService (cached by entity+keyGroup, prefix invalidation, event publishing). GenericAttributeExtensions (async, no service locator). AddressAttributeService (dual-prefix cache for attributes+values). AddressAttributeParser (XML format preserved, async attribute resolution, validation warnings). AddressAttributeFormatter (WebUtility.HtmlEncode, async). AddressService (cached by-id, configurable validation via AddressSettings, depends on ICountryService/IStateProvinceService). SearchTermService (no caching, GroupBy stats). FulltextService (SQL Server stored procedures via EF Core). IPdfService interface only (implementation depends on Phase 4 + PDF library).
 
 - [ ] [3.9] Affiliate services — IAffiliateService
   - Spec: specs/svc-affiliates.md
