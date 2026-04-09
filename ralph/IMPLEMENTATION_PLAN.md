@@ -62,10 +62,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5
   - Done: 2026-04-09. INopLogger (renamed from ILogger to avoid Microsoft.Extensions.Logging conflict), DefaultLogger, ICustomerActivityService, CustomerActivityService, LoggingExtensions, NullLogger. Fixed ActivityLog entity (added IpAddress). Dropped CommonSettings.IgnoreLogWordlist (deferred to [3.1]). Dropped TRUNCATE optimization (uses repository delete-all). Microsoft.Extensions.Logging integration deferred to [2.8] Observability.
 
-- [ ] [2.3] Localization — ILocalizationService, ILanguageService, ILocalizedEntityService, string resources
+- [x] [2.3] Localization — ILocalizationService, ILanguageService, ILocalizedEntityService, string resources
   - Spec: specs/xcut-localization.md
   - Scope: Nop.Services/Localization + Nop.Web.Framework/Localization
   - Depends on: 1.5, 2.1
+  - Done: 2026-04-09. ILanguageService/LanguageService (cached, event publishing), ILocalizationService/LocalizationService (dual-mode resource lookup, XML import/export), ILocalizedEntityService/LocalizedEntityService (dual-mode property lookup, expression-based save), LocalizationExtensions (entity/enum/setting localization). Dropped service locator pattern. Plugin extensions deferred to [2.10], permission extensions to [2.4]. IStoreMappingService filtering deferred to [3.2].
 
 - [ ] [2.4] Security — IPermissionService, IAclService, IEncryptionService
   - Spec: specs/xcut-security.md

@@ -563,3 +563,43 @@ Performed exhaustive verification across all dimensions:
 - All Phase 3/4 services can now inject `ISettingService` and call `LoadSettingAsync<T>()` for their settings
 - [3.2] Store services: can use `ISettingService` for store-scoped settings
 - [5.38] Admin SettingController: will use `SaveSettingAsync`, `SaveSettingOverridablePerStoreAsync`
+
+## 2026-04-09 — [2.3] Localization / Implementation
+
+### Stored Procedure Elimination
+- Legacy `ImportResourcesFromXml` used `[LanguagePackImport]` stored procedure for bulk XML import via `IDbContext.ExecuteSqlCommand`
+- New implementation uses EF Core repository bulk insert (`IRepository<T>.Insert(IEnumerable<T>)`) with in-memory dictionary lookup for existing resources
+- No stored procedure dependency — simpler, portable, sufficient for import volumes
+
+### Service Locator Elimination in Extensions
+- Legacy `LocalizationExtensions` used `EngineContext.Current.Resolve<T>()` (service locator) extensively for `GetLocalized`, `GetLocalizedSetting`, `SaveLocalizedSetting`, plugin extensions
+- New `LocalizationExtensions` takes all dependencies as explicit parameters — no service locator calls
+- This changes the call-site signature: callers must pass `ILocalizedEntityService`, `ILanguageService`, etc. explicitly
+- Impact: all controllers and model factories that call `entity.GetLocalized(x => x.Name)` will need to pass services
+
+### IStoreMappingService Deferred
+- Legacy `LanguageService.GetAllLanguages(storeId)` filtered by `IStoreMappingService.Authorize(language, storeId)`
+- `IStoreMappingService` not built yet (plan item [3.2])
+- `storeId` parameter kept in interface for API compatibility but not filtered — all languages returned regardless of store
+- When [3.2] is implemented, add store mapping filter to `GetAllLanguagesAsync`
+
+### LocalizedPropertyForCaching DTO Eliminated
+- Legacy `LocalizedEntityService` used a nested `LocalizedPropertyForCaching` DTO class to cache localized properties
+- New implementation caches `LocalizedProperty` entities directly from `TableNoTracking` — simpler, no mapping overhead
+- Safe because cached entities are read-only (not tracked by EF Core)
+
+### Plugin and Permission Extensions Deferred
+- Plugin extensions (`DeletePluginLocaleResource`, `AddOrUpdatePluginLocaleResource`, `GetLocalizedFriendlyName`, `SaveLocalizedFriendlyName`) depend on `IPlugin`/`BasePlugin` — deferred to [2.10]
+- Permission extensions (`GetLocalizedPermissionName`, `SaveLocalizedPermissionName`, `DeleteLocalizedPermissionName`) depend on `PermissionRecord` — deferred to [2.4]
+
+### Localized Routes Not Implemented
+- `Nop.Web.Framework/Localization/` contains `LocalizedRoute`, `LocalizedRouteExtensions`, `ILocalizedModel<T>` — presentation-layer localization
+- These belong to [5.1] Nop.Web.Framework, not [2.3] service layer
+- Acceptance criterion "Localized URL routing resolves language from URL prefix" will be addressed in [5.1]
+
+### Impact on Future Items
+- [2.4] Security: add `GetLocalizedPermissionNameAsync`, `SaveLocalizedPermissionNameAsync`, `DeleteLocalizedPermissionNameAsync` to extensions
+- [2.10] Plugin system: add plugin locale resource extensions
+- [3.2] Store services: add `IStoreMappingService` filtering to `LanguageService.GetAllLanguagesAsync`
+- [5.1] Web.Framework: implement localized routes, `ILocalizedModel<T>`, `NopResourceDisplayName`
+- All Phase 3/4 services that need localized entity properties will use `GetLocalizedAsync` extension
