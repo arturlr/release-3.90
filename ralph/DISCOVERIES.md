@@ -1106,3 +1106,44 @@ Performed exhaustive verification across all dimensions:
 - [4.9] Orders: add reward points for registration to `RegisterCustomerAsync`, implement `DeleteGuestsTask`
 - [5.6] Public CustomerController: can now use `ICustomerRegistrationService` for register/login/password flows
 - [5.35] Admin CustomerController: can now use `ICustomerService` for customer CRUD
+
+## 2026-04-09 — [3.6] Scheduled Tasks / Implementation
+
+### Architecture: TaskManager/TaskThread/Task → Single BackgroundService
+- Legacy used 3 classes: `TaskManager` (singleton, groups tasks by interval into `TaskThread` instances), `TaskThread` (per-interval `System.Threading.Timer`), `Task` (execution wrapper with Autofac scope creation, web farm leasing, error logging)
+- New code uses a single `TaskSchedulerHostedService` (extends `BackgroundService`) with a 30-second polling loop
+- Simpler: no grouping by interval, no per-interval timers — just poll all enabled tasks every 30s and run any that are due
+- Trade-off: tasks may run up to 30s late vs legacy's exact-interval timers. Acceptable for background tasks (cache clearing, guest cleanup, email sending)
+
+### Web Farm Leasing Dropped
+- Legacy had two web farm coordination mechanisms:
+  1. DB leasing: `ScheduleTask.LeasedByMachineName` + `LeasedUntilUtc` (30-min lease, checked before execution)
+  2. Redis lock: `IRedisConnectionWrapper.PerformActionWithLock` (distributed lock with TTL)
+- Both depend on `NopConfig.MultipleInstancesEnabled` and `IMachineNameProvider`
+- New code drops both — single-instance deployment assumed initially
+- `ScheduleTask` entity still has `LeasedByMachineName` and `LeasedUntilUtc` properties for future use
+- When web farm support is needed, add distributed locking via `IDistributedLock` (e.g., `Medallion.Threading.Redis`)
+
+### Catch-Up Logic Simplified
+- Legacy `TaskManager.Initialize()` created a special `RunOnlyOnce` `TaskThread` for tasks with `Seconds >= 1800` (30 min) that hadn't run recently, scheduled to execute 5 minutes after startup
+- New code doesn't need this: the polling loop's `IsDue()` check returns `true` for tasks that have never run (`LastStartUtc == null`) or are overdue (`LastStartUtc + Seconds < UtcNow`)
+- Overdue tasks execute on the first poll cycle (30s after startup) — slightly faster than legacy's 5-minute delay
+
+### No Caching, No Events (Matching Legacy)
+- Legacy `ScheduleTaskService` had no caching and no event publishing — pure CRUD
+- New code preserves this: `ScheduleTaskService` is the simplest service in the codebase
+- No cache event consumers needed
+
+### DI Registration Pattern
+- `IScheduleTaskService → ScheduleTaskService` (Scoped)
+- `TaskSchedulerHostedService` registered via `services.AddHostedService<TaskSchedulerHostedService>()`
+- Each concrete `ITask` implementation registered as its concrete type (Scoped) so `IServiceProvider.GetService(taskType)` resolves it
+- DI registration deferred to Nop.Web `Program.cs` or DI composition root
+
+### Impact on Future Items
+- [4.2] Messages: `QueuedMessagesSendTask` can now implement `ITask` and be scheduled
+- [4.1] Customers: `DeleteGuestsTask` can now implement `ITask`
+- [2.2] Logging: `ClearLogTask` can now implement `ITask`
+- [2.1] Caching: `ClearCacheTask` can now implement `ITask`
+- [3.3] Directory: `UpdateExchangeRateTask` can now implement `ITask`
+- [5.73] Admin ScheduleTaskController: can now use `IScheduleTaskService` for task CRUD

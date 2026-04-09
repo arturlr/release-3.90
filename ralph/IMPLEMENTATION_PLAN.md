@@ -141,10 +141,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.4
   - Done: 2026-04-09. DateTimeSettings (Nop.Core/Domain/Common). IDateTimeHelper/DateTimeHelper (UTC↔user timezone conversion, customer timezone via IRepository<GenericAttribute>, DefaultStoreTimeZone falls back to UTC). IUserAgentHelper/UserAgentHelper (FrozenSet<string> 25 crawler tokens, IHttpContextAccessor). FrameworkReference added to Nop.Services.csproj. Legacy BrowscapXmlHelper replaced. Property setters removed from interface (mutation belongs in controllers).
 
-- [ ] [3.6] Scheduled tasks — IScheduleTaskService, IHostedService integration
+- [x] [3.6] Scheduled tasks — IScheduleTaskService, IHostedService integration
   - Spec: specs/svc-tasks.md
   - Scope: Nop.Services/Tasks
   - Depends on: 1.5
+  - Done: 2026-04-09. IScheduleTaskService/ScheduleTaskService (async-first CRUD, no caching, no events — matching legacy). ITask (async ExecuteAsync). TaskSchedulerHostedService (BackgroundService: 30s startup delay, 30s poll interval, scoped DI per execution, Type.GetType resolution, timestamp recording, StopOnError handling). Dropped web farm leasing (DB leasing + Redis lock — add later if needed). Dropped catch-up thread (polling loop handles overdue tasks naturally via IsDue).
 
 - [x] [3.7] Media services — IPictureService, IDownloadService
   - Spec: specs/svc-media.md
