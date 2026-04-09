@@ -34,6 +34,8 @@ Shared web infrastructure — base controllers, MVC filters, HTML helpers, theme
 - ASP.NET MVC 5 → ASP.NET Core MVC
 - FluentValidation 6.x → FluentValidation 11.x
 - Kendo UI → consider replacement (Telerik UI for ASP.NET Core or alternative)
+- `System.Linq.Dynamic` 1.0 — used by `QueryableExtensions` (Kendo grid server-side filtering/sorting) and `BaseNopValidator<T>` → replace with `System.Linq.Dynamic.Core` NuGet or inline LINQ expressions
+- `MiniProfiler` 3.2 — performance profiling in public store (conditional on `StoreInformationSettings.DisplayMiniProfilerInPublicStore`) → replace with `MiniProfiler.AspNetCore.Mvc` or OpenTelemetry tracing
 
 ## Migration Notes
 - **Decision**: Rewrite

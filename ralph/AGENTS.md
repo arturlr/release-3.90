@@ -119,7 +119,7 @@ Prefer SharpLens over text-based tools for semantic queries:
 - Integration items: 15
 - Cutover items: 8
 - Plugin/extension count: 20 (each with individual spec and plan item)
-- Last updated: 2026-04-09 iteration 8 (enriched 8 specs: svc-tasks, svc-catalog, svc-customers, svc-discounts, nop-core-infrastructure, nop-data, nop-web-framework, nop-core-domain)
+- Last updated: 2026-04-09 iteration 9 (enriched 7 specs: svc-seo, nop-web-public, nop-admin, svc-installation, svc-media, svc-messages, nop-web-framework — added SeoExtensions, MappingExtensions, AdminMapperConfiguration, Validators, ImageResizer, System.Linq.Dynamic, MiniProfiler, IInstallationLocalizationService)
 
 ---
 

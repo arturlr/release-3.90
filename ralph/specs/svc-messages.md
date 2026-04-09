@@ -15,6 +15,7 @@ Messaging and notifications — workflow messages (transactional emails), messag
 
 ## External Dependencies
 - SMTP server (System.Net.Mail → MailKit in .NET 10)
+- `System.Linq.Dynamic` — used by `Tokenizer` for dynamic conditional token evaluation → replace with `System.Linq.Dynamic.Core` or custom expression evaluator
 
 ## Migration Notes
 - **Decision**: Rewrite

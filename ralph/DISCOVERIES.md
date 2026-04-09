@@ -263,3 +263,55 @@ Compared all 117 service interfaces in `src/Libraries/Nop.Services/` against spe
 - 67 specs and 173 plan items remain stable
 - All Nop.Core interfaces now verified covered (except IOfficialFeedManager — intentionally excluded)
 - All Nop.Services interfaces verified covered (0 missing)
+
+## 2026-04-09 — Refine Iteration 9
+
+### Gap Analysis: SeoExtensions (1386 LOC)
+- `SeoExtensions` in `Nop.Services/Seo/` is a static class with entity-specific `GetSeName()` extension methods and a character transliteration table (`_seoCharacterTable`) with lazy initialization
+- Not mentioned in `svc-seo.md` Legacy Source or Key Entities. Added with full method inventory and migration notes (consider `Lazy<T>` or `FrozenDictionary` for transliteration table)
+
+### Gap Analysis: Admin MappingExtensions (1195 LOC) + AdminMapperConfiguration (1031 LOC)
+- `MappingExtensions` in `Administration/Extensions/` defines all entity↔model mapping extension methods for admin area
+- `AdminMapperConfiguration` in `Administration/Infrastructure/Mapper/` defines all AutoMapper profiles for admin
+- Neither was explicitly mentioned in `nop-admin.md`. Added to Legacy Source and Migration Notes
+- Combined 2226 LOC defines the complete admin mapping surface — critical for migration
+
+### Gap Analysis: Admin Validators (57 files) + Public Validators (20 files)
+- `Administration/Validators/` contains 57 FluentValidation validator classes
+- `Nop.Web/Validators/` contains 20 FluentValidation validator classes
+- Neither directory was mentioned in `nop-admin.md` or `nop-web-public.md`. Added to both specs
+
+### Gap Analysis: Public Web Extensions Directory
+- `Nop.Web/Extensions/` contains `MappingExtensions` (61 LOC), `HtmlExtensions` (254 LOC), `AttributeParserHelper` (96 LOC)
+- Not mentioned in `nop-web-public.md`. Added to Legacy Source
+
+### Gap Analysis: Installation Localization Infrastructure
+- `Nop.Web/Infrastructure/Installation/` contains `IInstallationLocalizationService`, `InstallationLocalizationService`, `InstallationLanguage`
+- Separate localization system for the install wizard (reads from `App_Data/Localization/Installation/*.xml`)
+- Not mentioned in `svc-installation.md` or `nop-web-public.md`. Added to both specs
+
+### Gap Analysis: ImageResizer NuGet Package
+- `ImageResizer` 4.0.5 used by `PictureService` for image resizing (`ImageBuilder.Current.Build()`)
+- Not mentioned in `svc-media.md` External Dependencies. Added with migration target: `SixLabors.ImageSharp` or `SkiaSharp`
+
+### Gap Analysis: System.Linq.Dynamic NuGet Package
+- Used by `Tokenizer` (svc-messages), `QueryableExtensions` (nop-web-framework), `BaseNopValidator<T>` (nop-web-framework)
+- Not mentioned in any spec. Added to `svc-messages.md` and `nop-web-framework.md` External Dependencies
+- Migration target: `System.Linq.Dynamic.Core` NuGet or inline LINQ expressions
+
+### Gap Analysis: MiniProfiler NuGet Package
+- `MiniProfiler` 3.2 used in `Global.asax.cs` for conditional performance profiling in public store
+- Controlled by `StoreInformationSettings.DisplayMiniProfilerInPublicStore`
+- Not mentioned in any spec. Added to `nop-web-framework.md` External Dependencies
+- Migration target: `MiniProfiler.AspNetCore.Mvc` or OpenTelemetry tracing
+
+### Verified Non-Gaps
+- `DateTimeConsumer` — test fixture only (Nop.Web.MVC.Tests), not production code
+- `Microsoft.Web.RedisSessionStateProvider` — commented out in web.config, not an active dependency
+- Google OAuth — mentioned in ATXDocumentation system overview but no plugin exists in codebase (only Facebook)
+- All 117 service interfaces confirmed covered
+- All 28 public + 55 admin controllers confirmed in plan
+
+### No New Specs or Plan Items
+- All gaps were enrichment of existing specs (6 specs updated: svc-seo.md, nop-web-public.md, nop-admin.md, svc-installation.md, svc-media.md, svc-messages.md, nop-web-framework.md)
+- 67 specs and 173 plan items remain stable

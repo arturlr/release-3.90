@@ -15,6 +15,7 @@ Media management — picture storage/retrieval, download management, and image p
 ## External Dependencies
 - File system for picture storage (alternative to DB blob)
 - `Microsoft.WindowsAzure.Storage` → `Azure.Storage.Blobs` for Azure Blob Storage (`AzurePictureService`, 167 LOC)
+- `ImageResizer` 4.0.5 NuGet — used by `PictureService` for image resizing/thumbnailing (`ImageBuilder.Current.Build()`) → replace with `SixLabors.ImageSharp` or `SkiaSharp`
 
 ## Migration Notes
 - **Decision**: Rewrite

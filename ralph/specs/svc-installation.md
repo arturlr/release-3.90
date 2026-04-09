@@ -5,7 +5,8 @@ First-run installation — database creation, seed data, default settings, and s
 
 ## Legacy Source
 - `src/Libraries/Nop.Services/Installation/` — CodeFirstInstallationService.cs (12269 LOC)
-- Key interfaces: `IInstallationService`
+- `src/Presentation/Nop.Web/Infrastructure/Installation/` — `IInstallationLocalizationService`, `InstallationLocalizationService`, `InstallationLanguage` (multi-language install wizard localization, separate from main localization system)
+- Key interfaces: `IInstallationService`, `IInstallationLocalizationService`
 
 ## Key Entities
 - No domain entities — creates initial data for all entity types
