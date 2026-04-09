@@ -535,3 +535,31 @@ Performed exhaustive verification across all dimensions:
 - All services that publish entity events will call `await _eventPublisher.EntityInsertedAsync(entity)` etc.
 - Cache event consumers (PriceCacheEventConsumer, CustomerCacheEventConsumer, DiscountEventConsumer, ModelCacheEventConsumer) will implement `IConsumer<EntityInserted<T>>` etc. — built when their parent services are implemented.
 - DI registration: `services.AddScoped<IEventPublisher, EventPublisher>()` + `services.AddScoped<IConsumer<T>, ConcreteConsumer>()` for each consumer — wired when DI composition root is built.
+
+## 2026-04-09 — [3.1] Configuration Services / Implementation
+
+### Settings Classes Placement
+- Settings classes depend on `ISettings` (Nop.Core) and domain enums (Nop.Core.Domain)
+- Cannot live in `Nop.Core.Domain` (zero dependencies) — placed in `Nop.Core/Domain/{subdirectory}/` instead
+- Namespace remains `Nop.Core.Domain.X.XSettings` matching legacy, since Nop.Core's RootNamespace is `Nop.Core`
+- This was the reason Settings were excluded from [1.3] — now resolved
+
+### Async Pattern for Sync Repository
+- `IRepository<T>` methods are synchronous but `ISettingService` is async-first
+- Methods that only call repository (GetSettingByIdAsync, GetAllSettingsAsync) use `Task.FromResult` to avoid CS1998
+- `GetAllSettingsCachedAsync` lambda passed to `IStaticCacheManager.GetAsync` also uses `Task.FromResult` since repository calls are sync
+- When EF Core async methods are added to IRepository, these can be converted to true async
+
+### SetSetting Dynamic Type Handling
+- Legacy used `dynamic` keyword for property values in SaveSetting — replaced with `object` cast and `SetSettingAsync(key, value ?? string.Empty, ...)` pattern
+- `TypeDescriptor.GetConverter(typeof(T)).ConvertToInvariantString(value)` handles the serialization regardless of runtime type
+
+### CaptchaSettings Not in Domain
+- `CaptchaSettings` lives in `Nop.Web.Framework/Security/Captcha/` (presentation layer), not in domain
+- Will be created when [5.1] Nop.Web.Framework is implemented
+- Only 29 Settings classes are domain-level (matching legacy `Nop.Core.Domain` layout)
+
+### Impact on Future Items
+- All Phase 3/4 services can now inject `ISettingService` and call `LoadSettingAsync<T>()` for their settings
+- [3.2] Store services: can use `ISettingService` for store-scoped settings
+- [5.38] Admin SettingController: will use `SaveSettingAsync`, `SaveSettingOverridablePerStoreAsync`

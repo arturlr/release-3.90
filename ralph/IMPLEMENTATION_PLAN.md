@@ -107,10 +107,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
 
 ## Phase 3: Service Layer — Simple Services
 
-- [ ] [3.1] Configuration services — ISettingService, settings load/save
+- [x] [3.1] Configuration services — ISettingService, settings load/save
   - Spec: specs/svc-configuration.md
   - Scope: Nop.Services/Configuration
   - Depends on: 1.5, 2.1
+  - Done: 2026-04-09. ISettingService (async-first), SettingService (cached dictionary, TypeDescriptor serialization, prefix-based invalidation, event publishing). SettingExtensions (key from expression). 29 Settings POCOs in Nop.Core/Domain/ (BlogSettings, CatalogSettings, ProductEditorSettings, WidgetSettings, AddressSettings, AdminAreaSettings, CommonSettings, DisplayDefaultMenuItemSettings, PdfSettings, CustomerSettings, ExternalAuthenticationSettings, RewardPointsSettings, CurrencySettings, MeasureSettings, ForumSettings, LocalizationSettings, MediaSettings, EmailAccountSettings, MessageTemplatesSettings, NewsSettings, OrderSettings, ShoppingCartSettings, PaymentSettings, SecuritySettings, SeoSettings, ShippingSettings, StoreInformationSettings, TaxSettings, VendorSettings).
 
 - [ ] [3.2] Store services — IStoreService, IStoreMappingService, IStoreContext
   - Spec: specs/svc-stores.md
