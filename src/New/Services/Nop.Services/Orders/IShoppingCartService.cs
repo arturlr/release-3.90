@@ -64,4 +64,7 @@ public interface IShoppingCartService
 
     Task MigrateShoppingCartAsync(Customer fromCustomer, Customer toCustomer,
         bool includeCouponCodes);
+
+    Task<(string? Error, int CycleLength, RecurringProductCyclePeriod CyclePeriod, int TotalCycles)>
+        GetRecurringCycleInfoAsync(IList<ShoppingCartItem> cart);
 }

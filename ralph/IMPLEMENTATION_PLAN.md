@@ -257,11 +257,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1, 3.1, 4.1
   - Done: 2026-04-09. 17 files: IPaymentMethod (async-first, no IPlugin dependency — SystemName replaces PluginDescriptor), IPaymentService (async-first, restriction methods take systemName string), PaymentService (resolves IPaymentMethod via IEnumerable<IPaymentMethod> from DI), PaymentExtensions (IsPaymentMethodActive, XML SerializeCustomValues/DeserializeCustomValues preserving legacy format). 2 enums (PaymentMethodType, RecurringPaymentType). 10 DTOs (ProcessPaymentRequest/Result, CapturePaymentRequest/Result, RefundPaymentRequest/Result, VoidPaymentRequest/Result, CancelRecurringPaymentRequest/Result, PostProcessPaymentRequest). Plugin-dependent methods (LoadActivePaymentMethods, LoadAllPaymentMethods, LoadPaymentMethodBySystemName) deferred to [2.10]. CalculateAdditionalFee (percentage mode) deferred — depends on IOrderTotalCalculationService [4.9]. RoundingHelper replaced with Math.Round(value, 2). No EF Core configs needed.
 
-- [ ] [4.9] Order services — IOrderService, IOrderProcessingService, IShoppingCartService, ICheckoutAttributeService, ICheckoutAttributeParser, ICheckoutAttributeFormatter, IGiftCardService, IOrderTotalCalculationService, IReturnRequestService, IOrderReportService, IRewardPointService, ICustomNumberFormatter
+- [x] [4.9] Order services — IOrderService, IOrderProcessingService, IShoppingCartService, ICheckoutAttributeService, ICheckoutAttributeParser, ICheckoutAttributeFormatter, IGiftCardService, IOrderTotalCalculationService, IReturnRequestService, IOrderReportService, IRewardPointService, ICustomNumberFormatter
   - Spec: specs/svc-orders.md
   - Scope: Nop.Services/Orders
   - Depends on: 1.5, 2.1, 2.9, 3.1, 4.1, 4.2, 4.4, 4.5, 4.6, 4.7, 4.8
-  - Partial: 2026-04-09. Implemented 9 of 12 services: ICustomNumberFormatter, IRewardPointService, IReturnRequestService, ICheckoutAttributeService, ICheckoutAttributeParser, ICheckoutAttributeFormatter, IGiftCardService, IOrderService, IOrderReportService. Remaining: IShoppingCartService, IOrderTotalCalculationService, IOrderProcessingService.
+  - Done: 2026-04-09. All 12 services implemented across [4.9], [4.9a], [4.9b], [4.9c].
 
 - [x] [4.9a] IShoppingCartService — cart add/update/remove/migrate/validate
   - Spec: specs/svc-orders.md
@@ -275,10 +275,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 4.9, 4.9a
   - Done: 2026-04-09. IOrderTotalCalculationService (async-first, tuples instead of out params) + OrderTotalCalculationService (16 dependencies via primary constructor). ShoppingCartTotal result class and AppliedGiftCard DTO. Key methods: GetShoppingCartSubTotalAsync (with tax rates and checkout attributes), AdjustShippingRateAsync, GetShoppingCartAdditionalShippingChargeAsync, IsFreeShippingAsync, GetShoppingCartShippingTotalAsync (simplified — only uses selected shipping option from GenericAttribute, no fixed-rate fallback since that requires plugin system [2.10]), GetTaxTotalAsync, GetShoppingCartTotalAsync (with gift cards + reward points). UpdateOrderTotals deferred (depends on plugin-dependent shipping methods). CalculateRewardPointsAsync checks guest role via ICustomerService. Product loaded via IProductService (no nav properties).
 
-- [ ] [4.9c] IOrderProcessingService — PlaceOrder, status transitions, payment operations
+- [x] [4.9c] IOrderProcessingService — PlaceOrder, status transitions, payment operations
   - Spec: specs/svc-orders.md
   - Scope: Nop.Services/Orders/OrderProcessingService
   - Depends on: 4.9, 4.9a, 4.9b
+  - Done: 2026-04-09. IOrderProcessingService (async-first, 25 methods) + OrderProcessingService (4 partial class files: main, PlaceOrder, Status, Payment, Shipping). PlaceOrderAsync with full workflow (validate → payment → create order → inventory → cart clear → notifications → events). Status transitions (CheckOrderStatus, SetOrderStatus, ProcessOrderPaid, reward points, gift cards). Payment operations (authorize, capture, mark as paid, refund, partial refund, void — online and offline). Shipping (ship, deliver). Recurring payments (process next, cancel, can-cancel, can-retry). Reorder, return request validation, min order validation, payment workflow check. Also added InsertOrderItemAsync to IOrderService/OrderService, and public GetRecurringCycleInfoAsync to IShoppingCartService/ShoppingCartService. UpdateOrderTotals deferred (depends on plugin-dependent shipping methods [2.10]).
 
 - [ ] [4.10] Export/Import services — IExportManager, IImportManager
   - Spec: specs/svc-export-import.md

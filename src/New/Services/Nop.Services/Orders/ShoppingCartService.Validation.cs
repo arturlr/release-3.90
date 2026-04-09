@@ -230,7 +230,7 @@ public partial class ShoppingCartService
 
         if (hasRecurring)
         {
-            var cyclesError = await GetRecurringCycleInfoAsync(shoppingCart);
+            var cyclesError = await GetRecurringCycleInfoInternalAsync(shoppingCart);
             if (!string.IsNullOrEmpty(cyclesError))
             {
                 warnings.Add(cyclesError);
@@ -244,7 +244,7 @@ public partial class ShoppingCartService
         return warnings;
     }
 
-    private async Task<string?> GetRecurringCycleInfoAsync(IList<ShoppingCartItem> cart)
+    private async Task<string?> GetRecurringCycleInfoInternalAsync(IList<ShoppingCartItem> cart)
     {
         int? cycleLength = null;
         RecurringProductCyclePeriod? cyclePeriod = null;
@@ -270,6 +270,35 @@ public partial class ShoppingCartService
             }
         }
         return null;
+    }
+
+    public async Task<(string? Error, int CycleLength, RecurringProductCyclePeriod CyclePeriod, int TotalCycles)>
+        GetRecurringCycleInfoAsync(IList<ShoppingCartItem> cart)
+    {
+        int cycleLength = 0;
+        RecurringProductCyclePeriod cyclePeriod = default;
+        int totalCycles = 0;
+
+        foreach (var sci in cart)
+        {
+            var product = await productService.GetProductByIdAsync(sci.ProductId);
+            if (product == null || !product.IsRecurring) continue;
+
+            if (cycleLength > 0)
+            {
+                if (cycleLength != product.RecurringCycleLength ||
+                    cyclePeriod != product.RecurringCyclePeriod ||
+                    totalCycles != product.RecurringTotalCycles)
+                    return (await localizationService.GetResourceAsync("ShoppingCart.ConflictingShipmentSchedules"), 0, default, 0);
+            }
+            else
+            {
+                cycleLength = product.RecurringCycleLength;
+                cyclePeriod = product.RecurringCyclePeriod;
+                totalCycles = product.RecurringTotalCycles;
+            }
+        }
+        return (null, cycleLength, cyclePeriod, totalCycles);
     }
 
     private async Task ValidateCheckoutAttributesAsync(IList<ShoppingCartItem> cart,

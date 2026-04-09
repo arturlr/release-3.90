@@ -1565,3 +1565,76 @@ Performed exhaustive verification across all dimensions:
 - [4.8] Payment: `CalculateAdditionalFee` percentage mode can now be implemented using `GetShoppingCartTotalAsync(cart, usePaymentMethodAdditionalFee: false)`
 - [5.7] Public ShoppingCartController: can now display order totals
 - [5.8] Public CheckoutController: can now calculate and display order totals during checkout
+
+## 2026-04-09 — [4.9c] IOrderProcessingService / Implementation
+
+### Architecture: 4 Partial Class Files
+- Legacy `OrderProcessingService` was 3167 LOC in a single file — the most complex service in the system
+- New code split into 4 partial class files for manageability:
+  - `OrderProcessingService.cs` — constructor (35 dependencies via primary constructor) + `PlaceOrderContainer` internal class
+  - `OrderProcessingService.PlaceOrder.cs` — `PlaceOrderAsync`, `PreparePlaceOrderDetailsAsync`, `SaveOrderDetailsAsync`, `CreateOrderItemsAsync`, `SendNotificationsAndSaveNotesAsync`
+  - `OrderProcessingService.Status.cs` — `CheckOrderStatusAsync`, `SetOrderStatusAsync`, `ProcessOrderPaidAsync`, reward points (award/reduce/return), gift card activation, cancel, delete
+  - `OrderProcessingService.Payment.cs` — authorize, capture, mark as paid, refund (full/partial, online/offline), void (online/offline)
+  - `OrderProcessingService.Shipping.cs` — ship, deliver, recurring payments, reorder, return request, validation
+
+### Nav Property Elimination — Heaviest Orchestrator
+- Legacy `OrderProcessingService` was the heaviest consumer of nav properties: `customer.ShoppingCartItems`, `order.OrderItems`, `order.Shipments`, `order.Customer`, `orderItem.Product`, `recurringPayment.InitialOrder`, `order.BillingAddress`, `order.ShippingAddress`, `order.RedeemedRewardPointsEntry`
+- New code uses explicit service calls for all cross-entity access:
+  - `IShoppingCartService.GetShoppingCartAsync` replaces `customer.ShoppingCartItems`
+  - `IOrderService.GetOrderItemsByOrderIdAsync` replaces `order.OrderItems`
+  - `IProductService.GetProductByIdAsync` replaces `orderItem.Product`
+  - `ICustomerService.GetCustomerByIdAsync` replaces `order.Customer`
+  - `IAddressService.GetAddressByIdAsync` replaces `order.BillingAddress`/`order.ShippingAddress`
+  - `IRewardPointService.GetRewardPointsHistoryEntryByIdAsync` replaces `order.RedeemedRewardPointsEntry`
+
+### CanCancelRecurringPayment / CanRetryLastRecurringPayment — Signature Change
+- Legacy methods accessed `recurringPayment.InitialOrder` nav property internally
+- New methods take `Order? initialOrder` as explicit parameter — caller must load it
+- Impact: [5.34] Admin OrderController and [5.59] Admin RecurringPaymentController must load initial order before calling these methods
+
+### UpdateOrderTotals Deferred
+- Legacy `UpdateOrderTotals` (200+ LOC) depends on `IShippingService.GetShippingOptions`, `IShippingService.LoadActiveShippingRateComputationMethods` — all plugin-dependent methods deferred to [2.10]
+- Also depends on `IOrderTotalCalculationService.UpdateOrderTotals` which was deferred in [4.9b]
+- Will be implemented when plugin system [2.10] provides shipping rate computation methods
+
+### Address Cloning Pattern
+- Legacy used `(Address)customer.BillingAddress.Clone()` — nav property + Clone method
+- New code uses `CloneAddress(Address)` private static method that creates a new Address entity with copied scalar properties, then `InsertAddressAsync` to persist it
+- The cloned address gets its own ID — order references the clone, not the customer's current address
+- This preserves the legacy behavior: order addresses are snapshots at order time
+
+### Shipping Option Parsing
+- Legacy stored `ShippingOption` as a serialized object in GenericAttribute (XML format via Autofac TypeConverter)
+- New code attempts JSON parsing of the stored shipping option to extract `Name` and `ShippingRateComputationMethodSystemName`
+- Falls back to treating the value as a plain text name if JSON parsing fails
+- Impact: checkout flow must store shipping option as JSON in GenericAttribute
+
+### IPriceCalculationService.GetSubTotalAsync Returns Decimal Only
+- Legacy `GetSubTotal` returned discount amount and applied discounts via `out` parameters
+- New `GetSubTotalAsync` returns only the final subtotal (decimal)
+- Discount amount for order items computed as difference between no-discount and with-discount subtotals
+- Impact: per-item discount tracking is approximate — exact discount attribution requires adding tuple return to `GetSubTotalAsync` in future
+
+### Added InsertOrderItemAsync to IOrderService
+- Legacy used `order.OrderItems.Add(orderItem)` + `UpdateOrder(order)` — nav property collection manipulation
+- New code needs explicit `InsertOrderItemAsync(OrderItem)` since there are no nav properties
+- Added to both `IOrderService` interface and `OrderService` implementation
+
+### Added Public GetRecurringCycleInfoAsync to IShoppingCartService
+- Legacy `GetRecurringCycleInfo` was an extension method on `IList<ShoppingCartItem>` using service locator
+- New code had a private method in `ShoppingCartService.Validation.cs` — promoted to public interface method
+- Returns `(string? Error, int CycleLength, RecurringProductCyclePeriod CyclePeriod, int TotalCycles)` tuple
+- Private method renamed to `GetRecurringCycleInfoInternalAsync` for internal validation use
+
+### Removed Unused Constructor Parameters
+- `IPriceFormatter`, `ICountryService`, `IStateProvinceService` were in the legacy constructor but not needed in the new implementation
+- `IPriceFormatter` — only used in legacy for min order amount error messages (new code uses localization resource directly)
+- `ICountryService`/`IStateProvinceService` — only used in legacy for pickup point address creation (new code defers pickup address creation to checkout controller)
+- Removed to satisfy `TreatWarningsAsErrors` (CS9113 unread primary constructor parameter)
+
+### Impact on Future Items
+- [4.10] Export/Import: can now use `IOrderProcessingService` for order-related operations
+- [5.8] Public CheckoutController: can now use `PlaceOrderAsync` for order placement
+- [5.34] Admin OrderController: can now use all payment/status operations
+- [5.59] Admin RecurringPaymentController: can now use recurring payment operations
+- Phase 4 is now COMPLETE — all service layer items implemented

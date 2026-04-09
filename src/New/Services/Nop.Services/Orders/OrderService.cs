@@ -150,6 +150,13 @@ public class OrderService(
         return eventPublisher.EntityDeletedAsync(orderItem);
     }
 
+    public Task InsertOrderItemAsync(OrderItem orderItem)
+    {
+        ArgumentNullException.ThrowIfNull(orderItem);
+        orderItemRepository.Insert(orderItem);
+        return eventPublisher.EntityInsertedAsync(orderItem);
+    }
+
     // Order notes
     public Task<OrderNote?> GetOrderNoteByIdAsync(int orderNoteId) =>
         Task.FromResult(orderNoteId == 0 ? null : (OrderNote?)orderNoteRepository.GetById(orderNoteId));
