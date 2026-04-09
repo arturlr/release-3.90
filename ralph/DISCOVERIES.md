@@ -903,3 +903,26 @@ Performed exhaustive verification across all dimensions:
 - [5.21] Public DownloadController: can now use `IDownloadService`
 - [5.78] Admin PictureController/DownloadController: can now use both services
 - [7.14] Azure Blob Storage: `AzurePictureService` extends `PictureService` — virtual methods preserved for override
+
+## 2026-04-09 — [3.11] Topic Services / Implementation
+
+### IStoreMappingService API is Async-Only
+- Legacy `IStoreMappingService.Authorize(entity, storeId)` was sync
+- New `IStoreMappingService.AuthorizeAsync(entity, storeId)` is async — no sync overload exists
+- `GetTopicBySystemNameAsync` uses a foreach loop with `await AuthorizeAsync` for post-query store filtering (cannot use LINQ `.Where` with async predicate)
+- `GetAllTopicsAsync` avoids this by using inline join query against `StoreMapping` repository (same pattern as CountryService) — more efficient for cached queries
+
+### TopicService Follows CountryService Pattern for ACL+Store Mapping
+- `GetAllTopicsAsync` uses inline LINQ joins against `AclRecord` and `StoreMapping` repositories with left outer join + group-by deduplication
+- This is the same pattern used by `CountryService.GetAllCountriesAsync` — inline joins inside cached query are more efficient than per-entity `AuthorizeAsync` calls
+- Customer role IDs obtained from `CustomerCustomerRoleMapping` repository (no nav properties)
+
+### TopicTemplateService — No Caching (Matching Legacy)
+- Legacy `TopicTemplateService` had no caching — topic templates are low-volume admin-managed entities
+- New code preserves this: simple CRUD with event publishing, no `IStaticCacheManager` dependency
+- Follows VendorService pattern exactly
+
+### Impact on Future Items
+- [5.13] Public TopicController: can now use `ITopicService` for topic display
+- [5.48] Admin TopicController: can now use both `ITopicService` and `ITopicTemplateService` for topic CRUD
+- [4.4] Catalog: `ICategoryTemplateService`, `IManufacturerTemplateService`, `IProductTemplateService` can follow the same `TopicTemplateService` pattern (simple CRUD, no caching)

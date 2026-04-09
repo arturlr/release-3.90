@@ -168,10 +168,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 3.4
   - Done: 2026-04-09. IVendorService/VendorService (async-first, no caching, soft delete for vendors, hard delete for vendor notes, event publishing). Follows AffiliateService pattern.
 
-- [ ] [3.11] Topic services — ITopicService, ITopicTemplateService
+- [x] [3.11] Topic services — ITopicService, ITopicTemplateService
   - Spec: specs/svc-topics.md
   - Scope: Nop.Services/Topics
   - Depends on: 1.5, 2.1, 2.3, 3.4
+  - Done: 2026-04-09. ITopicService/TopicService (cached GetAllTopics with inline ACL+store mapping joins, cached GetById, prefix invalidation, event publishing). ITopicTemplateService/TopicTemplateService (simple CRUD, no caching, event publishing). GetTopicBySystemNameAsync uses post-query AuthorizeAsync store filtering. Follows CountryService pattern for cached+filtered queries.
 
 - [ ] [3.12] Poll services — IPollService
   - Spec: specs/svc-polls.md
