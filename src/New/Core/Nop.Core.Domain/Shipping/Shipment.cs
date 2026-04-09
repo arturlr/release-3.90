@@ -16,5 +16,5 @@ namespace Nop.Core.Domain.Shipping
         public string? AdminComment { get; set; }
 
         public DateTime CreatedOnUtc { get; set; }
-}
+    }
 }

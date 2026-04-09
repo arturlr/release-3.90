@@ -40,5 +40,5 @@ namespace Nop.Core.Domain.Orders
         public DateTime? RentalStartDateUtc { get; set; }
 
         public DateTime? RentalEndDateUtc { get; set; }
-}
+    }
 }

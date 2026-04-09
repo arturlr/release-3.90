@@ -26,5 +26,5 @@ namespace Nop.Core.Domain.Customers
             }
         }
 
-}
+    }
 }

@@ -24,5 +24,5 @@ namespace Nop.Core.Domain.Catalog
         public int HelpfulNoTotal { get; set; }
 
         public DateTime CreatedOnUtc { get; set; }
-}
+    }
 }

@@ -19,5 +19,5 @@ namespace Nop.Core.Domain.Customers
 
         public int PurchasedWithProductId { get; set; }
 
-}
+    }
 }

@@ -35,5 +35,5 @@ namespace Nop.Core.Domain.Vendors
         public bool AllowCustomersToSelectPageSize { get; set; }
 
         public string? PageSizeOptions { get; set; }
-}
+    }
 }

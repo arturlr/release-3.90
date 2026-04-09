@@ -40,5 +40,5 @@ namespace Nop.Core.Domain.Orders
                 GiftCardTypeId = (int)value;
             }
         }
-}
+    }
 }

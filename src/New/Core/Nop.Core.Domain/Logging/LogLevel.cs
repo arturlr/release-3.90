@@ -6,7 +6,7 @@ namespace Nop.Core.Domain.Logging
         Debug = 10,
         Information = 20,
         Warning = 30,
-        Error = 40 ,
+        Error = 40,
         Fatal = 50
     }
 }

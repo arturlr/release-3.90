@@ -401,3 +401,32 @@ Performed exhaustive verification across all dimensions:
 - [2.9] Domain events: Events classes will be recreated in Nop.Services/Events
 - [3.x-4.x] Services: Extension methods (CustomerExtensions, GiftCardExtensions, etc.) and computed properties will become service methods
 - [4.9] Order services: `ParseTaxRates` logic moves to order service
+
+## 2026-04-09 — [1.4] Nop.Core.Infrastructure / Implementation
+
+### Key Modernization Decisions
+- **ICacheManager → IStaticCacheManager**: Replaced sync-only `ICacheManager` with async-first `IStaticCacheManager`. Uses `CacheKey` with prefix-based invalidation instead of regex pattern matching. Implementations will wrap `IMemoryCache` + `IDistributedCache`.
+- **IWebHelper modernized**: Dropped `HttpRequest` parameter from `IsStaticResource()` (ASP.NET Core uses `IHttpContextAccessor`), dropped `ServerVariables()` (no equivalent in ASP.NET Core), dropped `RestartAppDomain()` (ASP.NET Framework specific).
+- **BBCodeHelper decoupled**: Removed `EngineContext.Current.Resolve<CommonSettings>()` service locator call. `openLinksInNewWindow` is now a parameter. Dropped `replaceCode` / `CodeFormatHelper` — complex code formatter not needed.
+- **CommonHelper modernized**: Uses `GeneratedRegex` for email validation, `RandomNumberGenerator` instead of `RNGCryptoServiceProvider`, `stackalloc` for digit code generation. Dropped `GetTrustLevel()` (CAS), `MapPath()` (use `IWebHostEnvironment.ContentRootPath`), `SetTelerikCulture()` (Kendo UI hack).
+- **NopException simplified**: Dropped `[Serializable]` attribute and `SerializationInfo` constructor (obsolete in .NET 8+).
+- **NopConfig**: Replaced `IConfigurationSectionHandler` XML parsing with simple POCO for `IOptions<NopConfig>` binding from `appsettings.json`.
+- **XmlHelper**: Uses `XmlWriter.Create()` instead of deprecated `XmlTextWriter`.
+- **IEventPublisher**: Lives in `Nop.Services` (plan item [2.9]), not `Nop.Core`. Domain event types (`EntityInserted<T>`, etc.) are in `Nop.Core/Events/`.
+
+### Files Created (24 files in Nop.Core)
+- `Data/IRepository.cs`, `IPagedList.cs`, `PagedList.cs`, `Configuration/ISettings.cs`
+- `IWorkContext.cs`, `IStoreContext.cs`, `IWebHelper.cs`
+- `Caching/CacheKey.cs`, `Caching/IStaticCacheManager.cs`
+- `Events/EntityInserted.cs`, `Events/EntityUpdated.cs`, `Events/EntityDeleted.cs`
+- `CommonHelper.cs`, `NopException.cs`, `NopVersion.cs`, `MimeTypes.cs`, `XmlHelper.cs`, `Extensions.cs`
+- `ComponentModel/GenericListTypeConverter.cs`, `ComponentModel/GenericDictionaryTypeConverter.cs`
+- `Html/HtmlHelper.cs`, `Html/BBCodeHelper.cs`, `Html/ResolveLinksHelper.cs`
+- `Configuration/NopConfig.cs`
+
+### Impact on Future Items
+- [1.5] Nop.Data: Can now implement `EfRepository<T>` against `IRepository<T>`
+- [2.1] Caching: Implement `IStaticCacheManager` with `MemoryCache` + optional Redis
+- [2.9] Domain events: Implement `IEventPublisher` in Nop.Services consuming `EntityInserted<T>` etc.
+- [3.1] Configuration: `ISettingService` uses `ISettings` marker to identify settings classes
+- [5.1] Web.Framework: Implement `WebWorkContext`, `WebStoreContext`, `WebHelper` against interfaces

@@ -8,5 +8,5 @@ namespace Nop.Core.Domain.Security
         public string? SystemName { get; set; }
 
         public string? Category { get; set; }
-}
+    }
 }

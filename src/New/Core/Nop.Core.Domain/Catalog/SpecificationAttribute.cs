@@ -8,5 +8,5 @@ namespace Nop.Core.Domain.Catalog
         public string? Name { get; set; }
 
         public int DisplayOrder { get; set; }
-}
+    }
 }

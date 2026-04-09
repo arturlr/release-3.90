@@ -8,7 +8,7 @@ namespace Nop.Core.Domain.Catalog
 
         public string? SpecificationAttributeName { get; set; }
 
-        public  int SpecificationAttributeDisplayOrder { get; set; }
+        public int SpecificationAttributeDisplayOrder { get; set; }
 
         public int SpecificationAttributeOptionId { get; set; }
 

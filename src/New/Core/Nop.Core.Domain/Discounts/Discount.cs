@@ -57,5 +57,5 @@ namespace Nop.Core.Domain.Discounts
                 DiscountLimitationId = (int)value;
             }
         }
-}
+    }
 }

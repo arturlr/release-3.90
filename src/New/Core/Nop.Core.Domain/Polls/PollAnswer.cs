@@ -10,5 +10,5 @@ namespace Nop.Core.Domain.Polls
         public int NumberOfVotes { get; set; }
 
         public int DisplayOrder { get; set; }
-}
+    }
 }

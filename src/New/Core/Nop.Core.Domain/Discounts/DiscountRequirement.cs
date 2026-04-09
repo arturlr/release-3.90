@@ -18,5 +18,5 @@ namespace Nop.Core.Domain.Discounts
             get { return (RequirementGroupInteractionType?)InteractionTypeId; }
             set { InteractionTypeId = (int?)value; }
         }
-}
+    }
 }

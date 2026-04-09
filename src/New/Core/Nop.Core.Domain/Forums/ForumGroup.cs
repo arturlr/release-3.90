@@ -10,5 +10,5 @@ namespace Nop.Core.Domain.Forums
         public DateTime CreatedOnUtc { get; set; }
 
         public DateTime UpdatedOnUtc { get; set; }
-}
+    }
 }

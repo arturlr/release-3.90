@@ -31,5 +31,5 @@ namespace Nop.Core.Domain.News
         public string? MetaTitle { get; set; }
 
         public DateTime CreatedOnUtc { get; set; }
-}
+    }
 }

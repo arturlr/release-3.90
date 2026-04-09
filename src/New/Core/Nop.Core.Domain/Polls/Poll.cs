@@ -20,5 +20,5 @@ namespace Nop.Core.Domain.Polls
         public DateTime? StartDateUtc { get; set; }
 
         public DateTime? EndDateUtc { get; set; }
-}
+    }
 }

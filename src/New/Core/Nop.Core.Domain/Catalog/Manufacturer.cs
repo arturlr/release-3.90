@@ -43,5 +43,5 @@ namespace Nop.Core.Domain.Catalog
         public DateTime CreatedOnUtc { get; set; }
 
         public DateTime UpdatedOnUtc { get; set; }
-}
+    }
 }

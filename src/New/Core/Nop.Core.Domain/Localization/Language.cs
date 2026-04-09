@@ -22,5 +22,5 @@ namespace Nop.Core.Domain.Localization
         public bool Published { get; set; }
 
         public int DisplayOrder { get; set; }
-}
+    }
 }

@@ -310,5 +310,5 @@ namespace Nop.Core.Domain.Catalog
                 RentalPricePeriodId = (int)value;
             }
         }
-}
+    }
 }

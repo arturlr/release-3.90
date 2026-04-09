@@ -24,10 +24,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.1
   - Done: 2026-04-09. 167 .cs files (entities, enums, interfaces, DTOs, constants). Settings/Events/Extensions/TypeConverters excluded (belong in Nop.Core or Nop.Services). Nullable annotations throughout. No nav properties (EF Core config).
 
-- [ ] [1.4] Nop.Core.Infrastructure project — IRepository, IEngine, IWorkContext, IStoreContext, IWebHelper
+- [x] [1.4] Nop.Core.Infrastructure project — IRepository, IEngine, IWorkContext, IStoreContext, IWebHelper
   - Spec: specs/nop-core-infrastructure.md
   - Scope: src/Core/Nop.Core
   - Depends on: 1.3
+  - Done: 2026-04-09. 24 files: IRepository<T>, IPagedList<T>/PagedList<T>, ISettings, IWorkContext, IStoreContext, IWebHelper, CacheKey, IStaticCacheManager, EntityInserted/Updated/Deleted, CommonHelper, NopException, NopVersion, MimeTypes, XmlHelper, Extensions, GenericListTypeConverter<T>, GenericDictionaryTypeConverter<K,V>, HtmlHelper, BBCodeHelper, ResolveLinksHelper, NopConfig. Modernized: GeneratedRegex, async caching, IOptions<NopConfig>, dropped service locator pattern.
 
 - [ ] [1.5] Nop.Data project — NopDbContext, EfRepository<T>, all entity configurations
   - Spec: specs/nop-data.md

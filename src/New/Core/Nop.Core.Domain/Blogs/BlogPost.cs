@@ -31,5 +31,5 @@ namespace Nop.Core.Domain.Blogs
         public bool LimitedToStores { get; set; }
 
         public DateTime CreatedOnUtc { get; set; }
-}
+    }
 }

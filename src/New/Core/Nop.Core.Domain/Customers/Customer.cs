@@ -50,5 +50,5 @@ namespace Nop.Core.Domain.Customers
         public DateTime LastActivityDateUtc { get; set; }
 
         public int RegisteredInStoreId { get; set; }
-}
+    }
 }

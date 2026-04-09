@@ -27,5 +27,5 @@ namespace Nop.Core.Domain.Directory
 
         public bool LimitedToStores { get; set; }
 
-}
+    }
 }

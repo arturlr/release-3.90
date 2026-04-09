@@ -10,5 +10,5 @@ namespace Nop.Core.Domain.Shipping
         public string? Description { get; set; }
 
         public int DisplayOrder { get; set; }
-}
+    }
 }
