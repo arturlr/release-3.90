@@ -174,10 +174,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1, 2.3, 3.4
   - Done: 2026-04-09. ITopicService/TopicService (cached GetAllTopics with inline ACL+store mapping joins, cached GetById, prefix invalidation, event publishing). ITopicTemplateService/TopicTemplateService (simple CRUD, no caching, event publishing). GetTopicBySystemNameAsync uses post-query AuthorizeAsync store filtering. Follows CountryService pattern for cached+filtered queries.
 
-- [ ] [3.12] Poll services — IPollService
+- [x] [3.12] Poll services — IPollService
   - Spec: specs/svc-polls.md
   - Scope: Nop.Services/Polls
   - Depends on: 1.5, 2.1
+  - Done: 2026-04-09. IPollService/PollService (async-first, no caching, event publishing). AlreadyVotedAsync uses join between PollAnswer and PollVotingRecord with TableNoTracking. Follows VendorService pattern. No store mapping filtering (legacy didn't filter polls by store in service layer).
 
 - [ ] [3.13] Blog services — IBlogService
   - Spec: specs/svc-blogs.md

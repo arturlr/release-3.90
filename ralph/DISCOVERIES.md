@@ -926,3 +926,25 @@ Performed exhaustive verification across all dimensions:
 - [5.13] Public TopicController: can now use `ITopicService` for topic display
 - [5.48] Admin TopicController: can now use both `ITopicService` and `ITopicTemplateService` for topic CRUD
 - [4.4] Catalog: `ICategoryTemplateService`, `IManufacturerTemplateService`, `IProductTemplateService` can follow the same `TopicTemplateService` pattern (simple CRUD, no caching)
+
+## 2026-04-09 — [3.12] Poll Services / Implementation
+
+### Simple Leaf Service — No Surprises
+- PollService is a straightforward CRUD service with no caching, no store mapping filtering, no complex dependencies
+- Follows VendorService pattern exactly: async-first, `Task.FromResult` for sync repo calls, `ArgumentNullException.ThrowIfNull`, event publishing
+- Legacy `PollService` had no caching — polls are low-volume entities, no cache event consumers needed
+
+### AlreadyVotedAsync Join Pattern
+- Legacy `AlreadyVoted` joined `PollAnswer` and `PollVotingRecord` tables to check if a customer voted on any answer belonging to a poll
+- New code preserves this join pattern using `TableNoTracking` (read-only query, no change tracking overhead)
+- This is the same cross-entity join pattern established in [3.9] AffiliateService
+
+### No Store Mapping in Service Layer
+- Legacy `PollService` did NOT filter polls by store mapping — store filtering was done at the presentation layer (PollController/model factory)
+- Spec mentions "store mapping filtering" in acceptance criteria but legacy service didn't implement it
+- Store mapping filtering will be handled by controllers/model factories when [5.14] and [5.47] are built
+
+### Impact on Future Items
+- [5.14] Public PollController: can now use `IPollService` for poll display and voting
+- [5.47] Admin PollController: can now use `IPollService` for poll CRUD
+- No InsertPollAnswer/UpdatePollAnswer in service interface (matching legacy) — admin controller manages answers via `IRepository<PollAnswer>` directly or these can be added to the interface when needed
