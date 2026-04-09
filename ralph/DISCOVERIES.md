@@ -948,3 +948,27 @@ Performed exhaustive verification across all dimensions:
 - [5.14] Public PollController: can now use `IPollService` for poll display and voting
 - [5.47] Admin PollController: can now use `IPollService` for poll CRUD
 - No InsertPollAnswer/UpdatePollAnswer in service interface (matching legacy) — admin controller manages answers via `IRepository<PollAnswer>` directly or these can be added to the interface when needed
+
+## 2026-04-09 — [3.13] Blog Services / Implementation
+
+### ParseTags Moved to Service Layer
+- Legacy `BlogExtensions.ParseTags()` was an extension method on `BlogPost` in `Nop.Core.Domain.Blogs`
+- Extension methods were excluded from domain entities in [1.3] — `ParseTags` recreated as a static method in `Nop.Services.Blogs.BlogExtensions`
+- Modernized: `StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries` replaces manual `.Trim()` loop; collection expression `[]` for empty return
+- Not an extension method (no `this` parameter) — called as `BlogExtensions.ParseTags(blogPost)` since it's service-layer logic, not a domain concern
+
+### InvariantCultureIgnoreCase → OrdinalIgnoreCase
+- Legacy used `StringComparison.InvariantCultureIgnoreCase` for tag matching
+- New code uses `StringComparison.OrdinalIgnoreCase` — faster, no culture-dependent behavior, appropriate for tag string matching
+- Tags are user-entered comma-separated strings, not locale-sensitive data
+
+### Simple Leaf Service — No Surprises
+- BlogService follows PollService pattern exactly: async-first, `Task.FromResult` for sync repo calls, `ArgumentNullException.ThrowIfNull`, event publishing
+- No caching (matching legacy) — blog posts are low-to-medium volume entities
+- Store mapping uses inline LINQ join (same pattern as CountryService, TopicService) — efficient for filtered queries
+- `GetAllBlogPostsByTagAsync` and `GetAllBlogPostTagsAsync` load all posts then filter in-memory (matching legacy) — acceptable for blog-scale data volumes
+
+### Impact on Future Items
+- [5.10] Public BlogController: can now use `IBlogService` for blog display
+- [5.44] Admin BlogController: can now use `IBlogService` for blog CRUD
+- [3.14] News services: `INewsService` follows the same pattern — nearly identical structure to BlogService

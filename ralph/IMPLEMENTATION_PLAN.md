@@ -180,10 +180,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1
   - Done: 2026-04-09. IPollService/PollService (async-first, no caching, event publishing). AlreadyVotedAsync uses join between PollAnswer and PollVotingRecord with TableNoTracking. Follows VendorService pattern. No store mapping filtering (legacy didn't filter polls by store in service layer).
 
-- [ ] [3.13] Blog services — IBlogService
+- [x] [3.13] Blog services — IBlogService
   - Spec: specs/svc-blogs.md
   - Scope: Nop.Services/Blogs
   - Depends on: 1.5, 2.1, 2.3
+  - Done: 2026-04-09. IBlogService/BlogService (async-first, no caching, store mapping join for GetAllBlogPosts, tag-based filtering loads all then filters in-memory, event publishing). BlogExtensions.ParseTags (static method, StringSplitOptions.TrimEntries). Follows PollService pattern.
 
 - [ ] [3.14] News services — INewsService
   - Spec: specs/svc-news.md
