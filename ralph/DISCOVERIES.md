@@ -1409,3 +1409,48 @@ Performed exhaustive verification across all dimensions:
 - [4.9] Orders: can now use `IShipmentService` for shipment management, `IShippingService` for warehouse/method lookups; must implement workflow methods (weight, dimensions, package creation)
 - [5.41] Admin ShippingController: can now use all three shipping services for CRUD
 - [6.6-6.12] Shipping plugins: will implement `IShippingRateComputationMethod` / `IPickupPointProvider` interfaces
+
+## 2026-04-09 — [4.8] Payment Services / Implementation
+
+### IPaymentMethod: No IPlugin Dependency
+- Legacy `IPaymentMethod` extended `IPlugin` (plugin infrastructure) — new interface is standalone
+- `PluginDescriptor.SystemName` replaced with `IPaymentMethod.SystemName` property — simpler, no plugin metadata needed
+- Legacy `GetConfigurationRoute`/`GetPaymentInfoRoute`/`GetControllerType` (ASP.NET MVC 5 routing) dropped — ASP.NET Core uses attribute routing and DI-based configuration
+- When plugin system [2.10] is built, `IPaymentMethod` may extend a new `IPlugin` interface, or plugins register `IPaymentMethod` implementations directly via DI
+
+### PaymentService: IEnumerable<IPaymentMethod> Resolution
+- Legacy used `IPluginFinder.GetPlugins<IPaymentMethod>()` to discover payment methods
+- New code resolves `IEnumerable<IPaymentMethod>` from DI constructor injection — standard .NET DI pattern
+- `LoadPaymentMethodBySystemName` iterates the injected collection with `OrdinalIgnoreCase` comparison
+- Plugin-dependent methods (LoadActivePaymentMethods, LoadAllPaymentMethods, LoadPaymentMethodBySystemName as public API) deferred to [2.10]
+- DI registration: each `IPaymentMethod` implementation registered as `services.AddScoped<IPaymentMethod, ConcretePaymentMethod>()`
+
+### Restriction Methods: systemName String Instead of IPaymentMethod
+- Legacy `GetRestictedCountryIds(IPaymentMethod)` and `SaveRestictedCountryIds(IPaymentMethod, List<int>)` took `IPaymentMethod` parameter and accessed `paymentMethod.PluginDescriptor.SystemName`
+- New methods take `string paymentMethodSystemName` directly — decouples from plugin infrastructure
+- Legacy setting key format preserved: `PaymentMethodRestictions.{systemName}` (note: legacy typo "Restictions" preserved for data migration compatibility)
+
+### RoundingHelper Replaced
+- Legacy `RoundingHelper.RoundPrice(result)` used service locator (`EngineContext.Current.Resolve<IWorkContext>()`) to get working currency's `RoundingType`
+- New code uses `Math.Round(result, 2)` — simple 2-decimal rounding without currency-specific rounding rules
+- Currency-specific rounding (cash rounding for Swiss Franc, Hungarian Forint, etc.) can be added when `IWorkContext` is available in the service layer or passed as parameter
+- Impact: prices may differ by fractions of a cent for currencies with non-standard rounding rules
+
+### CalculateAdditionalFee Percentage Mode Deferred
+- Legacy `PaymentExtensions.CalculateAdditionalFee` with `usePercentage=true` called `IOrderTotalCalculationService.GetShoppingCartTotal(cart, usePaymentMethodAdditionalFee: false)`
+- `IOrderTotalCalculationService` is plan item [4.9] — not yet built
+- `CalculateAdditionalFee` not included in new `PaymentExtensions` — will be added when [4.9] provides the dependency
+- Fixed-fee mode is handled directly by `PaymentService.GetAdditionalHandlingFeeAsync` delegating to `IPaymentMethod.GetAdditionalHandlingFeeAsync`
+
+### PaymentExtensions: XML Serialization Preserved
+- Legacy `SerializeCustomValues`/`DeserializeCustomValues` used `XmlSerializer` with custom `DictionarySerializer : IXmlSerializable`
+- New code uses `XmlWriter`/`XmlReader` directly — simpler, no `IXmlSerializable` class needed
+- XML format preserved: `<CustomValues><item><key>...</key><value>...</value></item></CustomValues>`
+- Values are always serialized as strings (via `ToString()`) — matching legacy behavior
+- Data migration compatibility: existing `Order.CustomValuesXml` values can be deserialized by new code
+
+### Impact on Future Items
+- [4.9] Orders: can now use `IPaymentService` for payment processing, capture, refund, void; must add `CalculateAdditionalFee` percentage mode when `IOrderTotalCalculationService` is built
+- [5.42] Admin PaymentController: can now use `IPaymentService` for payment method management
+- [6.1-6.5] Payment plugins: will implement `IPaymentMethod` interface (CheckMoneyOrder, Manual, PurchaseOrder, PayPalStandard, PayPalDirect)
+- DI registration: `services.AddScoped<IPaymentService, PaymentService>()` + each `IPaymentMethod` implementation
