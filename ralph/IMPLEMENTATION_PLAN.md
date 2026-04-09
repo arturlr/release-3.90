@@ -269,10 +269,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 4.9
   - Done: 2026-04-09. IShoppingCartService (async-first, 15 methods) + ShoppingCartService (3 partial class files: core + validation + operations). GetShoppingCartAsync replaces Customer.ShoppingCartItems nav property. All legacy extension methods inlined (ParseRequiredProductIds, ParseAllowedQuantities, GetTotalStockQuantity, IsSearchEngineAccount, RequiresShipping, LimitPerStore, GetRecurringCycleInfo). Product loaded via IProductService.GetProductByIdAsync (no nav properties). MigrateShoppingCart copies discount/gift card coupon codes via IGenericAttributeService. 20 constructor dependencies.
 
-- [ ] [4.9b] IOrderTotalCalculationService — subtotal, tax, shipping, discount, total
+- [x] [4.9b] IOrderTotalCalculationService — subtotal, tax, shipping, discount, total
   - Spec: specs/svc-orders.md
   - Scope: Nop.Services/Orders/OrderTotalCalculationService
   - Depends on: 4.9, 4.9a
+  - Done: 2026-04-09. IOrderTotalCalculationService (async-first, tuples instead of out params) + OrderTotalCalculationService (16 dependencies via primary constructor). ShoppingCartTotal result class and AppliedGiftCard DTO. Key methods: GetShoppingCartSubTotalAsync (with tax rates and checkout attributes), AdjustShippingRateAsync, GetShoppingCartAdditionalShippingChargeAsync, IsFreeShippingAsync, GetShoppingCartShippingTotalAsync (simplified — only uses selected shipping option from GenericAttribute, no fixed-rate fallback since that requires plugin system [2.10]), GetTaxTotalAsync, GetShoppingCartTotalAsync (with gift cards + reward points). UpdateOrderTotals deferred (depends on plugin-dependent shipping methods). CalculateRewardPointsAsync checks guest role via ICustomerService. Product loaded via IProductService (no nav properties).
 
 - [ ] [4.9c] IOrderProcessingService — PlaceOrder, status transitions, payment operations
   - Spec: specs/svc-orders.md

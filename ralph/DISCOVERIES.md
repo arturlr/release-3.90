@@ -1528,3 +1528,40 @@ Performed exhaustive verification across all dimensions:
 - [5.7] Public ShoppingCartController: can now use `IShoppingCartService` for all cart operations
 - [5.8] Public CheckoutController: can now use `IShoppingCartService.GetShoppingCartWarningsAsync` for checkout validation
 - [5.61] Admin ShoppingCartController: can now use `IShoppingCartService.GetShoppingCartAsync` for abandoned cart viewing
+
+## 2026-04-09 — [4.9b] IOrderTotalCalculationService / Implementation
+
+### UpdateOrderTotals Deferred
+- Legacy `UpdateOrderTotals` (200+ LOC) depends on `IShippingService.GetShippingOptions`, `IShippingService.GetPickupPoints`, `IShippingService.LoadActiveShippingRateComputationMethods` — all plugin-dependent methods deferred to [2.10]
+- Also depends on `Order.OrderItems` nav property (stripped in [1.3]) and `GiftCard.GiftCardUsageHistory` nav property
+- Will be implemented when plugin system [2.10] provides shipping rate computation methods, or as a separate plan item if needed before then
+- Impact: admin order editing (recalculating totals after item changes) is not available until UpdateOrderTotals is implemented
+
+### GetShoppingCartShippingTotal Simplified
+- Legacy had two paths: (1) use selected shipping option from GenericAttribute, (2) fall back to fixed-rate computation from single active shipping rate computation method
+- Path (2) depends on `IShippingService.LoadActiveShippingRateComputationMethods`, `IShippingService.CreateShippingOptionRequests`, `IShippingRateComputationMethod.GetFixedRate` — all plugin-dependent
+- New code only implements path (1): reads `SelectedShippingOption` from customer GenericAttribute
+- If no shipping option is selected and cart requires shipping, returns null (indicating total cannot be calculated)
+- Impact: checkout flow must ensure shipping option is selected before calling GetShoppingCartTotalAsync
+
+### Product Loading Pattern for Cart Items
+- Legacy accessed `shoppingCartItem.Product` nav property for `IsShipEnabled`, `IsFreeShipping`, `AdditionalShippingCharge`, `IsRecurring`
+- New code loads product via `IProductService.GetProductByIdAsync(sci.ProductId)` for each cart item
+- This creates N+1 queries for N cart items — acceptable for typical cart sizes (5-20 items)
+- Future optimization: batch load products for all cart items at the start of each method, or add a `GetProductsByIdsAsync` batch method to `IProductService`
+
+### Checkout Attribute Tax Calculation
+- Legacy accessed `checkoutAttributeValue.CheckoutAttribute` nav property for `TaxCategoryId` and `IsTaxExempt`
+- New code parses checkout attributes from XML, then finds the parent `CheckoutAttribute` by matching `av.CheckoutAttributeId` against parsed attributes
+- This means `ParseCheckoutAttributesAsync` is called once to get all attributes, then each value is matched to its parent
+
+### CalculateRewardPointsAsync — Guest Detection
+- Legacy used `customer.IsGuest()` extension method (service locator based)
+- New code uses `ICustomerService.GetCustomerRoleIdsAsync` + `GetCustomerRoleBySystemNameAsync(Guests)` to check if customer has ONLY the Guest role
+- More explicit, no service locator dependency
+
+### Impact on Future Items
+- [4.9c] IOrderProcessingService: can now use `IOrderTotalCalculationService` for order total calculation during PlaceOrder
+- [4.8] Payment: `CalculateAdditionalFee` percentage mode can now be implemented using `GetShoppingCartTotalAsync(cart, usePaymentMethodAdditionalFee: false)`
+- [5.7] Public ShoppingCartController: can now display order totals
+- [5.8] Public CheckoutController: can now calculate and display order totals during checkout
