@@ -1050,3 +1050,59 @@ Performed exhaustive verification across all dimensions:
 - [5.30-5.82] Admin controllers: use `[Authorize(Policy = "AccessAdminPanel")]` on base admin controller, individual permission checks via `[Authorize(Policy = "ManageProducts")]` on actions or inline `IPermissionService.Authorize()` calls
 - [5.2-5.28] Public controllers: use `[Authorize(Policy = "PublicStoreAllowNavigation")]` where needed
 - Nop.Web Program.cs: must register `NopAuthorizationPolicyProvider` and `NopPermissionHandler` in DI
+
+## 2026-04-09 — [4.1] Customer Services / Implementation
+
+### Role Management via Join Entity (No Nav Properties)
+- Legacy `CustomerService` used `customer.CustomerRoles` nav property for role checks, `InsertGuestCustomer` used `customer.CustomerRoles.Add(guestRole)`, and `RegisterCustomer` used `request.Customer.CustomerRoles.Add(registeredRole)` / `.Remove(guestRole)`
+- New code uses `IRepository<CustomerCustomerRoleMapping>` for all role operations: `AddCustomerRoleMappingAsync`, `RemoveCustomerRoleMappingAsync`, `GetCustomerRoleIdsAsync`
+- Added these three methods to `ICustomerService` interface — they don't exist in legacy (legacy used nav properties directly)
+- Impact: all downstream consumers that check customer roles must use `ICustomerService.GetCustomerRoleIdsAsync()` instead of `customer.CustomerRoles`
+
+### Shopping Cart Filter via Join
+- Legacy `GetAllCustomers(loadOnlyWithShoppingCart: true)` used `c.ShoppingCartItems.Any()` nav property
+- New code joins `IRepository<ShoppingCartItem>` explicitly
+- Same pattern as AffiliateService [3.9] for cross-entity filtering without nav properties
+
+### DeleteGuestCustomers — LINQ Only, No Stored Procedure
+- Legacy used `[DeleteGuests]` stored procedure when `CommonSettings.UseStoredProceduresIfSupported` was true
+- New code uses LINQ-only approach (matching legacy's fallback path)
+- Also deletes `CustomerCustomerRoleMapping` records for each guest (legacy didn't need this because cascade delete handled it via nav properties)
+- Dropped `IDataProvider`, `IDbContext`, `CommonSettings` dependencies
+
+### CustomerRegistrationService — Deferred Dependencies
+- Legacy depended on `INewsLetterSubscriptionService`, `IRewardPointService`, `IWorkflowMessageService`, `IStoreService`, `IGenericAttributeService`, `IWorkContext`
+- New code only depends on `ICustomerService`, `IEncryptionService`, `ILocalizationService`, `IEventPublisher`, `CustomerSettings`
+- Deferred functionality:
+  - Newsletter subscription update on email change → [4.2] when `INewsLetterSubscriptionService` is built
+  - Reward points for registration → [4.9] when `IRewardPointService` is built
+  - Email revalidation message → [4.2] when `IWorkflowMessageService` is built
+  - Email revalidation token (GenericAttribute) → deferred with email revalidation
+
+### CustomerReportService — Simplified Dependencies
+- Legacy depended on `ICustomerService` (for `GetCustomerRoleBySystemName`) and `IDateTimeHelper` (for timezone conversion)
+- New code queries `IRepository<CustomerRole>` directly and uses `DateTime.UtcNow.AddDays(-days)` instead of timezone conversion
+- Legacy converted to user time then subtracted days — for UTC-based date filtering, subtracting days from UtcNow is equivalent and simpler
+
+### CustomerAttributeFormatter — Dropped IWorkContext
+- Legacy used `_workContext.WorkingLanguage.Id` for localized attribute/value names via `GetLocalized()` extension
+- New code uses `attribute.Name` / `attributeValue.Name` directly (no localization)
+- Localized names can be passed by presentation layer if needed — consistent with AddressAttributeFormatter pattern
+
+### CustomerExtensions Not Migrated
+- Legacy `CustomerExtensions` (18K LOC) used service locator extensively (`EngineContext.Current.Resolve<T>()`)
+- Methods like `GetFullName`, `FormatUserName`, `ParseAppliedDiscountCouponCodes`, `ApplyDiscountCouponCode`, `IsPasswordRecoveryTokenValid`, `PasswordIsExpired`, `GetCustomerRoleIds` all depend on service locator
+- These will be implemented as service methods or controller-level logic when needed by presentation layer
+- `GetCustomerRoleIds` is already available as `ICustomerService.GetCustomerRoleIdsAsync`
+
+### ICustomerActivityService Already Implemented
+- Plan item [4.1] listed `ICustomerActivityService` but it was already implemented in [2.2] Logging
+- Removed from [4.1] scope — no duplicate implementation needed
+
+### Impact on Future Items
+- [4.2] Messages: add newsletter subscription update to `SetEmailAsync`, email revalidation to `SetEmailAsync(requireValidation: true)`
+- [4.3] Forums: can now use `ICustomerService` for customer lookups
+- [4.4] Catalog: can now use `ICustomerService` for customer role checks in price calculations
+- [4.9] Orders: add reward points for registration to `RegisterCustomerAsync`, implement `DeleteGuestsTask`
+- [5.6] Public CustomerController: can now use `ICustomerRegistrationService` for register/login/password flows
+- [5.35] Admin CustomerController: can now use `ICustomerService` for customer CRUD

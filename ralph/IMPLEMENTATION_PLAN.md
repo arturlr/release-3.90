@@ -208,10 +208,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
 
 ## Phase 4: Service Layer — Complex Services
 
-- [ ] [4.1] Customer services — ICustomerService, ICustomerRegistrationService, ICustomerAttributeService, ICustomerAttributeParser, ICustomerAttributeFormatter, ICustomerActivityService, ICustomerReportService
+- [x] [4.1] Customer services — ICustomerService, ICustomerRegistrationService, ICustomerAttributeService, ICustomerAttributeParser, ICustomerAttributeFormatter, ICustomerReportService
   - Spec: specs/svc-customers.md
   - Scope: Nop.Services/Customers
   - Depends on: 1.5, 2.1, 2.4, 2.5, 3.1
+  - Done: 2026-04-09. 17 files: ICustomerAttributeService/CustomerAttributeService (cached CRUD), ICustomerAttributeParser/CustomerAttributeParser (XML format), ICustomerAttributeFormatter/CustomerAttributeFormatter, ICustomerService/CustomerService (customer CRUD, role management via CustomerCustomerRoleMapping, password management, guest lifecycle, checkout reset, guest cleanup), ICustomerRegistrationService/CustomerRegistrationService (validate, register, change password, set email/username), ICustomerReportService/CustomerReportService (best customers, registered count), CustomerPasswordChangedEvent, ChangePasswordRequest/Result, CustomerRegistrationRequest/Result. Deferred: INewsLetterSubscriptionService (newsletter on email change), IRewardPointService (points for registration), IWorkflowMessageService (email revalidation). ICustomerActivityService already implemented in [2.2]. DeleteGuestsTask deferred to [3.6].
 
 - [ ] [4.2] Message services — IWorkflowMessageService, IMessageTemplateService, IQueuedEmailService, IEmailAccountService, IEmailSender, INewsLetterSubscriptionService, IMessageTokenProvider, ITokenizer, ICampaignService
   - Spec: specs/svc-messages.md
