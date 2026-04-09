@@ -114,12 +114,12 @@ Prefer SharpLens over text-based tools for semantic queries:
 
 - Total components identified: 67
 - Total spec files: 67
-- Total plan items: 171
+- Total plan items: 173
 - Data migration items: 5
-- Integration items: 13
+- Integration items: 15
 - Cutover items: 8
 - Plugin/extension count: 20 (each with individual spec and plan item)
-- Last updated: 2026-04-09 iteration 6 (enrichment — IPermissionProvider, NopConfig, ISettings added to specs)
+- Last updated: 2026-04-09 iteration 7 (added Azure Blob Storage + MaxMind GeoIP2 integration items)
 
 ---
 

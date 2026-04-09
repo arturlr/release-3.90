@@ -825,6 +825,16 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: CaptchaValidatorAttribute + GReCaptchaValidator → HttpClient calling Google reCAPTCHA siteverify
   - Depends on: 2.4, 5.1
 
+- [ ] [7.14] Azure Blob Storage integration — picture storage via Azure.Storage.Blobs SDK
+  - Spec: specs/svc-media.md
+  - Scope: AzurePictureService → Azure.Storage.Blobs (CloudStorageAccount, CloudBlobClient → BlobServiceClient)
+  - Depends on: 3.7
+
+- [ ] [7.15] MaxMind GeoIP2 integration — IP-to-country geolocation via local GeoLite2 database
+  - Spec: specs/svc-directory.md
+  - Scope: GeoLookupService → MaxMind.GeoIP2 NuGet + GeoLite2-Country.mmdb database file
+  - Depends on: 3.3
+
 ---
 
 ## Phase 8: Data Migration

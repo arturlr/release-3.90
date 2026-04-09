@@ -208,3 +208,24 @@ Compared all 117 service interfaces in `src/Libraries/Nop.Services/` against spe
 ### No New Specs or Plan Items
 - All gaps were enrichment of existing specs (3 specs updated: xcut-authorization.md, nop-core-infrastructure.md)
 - 67 specs and 171 plan items remain stable
+
+## 2026-04-09 — Refine Iteration 7
+
+### Gap Analysis: Missing Integration Plan Items
+- **Azure Blob Storage**: `AzurePictureService` (167 LOC) uses `Microsoft.WindowsAzure.Storage` (CloudStorageAccount, CloudBlobClient, CloudBlobContainer). Was documented in `svc-media.md` External Dependencies and Acceptance Criteria since iteration 4, but had no dedicated Phase 7 integration item. Added [7.14].
+- **MaxMind GeoIP2**: `GeoLookupService` uses `MaxMind.GeoIP2` NuGet with local `App_Data/GeoLite2-Country.mmdb` database. Was documented in `svc-directory.md` External Dependencies since iteration 4, but had no dedicated Phase 7 integration item. Added [7.15].
+
+### Comprehensive Verification
+- All 117 service interfaces confirmed covered in specs
+- All 26 domain subdirectories confirmed covered
+- All controllers (28 public + 55 admin) confirmed in plan
+- All 67 specs referenced by at least one plan item
+- All 173 plan items reference a valid spec file
+- All specs have ≥3 acceptance criteria
+- All external NuGet packages verified: DotNetOpenAuth (xcut-authentication), EPPlus (svc-export-import), ImageResizer (svc-media), iTextSharp (svc-common), MiniProfiler (nop-web-public), RedLock (xcut-caching), PayPal (plugin specs), StackExchange.Redis (xcut-caching), WindowsAzure.Storage (svc-media)
+- SOAP web references verified: EuropaCheckVatService ([7.12]), FedEx RateService ([7.5]), UPS TrackService ([7.4])
+
+### Plan Item Growth
+- Plan items: 171 → 173 (+2: [7.14] Azure Blob Storage, [7.15] MaxMind GeoIP2)
+- Integration items: 13 → 15
+- Specs: 67 (unchanged)
