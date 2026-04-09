@@ -6,6 +6,7 @@ Authentication — forms authentication, cookie management, and authentication s
 ## Legacy Source
 - `src/Libraries/Nop.Services/Authentication/FormsAuthenticationService.cs`
 - `src/Libraries/Nop.Services/Authentication/IAuthenticationService.cs`
+- `src/Libraries/Nop.Services/Authentication/External/` — `IOpenAuthenticationService`, `IClaimsTranslator`, `IExternalAuthorizer`, `IExternalProviderAuthorizer`
 - ASP.NET Forms Authentication in web.config
 
 ## Key Entities

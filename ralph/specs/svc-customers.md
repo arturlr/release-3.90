@@ -5,7 +5,7 @@ Customer management — registration, authentication, customer roles, customer a
 
 ## Legacy Source
 - `src/Libraries/Nop.Services/Customers/` — all files
-- Key interfaces: `ICustomerService`, `ICustomerRegistrationService`, `ICustomerAttributeService`, `ICustomerActivityService`
+- Key interfaces: `ICustomerService`, `ICustomerRegistrationService`, `ICustomerAttributeService`, `ICustomerAttributeParser`, `ICustomerAttributeFormatter`, `ICustomerActivityService`, `ICustomerReportService`
 - Domain: `Nop.Core.Domain.Customers`
 
 ## Key Entities

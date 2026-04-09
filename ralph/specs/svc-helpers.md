@@ -5,7 +5,7 @@ Utility helpers — date/time helpers and other shared utility services.
 
 ## Legacy Source
 - `src/Libraries/Nop.Services/Helpers/` — all files
-- Key interfaces: `IDateTimeHelper`
+- Key interfaces: `IDateTimeHelper`, `IUserAgentHelper`
 
 ## Key Entities
 - No domain entities — utility functions

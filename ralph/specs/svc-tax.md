@@ -5,7 +5,7 @@ Tax calculation — tax rate determination, tax display rules, tax provider coor
 
 ## Legacy Source
 - `src/Libraries/Nop.Services/Tax/` — all files
-- Key interfaces: `ITaxService`, `ITaxProvider`
+- Key interfaces: `ITaxService`, `ITaxProvider`, `ITaxCategoryService`
 - Domain: `Nop.Core.Domain.Tax`
 
 ## Key Entities

@@ -7,6 +7,7 @@ Domain event system — event publishing and consumer infrastructure.
 - `src/Libraries/Nop.Services/Events/` — EventPublisher, SubscriptionService
 - `src/Libraries/Nop.Core/Events/` — EntityInserted, EntityUpdated, EntityDeleted
 - `src/Libraries/Nop.Services/Caching/` — CacheEventConsumer
+- Key interfaces: `IEventPublisher`, `IConsumer<T>`, `ISubscriptionService`
 
 ## Key Entities
 - `IEventPublisher` — publishes domain events

@@ -5,7 +5,7 @@ Directory data — countries, states/provinces, currencies, exchange rates, meas
 
 ## Legacy Source
 - `src/Libraries/Nop.Services/Directory/` — all files
-- Key interfaces: `ICountryService`, `IStateProvinceService`, `ICurrencyService`, `IExchangeRateProvider`, `IMeasureService`
+- Key interfaces: `ICountryService`, `IStateProvinceService`, `ICurrencyService`, `IExchangeRateProvider`, `IMeasureService`, `IGeoLookupService`
 - Domain: `Nop.Core.Domain.Directory`
 
 ## Key Entities

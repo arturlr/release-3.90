@@ -5,7 +5,7 @@ Common/shared services — address management, generic attributes, full-text sea
 
 ## Legacy Source
 - `src/Libraries/Nop.Services/Common/` — all files
-- Key interfaces: `IAddressService`, `IGenericAttributeService`, `IFulltextService`, `IMaintenanceService`, `IPdfService`, `ISearchTermService`, `IMiscPlugin`
+- Key interfaces: `IAddressService`, `IAddressAttributeService`, `IAddressAttributeFormatter`, `IAddressAttributeParser`, `IGenericAttributeService`, `IFulltextService`, `IMaintenanceService`, `IPdfService`, `ISearchTermService`, `IMiscPlugin`
 - Domain: `Nop.Core.Domain.Common`
 
 ## Key Entities

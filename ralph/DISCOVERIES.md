@@ -55,3 +55,31 @@ Append-only log of cross-iteration findings. Never edit or remove previous entri
 - Authentication is custom FormsAuthenticationService, not ASP.NET Identity
 - Plugin system uses shadow copying and dynamic assembly loading
 - Kendo UI used extensively in admin grids — needs replacement evaluation
+
+## 2026-04-09 — Refine Iteration 2
+
+### Gap Analysis: 25 Missing Service Interfaces
+Compared all 117 service interfaces in `src/Libraries/Nop.Services/` against spec files. Found 25 interfaces not explicitly listed in any spec. All were sub-services belonging to existing spec domains:
+
+- **svc-common.md**: Added `IAddressAttributeFormatter`, `IAddressAttributeParser`
+- **svc-catalog.md**: Added `IProductAttributeParser`, `IProductAttributeFormatter`, `ICompareProductsService`, `ICategoryTemplateService`, `IManufacturerTemplateService`, `IProductTemplateService`
+- **svc-orders.md**: Added `ICheckoutAttributeParser`, `ICheckoutAttributeFormatter`, `IOrderReportService`, `IRewardPointService`, `ICustomNumberFormatter`
+- **svc-customers.md**: Added `ICustomerAttributeParser`, `ICustomerAttributeFormatter`, `ICustomerReportService`
+- **svc-directory.md**: Added `IGeoLookupService`
+- **svc-tax.md**: Added `ITaxCategoryService`
+- **svc-seo.md**: Added `ISitemapGenerator`
+- **svc-messages.md**: Added `ITokenizer`, `IEmailSender`
+- **svc-helpers.md**: Added `IUserAgentHelper`
+- **svc-events.md**: Added `ISubscriptionService`
+- **xcut-authentication.md**: Added `IOpenAuthenticationService`, `IClaimsTranslator`, `IExternalAuthorizer`, `IExternalProviderAuthorizer`
+- **nop-core-infrastructure.md**: Added `IMachineNameProvider`
+
+### Gap Analysis: 5 Missing Controllers
+- **Admin**: `JbimagesController` (79 LOC) + `RoxyFilemanController` (765 LOC) — TinyMCE file managers. Added plan item [5.82] to replace with modern file manager.
+- **Public**: `BackwardCompatibility1XController` (271 LOC) + `BackwardCompatibility2XController` (113 LOC) — legacy URL redirects. Added plan item [5.28] for redirect middleware.
+- **Public**: `KeepAliveController` (14 LOC) — simple health check. Added plan item [5.27] mapping to observability spec.
+
+### Plan Item Growth
+- Plan items: 165 → 168 (+3 new items)
+- All 25 service interfaces now explicitly listed in their parent specs
+- All plan items enriched with complete sub-service lists

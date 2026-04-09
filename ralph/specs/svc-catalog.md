@@ -5,7 +5,7 @@ Product catalog management — products, categories, manufacturers, attributes, 
 
 ## Legacy Source
 - `src/Libraries/Nop.Services/Catalog/` — all files
-- Key interfaces: `IProductService`, `ICategoryService`, `IManufacturerService`, `IProductAttributeService`, `IPriceCalculationService`, `IPriceFormatter`, `IProductTagService`, `IRecentlyViewedProductsService`, `ISpecificationAttributeService`, `ICopyProductService`, `IBackInStockSubscriptionService`
+- Key interfaces: `IProductService`, `ICategoryService`, `IManufacturerService`, `IProductAttributeService`, `IProductAttributeParser`, `IProductAttributeFormatter`, `IPriceCalculationService`, `IPriceFormatter`, `IProductTagService`, `IRecentlyViewedProductsService`, `ISpecificationAttributeService`, `ICopyProductService`, `IBackInStockSubscriptionService`, `ICompareProductsService`, `ICategoryTemplateService`, `IManufacturerTemplateService`, `IProductTemplateService`
 - Domain: `Nop.Core.Domain.Catalog`
 
 ## Key Entities

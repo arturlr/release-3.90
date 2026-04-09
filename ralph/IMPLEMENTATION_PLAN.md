@@ -105,17 +105,17 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Nop.Services/Stores
   - Depends on: 1.5, 2.1
 
-- [ ] [3.3] Directory services — ICountryService, IStateProvinceService, ICurrencyService, IMeasureService
+- [ ] [3.3] Directory services — ICountryService, IStateProvinceService, ICurrencyService, IMeasureService, IGeoLookupService
   - Spec: specs/svc-directory.md
   - Scope: Nop.Services/Directory
   - Depends on: 1.5, 2.1, 3.1
 
-- [ ] [3.4] SEO services — IUrlRecordService, slug generation
+- [ ] [3.4] SEO services — IUrlRecordService, ISitemapGenerator, slug generation
   - Spec: specs/svc-seo.md
   - Scope: Nop.Services/Seo
   - Depends on: 1.5, 2.1
 
-- [ ] [3.5] Helpers — IDateTimeHelper
+- [ ] [3.5] Helpers — IDateTimeHelper, IUserAgentHelper
   - Spec: specs/svc-helpers.md
   - Scope: Nop.Services/Helpers
   - Depends on: 1.4
@@ -130,7 +130,7 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Nop.Services/Media
   - Depends on: 1.5, 3.1
 
-- [ ] [3.8] Common services — IAddressService, IGenericAttributeService, ISearchTermService
+- [ ] [3.8] Common services — IAddressService, IAddressAttributeService, IAddressAttributeParser, IAddressAttributeFormatter, IGenericAttributeService, ISearchTermService, IFulltextService, IPdfService
   - Spec: specs/svc-common.md
   - Scope: Nop.Services/Common
   - Depends on: 1.5, 2.1
@@ -179,12 +179,12 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
 
 ## Phase 4: Service Layer — Complex Services
 
-- [ ] [4.1] Customer services — ICustomerService, ICustomerRegistrationService, ICustomerAttributeService, ICustomerActivityService
+- [ ] [4.1] Customer services — ICustomerService, ICustomerRegistrationService, ICustomerAttributeService, ICustomerAttributeParser, ICustomerAttributeFormatter, ICustomerActivityService, ICustomerReportService
   - Spec: specs/svc-customers.md
   - Scope: Nop.Services/Customers
   - Depends on: 1.5, 2.1, 2.4, 2.5, 3.1
 
-- [ ] [4.2] Message services — IWorkflowMessageService, IMessageTemplateService, IQueuedEmailService, IEmailAccountService, INewsLetterSubscriptionService, ICampaignService
+- [ ] [4.2] Message services — IWorkflowMessageService, IMessageTemplateService, IQueuedEmailService, IEmailAccountService, IEmailSender, INewsLetterSubscriptionService, IMessageTokenProvider, ITokenizer, ICampaignService
   - Spec: specs/svc-messages.md
   - Scope: Nop.Services/Messages
   - Depends on: 1.5, 2.1, 2.3, 3.1, 3.6
@@ -194,7 +194,7 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Nop.Services/Forums
   - Depends on: 1.5, 2.1, 4.1, 4.2
 
-- [ ] [4.4] Catalog services — IProductService, ICategoryService, IManufacturerService, IProductAttributeService, IPriceCalculationService, IPriceFormatter, IProductTagService, ISpecificationAttributeService, ICopyProductService, IBackInStockSubscriptionService, IRecentlyViewedProductsService
+- [ ] [4.4] Catalog services — IProductService, ICategoryService, IManufacturerService, IProductAttributeService, IProductAttributeParser, IProductAttributeFormatter, IPriceCalculationService, IPriceFormatter, IProductTagService, ISpecificationAttributeService, ICopyProductService, IBackInStockSubscriptionService, IRecentlyViewedProductsService, ICompareProductsService, ICategoryTemplateService, IManufacturerTemplateService, IProductTemplateService
   - Spec: specs/svc-catalog.md
   - Scope: Nop.Services/Catalog
   - Depends on: 1.5, 2.1, 2.3, 2.9, 3.1, 3.2, 3.4, 3.7, 4.1
@@ -204,7 +204,7 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Nop.Services/Discounts
   - Depends on: 1.5, 2.1, 4.1, 4.4
 
-- [ ] [4.6] Tax services — ITaxService
+- [ ] [4.6] Tax services — ITaxService, ITaxCategoryService
   - Spec: specs/svc-tax.md
   - Scope: Nop.Services/Tax
   - Depends on: 1.5, 2.1, 3.1, 3.3, 4.1
@@ -219,7 +219,7 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Nop.Services/Payments
   - Depends on: 1.5, 2.1, 3.1, 4.1
 
-- [ ] [4.9] Order services — IOrderService, IOrderProcessingService, IShoppingCartService, ICheckoutAttributeService, IGiftCardService, IOrderTotalCalculationService, IReturnRequestService
+- [ ] [4.9] Order services — IOrderService, IOrderProcessingService, IShoppingCartService, ICheckoutAttributeService, ICheckoutAttributeParser, ICheckoutAttributeFormatter, IGiftCardService, IOrderTotalCalculationService, IReturnRequestService, IOrderReportService, IRewardPointService, ICustomNumberFormatter
   - Spec: specs/svc-orders.md
   - Scope: Nop.Services/Orders
   - Depends on: 1.5, 2.1, 2.9, 3.1, 4.1, 4.2, 4.4, 4.5, 4.6, 4.7, 4.8
@@ -367,6 +367,16 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Spec: specs/nop-web-public.md
   - Scope: Views/Shared
   - Depends on: 5.1
+
+- [ ] [5.27] Public: KeepAliveController → health check endpoint
+  - Spec: specs/xcut-observability.md
+  - Scope: Controllers/KeepAliveController → /health endpoint
+  - Depends on: 2.8
+
+- [ ] [5.28] Public: Legacy URL redirect middleware (BackwardCompatibility1X + 2X)
+  - Spec: specs/nop-web-public.md
+  - Scope: Middleware replacing BackwardCompatibility1XController + BackwardCompatibility2XController
+  - Depends on: 5.1, 3.4
 
 ---
 
@@ -631,6 +641,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Spec: specs/nop-admin.md
   - Scope: Admin/Views/Shared
   - Depends on: 5.1
+
+- [ ] [5.82] Admin: JbimagesController + RoxyFilemanController → modern file manager
+  - Spec: specs/nop-admin.md
+  - Scope: Admin/Controllers/JbimagesController (79 LOC) + RoxyFilemanController (765 LOC) → unified file manager
+  - Depends on: 5.1, 3.7
 
 ---
 

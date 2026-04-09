@@ -4,7 +4,7 @@
 Core infrastructure — DI engine, type finding, caching abstractions, event system, plugin system, and common utilities that all layers consume.
 
 ## Legacy Source
-- `src/Libraries/Nop.Core/Infrastructure/` — IEngine, NopEngine, EngineContext, ITypeFinder, WebAppTypeFinder, IStartupTask
+- `src/Libraries/Nop.Core/Infrastructure/` — IEngine, NopEngine, EngineContext, ITypeFinder, WebAppTypeFinder, IStartupTask, IMachineNameProvider
 - `src/Libraries/Nop.Core/Caching/` — ICacheManager, MemoryCacheManager, RedisCacheManager, PerRequestCacheManager, IRedisConnectionWrapper
 - `src/Libraries/Nop.Core/Events/` — EntityInserted, EntityUpdated, EntityDeleted
 - `src/Libraries/Nop.Core/Plugins/` — IPlugin, BasePlugin, IPluginFinder, PluginManager, PluginDescriptor (14 files)

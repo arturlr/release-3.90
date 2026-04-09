@@ -5,7 +5,7 @@ Messaging and notifications — workflow messages (transactional emails), messag
 
 ## Legacy Source
 - `src/Libraries/Nop.Services/Messages/` — all files
-- Key interfaces: `IWorkflowMessageService` (1920 LOC), `IMessageTemplateService`, `IQueuedEmailService`, `IEmailAccountService`, `INewsLetterSubscriptionService`, `IMessageTokenProvider`, `ICampaignService`
+- Key interfaces: `IWorkflowMessageService` (1920 LOC), `IMessageTemplateService`, `IQueuedEmailService`, `IEmailAccountService`, `INewsLetterSubscriptionService`, `IMessageTokenProvider`, `ITokenizer`, `ICampaignService`, `IEmailSender`
 - Domain: `Nop.Core.Domain.Messages`
 
 ## Key Entities

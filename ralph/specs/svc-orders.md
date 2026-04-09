@@ -5,7 +5,7 @@ Order processing — order placement workflow, shopping cart, checkout attribute
 
 ## Legacy Source
 - `src/Libraries/Nop.Services/Orders/` — all files
-- Key interfaces: `IOrderService`, `IOrderProcessingService` (3167 LOC), `IShoppingCartService`, `ICheckoutAttributeService`, `IGiftCardService`, `IOrderTotalCalculationService`, `IReturnRequestService`
+- Key interfaces: `IOrderService`, `IOrderProcessingService` (3167 LOC), `IShoppingCartService`, `ICheckoutAttributeService`, `ICheckoutAttributeParser`, `ICheckoutAttributeFormatter`, `IGiftCardService`, `IOrderTotalCalculationService`, `IReturnRequestService`, `IOrderReportService`, `IRewardPointService`, `ICustomNumberFormatter`
 - Domain: `Nop.Core.Domain.Orders`
 
 ## Key Entities

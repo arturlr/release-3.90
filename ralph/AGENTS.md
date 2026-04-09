@@ -114,7 +114,7 @@ Prefer SharpLens over text-based tools for semantic queries:
 
 - Total components identified: 66
 - Total spec files: 66
-- Total plan items: 165
+- Total plan items: 168
 - Data migration items: 5
 - Integration items: 11
 - Cutover items: 8
