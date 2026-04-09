@@ -18,10 +18,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: GitHub Actions or Azure DevOps
   - Depends on: 1.1
 
-- [ ] [1.3] Nop.Core.Domain project — all 207 entity types, enums, marker interfaces
+- [x] [1.3] Nop.Core.Domain project — all 207 entity types, enums, marker interfaces
   - Spec: specs/nop-core-domain.md
   - Scope: src/Core/Nop.Core.Domain (26 domain subdirectories)
   - Depends on: 1.1
+  - Done: 2026-04-09. 167 .cs files (entities, enums, interfaces, DTOs, constants). Settings/Events/Extensions/TypeConverters excluded (belong in Nop.Core or Nop.Services). Nullable annotations throughout. No nav properties (EF Core config).
 
 - [ ] [1.4] Nop.Core.Infrastructure project — IRepository, IEngine, IWorkContext, IStoreContext, IWebHelper
   - Spec: specs/nop-core-infrastructure.md

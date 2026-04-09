@@ -374,3 +374,30 @@ Performed exhaustive verification across all dimensions:
 - [1.5] Nop.Data: add to `src/New/Data/Nop.Data/`
 - [1.7] Test scaffold: test projects already created with xunit — just add test files
 - TFM upgrade to .NET 10: change one line in `Directory.Build.props`
+
+## 2026-04-09 — [1.3] Nop.Core.Domain / Implementation
+
+### File Classification
+- 207 legacy .cs files classified: 136 entities/enums/interfaces/DTOs/constants kept, 29 Settings classes excluded, 5 Extension classes excluded, 7 Events files excluded = 167 new files created
+- Settings classes (ISettings) excluded — they depend on `Nop.Core.Configuration.ISettings` which lives in Nop.Core, not Nop.Core.Domain
+- Extension classes excluded — business logic moves to service layer
+- Events classes excluded — domain events move to service layer
+- TypeConverter classes (PickupPointTypeConverter, ShippingOptionTypeConverter, ShippingOptionListTypeConverter) excluded — infrastructure concern
+
+### Key Decisions
+- **Navigation properties removed**: All `virtual ICollection<T>` and `virtual Entity` properties stripped. EF Core will configure relationships in `Nop.Data` entity configurations. Domain entities are pure data carriers.
+- **Computed properties depending on nav properties removed**: `ShoppingCartItem.IsFreeShipping`, `ShoppingCartItem.IsShipEnabled`, `ShoppingCartItem.AdditionalShippingCharge`, `ShoppingCartItem.IsTaxExempt` — these accessed `Product` nav property. Will be service methods.
+- **RecurringPayment.NextPaymentDate and CyclesRemaining removed**: Depended on `RecurringPaymentHistory` collection nav property. Will be service methods.
+- **Order.ParseTaxRates/TaxRatesDictionary removed**: Business logic using `CultureInfo`, `Debug`, `SortedDictionary`. Will be a service method.
+- **Address.Clone simplified**: Removed references to `Country` and `StateProvince` nav properties. Clone copies only scalar/FK properties.
+- **ForumTopic.NumReplies removed**: Computed from `NumPosts` nav-independent but was a derived property — trivial to compute in service.
+- **Nullable strings**: All `string` properties made `string?` since they're DB-mapped and nullable annotations are enabled with TreatWarningsAsErrors.
+- **byte[] properties**: Made `byte[]?` (Picture.PictureBinary, Download.DownloadBinary).
+- **SystemCustomerAttributeNames/SystemCustomerNames/SystemCustomerRoleNames**: Modernized from `static string` properties to `const string` fields.
+
+### Impact on Future Items
+- [1.4] Nop.Core.Infrastructure: Must define `ISettings` marker interface so Settings classes can be created
+- [1.5] Nop.Data: Entity configurations will define all navigation properties and relationships
+- [2.9] Domain events: Events classes will be recreated in Nop.Services/Events
+- [3.x-4.x] Services: Extension methods (CustomerExtensions, GiftCardExtensions, etc.) and computed properties will become service methods
+- [4.9] Order services: `ParseTaxRates` logic moves to order service
