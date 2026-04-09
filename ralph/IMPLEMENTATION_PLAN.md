@@ -263,10 +263,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1, 2.9, 3.1, 4.1, 4.2, 4.4, 4.5, 4.6, 4.7, 4.8
   - Partial: 2026-04-09. Implemented 9 of 12 services: ICustomNumberFormatter, IRewardPointService, IReturnRequestService, ICheckoutAttributeService, ICheckoutAttributeParser, ICheckoutAttributeFormatter, IGiftCardService, IOrderService, IOrderReportService. Remaining: IShoppingCartService, IOrderTotalCalculationService, IOrderProcessingService.
 
-- [ ] [4.9a] IShoppingCartService — cart add/update/remove/migrate/validate
+- [x] [4.9a] IShoppingCartService — cart add/update/remove/migrate/validate
   - Spec: specs/svc-orders.md
   - Scope: Nop.Services/Orders/ShoppingCartService
   - Depends on: 4.9
+  - Done: 2026-04-09. IShoppingCartService (async-first, 15 methods) + ShoppingCartService (3 partial class files: core + validation + operations). GetShoppingCartAsync replaces Customer.ShoppingCartItems nav property. All legacy extension methods inlined (ParseRequiredProductIds, ParseAllowedQuantities, GetTotalStockQuantity, IsSearchEngineAccount, RequiresShipping, LimitPerStore, GetRecurringCycleInfo). Product loaded via IProductService.GetProductByIdAsync (no nav properties). MigrateShoppingCart copies discount/gift card coupon codes via IGenericAttributeService. 20 constructor dependencies.
 
 - [ ] [4.9b] IOrderTotalCalculationService — subtotal, tax, shipping, discount, total
   - Spec: specs/svc-orders.md

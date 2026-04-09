@@ -1484,3 +1484,47 @@ Performed exhaustive verification across all dimensions:
 - [4.9c] IOrderProcessingService: can now use IOrderService, ICustomNumberFormatter, IGiftCardService
 - [4.10] Export/Import: can now use IOrderService, IOrderReportService
 - [5.34] Admin OrderController: can now use IOrderService, IOrderReportService
+
+## 2026-04-09 — [4.9a] IShoppingCartService / Implementation
+
+### Nav Property Elimination — Heaviest Service So Far
+- Legacy `ShoppingCartService` was the most nav-property-dependent service: `customer.ShoppingCartItems`, `sci.Product`, `sci.Customer`, `sci.Product.IsGiftCard`, `attribute.Product`, `attributeValue.ProductAttributeMapping.ProductAttribute`
+- New code uses `IRepository<ShoppingCartItem>` queries by `CustomerId` for cart retrieval, `IProductService.GetProductByIdAsync` for product loading, `IProductAttributeService` for attribute/value lookups
+- Added `GetShoppingCartAsync(Customer, ShoppingCartType?, storeId)` as a new method — replaces `customer.ShoppingCartItems.Where(...).LimitPerStore(storeId)` pattern used throughout legacy
+
+### Extension Methods Inlined as Private Helpers
+- `Product.ParseRequiredProductIds()` → `ParseRequiredProductIds(Product)` — comma-separated string parsing
+- `Product.ParseAllowedQuantities()` → `ParseAllowedQuantities(Product)` — comma-separated string parsing
+- `Product.GetTotalStockQuantity()` → `product.StockQuantity` — legacy method was complex (multi-warehouse aggregation) but simplified since `UseMultipleWarehouses` support is deferred
+- `ProductAttributeMapping.IsNonCombinable()` → `ShouldHaveValues(int attributeControlTypeId)` — checks control type
+- `customer.IsSearchEngineAccount()` → `customerService.GetCustomerBySystemNameAsync(SystemCustomerNames.SearchEngine)` comparison
+- `shoppingCart.RequiresShipping()` → inline foreach checking `product.IsShipEnabled` per cart item
+- `shoppingCart.LimitPerStore(storeId)` → `storeId` parameter in `GetShoppingCartAsync` LINQ query
+- `shoppingCart.GetRecurringCycleInfo()` → `GetRecurringCycleInfoAsync` private method
+
+### Coupon Code Migration in MigrateShoppingCart
+- Legacy used `customer.ParseAppliedDiscountCouponCodes()` and `customer.ApplyDiscountCouponCode()` extension methods — these read/write `GenericAttribute` with key `DiscountCouponCode`
+- Legacy used `customer.ParseAppliedGiftCardCouponCodes()` and `customer.ApplyGiftCardCouponCode()` — these read/write `GenericAttribute` with key `GiftCardCouponCodes` (XML format)
+- New code reads/writes via `IGenericAttributeService` directly
+- Discount codes: comma-separated string, merged by concatenation
+- Gift card codes: XML format, copied as-is (merging XML is complex — skipped if target already has codes)
+
+### Mixed Sync/Async API Surface
+- `IPermissionService.Authorize` is sync, `IAclService.Authorize` is sync — called directly in async methods
+- `IStoreMappingService.AuthorizeAsync` is async — awaited
+- `ILocalizationService.GetResourceAsync` is async — all localization calls awaited
+- `IPriceFormatter.FormatPriceAsync` is async — awaited in `GetStandardWarningsAsync`
+- `ICurrencyService.ConvertFromPrimaryStoreCurrency` is sync — called directly
+- `IRepository<T>` methods are sync — wrapped in `Task.FromResult` where needed
+
+### GetTotalStockQuantity Simplified
+- Legacy `GetTotalStockQuantity()` aggregated stock across multiple warehouses when `product.UseMultipleWarehouses` was true, querying `ProductWarehouseInventory` records
+- New code uses `product.StockQuantity` directly — multi-warehouse stock aggregation deferred until warehouse management is needed
+- Impact: products using multiple warehouses will show incorrect stock until multi-warehouse support is added
+
+### Impact on Future Items
+- [4.9b] IOrderTotalCalculationService: can now use `IShoppingCartService.GetShoppingCartAsync` for cart retrieval
+- [4.9c] IOrderProcessingService: can now use `IShoppingCartService` for cart validation and clearing
+- [5.7] Public ShoppingCartController: can now use `IShoppingCartService` for all cart operations
+- [5.8] Public CheckoutController: can now use `IShoppingCartService.GetShoppingCartWarningsAsync` for checkout validation
+- [5.61] Admin ShoppingCartController: can now use `IShoppingCartService.GetShoppingCartAsync` for abandoned cart viewing
