@@ -985,3 +985,41 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.11] Public NewsController: can now use `INewsService` for news display
 - [5.45] Admin NewsController: can now use `INewsService` for news CRUD
+
+## 2026-04-09 — [2.5] Authentication / Implementation
+
+### CustomerGuid as Claim Instead of Email/Username
+- Legacy stored email or username in `FormsAuthenticationTicket.UserData`, then resolved customer via `ICustomerService.GetCustomerByEmail/Username` (depending on `CustomerSettings.UsernamesEnabled`)
+- New code stores `CustomerGuid` (GUID) as the claim value — stable identifier that never changes even if email/username is updated
+- Eliminates dependency on `CustomerSettings` at authentication time
+- Customer lookup uses `IRepository<Customer>.Table.FirstOrDefault(c => c.CustomerGuid == guid)` — single indexed query
+
+### No ICustomerService Dependency — Circular Dependency Avoidance
+- Legacy `FormsAuthenticationService` depended on `ICustomerService` for customer lookup
+- `ICustomerService` ([4.1]) depends on `IAuthenticationService` ([2.5]) in some patterns (e.g., registration flow calls SignIn)
+- New `CookieAuthenticationService` uses `IRepository<Customer>`, `IRepository<CustomerCustomerRoleMapping>`, `IRepository<CustomerRole>` directly
+- IsRegistered check uses join query: `CustomerCustomerRoleMapping` → `CustomerRole` where `SystemName == "Registered"` and `Active == true`
+
+### Impersonation Not in Auth Service
+- Legacy impersonation was NOT in `FormsAuthenticationService` — it was in `WebWorkContext` (presentation layer)
+- `WebWorkContext.CurrentCustomer` getter checks `GenericAttribute` for `ImpersonatedCustomerId`, loads that customer, sets `OriginalCustomerIfImpersonated`
+- This pattern is preserved: auth service handles cookie-based identity only, impersonation is a presentation-layer concern
+- Impact: [5.1] Nop.Web.Framework `WebWorkContext` implementation must handle impersonation
+
+### Cookie Authentication Middleware Configuration Deferred
+- `CookieAuthenticationService` uses `HttpContext.SignInAsync/SignOutAsync` with `NopAuthenticationDefaults.AuthenticationScheme`
+- The actual cookie middleware registration (`services.AddAuthentication().AddCookie(NopAuthenticationDefaults.AuthenticationScheme, ...)`) belongs in `Nop.Web/Program.cs` or a DI extension method
+- Cookie options (expiration, path, domain, HttpOnly, Secure) will be configured there
+- This is intentional: the service layer defines the scheme name, the web layer configures the middleware
+
+### External Authentication Deferred
+- Legacy `External/` directory (IOpenAuthenticationService, IClaimsTranslator, IExternalAuthorizer, IExternalProviderAuthorizer) is DotNetOpenAuth-based
+- ASP.NET Core replaces all of this with built-in OAuth/OpenID Connect middleware
+- External auth will be implemented with [6.17] Plugin: ExternalAuth.Facebook using `Microsoft.AspNetCore.Authentication.Facebook`
+
+### Impact on Future Items
+- [2.6] Authorization: can now build ASP.NET Core authorization policies that check `NopAuthenticationDefaults.AuthenticationScheme`
+- [4.1] Customer services: `ICustomerRegistrationService.RegisterCustomer` can call `IAuthenticationService.SignInAsync` after registration
+- [5.1] Web.Framework: `WebWorkContext` must call `IAuthenticationService.GetAuthenticatedCustomerAsync()` then check impersonation via GenericAttribute
+- [5.6] Public CustomerController: login/logout actions use `IAuthenticationService.SignInAsync/SignOutAsync`
+- DI registration: `services.AddScoped<IAuthenticationService, CookieAuthenticationService>()`

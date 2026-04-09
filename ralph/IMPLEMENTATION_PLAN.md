@@ -74,10 +74,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5
   - Done: 2026-04-09. IEncryptionService/EncryptionService (AES encrypt/decrypt, SHA1/SHA256/MD5/SHA384/SHA512 hashing, RandomNumberGenerator salt). IAclService/AclService (entity-level ACL via customer roles, cached role ID lookup, CatalogSettings.IgnoreAcl bypass). IPermissionService/PermissionService (cached per-role permission check, install/uninstall with role mappings, localized permission names). StandardPermissionProvider (50 permissions, 5 default role mappings). IPermissionProvider interface. Created join entities CustomerCustomerRoleMapping and PermissionRecordRoleMapping with EF Core configs and DbSets. Permission localization extensions added to LocalizationExtensions.
 
-- [ ] [2.5] Authentication — cookie auth, sign-in/sign-out, impersonation
+- [x] [2.5] Authentication — cookie auth, sign-in/sign-out, impersonation
   - Spec: specs/xcut-authentication.md
   - Scope: Authentication middleware + IAuthenticationService
   - Depends on: 2.4
+  - Done: 2026-04-09. IAuthenticationService (async: SignInAsync, SignOutAsync, GetAuthenticatedCustomerAsync). CookieAuthenticationService uses ASP.NET Core cookie auth with CustomerGuid claim (stable identifier). NopAuthenticationDefaults (scheme + claim type constants). No ICustomerService dependency — uses IRepository<Customer> + join tables directly to avoid circular dependency. Validates Active, !RequireReLogin, !Deleted, IsRegistered (via CustomerCustomerRoleMapping join). Impersonation remains in WebWorkContext (not auth service) via GenericAttribute ImpersonatedCustomerId — matching legacy pattern. External auth (IOpenAuthenticationService etc.) deferred to [6.17].
 
 - [ ] [2.6] Authorization — ASP.NET Core policies, permission-based authorization, admin area protection
   - Spec: specs/xcut-authorization.md
