@@ -146,3 +146,33 @@ Compared all 117 service interfaces in `src/Libraries/Nop.Services/` against spe
 ### Plan Item Growth
 - Plan items: 170 → 171 (+1: [7.13] Google reCAPTCHA integration)
 - Integration items: 12 → 13
+
+## 2026-04-09 — Refine Iteration 5
+
+### Gap Analysis: Nop.Web.Framework Missing Detail
+- `nop-web-framework.md` was missing explicit listing of 8 root-level action filter attributes: `CheckAffiliateAttribute`, `CustomerLastActivityAttribute`, `LanguageSeoCodeAttribute`, `PublicStoreAllowNavigationAttribute`, `StoreClosedAttribute`, `StoreIpAddressAttribute`, `StoreLastVisitedPageAttribute`, `ValidatePasswordAttribute`
+- Also missing: `WebWorkContext`, `WebStoreContext` (IWorkContext/IStoreContext implementations), `RemotePost` (payment gateway form POST helper), `NopResourceDisplayName` (localized display name attribute), routing infrastructure (`IRouteProvider`, `IRoutePublisher`, `GenericPathRoute`), custom model binders (`NopModelBinder`, `CommaSeparatedModelBinder`), custom action results (`RssActionResult`, `NullJsonResult`, `XmlDownloadResult`, `ConverterJsonResult`), base models (`BaseNopModel`, `BasePageableModel`), FluentValidation classes (`BaseNopValidator<T>`, `CreditCardPropertyValidator`, `DecimalPropertyValidator`), localization helpers (`ILocalizedModel`, `LocalizedRoute`), admin events (`AdminTabStripCreated`, `ProductSearchEvent`)
+- All added to Key Entities, Migration Notes, and Acceptance Criteria
+
+### Gap Analysis: Nop.Core Root-Level Utilities
+- `nop-core-infrastructure.md` was missing root-level Nop.Core utility classes: `CommonHelper`, `NopException`, `NopVersion`, `MimeTypes`, `XmlHelper`, `IPagedList<T>`/`PagedList<T>`, `Extensions`
+- Also missing: `Html/` subdirectory (`HtmlHelper`, `BBCodeHelper`, `ResolveLinksHelper`, `CodeFormatter/`), `ComponentModel/` (`GenericDictionaryTypeConverter<T>`, `GenericListTypeConverter<T>`)
+- `Fakes/` directory noted as drop-target — ASP.NET Core provides `WebApplicationFactory` for testing
+- All added to Key Entities and Migration Notes
+
+### Gap Analysis: ModelCacheEventConsumer
+- Public `ModelCacheEventConsumer` (1335 LOC) and Admin `ModelCacheEventConsumer` (144 LOC) — presentation-layer cache invalidation event handlers
+- Were not explicitly mentioned in `nop-web-public.md` or `nop-admin.md` Legacy Source sections
+- Added to both specs
+
+### Gap Analysis: Public Model Factories
+- 21 model factory interfaces in `src/Presentation/Nop.Web/Factories/` were mentioned generically but not enumerated
+- Full list now in `nop-web-public.md`: Address, Blog, Catalog, Checkout, Common, Country, Customer, ExternalAuthentication, Forum, Newsletter, News, Order, Poll, PrivateMessages, Product, Profile, ReturnRequest, ShoppingCart, Topic, Vendor, Widget
+
+### ATXDocumentation Inaccuracy
+- `IInventoryService` mentioned in `ATXDocumentation/architecture/system-overview.md` but does not exist in codebase — inventory management is part of `IProductService`
+
+### No New Specs or Plan Items
+- All gaps were enrichment of existing specs (more detail in Key Entities, Migration Notes, Acceptance Criteria)
+- No new components discovered — 67 specs and 171 plan items remain stable
+- Admin area confirmed to NOT use model factories (inline model construction in controllers)

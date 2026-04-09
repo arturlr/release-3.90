@@ -7,9 +7,9 @@ Customer-facing web application — 27 public controllers, view models, Razor vi
 - `src/Presentation/Nop.Web/Controllers/` — 27 controllers (excluding BasePublicController)
 - `src/Presentation/Nop.Web/Views/` — 23 view folders
 - `src/Presentation/Nop.Web/Models/` — view models
-- `src/Presentation/Nop.Web/Factories/` — model factories (e.g., ProductModelFactory 1561 LOC)
+- `src/Presentation/Nop.Web/Factories/` — 21 model factory interfaces + implementations (Address, Blog, Catalog, Checkout, Common, Country, Customer, ExternalAuthentication, Forum, Newsletter, News, Order, Poll, PrivateMessages, Product [1561 LOC], Profile, ReturnRequest, ShoppingCart, Topic, Vendor, Widget)
 - `src/Presentation/Nop.Web/Themes/` — theme files
-- `src/Presentation/Nop.Web/Infrastructure/` — routing, DI registration
+- `src/Presentation/Nop.Web/Infrastructure/` — routing, DI registration, `ModelCacheEventConsumer` (1335 LOC — cache invalidation event handlers for all public view model caches)
 
 ## Key Entities
 Controllers: BackInStockSubscription, BackwardCompatibility1X, BackwardCompatibility2X, Blog, Boards, Catalog, Checkout, Common, Country, Customer, Download, ExternalAuthentication, Home, Install, KeepAlive, News, Newsletter, Order, Poll, PrivateMessages, Product, Profile, ReturnRequest, ShoppingCart, Topic, Vendor, Widget

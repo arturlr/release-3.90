@@ -21,6 +21,15 @@ Core infrastructure — DI engine, type finding, caching abstractions, event sys
 - `IWorkContext`, `IStoreContext`, `IWebHelper` — request context
 - `IStartupTask` — startup hooks
 - `EntityInserted<T>`, `EntityUpdated<T>`, `EntityDeleted<T>` — domain events
+- `CommonHelper` — utility methods (email validation, random digits, object comparison, etc.)
+- `NopException` — custom exception base class
+- `NopVersion` — application version constants
+- `MimeTypes` — MIME type lookup by file extension
+- `XmlHelper` — XML serialization/deserialization helpers
+- `IPagedList<T>`, `PagedList<T>` — paged collection abstraction used by all list queries
+- `Extensions` — extension methods on common types
+- `HtmlHelper`, `BBCodeHelper`, `ResolveLinksHelper` — HTML sanitization and formatting utilities
+- `GenericDictionaryTypeConverter<T>`, `GenericListTypeConverter<T>` — custom type converters for comma-separated values
 
 ## External Dependencies
 - Autofac 4.4.0 → replace with `Microsoft.Extensions.DependencyInjection` (built-in .NET 10)
@@ -38,6 +47,9 @@ Core infrastructure — DI engine, type finding, caching abstractions, event sys
 - Plugin system → redesign around `AssemblyLoadContext` for .NET 10
 - Domain events → `MediatR` INotification or custom `IEventPublisher`
 - `IWorkContext` / `IStoreContext` → keep as scoped services, implement via `IHttpContextAccessor`
+- `Fakes/` directory → drop entirely; ASP.NET Core provides `WebApplicationFactory` and `TestServer` for integration testing
+- `Html/CodeFormatter/` → evaluate if still needed; consider Markdig or similar for rich text processing
+- `ComponentModel/` type converters → port as-is, used by settings system for comma-separated list storage
 
 ## Acceptance Criteria
 - [ ] DI container bootstraps using `Microsoft.Extensions.DependencyInjection` with no Autofac dependency
@@ -46,3 +58,5 @@ Core infrastructure — DI engine, type finding, caching abstractions, event sys
 - [ ] Domain event types (`EntityInserted<T>`, `EntityUpdated<T>`, `EntityDeleted<T>`) are defined and publishable
 - [ ] Plugin discovery loads assemblies from a configured directory and registers services
 - [ ] `IWorkContext` and `IStoreContext` interfaces defined with same properties as legacy
+- [ ] `CommonHelper`, `NopException`, `MimeTypes`, `XmlHelper` utility classes ported with equivalent functionality
+- [ ] `IPagedList<T>` / `PagedList<T>` paged collection abstraction available for all list queries

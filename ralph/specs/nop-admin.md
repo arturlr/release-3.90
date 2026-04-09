@@ -7,6 +7,7 @@ Administration web application — 54 admin controllers, admin views, management
 - `src/Presentation/Nop.Web/Administration/Controllers/` — 54 controllers (excluding BaseAdminController)
 - `src/Presentation/Nop.Web/Administration/Views/` — 51 view folders
 - `src/Presentation/Nop.Web/Administration/Models/` — admin view models
+- `src/Presentation/Nop.Web/Administration/Infrastructure/` — DI registration, AutoMapper config, `ModelCacheEventConsumer` (144 LOC — cache invalidation for admin view models)
 
 ## Key Entities
 Controllers: ActivityLog, AddressAttribute, Affiliate, Blog, Campaign, Category, CheckoutAttribute, Common, Country, Currency, Customer, CustomerAttribute, CustomerRole, Discount, Download, EmailAccount, ExternalAuthentication, Forum, GiftCard, Home, Jbimages, Language, Log, Manufacturer, Measure, MessageTemplate, News, NewsLetterSubscription, OnlineCustomer, Order, Payment, Picture, Plugin, Poll, Preferences, ProductAttribute, Product, ProductReview, QueuedEmail, RecurringPayment, ReturnRequest, RoxyFileman, ScheduleTask, Security, Setting, Shipping, ShoppingCart, SpecificationAttribute, Store, Tax, Template, Topic, Vendor, Widget
