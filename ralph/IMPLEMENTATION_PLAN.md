@@ -820,6 +820,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: TaxService.DoVatCheck → HttpClient calling VIES endpoint
   - Depends on: 4.6
 
+- [ ] [7.13] Google reCAPTCHA integration — validate captcha responses via Google API
+  - Spec: specs/xcut-security.md
+  - Scope: CaptchaValidatorAttribute + GReCaptchaValidator → HttpClient calling Google reCAPTCHA siteverify
+  - Depends on: 2.4, 5.1
+
 ---
 
 ## Phase 8: Data Migration

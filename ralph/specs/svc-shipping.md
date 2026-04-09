@@ -5,7 +5,8 @@ Shipping coordination — shipping rate computation, shipment tracking, shipping
 
 ## Legacy Source
 - `src/Libraries/Nop.Services/Shipping/` — all files including `Pickup/` subdirectory
-- Key interfaces: `IShippingService`, `IShipmentService`, `IShippingRateComputationMethod`, `IPickupPointProvider`, `IDateRangeService`
+- Key interfaces: `IShippingService`, `IShipmentService`, `IShippingRateComputationMethod`, `IPickupPointProvider`, `IDateRangeService`, `IShipmentTracker`
+- `src/Libraries/Nop.Services/Shipping/Tracking/` — `IShipmentTracker`, `GeneralShipmentTracker`, `ShipmentStatusEvent`
 - Domain: `Nop.Core.Domain.Shipping`
 
 ## Key Entities

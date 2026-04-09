@@ -9,11 +9,15 @@ Shared web infrastructure — base controllers, MVC filters, HTML helpers, theme
 
 ## Key Entities
 - `BasePublicController`, `BaseAdminController` (base controllers)
-- Custom MVC filters and attributes (`AdminAuthorize`, anti-forgery, etc.)
+- Custom MVC filters and attributes (`AdminAuthorize`, anti-forgery, HTTPS, IP validation, etc.)
 - HTML helpers for paging, localization, SEO
-- Theme engine (view location, CSS/JS bundling)
+- Theme engine (`IThemeContext`, `IThemeProvider`, `ThemeableRazorViewEngine`)
 - FluentValidation integration
-- Kendo UI helpers (admin grid)
+- Kendo UI helpers (admin grid — `DataSourceRequest`, `DataSourceResult`, `Filter`, `Sort`)
+- Admin menu system (`IAdminMenuPlugin`, `SiteMapNode`, `XmlSiteMap`)
+- Page head builder (`IPageHeadBuilder` — CSS/JS/canonical URL management)
+- Captcha integration (Google reCAPTCHA — `CaptchaValidatorAttribute`, `GReCaptchaValidator`)
+- Honeypot anti-spam (`HoneypotValidatorAttribute`)
 
 ## External Dependencies
 - ASP.NET MVC 5 → ASP.NET Core MVC

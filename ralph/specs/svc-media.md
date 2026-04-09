@@ -14,16 +14,18 @@ Media management — picture storage/retrieval, download management, and image p
 
 ## External Dependencies
 - File system for picture storage (alternative to DB blob)
+- `Microsoft.WindowsAzure.Storage` → `Azure.Storage.Blobs` for Azure Blob Storage (`AzurePictureService`, 167 LOC)
 
 ## Migration Notes
 - **Decision**: Rewrite
-- Pictures can be stored in DB (PictureBinary) or file system — keep both options
+- Pictures can be stored in DB (PictureBinary), file system, or Azure Blob Storage — keep all three options
+- `AzurePictureService` extends `PictureService` for Azure Blob container storage (configured via `NopConfig.AzureBlobStorageConnectionString`)
 - Image resizing/thumbnailing needed for product images
 - SEO-friendly image filenames
 - Download management for digital products (activation, expiration, max downloads)
-- Consider Azure Blob Storage as additional storage option
 
 ## Acceptance Criteria
 - [ ] Picture upload, retrieval, and deletion work for both DB and file system storage
 - [ ] Image thumbnails generated at requested dimensions
 - [ ] Download files served with correct content type and access control (activation, expiration)
+- [ ] Azure Blob Storage provider stores and retrieves pictures from configured blob container

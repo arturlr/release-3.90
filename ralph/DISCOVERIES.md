@@ -110,3 +110,39 @@ Compared all 117 service interfaces in `src/Libraries/Nop.Services/` against spe
 - Specs: 66 → 67 (+1: testing-strategy.md)
 - Plan items: 168 → 170 (+2: [1.7] test scaffold, [7.12] VIES VAT integration)
 - Integration items: 11 → 12
+
+## 2026-04-09 — Refine Iteration 4
+
+### Gap Analysis: Azure Blob Storage in Media
+- `AzurePictureService` (167 LOC) extends `PictureService` for Azure Blob container storage
+- Uses `Microsoft.WindowsAzure.Storage` (CloudStorageAccount, CloudBlobClient, CloudBlobContainer)
+- Configured via `NopConfig.AzureBlobStorageConnectionString`, `AzureBlobStorageContainerName`, `AzureBlobStorageEndPoint`
+- Was listed as "consider" in svc-media.md — upgraded to explicit external dependency with acceptance criterion
+- Target: `Azure.Storage.Blobs` SDK
+
+### Gap Analysis: reCAPTCHA Integration
+- Google reCAPTCHA is a significant cross-cutting security feature not previously documented in any spec
+- 10 files in `Nop.Web.Framework/Security/Captcha/` — `GReCaptchaValidator` calls `https://www.google.com/recaptcha/api/siteverify`
+- Used by 7 controllers (Blog, Common, Customer, News, Product, ShoppingCart, Vendor) and 7 model factories
+- Supports reCAPTCHA v2 and v3 via `ReCaptchaVersion` enum
+- Settings: `CaptchaSettings` (Enabled, PublicKey, PrivateKey, Version, ShowOnLoginPage, ShowOnRegistrationPage, etc.)
+- Added to `xcut-security.md` and new plan item [7.13]
+
+### Gap Analysis: Honeypot Anti-Spam
+- `HoneypotValidatorAttribute` in `Nop.Web.Framework/Security/Honeypot/` — hidden form field anti-spam
+- Configured via `SecuritySettings.HoneypotEnabled`
+- Used on customer registration
+- Added to `xcut-security.md`
+
+### Gap Analysis: Shipment Tracking
+- `IShipmentTracker` and `GeneralShipmentTracker` in `Nop.Services/Shipping/Tracking/` were not explicitly listed in svc-shipping.md
+- `GeneralShipmentTracker` aggregates tracking from all active shipping plugins
+- Added to spec
+
+### Enrichments (no new items)
+- `nop-web-framework.md`: Added explicit mentions of Kendo UI classes (DataSourceRequest, DataSourceResult, Filter, Sort), admin menu system (IAdminMenuPlugin, SiteMapNode, XmlSiteMap), IPageHeadBuilder, CaptchaValidatorAttribute, HoneypotValidatorAttribute
+- `xcut-security.md`: Expanded from 4 to 6 acceptance criteria; added Captcha, Honeypot, HTTPS, anti-forgery, IP validation to legacy source and migration notes
+
+### Plan Item Growth
+- Plan items: 170 → 171 (+1: [7.13] Google reCAPTCHA integration)
+- Integration items: 12 → 13
