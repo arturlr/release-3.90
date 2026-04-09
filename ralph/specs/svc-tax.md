@@ -15,6 +15,8 @@ Tax calculation — tax rate determination, tax display rules, tax provider coor
 
 ## External Dependencies
 - Tax rate providers (via plugins)
+- EU VIES VAT validation — SOAP web reference `EuropaCheckVatService` in `src/Libraries/Nop.Services/Web References/EuropaCheckVatService/` called by `TaxService.DoVatCheck()` → replace with HTTP client calling VIES REST/SOAP endpoint
+- `IGeoLookupService` injected for IP-based tax jurisdiction lookup
 
 ## Migration Notes
 - **Decision**: Rewrite
@@ -29,3 +31,4 @@ Tax calculation — tax rate determination, tax display rules, tax provider coor
 - [ ] Tax exemptions honored for exempt customers, roles, and products
 - [ ] Both tax-inclusive and tax-exclusive prices computed and stored
 - [ ] `ITaxProvider` plugin interface allows custom tax calculation providers
+- [ ] EU VAT number validation via VIES service returns correct status (valid/invalid/service-down)

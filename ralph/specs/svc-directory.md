@@ -15,6 +15,7 @@ Directory data — countries, states/provinces, currencies, exchange rates, meas
 
 ## External Dependencies
 - Exchange rate providers (via plugins, e.g., ECB)
+- MaxMind GeoLite2 database (`App_Data/GeoLite2-Country.mmdb`) — used by `GeoLookupService` for IP-to-country lookup; depends on `MaxMind.GeoIP2` NuGet package
 
 ## Migration Notes
 - **Decision**: Rewrite

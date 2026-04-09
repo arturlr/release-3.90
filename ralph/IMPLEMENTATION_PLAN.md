@@ -37,6 +37,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: EF Core migration
   - Depends on: 1.5
 
+- [ ] [1.7] Test project scaffold — xUnit projects per layer, shared test utilities
+  - Spec: specs/testing-strategy.md
+  - Scope: Test projects for Core, Data, Services, Web
+  - Depends on: 1.1
+
 ---
 
 ## Phase 2: Cross-Cutting Concerns
@@ -809,6 +814,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Spec: specs/plugin-widgets-google-analytics.md
   - Scope: GA tracking script injection
   - Depends on: 6.19
+
+- [ ] [7.12] EU VIES VAT validation integration — replace SOAP web reference with HTTP client
+  - Spec: specs/svc-tax.md
+  - Scope: TaxService.DoVatCheck → HttpClient calling VIES endpoint
+  - Depends on: 4.6
 
 ---
 

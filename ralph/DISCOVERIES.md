@@ -83,3 +83,30 @@ Compared all 117 service interfaces in `src/Libraries/Nop.Services/` against spe
 - Plan items: 165 → 168 (+3 new items)
 - All 25 service interfaces now explicitly listed in their parent specs
 - All plan items enriched with complete sub-service lists
+
+## 2026-04-09 — Refine Iteration 3
+
+### Gap Analysis: EU VIES VAT Validation
+- `TaxService.DoVatCheck()` calls `EuropaCheckVatService.checkVatService` — a SOAP web reference at `src/Libraries/Nop.Services/Web References/EuropaCheckVatService/`
+- Endpoint: `http://ec.europa.eu/taxation_customs/vies/services/checkVatService`
+- Not documented in any spec or plan item. Added to `svc-tax.md` external dependencies and acceptance criteria, plus new plan item [7.12]
+
+### Gap Analysis: MaxMind GeoLite2
+- `GeoLookupService` uses `MaxMind.GeoIP2` NuGet package with local `App_Data/GeoLite2-Country.mmdb` database file
+- Used by `TaxService` (tax jurisdiction) and `OnlineCustomerController` (admin IP geolocation)
+- Added to `svc-directory.md` external dependencies
+
+### Gap Analysis: Testing Strategy
+- Legacy has 5 test projects (Core, Data, Services, Tests shared, Web.MVC) using NUnit + Rhino Mocks
+- ATXDocumentation/migration/test-specifications.md defines coverage targets and critical paths
+- No ralph spec or plan item existed for testing. Created `specs/testing-strategy.md` and plan item [1.7]
+
+### OfficialFeedManager — Intentionally Not Migrated
+- `IOfficialFeedManager` / `OfficialFeedManager` makes HTTP calls to `nopcommerce.com/extensionsxml.aspx` for plugin marketplace feed
+- Used only by admin `PluginController` to show available plugins from nopCommerce marketplace
+- Decision: Do NOT migrate — this is nopCommerce marketplace-specific functionality. The new system will have its own plugin management without external marketplace dependency. Covered implicitly by plan item [5.39] (Admin PluginController)
+
+### Plan Item Growth
+- Specs: 66 → 67 (+1: testing-strategy.md)
+- Plan items: 168 → 170 (+2: [1.7] test scaffold, [7.12] VIES VAT integration)
+- Integration items: 11 → 12

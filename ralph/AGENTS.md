@@ -112,11 +112,11 @@ Prefer SharpLens over text-based tools for semantic queries:
 
 ## Scope Tracking
 
-- Total components identified: 66
-- Total spec files: 66
-- Total plan items: 168
+- Total components identified: 67
+- Total spec files: 67
+- Total plan items: 170
 - Data migration items: 5
-- Integration items: 11
+- Integration items: 12
 - Cutover items: 8
 - Plugin/extension count: 20 (each with individual spec and plan item)
 
