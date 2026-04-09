@@ -12,5 +12,7 @@ namespace Nop.Core.Domain.Logging
 
         public DateTime CreatedOnUtc { get; set; }
 
+        public string? IpAddress { get; set; }
+
     }
 }

@@ -11,6 +11,7 @@ public class ActivityLogConfiguration : IEntityTypeConfiguration<ActivityLog>
         builder.ToTable("ActivityLog");
         builder.HasKey(al => al.Id);
         builder.Property(al => al.Comment).IsRequired();
+        builder.Property(al => al.IpAddress).HasMaxLength(200);
     }
 }
 

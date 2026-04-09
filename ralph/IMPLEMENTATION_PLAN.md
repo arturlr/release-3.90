@@ -56,10 +56,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.4
   - Done: 2026-04-09. MemoryCacheManager (IMemoryCache wrapper, ConcurrentDictionary key tracking, PostEviction cleanup, prefix-based invalidation). NopRequestCache (scoped Dictionary). CachingDefaults (60-min default). Microsoft.Extensions.Caching.Memory 8.0.1. Redis IDistributedCache deferred to [7.2].
 
-- [ ] [2.2] Logging — ILogger (DB), ICustomerActivityService, Microsoft.Extensions.Logging integration
+- [x] [2.2] Logging — INopLogger (DB), ICustomerActivityService, LoggingExtensions, NullLogger
   - Spec: specs/xcut-logging.md
   - Scope: Nop.Services/Logging
   - Depends on: 1.5
+  - Done: 2026-04-09. INopLogger (renamed from ILogger to avoid Microsoft.Extensions.Logging conflict), DefaultLogger, ICustomerActivityService, CustomerActivityService, LoggingExtensions, NullLogger. Fixed ActivityLog entity (added IpAddress). Dropped CommonSettings.IgnoreLogWordlist (deferred to [3.1]). Dropped TRUNCATE optimization (uses repository delete-all). Microsoft.Extensions.Logging integration deferred to [2.8] Observability.
 
 - [ ] [2.3] Localization — ILocalizationService, ILanguageService, ILocalizedEntityService, string resources
   - Spec: specs/xcut-localization.md

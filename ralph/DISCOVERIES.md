@@ -488,3 +488,34 @@ Performed exhaustive verification across all dimensions:
 - All Phase 3/4 services will inject `IStaticCacheManager` and `NopRequestCache`
 - Cache key constants will be defined per service (e.g., `ProductCacheKeys`, `CategoryCacheKeys`)
 - [2.9] Domain events: cache event consumers will call `RemoveByPrefixAsync` on entity changes
+
+## 2026-04-09 — [2.2] Logging / Implementation
+
+### ILogger → INopLogger Rename
+- Legacy `ILogger` conflicts with `Microsoft.Extensions.Logging.ILogger` — renamed to `INopLogger`
+- All downstream consumers (controllers, services) must use `INopLogger` for DB logging
+- `Microsoft.Extensions.Logging.ILogger` remains available for structured logging to external sinks (deferred to [2.8])
+
+### ActivityLog Entity Fix
+- New `ActivityLog` entity was missing `IpAddress` property — legacy `CustomerActivityService.InsertActivity` sets it
+- Added `IpAddress` to entity and EF Core configuration (`HasMaxLength(200)`)
+
+### Deferred Dependencies
+- `CommonSettings.IgnoreLogWordlist` — log message filtering deferred until [3.1] Configuration services provides `ISettingService`
+- `TRUNCATE TABLE` optimization for `ClearLog()`/`ClearAllActivities()` — legacy used `IDbContext.ExecuteSqlCommand`. New code uses repository delete-all. Can optimize with `NopDbContext.Database.ExecuteSqlRaw()` when performance requires it
+- `Microsoft.Extensions.Logging` integration — deferred to [2.8] Observability
+
+### Pattern: Sync Cache API with Async Cache Manager
+- `IStaticCacheManager` is async-first but `CustomerActivityService` methods are sync (matching legacy contract)
+- Used `.GetAwaiter().GetResult()` for `RemoveByPrefixAsync` calls in sync methods
+- `MemoryCacheManager` operations are effectively synchronous (in-memory), so no deadlock risk
+- Future: consider adding sync overloads to `IStaticCacheManager` or making service methods async
+
+### Pattern: Direct Entity Caching
+- Legacy used `ActivityLogTypeForCaching` nested DTO class to cache activity log types
+- New code caches `ActivityLogType` entities directly — simpler, no mapping overhead
+- Safe because cached entities are read-only lookups (not tracked by EF Core after `ToList()`)
+
+### ClearLogTask Not Implemented
+- `ClearLogTask` (legacy `ITask` implementation) belongs to [3.6] Scheduled Tasks — not part of [2.2]
+- Will be implemented when `IScheduleTaskService` / `IHostedService` infrastructure is built
