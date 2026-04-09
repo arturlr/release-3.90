@@ -519,3 +519,19 @@ Performed exhaustive verification across all dimensions:
 ### ClearLogTask Not Implemented
 - `ClearLogTask` (legacy `ITask` implementation) belongs to [3.6] Scheduled Tasks — not part of [2.2]
 - Will be implemented when `IScheduleTaskService` / `IHostedService` infrastructure is built
+
+## 2026-04-09 — [2.9] Domain Events / Implementation
+
+### Architecture Decisions
+- **Dropped ISubscriptionService**: Legacy used `ISubscriptionService` → `EngineContext.Current.ResolveAll<IConsumer<T>>()` (service locator). New code uses `IServiceProvider.GetServices<IConsumer<T>>()` directly in `EventPublisher` — simpler, no indirection layer needed with built-in DI.
+- **Dropped plugin installed check**: Legacy `EventPublisher.PublishToConsumer` checked `PluginManager.ReferencedPlugins` to skip consumers from uninstalled plugins. Plugin system [2.10] not built yet — will add filtering when plugin infrastructure exists.
+- **Async-first**: `IConsumer<T>.HandleEventAsync` replaces sync `HandleEvent`. `IEventPublisher.PublishAsync<T>` replaces sync `Publish<T>`. Extension methods return `Task` (`EntityInsertedAsync`, `EntityUpdatedAsync`, `EntityDeletedAsync`).
+- **Error isolation preserved**: Each consumer invocation is try/caught individually — one failing consumer doesn't block others. Uses `ILogger<EventPublisher>` (Microsoft.Extensions.Logging) instead of legacy `ILogger` (DB logger) to avoid circular dependency (DB logger itself may publish events).
+
+### No New Packages Required
+- `Microsoft.Extensions.DependencyInjection.Abstractions` and `Microsoft.Extensions.Logging.Abstractions` are transitively available through EF Core → no explicit PackageReference additions needed in Nop.Services.csproj.
+
+### Impact on Future Items
+- All services that publish entity events will call `await _eventPublisher.EntityInsertedAsync(entity)` etc.
+- Cache event consumers (PriceCacheEventConsumer, CustomerCacheEventConsumer, DiscountEventConsumer, ModelCacheEventConsumer) will implement `IConsumer<EntityInserted<T>>` etc. — built when their parent services are implemented.
+- DI registration: `services.AddScoped<IEventPublisher, EventPublisher>()` + `services.AddScoped<IConsumer<T>, ConcreteConsumer>()` for each consumer — wired when DI composition root is built.

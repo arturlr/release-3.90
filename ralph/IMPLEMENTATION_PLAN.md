@@ -92,10 +92,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Health check endpoints + OTel configuration
   - Depends on: 1.5, 2.1
 
-- [ ] [2.9] Domain events — IEventPublisher, IConsumer<T>, cache event consumers
+- [x] [2.9] Domain events — IEventPublisher, IConsumer<T>, cache event consumers
   - Spec: specs/svc-events.md
   - Scope: Nop.Services/Events
   - Depends on: 1.4, 2.1
+  - Done: 2026-04-09. Async IConsumer<T>.HandleEventAsync, EventPublisher resolves via IServiceProvider.GetServices<T>(), ILogger<EventPublisher> for error logging. Dropped ISubscriptionService indirection and plugin check (deferred to [2.10]). EventPublisherExtensions with EntityInsertedAsync/UpdatedAsync/DeletedAsync.
 
 - [ ] [2.10] Plugin system — assembly loading, plugin discovery, IPlugin lifecycle
   - Spec: specs/nop-core-infrastructure.md
