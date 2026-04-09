@@ -161,10 +161,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5
   - Done: 2026-04-09. IAffiliateService (async-first), AffiliateService (IRepository<Address> join for firstName/lastName filtering — no nav properties, async event publishing, ArgumentNullException.ThrowIfNull, TableNoTracking for read-only joins). AffiliateExtensions: GetFullName(Address), GenerateUrl(IWebHelper), ValidateFriendlyUrlNameAsync(IAffiliateService) — no service locator.
 
-- [ ] [3.10] Vendor services — IVendorService
+- [x] [3.10] Vendor services — IVendorService
   - Spec: specs/svc-vendors.md
   - Scope: Nop.Services/Vendors
   - Depends on: 1.5, 3.4
+  - Done: 2026-04-09. IVendorService/VendorService (async-first, no caching, soft delete for vendors, hard delete for vendor notes, event publishing). Follows AffiliateService pattern.
 
 - [ ] [3.11] Topic services — ITopicService, ITopicTemplateService
   - Spec: specs/svc-topics.md

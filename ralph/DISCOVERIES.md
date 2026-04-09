@@ -840,3 +840,17 @@ Performed exhaustive verification across all dimensions:
 ### No Caching Needed
 - Affiliate service has no caching (matching legacy) — affiliates are low-volume admin-managed entities
 - No cache event consumers needed
+
+## 2026-04-09 — [3.10] Vendor Services / Implementation
+
+### Simple Leaf Service — No Surprises
+- VendorService is a straightforward CRUD service with no caching, no cross-entity joins, no complex filtering
+- Follows AffiliateService pattern exactly: async-first, `Task.FromResult` for sync repo calls, `ArgumentNullException.ThrowIfNull`, `await` event publishing
+- Soft delete for vendors (sets `Deleted=true` then calls `UpdateVendor`), hard delete for vendor notes (repository `Delete`)
+- Legacy `DeleteVendor` published `EntityDeleted` event (not `EntityUpdated` despite calling `UpdateVendor`) — new code preserves this: `DeleteVendorAsync` calls `_vendorRepository.Update` then `EntityDeletedAsync`
+- No `InsertVendorNote` or `UpdateVendorNote` methods in legacy — vendor notes are created/managed via admin controller directly through repository. Only `GetVendorNoteById` and `DeleteVendorNote` exist in the service interface
+
+### Impact on Future Items
+- [5.19] Public VendorController: can now use `IVendorService` for vendor listing/detail pages
+- [5.67] Admin VendorController: can now use `IVendorService` for vendor CRUD + notes management
+- Admin controller will need to handle vendor note insert/update via `IRepository<VendorNote>` directly (matching legacy pattern) or add methods to `IVendorService`
