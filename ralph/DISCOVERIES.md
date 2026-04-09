@@ -229,3 +229,37 @@ Compared all 117 service interfaces in `src/Libraries/Nop.Services/` against spe
 - Plan items: 171 → 173 (+2: [7.14] Azure Blob Storage, [7.15] MaxMind GeoIP2)
 - Integration items: 13 → 15
 - Specs: 67 (unchanged)
+
+## 2026-04-09 — Refine Iteration 8
+
+### Gap Analysis: Scheduled Task Infrastructure
+- `TaskManager` (singleton scheduler) and `TaskThread` (per-interval timer thread) in `Nop.Services/Tasks/` were not mentioned in `svc-tasks.md`
+- 6 concrete `ITask` implementations were not enumerated: `UpdateExchangeRateTask` (Directory), `DeleteGuestsTask` (Customers), `QueuedMessagesSendTask` (Messages), `ClearLogTask` (Logging), `ClearCacheTask` (Caching), `KeepAliveTask` (Common)
+- `TaskManager.Initialize()` has catch-up logic: tasks not run for >30 minutes are executed immediately on startup
+- All added to `svc-tasks.md` Legacy Source, Key Entities, and Migration Notes
+
+### Gap Analysis: Service-Layer Cache Event Consumers
+- 3 service-layer cache event consumers were not mentioned in their parent specs:
+  - `PriceCacheEventConsumer` (203 LOC) in `Nop.Services/Catalog/Cache/` — invalidates price caches on changes to Category, Manufacturer, ProductCategory, ProductManufacturer, Setting, Product, TierPrice, Order. Added to `svc-catalog.md`
+  - `CustomerCacheEventConsumer` (51 LOC) in `Nop.Services/Customers/Cache/` — invalidates customer password lifetime cache on `CustomerPasswordChangedEvent`. Added to `svc-customers.md`
+  - `DiscountEventConsumer` (161 LOC) in `Nop.Services/Discounts/Cache/` — invalidates discount caches on changes to Discount, DiscountRequirement, Category, Manufacturer, Setting. Added to `svc-discounts.md`
+
+### Gap Analysis: Startup Tasks
+- `EfStartUpTask` (Nop.Data) and `TypeConverterRegistrationStartUpTask` (Nop.Core) — concrete `IStartupTask` implementations not mentioned in specs
+- Added to `nop-core-infrastructure.md` and `nop-data.md`
+
+### Gap Analysis: Web Framework Completeness
+- `GuidConstraint` (custom `IRouteConstraint` for GUID route parameters) not in `nop-web-framework.md`. Added to routing infrastructure
+- 8 MVC filter attributes not explicitly enumerated: `AdminAntiForgeryAttribute`, `AdminValidateIpAddressAttribute`, `FormValueRequiredAttribute`, `NopHttpsRequirementAttribute`, `NoTrimAttribute`, `ParameterBasedOnFormNameAttribute`, `PublicAntiForgeryAttribute`, `WwwRequirementAttribute`. All now explicitly listed
+- HTML helper/extension classes not enumerated: `HtmlExtensions` (697 LOC), `LayoutExtensions` (366 LOC), `DataListExtensions`, `UrlHelperExtensions`, `LocalizedRouteExtensions`, `ModelStateExtensions`, `QueryableExtensions`, `FilePermissionHelper` (186 LOC). All now listed
+
+### Gap Analysis: Core Interfaces
+- `ILocalizedEnum` (marker interface for localized enums) in `Nop.Core.Domain.Localization` — not in any spec. Added to `nop-core-domain.md`
+- `IMapperConfiguration` / `AutoMapperConfiguration` (mapper registration infrastructure) in `Nop.Core.Infrastructure.Mapper` — not in any spec. Added to `nop-core-infrastructure.md`
+- `IOfficialFeedManager` — already documented as intentionally not migrated (iteration 3)
+
+### No New Specs or Plan Items
+- All gaps were enrichment of existing specs (8 specs updated)
+- 67 specs and 173 plan items remain stable
+- All Nop.Core interfaces now verified covered (except IOfficialFeedManager — intentionally excluded)
+- All Nop.Services interfaces verified covered (0 missing)

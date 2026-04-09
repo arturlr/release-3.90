@@ -119,7 +119,7 @@ Prefer SharpLens over text-based tools for semantic queries:
 - Integration items: 15
 - Cutover items: 8
 - Plugin/extension count: 20 (each with individual spec and plan item)
-- Last updated: 2026-04-09 iteration 7 (added Azure Blob Storage + MaxMind GeoIP2 integration items)
+- Last updated: 2026-04-09 iteration 8 (enriched 8 specs: svc-tasks, svc-catalog, svc-customers, svc-discounts, nop-core-infrastructure, nop-data, nop-web-framework, nop-core-domain)
 
 ---
 

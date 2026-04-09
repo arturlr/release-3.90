@@ -6,6 +6,7 @@ Discount and promotion management — discount types, coupon codes, discount req
 ## Legacy Source
 - `src/Libraries/Nop.Services/Discounts/` — all files
 - Key interfaces: `IDiscountService`, `IDiscountRequirementRule`
+- Cache event consumer: `DiscountEventConsumer` (161 LOC) — invalidates discount caches on entity changes to Discount, DiscountRequirement, Category, Manufacturer, Setting
 - Domain: `Nop.Core.Domain.Discounts`
 
 ## Key Entities

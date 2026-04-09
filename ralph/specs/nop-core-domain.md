@@ -21,7 +21,7 @@ Foundation domain model — all entities, enums, value objects, and marker inter
 - Language, LocaleStringResource, LocalizedProperty, UrlRecord
 - PermissionRecord, AclRecord, Store, StoreMapping, ScheduleTask, Setting, Log, ActivityLog, ActivityLogType
 - TaxCategory, Vendor, VendorNote, Affiliate
-- Marker interfaces: `ILocalizedEntity`, `ISlugSupported`, `IAclSupported`, `IStoreMappingSupported`
+- Marker interfaces: `ILocalizedEntity`, `ILocalizedEnum`, `ISlugSupported`, `IAclSupported`, `IStoreMappingSupported`
 
 ## External Dependencies
 - None (domain layer has zero project dependencies)

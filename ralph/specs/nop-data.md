@@ -4,7 +4,7 @@
 Entity Framework data access — DbContext, repository implementation, entity mappings, data providers, and database initialization.
 
 ## Legacy Source
-- `src/Libraries/Nop.Data/` — NopObjectContext, EfRepository<T>, data providers
+- `src/Libraries/Nop.Data/` — NopObjectContext, EfRepository<T>, data providers, EfStartUpTask
 - `src/Libraries/Nop.Data/Mapping/` — 16 subdirectories with Fluent API entity configurations
 - Namespaces: `Nop.Data`, `Nop.Data.Mapping.*`
 
@@ -13,6 +13,7 @@ Entity Framework data access — DbContext, repository implementation, entity ma
 - `EfRepository<T>` — generic repository implementation
 - `IDbContext` — context abstraction
 - `IDataProvider` — SQL Server / SQL CE provider abstraction
+- `EfStartUpTask` — `IStartupTask` that sets EF database initializer on startup
 - Entity type configurations (one per domain entity, ~100+ mapping classes)
 
 ## External Dependencies

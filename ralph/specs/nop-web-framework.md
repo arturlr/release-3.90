@@ -9,19 +9,20 @@ Shared web infrastructure — base controllers, MVC filters, HTML helpers, theme
 
 ## Key Entities
 - `BasePublicController`, `BaseAdminController` (base controllers)
-- Custom MVC filters and attributes (`AdminAuthorize`, anti-forgery, HTTPS, IP validation, etc.)
+- Custom MVC filters and attributes: `AdminAuthorizeAttribute`, `AdminAntiForgeryAttribute`, `AdminValidateIpAddressAttribute`, `PublicAntiForgeryAttribute`, `NopHttpsRequirementAttribute`, `WwwRequirementAttribute`, `FormValueRequiredAttribute`, `ParameterBasedOnFormNameAttribute`, `ParameterBasedOnFormNameAndValueAttribute`, `NoTrimAttribute`, `CaptchaValidatorAttribute`, `HoneypotValidatorAttribute`
 - Root-level action filter attributes: `CheckAffiliateAttribute`, `CustomerLastActivityAttribute`, `LanguageSeoCodeAttribute`, `PublicStoreAllowNavigationAttribute`, `StoreClosedAttribute`, `StoreIpAddressAttribute`, `StoreLastVisitedPageAttribute`, `ValidatePasswordAttribute`
 - `WebWorkContext` (IWorkContext implementation), `WebStoreContext` (IStoreContext implementation)
 - `RemotePost` — helper for payment gateway form POST redirects
 - `NopResourceDisplayName` — localized display name attribute for model properties
-- Routing infrastructure: `IRouteProvider`, `IRoutePublisher`, `GenericPathRoute` (SEO-friendly URL routing)
+- Routing infrastructure: `IRouteProvider`, `IRoutePublisher`, `GenericPathRoute` (SEO-friendly URL routing), `GuidConstraint` (custom route constraint for GUID parameters)
 - Custom model binders: `NopModelBinder`, `CommaSeparatedModelBinder`
 - Custom action results: `RssActionResult`, `NullJsonResult`, `XmlDownloadResult`, `ConverterJsonResult`
 - Base models: `BaseNopModel`, `BasePageableModel`, `ActionConfirmationModel`, `DeleteConfirmationModel`
-- HTML helpers for paging, localization, SEO
+- HTML helpers for paging, localization, SEO: `HtmlExtensions` (697 LOC), `LayoutExtensions` (366 LOC), `DataListExtensions`, `UrlHelperExtensions`, `LocalizedRouteExtensions`
 - Theme engine (`IThemeContext`, `IThemeProvider`, `ThemeableRazorViewEngine`)
 - FluentValidation integration (`BaseNopValidator<T>`, `CreditCardPropertyValidator`, `DecimalPropertyValidator`)
-- Kendo UI helpers (admin grid — `DataSourceRequest`, `DataSourceResult`, `Filter`, `Sort`)
+- Kendo UI helpers (admin grid — `DataSourceRequest`, `DataSourceResult`, `Filter`, `Sort`, `ModelStateExtensions`, `QueryableExtensions`)
+- `FilePermissionHelper` (186 LOC) — checks file system write permissions for installation
 - Admin menu system (`IAdminMenuPlugin`, `SiteMapNode`, `XmlSiteMap`)
 - Page head builder (`IPageHeadBuilder` — CSS/JS/canonical URL management)
 - Captcha integration (Google reCAPTCHA — `CaptchaValidatorAttribute`, `GReCaptchaValidator`)

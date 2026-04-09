@@ -6,6 +6,7 @@ Customer management — registration, authentication, customer roles, customer a
 ## Legacy Source
 - `src/Libraries/Nop.Services/Customers/` — all files
 - Key interfaces: `ICustomerService`, `ICustomerRegistrationService`, `ICustomerAttributeService`, `ICustomerAttributeParser`, `ICustomerAttributeFormatter`, `ICustomerActivityService`, `ICustomerReportService`
+- Cache event consumer: `CustomerCacheEventConsumer` (51 LOC) — invalidates customer password lifetime cache on `CustomerPasswordChangedEvent`
 - Domain: `Nop.Core.Domain.Customers`
 
 ## Key Entities

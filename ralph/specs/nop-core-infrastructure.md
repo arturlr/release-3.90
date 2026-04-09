@@ -19,8 +19,9 @@ Core infrastructure — DI engine, type finding, caching abstractions, event sys
 - `ICacheManager` — caching contract
 - `IRepository<T>` — generic repository interface
 - `IPlugin`, `BasePlugin`, `PluginDescriptor`, `IPluginFinder` — plugin system
+- `IMapperConfiguration`, `AutoMapperConfiguration` — mapper registration infrastructure (replace with Mapster or AutoMapper 13.x profile-based registration)
 - `IWorkContext`, `IStoreContext`, `IWebHelper` — request context
-- `IStartupTask` — startup hooks
+- `IStartupTask` — startup hooks; concrete implementations: `TypeConverterRegistrationStartUpTask` (Nop.Core, registers generic type converters), `EfStartUpTask` (Nop.Data, sets EF initializer)
 - `EntityInserted<T>`, `EntityUpdated<T>`, `EntityDeleted<T>` — domain events
 - `CommonHelper` — utility methods (email validation, random digits, object comparison, etc.)
 - `NopException` — custom exception base class

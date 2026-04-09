@@ -6,6 +6,7 @@ Product catalog management — products, categories, manufacturers, attributes, 
 ## Legacy Source
 - `src/Libraries/Nop.Services/Catalog/` — all files
 - Key interfaces: `IProductService`, `ICategoryService`, `IManufacturerService`, `IProductAttributeService`, `IProductAttributeParser`, `IProductAttributeFormatter`, `IPriceCalculationService`, `IPriceFormatter`, `IProductTagService`, `IRecentlyViewedProductsService`, `ISpecificationAttributeService`, `ICopyProductService`, `IBackInStockSubscriptionService`, `ICompareProductsService`, `ICategoryTemplateService`, `IManufacturerTemplateService`, `IProductTemplateService`
+- Cache event consumer: `PriceCacheEventConsumer` (203 LOC) — invalidates price caches on entity changes to Category, Manufacturer, ProductCategory, ProductManufacturer, Setting, Product, TierPrice, Order
 - Domain: `Nop.Core.Domain.Catalog`
 
 ## Key Entities
