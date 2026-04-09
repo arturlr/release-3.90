@@ -818,3 +818,25 @@ Performed exhaustive verification across all dimensions:
 - [4.1] Customer services: `IGenericAttributeService` available for customer attribute storage (timezone, language, currency preferences)
 - [4.9] Order services: `IPdfService` interface available for order invoice generation
 - [5.x] Controllers: must pass `IGenericAttributeService` to `GetAttributeAsync` extension method calls
+
+## 2026-04-09 — [3.9] Affiliate Services / Implementation
+
+### No-Nav-Property Join Pattern for Name Filtering
+- Legacy `GetAllAffiliates` filtered by `a.Address.FirstName.Contains(firstName)` using EF6 nav property
+- New code joins `IRepository<Address>` explicitly: `from a in query join addr in addresses on a.AddressId equals addr.Id`
+- This is the first service to need cross-entity filtering without nav properties — establishes the pattern for any future service that needs to filter by related entity properties
+- Alternative considered: load Address separately per affiliate — rejected because it would be N+1 queries
+
+### AffiliateExtensions.GetFullName Signature Change
+- Legacy: `affiliate.GetFullName()` — accessed `affiliate.Address.FirstName` via nav property
+- New: `affiliate.GetFullName(address)` — Address must be passed explicitly
+- Impact: all callers (admin AffiliateController [5.66]) must load the Address separately and pass it
+
+### ValidateFriendlyUrlName Now Async
+- Legacy was sync, used `EngineContext.Current.Resolve<IAffiliateService>()` (service locator)
+- New `ValidateFriendlyUrlNameAsync` takes `IAffiliateService` as parameter, returns `Task<string>`
+- Impact: callers must await the result
+
+### No Caching Needed
+- Affiliate service has no caching (matching legacy) — affiliates are low-volume admin-managed entities
+- No cache event consumers needed

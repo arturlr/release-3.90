@@ -155,10 +155,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1
   - Done: 2026-04-09. GenericAttributeService (cached by entity+keyGroup, prefix invalidation, event publishing). GenericAttributeExtensions (async, no service locator). AddressAttributeService (dual-prefix cache for attributes+values). AddressAttributeParser (XML format preserved, async attribute resolution, validation warnings). AddressAttributeFormatter (WebUtility.HtmlEncode, async). AddressService (cached by-id, configurable validation via AddressSettings, depends on ICountryService/IStateProvinceService). SearchTermService (no caching, GroupBy stats). FulltextService (SQL Server stored procedures via EF Core). IPdfService interface only (implementation depends on Phase 4 + PDF library).
 
-- [ ] [3.9] Affiliate services — IAffiliateService
+- [x] [3.9] Affiliate services — IAffiliateService
   - Spec: specs/svc-affiliates.md
   - Scope: Nop.Services/Affiliates
   - Depends on: 1.5
+  - Done: 2026-04-09. IAffiliateService (async-first), AffiliateService (IRepository<Address> join for firstName/lastName filtering — no nav properties, async event publishing, ArgumentNullException.ThrowIfNull, TableNoTracking for read-only joins). AffiliateExtensions: GetFullName(Address), GenerateUrl(IWebHelper), ValidateFriendlyUrlNameAsync(IAffiliateService) — no service locator.
 
 - [ ] [3.10] Vendor services — IVendorService
   - Spec: specs/svc-vendors.md
