@@ -328,10 +328,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Controllers/ProductController, Views/Product
   - Depends on: 5.1, 4.4
 
-- [ ] [5.6] Public: CustomerController + Customer views (register, login, account, addresses, orders)
+- [x] [5.6] Public: CustomerController + Customer views (register, login, account, addresses, orders)
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/CustomerController, Views/Customer
   - Depends on: 5.1, 4.1, 2.5
+  - Done: 2026-04-10. CustomerController as 4 partial class files (constructor, Login, Register, Account, Addresses). 10 view models (LoginModel, RegisterModel, RegisterResultModel, PasswordRecoveryModel, PasswordRecoveryConfirmModel, ChangePasswordModel, AccountActivationModel, EmailRevalidationModel, CustomerAvatarModel, AddressModels). 13 Razor views. CustomerAddressMapping join entity + EF config + DbSet for customer-address many-to-many (replaces legacy Customer.Addresses nav property). CustomerEvents (CustomerLoggedinEvent, CustomerLoggedOutEvent, CustomerRegisteredEvent). Deferred: DownloadableProducts/UserAgreement (depend on order items), CustomerNavigation (ViewComponent), RemoveExternalAssociation (IOpenAuthenticationService [6.17]), Info action (complex model factory — add later), Captcha/Honeypot ([7.13]).
 
 - [ ] [5.7] Public: ShoppingCartController + ShoppingCart views (cart, wishlist, mini-cart)
   - Spec: specs/nop-web-public.md

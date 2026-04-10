@@ -1944,3 +1944,55 @@ Performed exhaustive verification across all dimensions:
 - [5.34] Admin OrderController: can now use `IExportManager.ExportOrdersToXlsxAsync`
 - [5.35] Admin CustomerController: can now use `IExportManager.ExportCustomersToXlsxAsync`
 - Phase 4 is now COMPLETE — all 12 service layer items implemented (4.1-4.10)
+
+## 2026-04-10 — [5.6] Public CustomerController / Implementation
+
+### CustomerAddressMapping Join Entity Created
+- Legacy `Customer.Addresses` was a many-to-many nav property (table: `CustomerAddresses`)
+- Nav properties stripped in [1.3] — created `CustomerAddressMapping` (table: `CustomerAddresses`) with `CustomerId` and `AddressId` properties
+- EF Core configuration and DbSet added to NopDbContext
+- All address operations (list, add, edit, delete) use `IRepository<CustomerAddressMapping>` for customer-address association
+- Pattern consistent with `CustomerCustomerRoleMapping`, `PermissionRecordRoleMapping`, `ProductProductTagMapping`, `DiscountCategoryMapping`, `ShippingMethodCountryMapping`
+
+### Controller Split into 4 Partial Class Files
+- `CustomerController.cs` — primary constructor (21 dependencies) + `IsRegisteredAsync` helper
+- `CustomerController.Login.cs` — Login GET/POST, Logout
+- `CustomerController.Register.cs` — Register GET/POST, RegisterResult, CheckUsernameAvailability, AccountActivation + 4 private helpers (PrepareRegisterModelAsync, SaveCustomerFormFieldsAsync, EnsureNewsletterSubscriptionAsync, TryCreateDefaultAddressAsync)
+- `CustomerController.Account.cs` — PasswordRecovery, PasswordRecoveryConfirm, ChangePassword, Avatar/UploadAvatar/RemoveAvatar, EmailRevalidation
+- `CustomerController.Addresses.cs` — Addresses, AddressDelete, AddressAdd, AddressEdit + MapAddress/MapToAddress helpers
+
+### Deferred Actions
+- **DownloadableProducts/UserAgreement**: Depend on `IOrderService.GetOrderItemByGuid` and `orderItem.Product` nav property — deferred until order item queries are available
+- **CustomerNavigation**: Legacy used `@Html.Action("CustomerNavigation")` (child action) — ASP.NET Core uses ViewComponents. Deferred to a separate plan item or when shared layout is built
+- **RemoveExternalAssociation**: Depends on `IOpenAuthenticationService` — deferred to [6.17] ExternalAuth.Facebook plugin
+- **Info action**: Complex model factory pattern (CustomerInfoModel has 30+ properties populated from GenericAttributes, settings, and services). Deferred — add when model factory infrastructure is built or inline when needed
+- **Captcha/Honeypot**: Deferred to [7.13] Google reCAPTCHA integration
+
+### Model Factory Pattern Skipped
+- Legacy used `ICustomerModelFactory` (21 model factory interfaces in `Nop.Web/Factories/`) for view model construction
+- New code inlines model construction in controller methods — simpler, matches admin area pattern (admin controllers don't use model factories)
+- Trade-off: controller methods are slightly longer, but no separate factory class needed
+- If model construction becomes complex (e.g., Info action), can extract to a factory later
+
+### IFormFile Replaces HttpPostedFileBase
+- Legacy `UploadAvatar(CustomerAvatarModel model, HttpPostedFileBase uploadedFile)` used ASP.NET MVC 5 `HttpPostedFileBase`
+- New code uses `IFormFile uploadedFile` with `CopyToAsync(MemoryStream)` — standard ASP.NET Core pattern
+- `uploadedFile.GetPictureBits()` extension method (legacy) replaced with `MemoryStream` + `ToArray()`
+
+### IsRegisteredAsync Helper Pattern
+- Legacy used `customer.IsRegistered()` extension method (service locator based, from `CustomerExtensions`)
+- New code uses `IsRegisteredAsync(Customer)` private helper that queries `ICustomerService.GetCustomerRoleIdsAsync` + `GetCustomerRoleBySystemNameAsync(Registered)`
+- This pattern is used by all actions that require authentication (ChangePassword, Avatar, Addresses, etc.)
+- Returns `Challenge()` (HTTP 401) instead of legacy `HttpUnauthorizedResult` — ASP.NET Core authentication middleware handles redirect to login
+
+### Password Recovery Token Validation Inlined
+- Legacy used `customer.IsPasswordRecoveryTokenValid(token)` and `customer.IsPasswordRecoveryLinkExpired(customerSettings)` extension methods (service locator based)
+- New code inlines the logic: compares token via `OrdinalIgnoreCase`, checks `PasswordRecoveryTokenDateGenerated` + `PasswordRecoveryLinkDaysValid` against `DateTime.UtcNow`
+- Simpler, no extension method needed
+
+### Impact on Future Items
+- [5.7] ShoppingCartController: can now use `IShoppingCartService.MigrateShoppingCartAsync` pattern from Login action
+- [5.8] CheckoutController: can now use `IsRegisteredAsync` pattern for auth checks
+- [5.35] Admin CustomerController: can now use `CustomerAddressMapping` for address management
+- [5.18] Public ProfileController: can now use `ICustomerService` for profile display
+- [5.20] Public ExternalAuthenticationController: must implement `TryAssociateAccountWithExternalAccount` when [6.17] is built

@@ -1,0 +1,66 @@
+@model Nop.Web.Models.Customer.RegisterModel
+@{ Layout = null; }
+<!DOCTYPE html>
+<html>
+<head><title>Register</title></head>
+<body>
+<h1>Register</h1>
+<div asp-validation-summary="ModelOnly"></div>
+<form asp-action="Register" method="post">
+    <div>
+        <label asp-for="Email"></label>
+        <input asp-for="Email" />
+    </div>
+    @if (Model.EnteringEmailTwice)
+    {
+        <div>
+            <label asp-for="ConfirmEmail"></label>
+            <input asp-for="ConfirmEmail" />
+        </div>
+    }
+    @if (Model.UsernamesEnabled)
+    {
+        <div>
+            <label asp-for="Username"></label>
+            <input asp-for="Username" />
+        </div>
+    }
+    @if (Model.GenderEnabled)
+    {
+        <div>
+            <label asp-for="Gender"></label>
+            <select asp-for="Gender">
+                <option value="">---</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+            </select>
+        </div>
+    }
+    <div>
+        <label asp-for="FirstName"></label>
+        <input asp-for="FirstName" />
+    </div>
+    <div>
+        <label asp-for="LastName"></label>
+        <input asp-for="LastName" />
+    </div>
+    <div>
+        <label asp-for="Password"></label>
+        <input asp-for="Password" />
+    </div>
+    <div>
+        <label asp-for="ConfirmPassword"></label>
+        <input asp-for="ConfirmPassword" />
+    </div>
+    @if (Model.NewsletterEnabled)
+    {
+        <div>
+            <label asp-for="Newsletter"></label>
+            <input asp-for="Newsletter" />
+        </div>
+    }
+    <button type="submit">Register</button>
+</form>
+<p><a asp-action="Login">Back to login</a></p>
+</body>
+</html>

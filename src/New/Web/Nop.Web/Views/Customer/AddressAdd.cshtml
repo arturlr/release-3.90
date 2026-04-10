@@ -1,0 +1,23 @@
+@model Nop.Web.Models.Customer.CustomerAddressEditModel
+@{ Layout = null; }
+<!DOCTYPE html>
+<html>
+<head><title>Address</title></head>
+<body>
+<h1>Address</h1>
+<div asp-validation-summary="ModelOnly"></div>
+<form method="post">
+    <div><label asp-for="Address.FirstName"></label><input asp-for="Address.FirstName" /></div>
+    <div><label asp-for="Address.LastName"></label><input asp-for="Address.LastName" /></div>
+    <div><label asp-for="Address.Email"></label><input asp-for="Address.Email" /></div>
+    <div><label asp-for="Address.Company"></label><input asp-for="Address.Company" /></div>
+    <div><label asp-for="Address.Address1"></label><input asp-for="Address.Address1" /></div>
+    <div><label asp-for="Address.Address2"></label><input asp-for="Address.Address2" /></div>
+    <div><label asp-for="Address.City"></label><input asp-for="Address.City" /></div>
+    <div><label asp-for="Address.ZipPostalCode"></label><input asp-for="Address.ZipPostalCode" /></div>
+    <div><label asp-for="Address.PhoneNumber"></label><input asp-for="Address.PhoneNumber" /></div>
+    <button type="submit">Save</button>
+</form>
+<a asp-action="Addresses">Back to addresses</a>
+</body>
+</html>

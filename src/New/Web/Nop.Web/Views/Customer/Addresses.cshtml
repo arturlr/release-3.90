@@ -1,0 +1,21 @@
+@model Nop.Web.Models.Customer.CustomerAddressListModel
+@{ Layout = null; }
+<!DOCTYPE html>
+<html>
+<head><title>My Addresses</title></head>
+<body>
+<h1>My Addresses</h1>
+<a asp-action="AddressAdd">Add new address</a>
+@foreach (var address in Model.Addresses)
+{
+    <div style="border:1px solid #ccc; padding:10px; margin:10px 0;">
+        <p>@address.FirstName @address.LastName</p>
+        <p>@address.Email</p>
+        <p>@address.Address1</p>
+        @if (!string.IsNullOrEmpty(address.Address2)) { <p>@address.Address2</p> }
+        <p>@address.City, @address.ZipPostalCode</p>
+        <a asp-action="AddressEdit" asp-route-addressId="@address.Id">Edit</a>
+    </div>
+}
+</body>
+</html>

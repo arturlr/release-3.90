@@ -1,0 +1,21 @@
+@model Nop.Web.Models.Customer.RegisterResultModel
+@{ Layout = null; }
+<!DOCTYPE html>
+<html>
+<head><title>Registration Result</title></head>
+<body>
+<h1>Registration</h1>
+<p>@Model.Result</p>
+@if (!string.IsNullOrEmpty(Model.ReturnUrl))
+{
+    <form asp-action="RegisterResult" method="post">
+        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+        <button type="submit">Continue</button>
+    </form>
+}
+else
+{
+    <a asp-controller="Home" asp-action="Index">Continue</a>
+}
+</body>
+</html>
