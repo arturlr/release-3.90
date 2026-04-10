@@ -1,0 +1,89 @@
+@model Nop.Web.Areas.Admin.Models.Catalog.ProductReviewModel
+@{ ViewData["Title"] = "Edit Product Review"; }
+
+<h1>Edit Product Review</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div>
+        <label>Product</label>
+        <span><a href="/Admin/Product/Edit/@Model.ProductId">@Model.ProductName</a></span>
+    </div>
+    <div>
+        <label>Customer</label>
+        <span>@Model.CustomerInfo</span>
+    </div>
+    <div>
+        <label>Store</label>
+        <span>@Model.StoreName</span>
+    </div>
+    <div>
+        <label>Rating</label>
+        <span>@Model.Rating</span>
+    </div>
+    <div>
+        <label>Created on</label>
+        <span>@Model.CreatedOn</span>
+    </div>
+
+    <div>
+        <label asp-for="Title"></label>
+        @if (Model.IsLoggedInAsVendor)
+        {
+            <span>@Model.Title</span>
+        }
+        else
+        {
+            <input asp-for="Title" />
+        }
+    </div>
+    <div>
+        <label asp-for="ReviewText"></label>
+        @if (Model.IsLoggedInAsVendor)
+        {
+            <span>@Model.ReviewText</span>
+        }
+        else
+        {
+            <textarea asp-for="ReviewText" rows="6"></textarea>
+        }
+    </div>
+    <div>
+        <label asp-for="ReplyText"></label>
+        <textarea asp-for="ReplyText" rows="4"></textarea>
+    </div>
+    @if (!Model.IsLoggedInAsVendor)
+    {
+        <div>
+            <label asp-for="IsApproved"></label>
+            <input asp-for="IsApproved" type="checkbox" />
+        </div>
+    }
+
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+
+    @if (!Model.IsLoggedInAsVendor)
+    {
+        <button type="button" id="delete-btn">Delete</button>
+    }
+</form>
+
+@if (!Model.IsLoggedInAsVendor)
+{
+    <form id="delete-form" asp-action="Delete" method="post">
+        <input type="hidden" name="id" value="@Model.Id" />
+    </form>
+}
+
+<a asp-action="List">Back to list</a>
+
+@section Scripts {
+<script>
+    document.getElementById('delete-btn')?.addEventListener('click', function () {
+        if (confirm('Are you sure you want to delete this product review?'))
+            document.getElementById('delete-form').submit();
+    });
+</script>
+}

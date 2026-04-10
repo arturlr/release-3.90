@@ -99,6 +99,7 @@ public interface IProductService
     Task<ProductReview?> GetProductReviewByIdAsync(int productReviewId);
     Task<IList<ProductReview>> GetProductReviewsByIdsAsync(int[] productReviewIds);
     Task InsertProductReviewAsync(ProductReview productReview);
+    Task UpdateProductReviewAsync(ProductReview productReview);
     Task SetProductReviewHelpfulnessAsync(ProductReview productReview, int customerId, bool wasHelpful);
     Task DeleteProductReviewAsync(ProductReview productReview);
     Task DeleteProductReviewsAsync(IList<ProductReview> productReviews);

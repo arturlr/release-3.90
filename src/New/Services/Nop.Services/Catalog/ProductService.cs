@@ -767,6 +767,13 @@ public class ProductService : IProductService
         await _eventPublisher.EntityInsertedAsync(productReview);
     }
 
+    public virtual async Task UpdateProductReviewAsync(ProductReview productReview)
+    {
+        ArgumentNullException.ThrowIfNull(productReview);
+        _productReviewRepository.Update(productReview);
+        await _eventPublisher.EntityUpdatedAsync(productReview);
+    }
+
     public virtual async Task SetProductReviewHelpfulnessAsync(ProductReview productReview, int customerId, bool wasHelpful)
     {
         ArgumentNullException.ThrowIfNull(productReview);

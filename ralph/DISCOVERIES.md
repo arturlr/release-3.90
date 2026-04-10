@@ -3543,3 +3543,32 @@ Performed exhaustive verification across all dimensions:
 - [5.65] Admin CheckoutAttributeController: can follow the same pattern — CRUD for checkout attributes + inline AJAX grid for checkout attribute values
 - [5.77] Admin AddressAttributeController: can follow the same pattern — CRUD for address attributes + inline AJAX grid for address attribute values
 - [5.31] Admin ProductController sub-entity management: product specification attribute assignment can use `GetOptionsByAttributeId` AJAX helper for option dropdown population
+
+## 2026-04-10 — [5.64] Admin ProductReviewController / Implementation
+
+### UpdateProductReviewAsync Added to IProductService
+- Legacy `Edit` POST saved review changes by calling `_productService.UpdateProduct(productReview.Product)` — updating the parent Product entity to persist a ProductReview change via nav property cascade
+- Nav properties stripped in [1.3] — added `UpdateProductReviewAsync(ProductReview)` to `IProductService`/`ProductService` — updates the review entity directly via `_productReviewRepository.Update` with `EntityUpdatedAsync` event publishing
+- Pattern consistent with `UpdateBlogCommentAsync` ([5.44]), `UpdateNewsCommentAsync` ([5.45]), `UpdatePollAnswerAsync` ([5.14])
+
+### Vendor Access Restriction Pattern
+- Legacy checked `productReview.Product.VendorId != _workContext.CurrentVendor.Id` via nav property
+- New code loads product separately: `productService.GetProductByIdAsync(review.ProductId)` then checks `product.VendorId`
+- Vendor can only edit `ReplyText` — Title, ReviewText, IsApproved are read-only for vendors (matching legacy behavior)
+- Delete, DeleteSelected, ApproveSelected, DisapproveSelected all blocked for vendors (matching legacy)
+
+### ProductReviewApprovedEvent Not Published
+- Legacy published `ProductReviewApprovedEvent(productReview)` when a review was newly approved (in Edit and ApproveSelected)
+- `ProductReviewApprovedEvent` class exists in `Nop.Core.Domain.Catalog` but no event consumers are registered for it in the new codebase
+- Omitted to avoid unused event publishing — consistent with BlogController [5.44] and NewsController [5.45] approach for comment approved events
+- When event consumers are needed (e.g., for notifications), add event publishing to Edit and ApproveSelected actions
+
+### Follows BlogController Comment Management Pattern
+- List view with search filters + AJAX grid + batch operations (approve/disapprove/delete selected) follows BlogController [5.44] Comments view pattern exactly
+- Same vanilla JS patterns: `loadReviews()`, `bulkAction()`, `getSelectedIds()`, `getToken()`
+- Same `DataSourceResult` response format for AJAX grid
+- Product autocomplete added (not present in BlogController) for filtering reviews by product
+
+### Impact on Future Items
+- [5.65] Admin CheckoutAttributeController: next catalog-related admin controller to implement
+- [5.31] Admin ProductController sub-entity management: product review tab on product edit page can link to ProductReviewController.List with `SearchProductId` filter

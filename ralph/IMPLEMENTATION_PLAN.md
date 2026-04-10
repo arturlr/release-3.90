@@ -667,10 +667,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.4
   - Done: 2026-04-10. SpecificationAttributeController with core CRUD (List, SpecificationAttributeList AJAX grid, Create, Edit, Delete) and option management (OptionList, OptionAdd, OptionUpdate, OptionDelete) and GetOptionsByAttributeId AJAX helper for product editing. 2 view models (SpecificationAttributeModel, SpecificationAttributeOptionModel). 3 Razor views (List, Create, Edit with inline option grid). Legacy popup pattern for options replaced with inline AJAX grid (matching ProductAttribute predefined values pattern). ColorSquaresRgb handled via EnableColorSquaresRgb toggle. NumberOfAssociatedProducts computed via GetProductSpecificationAttributeCountAsync. No new service methods needed — all existed from [4.4]. 3 constructor dependencies (ISpecificationAttributeService, ICustomerActivityService, IPermissionService). Permission: ManageAttributes. Localization deferred (consistent with all other admin controllers).
 
-- [ ] [5.64] Admin: ProductReviewController + ProductReview views
+- [x] [5.64] Admin: ProductReviewController + ProductReview views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/ProductReviewController, Admin/Views/ProductReview
   - Depends on: 5.1, 4.4
+  - Done: 2026-04-10. ProductReviewController with List (search form with store/approved/date/text/productId filters), ProductReviewList AJAX grid, Edit GET+POST, Delete, DeleteSelected, ApproveSelected, DisapproveSelected, ProductSearchAutoComplete. Added UpdateProductReviewAsync to IProductService/ProductService (replaces legacy nav property pattern _productService.UpdateProduct(productReview.Product)). 2 view models (ProductReviewListModel, ProductReviewModel). 2 Razor views (List, Edit with vendor-restricted fields). Vendor access restriction on all actions (vendor can only edit ReplyText). Follows BlogController [5.44] comment management pattern for approve/disapprove batch operations.
 
 - [ ] [5.65] Admin: CheckoutAttributeController + CheckoutAttribute views
   - Spec: specs/nop-admin.md

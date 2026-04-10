@@ -1,0 +1,170 @@
+@model Nop.Web.Areas.Admin.Models.Catalog.ProductReviewListModel
+@{ ViewData["Title"] = "Product Reviews"; }
+
+<h1>Product Reviews</h1>
+
+<form id="search-form">
+    <div>
+        <label>Created from</label>
+        <input name="CreatedOnFrom" type="date" value="@Model.CreatedOnFrom?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div>
+        <label>Created to</label>
+        <input name="CreatedOnTo" type="date" value="@Model.CreatedOnTo?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div>
+        <label>Comment text</label>
+        <input name="SearchText" value="@Model.SearchText" />
+    </div>
+    <div>
+        <label>Approved</label>
+        <select name="SearchApprovedId" asp-items="Model.AvailableApprovedOptions"></select>
+    </div>
+    <div>
+        <label>Store</label>
+        <select name="SearchStoreId" asp-items="Model.AvailableStores"></select>
+    </div>
+    @if (!Model.IsLoggedInAsVendor)
+    {
+        <div>
+            <label>Product</label>
+            <input id="search-product-name" type="text" placeholder="Type product name..." />
+            <input name="SearchProductId" id="search-product-id" type="hidden" value="0" />
+        </div>
+    }
+    <button type="submit" id="search-btn">Search</button>
+</form>
+
+@if (!Model.IsLoggedInAsVendor)
+{
+    <p>
+        <button type="button" id="approve-selected-btn">Approve selected</button>
+        <button type="button" id="disapprove-selected-btn">Disapprove selected</button>
+        <button type="button" id="delete-selected-btn">Delete selected</button>
+    </p>
+}
+
+<div id="reviews-grid">
+    <table>
+        <thead>
+            <tr>
+                @if (!Model.IsLoggedInAsVendor) { <th><input type="checkbox" id="select-all" /></th> }
+                <th>Product</th>
+                <th>Customer</th>
+                <th>Title</th>
+                <th>Review</th>
+                <th>Reply</th>
+                <th>Rating</th>
+                <th>Approved</th>
+                <th>Store</th>
+                <th>Created on</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="reviews-tbody"></tbody>
+    </table>
+    <div id="reviews-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    var isVendor = @(Model.IsLoggedInAsVendor ? "true" : "false");
+    document.addEventListener('DOMContentLoaded', function () { loadReviews(1, 15); });
+    document.getElementById('search-btn')?.addEventListener('click', function (e) { e.preventDefault(); loadReviews(1, 15); });
+    document.getElementById('select-all')?.addEventListener('change', function () {
+        document.querySelectorAll('.review-checkbox').forEach(function (cb) { cb.checked = this.checked; }.bind(this));
+    });
+
+    function getToken() { return document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''; }
+    function getSelectedIds() {
+        return Array.from(document.querySelectorAll('.review-checkbox:checked')).map(function (cb) { return cb.value; });
+    }
+
+    function loadReviews(page, pageSize) {
+        var form = document.getElementById('search-form');
+        var data = new URLSearchParams(new FormData(form));
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("ProductReviewList", "ProductReview", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: data
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+            var tbody = document.getElementById('reviews-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (r) {
+                    var tr = document.createElement('tr');
+                    var cb = isVendor ? '' : '<td><input type="checkbox" class="review-checkbox" value="' + r.Id + '" /></td>';
+                    tr.innerHTML = cb
+                        + '<td><a href="/Admin/Product/Edit/' + r.ProductId + '">' + (r.ProductName || '') + '</a></td>'
+                        + '<td>' + (r.CustomerInfo || '') + '</td>'
+                        + '<td>' + (r.Title || '') + '</td>'
+                        + '<td>' + (r.ReviewText || '') + '</td>'
+                        + '<td>' + (r.ReplyText || '') + '</td>'
+                        + '<td>' + r.Rating + '</td>'
+                        + '<td>' + (r.IsApproved ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (r.StoreName || '') + '</td>'
+                        + '<td>' + (r.CreatedOn || '') + '</td>'
+                        + '<td><a href="/Admin/ProductReview/Edit/' + r.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('reviews-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+
+    function bulkAction(url) {
+        var ids = getSelectedIds();
+        if (ids.length === 0) return;
+        var body = ids.map(function (id) { return 'selectedIds=' + id; }).join('&');
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: body
+        }).then(function () { loadReviews(1, 15); });
+    }
+
+    document.getElementById('delete-selected-btn')?.addEventListener('click', function () {
+        if (confirm('Delete selected reviews?'))
+            bulkAction('@Url.Action("DeleteSelected", "ProductReview", new { area = "Admin" })');
+    });
+    document.getElementById('approve-selected-btn')?.addEventListener('click', function () {
+        bulkAction('@Url.Action("ApproveSelected", "ProductReview", new { area = "Admin" })');
+    });
+    document.getElementById('disapprove-selected-btn')?.addEventListener('click', function () {
+        bulkAction('@Url.Action("DisapproveSelected", "ProductReview", new { area = "Admin" })');
+    });
+
+    // Product autocomplete
+    var productInput = document.getElementById('search-product-name');
+    var productIdInput = document.getElementById('search-product-id');
+    if (productInput) {
+        var acTimer;
+        productInput.addEventListener('input', function () {
+            clearTimeout(acTimer);
+            acTimer = setTimeout(function () {
+                var term = productInput.value;
+                if (term.length < 3) return;
+                fetch('@Url.Action("ProductSearchAutoComplete", "ProductReview", new { area = "Admin" })?term=' + encodeURIComponent(term))
+                    .then(function (r) { return r.json(); })
+                    .then(function (items) {
+                        var list = document.getElementById('product-ac-list');
+                        if (!list) { list = document.createElement('div'); list.id = 'product-ac-list'; productInput.parentNode.appendChild(list); }
+                        list.innerHTML = '';
+                        items.forEach(function (item) {
+                            var opt = document.createElement('div');
+                            opt.textContent = item.label;
+                            opt.style.cursor = 'pointer';
+                            opt.addEventListener('click', function () { productInput.value = item.label; productIdInput.value = item.productid; list.innerHTML = ''; });
+                            list.appendChild(opt);
+                        });
+                    });
+            }, 300);
+        });
+    }
+</script>
+}
