@@ -3180,3 +3180,28 @@ Performed exhaustive verification across all dimensions:
 - [5.50] Admin CurrencyController: next directory admin controller — follows same simple CRUD pattern
 - [5.51] Admin CountryController: same pattern with state province sub-entity management
 - Store mapping management: when added as cross-cutting feature, LanguageController should be updated along with all other admin controllers
+
+## 2026-04-10 — [5.50] Admin CurrencyController / Implementation
+
+### ISettingService Uses SaveSettingAsync (Not Sync)
+- Legacy `CurrencyController.MarkAsPrimaryExchangeRateCurrency` and `MarkAsPrimaryStoreCurrency` called `_settingService.SaveSetting(currencySettings)` (sync)
+- New `ISettingService` only has `SaveSettingAsync<T>` — no sync overload exists
+- Initial implementation used `settingService.SaveSetting(currencySettings)` which doesn't compile
+- Fixed to `await settingService.SaveSettingAsync(currencySettings)` — methods changed from sync `IActionResult` to `async Task<IActionResult>`
+- Impact: any future admin controller that saves settings must use `SaveSettingAsync` (already known from [5.38] SettingController, but worth noting for simple controllers that might assume sync API)
+
+### Live Rates and Exchange Rate Provider Deferred
+- Legacy `List` action had `liveRates` parameter that called `_currencyService.GetCurrencyLiveRates(primaryExchangeCurrency.CurrencyCode)` and `_currencyService.LoadAllExchangeRateProviders()` — both plugin-dependent
+- Legacy also had a POST `List` action with `[FormValueRequired("save")]` for saving exchange rate provider settings
+- All deferred to [2.10] plugin system — new List view has a Razor comment noting the deferral
+- `ApplyRate` action preserved (applies a rate to a currency by code) — this is useful even without live rate fetching (admin can manually enter rates)
+
+### Primary Currency Guard on Delete
+- Legacy `Delete` threw `NopException` when trying to delete primary store or exchange rate currency, caught by try/catch with `ErrorNotification`
+- New code returns redirect to Edit page instead of throwing — simpler, no exception for expected validation
+- Also guards against deleting the last published currency (same as Edit's unpublish guard)
+
+### Impact on Future Items
+- [5.51] Admin CountryController: next directory admin controller — more complex (state province sub-entity management)
+- [5.52] Admin MeasureController: follows same simple CRUD pattern for dimensions and weights
+- [6.16] Plugin: ExchangeRate.EcbExchange: when built, add live rates and exchange rate provider selection to CurrencyController List view

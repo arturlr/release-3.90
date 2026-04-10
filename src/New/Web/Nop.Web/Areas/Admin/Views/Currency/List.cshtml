@@ -1,0 +1,81 @@
+@{ ViewData["Title"] = "Currencies"; }
+
+<h1>Currencies</h1>
+
+@* Exchange rate provider selection and live rates depend on plugin system [2.10] — deferred *@
+
+<p>
+    <a asp-action="Create">Add new currency</a>
+</p>
+
+<div id="currencies-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Currency code</th>
+                <th>Rate</th>
+                <th>Primary exchange rate currency</th>
+                <th>Primary store currency</th>
+                <th>Published</th>
+                <th>Display order</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="currencies-tbody"></tbody>
+    </table>
+    <div id="currencies-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadCurrencies(); });
+
+    function loadCurrencies() {
+        fetch('@Url.Action("CurrencyList", "Currency", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' }
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('currencies-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (c) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (c.Name || '') + '</td>'
+                        + '<td>' + (c.CurrencyCode || '') + '</td>'
+                        + '<td>' + c.Rate + '</td>'
+                        + '<td>' + (c.IsPrimaryExchangeRateCurrency ? '<strong>Yes</strong>' : '<a href="#" onclick="markPrimaryExchange(' + c.Id + '); return false;">Mark as primary exchange rate currency</a>') + '</td>'
+                        + '<td>' + (c.IsPrimaryStoreCurrency ? '<strong>Yes</strong>' : '<a href="#" onclick="markPrimaryStore(' + c.Id + '); return false;">Mark as primary store currency</a>') + '</td>'
+                        + '<td>' + (c.Published ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + c.DisplayOrder + '</td>'
+                        + '<td><a href="/Admin/Currency/Edit/' + c.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('currencies-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+
+    function markPrimaryExchange(id) {
+        const data = new URLSearchParams();
+        data.append('id', id);
+        fetch('@Url.Action("MarkAsPrimaryExchangeRateCurrency", "Currency", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        }).then(function () { loadCurrencies(); });
+    }
+
+    function markPrimaryStore(id) {
+        const data = new URLSearchParams();
+        data.append('id', id);
+        fetch('@Url.Action("MarkAsPrimaryStoreCurrency", "Currency", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        }).then(function () { loadCurrencies(); });
+    }
+</script>
+}
