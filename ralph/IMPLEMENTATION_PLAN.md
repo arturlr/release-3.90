@@ -577,10 +577,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.11
   - Done: 2026-04-10. TopicController with topic CRUD (List, TopicList AJAX grid, Create, Edit, Delete). 3 view models (TopicListModel, TopicModel, TopicGridModel). 3 Razor views (List with store filter + AJAX grid, Create, Edit with delete). Topic implements ISlugSupported — uses ValidateSeNameAsync + SaveSlugAsync with languageId=0. TopicTemplate dropdown via ITopicTemplateService. Follows PollController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. ACL/store mapping management deferred (consistent with other admin controllers). Localization deferred.
 
-- [ ] [5.49] Admin: LanguageController + Language views
+- [x] [5.49] Admin: LanguageController + Language views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/LanguageController, Admin/Views/Language
   - Depends on: 5.1, 2.3
+  - Done: 2026-04-10. LanguageController with language CRUD (List, LanguageList AJAX grid, Create, Edit, Delete) and string resource management (Resources AJAX grid with name/value search + paging, ResourceUpdate, ResourceAdd, ResourceDelete) and XML export/import (ExportXml, ImportXml). 3 view models (LanguageModel with currency dropdown, LanguageGridModel, LanguageResourceModel). 3 Razor views (List, Create, Edit with resource grid + export/import). Currency dropdown via ICurrencyService. Last-published-language guard on Edit and Delete. GetAvailableFlagFileNames dropped (legacy scanned server filesystem for PNG files — user enters filename directly). Store mapping management deferred (consistent with other admin controllers). Follows PollController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
 - [ ] [5.50] Admin: CurrencyController + Currency views
   - Spec: specs/nop-admin.md

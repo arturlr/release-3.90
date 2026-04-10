@@ -3144,3 +3144,39 @@ Performed exhaustive verification across all dimensions:
 - Admin CMS area is fully complete — no more CMS controllers to implement
 - Next high-value admin controllers: [5.49] LanguageController, [5.53] EmailAccountController, [5.58] GiftCardController, [5.66] AffiliateController, [5.69] ActivityLogController
 - ACL/store mapping management should be added as a cross-cutting feature across all admin controllers that support `IAclSupported`/`IStoreMappingSupported` entities
+
+## 2026-04-10 — [5.49] Admin LanguageController / Implementation
+
+### GetAvailableFlagFileNames Dropped
+- Legacy `GetAvailableFlagFileNames` scanned `~/Content/Images/flags/` directory for PNG files and returned them as a dropdown list for flag image selection
+- Used `CommonHelper.MapPath` (legacy server path resolution) + `Directory.EnumerateFiles` + `Path.GetFileName`
+- New code drops this action entirely — user enters the flag image filename directly in a text input
+- Reason: the new codebase doesn't have a `Content/Images/flags/` directory, and scanning the filesystem for images is a legacy pattern. If a flag picker is needed, it should be a client-side component
+
+### XmlDownloadResult Replaced with File()
+- Legacy `ExportXml` used `XmlDownloadResult` (custom `ActionResult` from `Nop.Web.Framework`) to return XML as a file download
+- `XmlDownloadResult` was deferred in [5.1] Nop.Web.Framework
+- New code uses `File(bytes, "application/xml", "language_pack.xml")` — built-in ASP.NET Core `FileContentResult`
+- No custom action result needed — `Controller.File()` handles content disposition and MIME type natively
+
+### IFormFile Replaces FormCollection + Request.Files
+- Legacy `ImportXml` used `Request.Files["importxmlfile"]` (ASP.NET MVC 5 `HttpFileCollectionBase`)
+- New code uses `IFormFile? importxmlfile` parameter — standard ASP.NET Core model binding for file uploads
+- `StreamReader` with `UTF8` encoding preserved for XML content reading
+
+### Store Mapping Deferred (Consistent Pattern)
+- Legacy LanguageController had full store mapping management: `PrepareStoresMappingModel`, `SaveStoreMappings`, `SelectedStoreIds`, `AvailableStores`
+- New code defers store mapping — consistent with ALL other admin controllers (Product [5.31], Category [5.32], Manufacturer [5.33], Blog [5.44], News [5.45], Topic [5.48])
+- `Language.LimitedToStores` property exists on the entity but is not managed by the admin controller yet
+- When store mapping management is needed, it should be added as a cross-cutting feature across all admin controllers that support `IStoreMappingSupported` entities
+
+### Resource Grid Uses In-Memory Paging
+- Legacy `Resources` action used `GetAllResourceValues(languageId)` which returns a cached dictionary, then applied `PagedForCommand` (Kendo UI helper) for paging
+- New code preserves this pattern: loads all resources from cached dictionary, applies name/value search filters, then `Skip/Take` for paging
+- Acceptable for resource volumes (typically 2000-5000 resources per language)
+- If performance becomes an issue, `ILocalizationService` should add a paged query method
+
+### Impact on Future Items
+- [5.50] Admin CurrencyController: next directory admin controller — follows same simple CRUD pattern
+- [5.51] Admin CountryController: same pattern with state province sub-entity management
+- Store mapping management: when added as cross-cutting feature, LanguageController should be updated along with all other admin controllers

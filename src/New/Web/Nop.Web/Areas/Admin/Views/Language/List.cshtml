@@ -1,0 +1,49 @@
+@{ ViewData["Title"] = "Languages"; }
+
+<h1>Languages</h1>
+
+<p><a asp-action="Create">Add new</a></p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Language culture</th>
+            <th>Unique SEO code</th>
+            <th>Published</th>
+            <th>Display order</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="languages-tbody"></tbody>
+</table>
+
+@section Scripts {
+<script>
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+
+    document.addEventListener('DOMContentLoaded', loadLanguages);
+
+    function loadLanguages() {
+        fetch('@Url.Action("LanguageList", "Language", new { area = "Admin" })', { method: 'POST', headers: headers })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('languages-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (l) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (l.Name || '') + '</td>'
+                        + '<td>' + (l.LanguageCulture || '') + '</td>'
+                        + '<td>' + (l.UniqueSeoCode || '') + '</td>'
+                        + '<td>' + (l.Published ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + l.DisplayOrder + '</td>'
+                        + '<td><a href="@Url.Action("Edit", "Language", new { area = "Admin" })/' + l.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
+</script>
+}

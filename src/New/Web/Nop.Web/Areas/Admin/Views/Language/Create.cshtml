@@ -1,0 +1,44 @@
+@model Nop.Web.Areas.Admin.Models.Localization.LanguageModel
+@{ ViewData["Title"] = "Add a new language"; }
+
+<h1>Add a new language</h1>
+
+<form asp-action="Create" method="post">
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="LanguageCulture">Language culture</label>
+        <input asp-for="LanguageCulture" />
+    </div>
+    <div>
+        <label asp-for="UniqueSeoCode">Unique SEO code</label>
+        <input asp-for="UniqueSeoCode" />
+    </div>
+    <div>
+        <label asp-for="FlagImageFileName">Flag image file name</label>
+        <input asp-for="FlagImageFileName" />
+    </div>
+    <div>
+        <label asp-for="Rtl">Right-to-left</label>
+        <input asp-for="Rtl" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DefaultCurrencyId">Default currency</label>
+        <select asp-for="DefaultCurrencyId" asp-items="Model.AvailableCurrencies"></select>
+    </div>
+    <div>
+        <label asp-for="Published">Published</label>
+        <input asp-for="Published" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DisplayOrder">Display order</label>
+        <input asp-for="DisplayOrder" type="number" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>

@@ -1,0 +1,199 @@
+@model Nop.Web.Areas.Admin.Models.Localization.LanguageModel
+@{ ViewData["Title"] = "Edit language"; }
+
+<h1>Edit language</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="LanguageCulture">Language culture</label>
+        <input asp-for="LanguageCulture" />
+    </div>
+    <div>
+        <label asp-for="UniqueSeoCode">Unique SEO code</label>
+        <input asp-for="UniqueSeoCode" />
+    </div>
+    <div>
+        <label asp-for="FlagImageFileName">Flag image file name</label>
+        <input asp-for="FlagImageFileName" />
+    </div>
+    <div>
+        <label asp-for="Rtl">Right-to-left</label>
+        <input asp-for="Rtl" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DefaultCurrencyId">Default currency</label>
+        <select asp-for="DefaultCurrencyId" asp-items="Model.AvailableCurrencies"></select>
+    </div>
+    <div>
+        <label asp-for="Published">Published</label>
+        <input asp-for="Published" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DisplayOrder">Display order</label>
+        <input asp-for="DisplayOrder" type="number" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post" onsubmit="return confirm('Are you sure?');">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit">Delete</button>
+</form>
+
+<hr />
+
+@* Export / Import XML *@
+<h2>Export / Import</h2>
+<div>
+    <a href="@Url.Action("ExportXml", "Language", new { id = Model.Id, area = "Admin" })">Export to XML</a>
+</div>
+<div>
+    <form asp-action="ImportXml" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data">
+        <label>Import from XML:</label>
+        <input type="file" name="importxmlfile" accept=".xml" />
+        <button type="submit">Import</button>
+    </form>
+</div>
+
+<hr />
+
+@* String resources grid *@
+<h2>String resources</h2>
+
+<div>
+    <label>Resource name:</label>
+    <input type="text" id="search-resource-name" />
+    <label>Resource value:</label>
+    <input type="text" id="search-resource-value" />
+    <button type="button" onclick="loadResources()">Search</button>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Value</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="resources-tbody"></tbody>
+</table>
+
+<div id="resources-pager"></div>
+
+<h3>Add resource</h3>
+<div>
+    <label>Name</label>
+    <input type="text" id="new-resource-name" />
+    <label>Value</label>
+    <input type="text" id="new-resource-value" />
+    <button type="button" onclick="addResource()">Add</button>
+</div>
+
+@section Scripts {
+<script>
+    const languageId = @Model.Id;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+    let currentPage = 1;
+    const pageSize = 20;
+
+    document.addEventListener('DOMContentLoaded', loadResources);
+
+    function loadResources(page) {
+        currentPage = page || 1;
+        const searchName = document.getElementById('search-resource-name').value;
+        const searchValue = document.getElementById('search-resource-value').value;
+
+        const data = new URLSearchParams();
+        data.append('languageId', languageId);
+        data.append('Page', currentPage);
+        data.append('PageSize', pageSize);
+        data.append('searchResourceName', searchName);
+        data.append('searchResourceValue', searchValue);
+
+        fetch('@Url.Action("Resources", "Language", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('resources-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (r) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td><input type="text" value="' + escapeHtml(r.Name || '') + '" data-id="' + r.Id + '" class="res-name" /></td>'
+                        + '<td><input type="text" value="' + escapeHtml(r.Value || '') + '" data-id="' + r.Id + '" class="res-value" style="width:400px" /></td>'
+                        + '<td><button onclick="updateResource(' + r.Id + ', this)">Update</button>'
+                        + ' <button onclick="deleteResource(' + r.Id + ')">Delete</button></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            // pager
+            const totalPages = Math.ceil((result.Total || 0) / pageSize);
+            const pager = document.getElementById('resources-pager');
+            pager.innerHTML = 'Page ' + currentPage + ' of ' + totalPages + ' (' + (result.Total || 0) + ' resources) ';
+            if (currentPage > 1) pager.innerHTML += '<button onclick="loadResources(' + (currentPage - 1) + ')">Prev</button> ';
+            if (currentPage < totalPages) pager.innerHTML += '<button onclick="loadResources(' + (currentPage + 1) + ')">Next</button>';
+        });
+    }
+
+    function addResource() {
+        const name = document.getElementById('new-resource-name').value;
+        const value = document.getElementById('new-resource-value').value;
+        const data = new URLSearchParams();
+        data.append('languageId', languageId);
+        data.append('Name', name);
+        data.append('Value', value);
+
+        fetch('@Url.Action("ResourceAdd", "Language", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            if (result.Errors) { alert(typeof result.Errors === 'string' ? result.Errors : JSON.stringify(result.Errors)); return; }
+            document.getElementById('new-resource-name').value = '';
+            document.getElementById('new-resource-value').value = '';
+            loadResources(currentPage);
+        });
+    }
+
+    function updateResource(id, btn) {
+        const row = btn.closest('tr');
+        const name = row.querySelector('.res-name').value;
+        const value = row.querySelector('.res-value').value;
+        const data = new URLSearchParams();
+        data.append('Id', id);
+        data.append('LanguageId', languageId);
+        data.append('Name', name);
+        data.append('Value', value);
+
+        fetch('@Url.Action("ResourceUpdate", "Language", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            if (result.Errors) { alert(typeof result.Errors === 'string' ? result.Errors : JSON.stringify(result.Errors)); return; }
+            loadResources(currentPage);
+        });
+    }
+
+    function deleteResource(id) {
+        if (!confirm('Delete this resource?')) return;
+        const data = new URLSearchParams();
+        data.append('id', id);
+
+        fetch('@Url.Action("ResourceDelete", "Language", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => loadResources(currentPage));
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML.replace(/"/g, '&quot;');
+    }
+</script>
+}
