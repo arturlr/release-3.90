@@ -2441,3 +2441,25 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.47] Admin PollController: can now use `IPollService` with the new methods for poll CRUD + answer management
 - [5.26] Shared views: PollBlock and HomePagePolls should become ViewComponents when shared layout is built
+
+## 2026-04-10 — [5.15] Public NewsletterController / Implementation
+
+### Simple Controller — No Surprises
+- NewsletterController is the simplest public controller: 3 actions, 2 view models, 2 views
+- All required services (`INewsLetterSubscriptionService`, `IWorkflowMessageService`, `ILocalizationService`, `IWorkContext`, `IStoreContext`, `CustomerSettings`) already existed — no new service methods needed
+- No model factory — inline model construction matching established pattern ([5.6], [5.10], [5.11], [5.13], [5.14])
+
+### No Anti-Forgery Token on SubscribeNewsletter
+- Legacy `SubscribeNewsletter` did NOT use `[ValidateAntiForgeryToken]` — the AJAX POST from the newsletter box partial view didn't include anti-forgery tokens
+- New code preserves this behavior — the newsletter box is a partial view that may be rendered outside of a `<form>` tag (e.g., in footer), making anti-forgery token injection unreliable
+- Trade-off: slightly less CSRF protection on newsletter subscribe, but the action only creates/activates newsletter subscriptions (low-risk operation)
+- If anti-forgery is needed later, the view's fetch call must include the token from a hidden field or meta tag
+
+### NewsletterBox — Regular Action, Not ViewComponent
+- Legacy `NewsletterBox` was `[ChildActionOnly]` rendered via `@Html.Action("NewsletterBox", "Newsletter")` in the footer
+- New code provides it as a regular action returning `PartialView` — can be invoked via `@await Html.PartialAsync()` or converted to a ViewComponent when [5.26] Shared views is built
+- ViewComponent conversion deferred to [5.26] — consistent with PollBlock, HomepageCategories, etc.
+
+### Impact on Future Items
+- [5.26] Shared views: NewsletterBox should become a ViewComponent invoked from the shared footer layout
+- [5.57] Admin NewsLetterSubscriptionController: can now reference the same `INewsLetterSubscriptionService` patterns

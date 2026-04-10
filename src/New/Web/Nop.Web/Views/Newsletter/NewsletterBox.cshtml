@@ -1,0 +1,82 @@
+@model Nop.Web.Models.Newsletter.NewsletterBoxModel
+<div class="newsletter">
+    <div class="title">
+        <strong>Newsletter</strong>
+    </div>
+    <div class="newsletter-subscribe" id="newsletter-subscribe-block">
+        <div class="newsletter-email">
+            <input type="email" id="newsletter-email" class="newsletter-subscribe-text" placeholder="Enter your email here..." />
+            <button type="button" id="newsletter-subscribe-button" class="button-1 newsletter-subscribe-button">
+                @(Model.AllowToUnsubscribe ? "Send" : "Subscribe")
+            </button>
+            @if (Model.AllowToUnsubscribe)
+            {
+                <div class="options">
+                    <span class="subscribe">
+                        <input id="newsletter_subscribe" type="radio" value="true" name="newsletter_block" checked="checked" />
+                        <label for="newsletter_subscribe">Subscribe</label>
+                    </span>
+                    <span class="unsubscribe">
+                        <input id="newsletter_unsubscribe" type="radio" value="false" name="newsletter_block" />
+                        <label for="newsletter_unsubscribe">Unsubscribe</label>
+                    </span>
+                </div>
+            }
+        </div>
+        <div class="newsletter-validation">
+            <span id="subscribe-loading-progress" style="display: none;" class="please-wait">Please wait...</span>
+        </div>
+    </div>
+    <div class="newsletter-result" id="newsletter-result-block"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var btn = document.getElementById('newsletter-subscribe-button');
+            var emailInput = document.getElementById('newsletter-email');
+
+            function newsletterSubscribe(subscribe) {
+                var progress = document.getElementById('subscribe-loading-progress');
+                progress.style.display = '';
+                fetch('@Url.Action("SubscribeNewsletter", "Newsletter")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'email=' + encodeURIComponent(emailInput.value) + '&subscribe=' + subscribe
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    progress.style.display = 'none';
+                    var resultBlock = document.getElementById('newsletter-result-block');
+                    resultBlock.textContent = data.Result;
+                    if (data.Success) {
+                        document.getElementById('newsletter-subscribe-block').style.display = 'none';
+                        resultBlock.style.display = '';
+                    } else {
+                        resultBlock.style.display = '';
+                        setTimeout(function () { resultBlock.style.display = 'none'; }, 3000);
+                    }
+                })
+                .catch(function () {
+                    progress.style.display = 'none';
+                    alert('Failed to subscribe.');
+                });
+            }
+
+            btn.addEventListener('click', function () {
+                @if (Model.AllowToUnsubscribe)
+                {
+                    <text>
+                    var checked = document.querySelector('input[name="newsletter_block"]:checked');
+                    newsletterSubscribe(checked ? checked.value : 'true');
+                    </text>
+                }
+                else
+                {
+                    <text>newsletterSubscribe('true');</text>
+                }
+            });
+
+            emailInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { btn.click(); e.preventDefault(); }
+            });
+        });
+    </script>
+</div>

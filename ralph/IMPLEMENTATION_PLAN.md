@@ -384,10 +384,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.12
   - Done: 2026-04-10. PollController with 3 actions: PollBlock (by systemKeyword), Vote (POST AJAX with anti-forgery), HomePagePolls (homepage polls list). Added GetPollAnswersByPollIdAsync, UpdatePollAnswerAsync, InsertPollVotingRecordAsync to IPollService/PollService (replaces nav property access). PollModel/PollAnswerModel view models. 3 Razor views (_Poll.cshtml, PollBlock.cshtml, HomePagePolls.cshtml). Vote returns JSON data (client-side DOM update) instead of rendered HTML (legacy RenderPartialViewToString). Vanilla JS fetch replaces jQuery AJAX. No model factory — inline model construction. No caching (legacy cached via ModelCacheEventConsumer — deferred). PollBlock and HomePagePolls are regular actions (ViewComponent conversion deferred to [5.26]).
 
-- [ ] [5.15] Public: NewsletterController + Newsletter views
+- [x] [5.15] Public: NewsletterController + Newsletter views
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/NewsletterController, Views/Newsletter
   - Depends on: 5.1, 4.2
+  - Done: 2026-04-10. NewsletterController with 3 actions: NewsletterBox (sync, returns PartialView with AllowToUnsubscribe from CustomerSettings), SubscribeNewsletter (async POST AJAX, returns JSON with Success/Result), SubscriptionActivation (async GET with Guid token, activates or deletes subscription). 2 view models (NewsletterBoxModel, SubscriptionActivationModel). 2 Razor views (NewsletterBox.cshtml with vanilla JS fetch replacing jQuery AJAX, SubscriptionActivation.cshtml). No model factory — inline construction. No anti-forgery on SubscribeNewsletter (matching legacy). NewsletterBox is a regular action (ViewComponent conversion deferred to [5.26]).
 
 - [ ] [5.16] Public: ReturnRequestController + ReturnRequest views
   - Spec: specs/nop-web-public.md
