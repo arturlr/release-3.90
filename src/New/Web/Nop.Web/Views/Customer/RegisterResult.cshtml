@@ -1,9 +1,7 @@
 @model Nop.Web.Models.Customer.RegisterResultModel
-@{ Layout = null; }
-<!DOCTYPE html>
-<html>
-<head><title>Registration Result</title></head>
-<body>
+@{
+    ViewData["Title"] = "Registration Result";
+}
 <h1>Registration</h1>
 <p>@Model.Result</p>
 @if (!string.IsNullOrEmpty(Model.ReturnUrl))
@@ -17,5 +15,3 @@ else
 {
     <a asp-controller="Home" asp-action="Index">Continue</a>
 }
-</body>
-</html>

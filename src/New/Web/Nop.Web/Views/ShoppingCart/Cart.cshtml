@@ -1,11 +1,8 @@
 @model Nop.Web.Models.ShoppingCart.ShoppingCartModel
 @{
-    Layout = null;
+    ViewData["Title"] = "Shopping Cart";
 }
-<!DOCTYPE html>
-<html>
-<head><title>Shopping Cart</title></head>
-<body>
+
 <h1>Shopping Cart</h1>
 
 @if (Model.Warnings.Count != 0)
@@ -140,5 +137,3 @@ else
         }
     </div>
 }
-</body>
-</html>

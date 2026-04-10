@@ -1,9 +1,7 @@
 @model Nop.Web.Models.Customer.CustomerAddressEditModel
-@{ Layout = null; }
-<!DOCTYPE html>
-<html>
-<head><title>Address</title></head>
-<body>
+@{
+    ViewData["Title"] = "Address";
+}
 <h1>Address</h1>
 <div asp-validation-summary="ModelOnly"></div>
 <form method="post">
@@ -19,5 +17,3 @@
     <button type="submit">Save</button>
 </form>
 <a asp-action="Addresses">Back to addresses</a>
-</body>
-</html>

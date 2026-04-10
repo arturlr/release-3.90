@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - nopCommerce</title>
+</head>
+<body>
+    <div class="master-wrapper-page">
+        <div class="header">
+            @* Header links (login/register/cart) — CommonController [5.3] *@
+            @* Top menu — CatalogController ViewComponent *@
+        </div>
+        <div class="master-wrapper-content">
+            @if (IsSectionDefined("Breadcrumb"))
+            {
+                @RenderSection("Breadcrumb", required: false)
+            }
+            <div class="master-column-wrapper">
+                @RenderBody()
+            </div>
+        </div>
+        <div class="footer">
+            @* Footer — CommonController [5.3] *@
+        </div>
+    </div>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

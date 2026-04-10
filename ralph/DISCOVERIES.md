@@ -2633,3 +2633,43 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.35] Admin CustomerController: BackInStockSubscriptions tab on customer detail page can now use `IBackInStockSubscriptionService.GetAllSubscriptionsByCustomerIdAsync`
 - [5.31] Admin ProductController: stock update can trigger `SendNotificationsToSubscribersAsync` when product comes back in stock
+
+## 2026-04-10 — [5.26] Public: Shared Views / Implementation
+
+### Legacy Layout Chain Simplified
+- Legacy used a 3-level layout chain: `_Root.Head.cshtml` (HTML5 shell with service locator calls for scripts/CSS/meta) → `_Root.cshtml` (header/footer/notifications/widget zones) → `_ColumnsOne.cshtml` or `_ColumnsTwo.cshtml` (content column layout with sidebar)
+- New code uses a single `_Layout.cshtml` — minimal HTML5 shell with header/body/footer placeholders and `Breadcrumb` + `Scripts` sections
+- Service locator calls (`EngineContext.Current.Resolve<T>()`) in legacy `_Root.Head.cshtml` for `StoreInformationSettings`, `IPermissionService`, `CommonSettings`, `SeoSettings` are eliminated — new layout has no service dependencies
+- `IPageHeadBuilder` (legacy `Html.NopTitle()`, `Html.NopMetaDescription()`, `Html.NopMetaKeywords()`, `Html.NopCssFiles()`, `Html.NopScripts()`, `Html.NopCanonicalUrls()`) deferred — will be added when SEO metadata infrastructure is built
+
+### 56 Existing Views Updated
+- All 56 non-error, non-partial views had `Layout = null` removed to use the shared layout via `_ViewStart.cshtml`
+- Two patterns found:
+  1. **19 views** with full HTML wrappers (`<!DOCTYPE html><html><head>...</head><body>...</body></html>`) — stripped to content-only, `<title>` converted to `ViewData["Title"]`
+  2. **37 views** with `Layout = null;` inside multi-line `@{ }` blocks — just the `Layout = null;` line removed
+- 13 views had empty `@{ }` blocks after removal — cleaned up
+- `Error.cshtml` and `PageNotFound.cshtml` kept standalone (`Layout = null` preserved) — they need to render without any layout dependency in case the layout itself fails
+
+### _ViewImports Tag Helper Registration
+- `@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers` enables all built-in tag helpers (`asp-action`, `asp-for`, `asp-route`, `asp-validation-summary`, etc.)
+- 44 existing views already use tag helpers (194 total usages) — they were non-functional without `_ViewImports.cshtml` since tag helpers weren't registered
+- Common namespaces added: `Nop.Web`, `Nop.Web.Models`, `Nop.Web.Framework.Mvc` — reduces need for fully-qualified model names in future views (existing views already use FQN)
+
+### Admin Area Shared Views
+- Admin `_ViewImports.cshtml` registers tag helpers + `Nop.Web.Framework.Mvc` namespace
+- Admin `_ViewStart.cshtml` sets `_AdminLayout` as default layout
+- `_AdminLayout.cshtml` is a minimal shell — admin navigation menu deferred to [5.81]
+- Admin `Home/Index.cshtml` had `Layout = null` removed — now uses `_AdminLayout` via `_ViewStart`
+
+### _Pager Shared Partial Not Created
+- 8 views have inline pager code (Profile/_Posts, BackInStockSubscription/CustomerSubscriptions, Boards/Forum, Boards/Topic, Boards/ActiveDiscussions, Boards/Search, plus others)
+- Each uses slightly different paging patterns (some use `TotalPages`/`PageIndex`, others compute from `TotalRecords`/`PageSize`)
+- Decision: keep inline paging for now — a shared `_Pager.cshtml` partial would require standardizing the paging model interface across all view models
+- Can be extracted when a `IPagingModel` interface or `PagerTagHelper` is built
+
+### Impact on Future Items
+- [5.3] CommonController: header/footer content should be rendered in `_Layout.cshtml` via ViewComponents or partial views
+- [5.81] Admin Shared views: admin navigation menu should be rendered in `_AdminLayout.cshtml`
+- All future views automatically get the shared layout — no need to set `Layout` explicitly
+- Views that need standalone rendering (popups, print views) should set `Layout = null` explicitly
+- `IPageHeadBuilder` implementation should integrate with `_Layout.cshtml` `<head>` section for meta tags, CSS, and JS

@@ -1,9 +1,7 @@
 @model Nop.Web.Models.Customer.CustomerAvatarModel
-@{ Layout = null; }
-<!DOCTYPE html>
-<html>
-<head><title>Avatar</title></head>
-<body>
+@{
+    ViewData["Title"] = "Avatar";
+}
 <h1>Avatar</h1>
 @if (!string.IsNullOrEmpty(Model.AvatarUrl))
 {
@@ -17,5 +15,3 @@
 <form asp-action="RemoveAvatar" method="post">
     <button type="submit">Remove Avatar</button>
 </form>
-</body>
-</html>

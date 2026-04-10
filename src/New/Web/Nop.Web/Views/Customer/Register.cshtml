@@ -1,9 +1,7 @@
 @model Nop.Web.Models.Customer.RegisterModel
-@{ Layout = null; }
-<!DOCTYPE html>
-<html>
-<head><title>Register</title></head>
-<body>
+@{
+    ViewData["Title"] = "Register";
+}
 <h1>Register</h1>
 <div asp-validation-summary="ModelOnly"></div>
 <form asp-action="Register" method="post">
@@ -62,5 +60,3 @@
     <button type="submit">Register</button>
 </form>
 <p><a asp-action="Login">Back to login</a></p>
-</body>
-</html>

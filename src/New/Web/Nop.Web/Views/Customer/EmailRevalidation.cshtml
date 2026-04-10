@@ -1,11 +1,7 @@
 @model Nop.Web.Models.Customer.EmailRevalidationModel
-@{ Layout = null; }
-<!DOCTYPE html>
-<html>
-<head><title>Email Revalidation</title></head>
-<body>
+@{
+    ViewData["Title"] = "Email Revalidation";
+}
 <h1>Email Revalidation</h1>
 <p>@Model.Result</p>
 <a asp-controller="Home" asp-action="Index">Continue</a>
-</body>
-</html>

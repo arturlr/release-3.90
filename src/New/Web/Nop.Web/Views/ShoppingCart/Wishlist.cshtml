@@ -1,11 +1,8 @@
 @model Nop.Web.Models.ShoppingCart.WishlistModel
 @{
-    Layout = null;
+    ViewData["Title"] = "Wishlist";
 }
-<!DOCTYPE html>
-<html>
-<head><title>Wishlist</title></head>
-<body>
+
 <h1>Wishlist</h1>
 
 @if (!string.IsNullOrEmpty(Model.CustomerFullname))
@@ -104,5 +101,3 @@ else
         <a href="@Url.Action("EmailWishlist")">Email a friend</a>
     }
 }
-</body>
-</html>

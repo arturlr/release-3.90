@@ -1,9 +1,7 @@
 @model Nop.Web.Models.Customer.LoginModel
-@{ Layout = null; }
-<!DOCTYPE html>
-<html>
-<head><title>Login</title></head>
-<body>
+@{
+    ViewData["Title"] = "Login";
+}
 <h1>Login</h1>
 <div asp-validation-summary="ModelOnly"></div>
 <form asp-action="Login" asp-route-returnUrl="@Context.Request.Query["returnUrl"]" method="post">
@@ -33,5 +31,3 @@
 </form>
 <p><a asp-action="PasswordRecovery">Forgot password?</a></p>
 <p><a asp-action="Register">Register</a></p>
-</body>
-</html>

@@ -1,22 +1,7 @@
 @model Nop.Web.Models.Catalog.ProductDetailsModel
 @{
-    Layout = null;
     ViewData["Title"] = Model.MetaTitle ?? Model.Name;
 }
-<!DOCTYPE html>
-<html>
-<head>
-    <title>@(Model.MetaTitle ?? Model.Name)</title>
-    @if (!string.IsNullOrEmpty(Model.MetaDescription))
-    {
-        <meta name="description" content="@Model.MetaDescription" />
-    }
-    @if (!string.IsNullOrEmpty(Model.MetaKeywords))
-    {
-        <meta name="keywords" content="@Model.MetaKeywords" />
-    }
-</head>
-<body>
     @if (Model.DisplayEditLink && !string.IsNullOrEmpty(Model.EditLink))
     {
         <div class="admin-edit-link">
@@ -83,5 +68,3 @@
             </div>
         }
     </div>
-</body>
-</html>

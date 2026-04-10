@@ -447,10 +447,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Controllers/InstallController, Views/Install
   - Depends on: 4.11
 
-- [ ] [5.26] Public: Shared views (layout, partial views, _ViewImports)
+- [x] [5.26] Public: Shared views (layout, partial views, _ViewImports)
   - Spec: specs/nop-web-public.md
   - Scope: Views/Shared
   - Depends on: 5.1
+  - Done: 2026-04-10. Created 6 shared view files: _ViewImports.cshtml (public: tag helpers + Nop.Web/Nop.Web.Models/Nop.Web.Framework.Mvc namespaces), _ViewStart.cshtml (public: default _Layout), _Layout.cshtml (minimal HTML5 shell with header/body/footer, Breadcrumb + Scripts sections), admin _ViewImports.cshtml (tag helpers + Nop.Web.Framework.Mvc), admin _ViewStart.cshtml (default _AdminLayout), _AdminLayout.cshtml (minimal admin shell with Scripts section). Updated 56 existing views: removed Layout = null, stripped DOCTYPE/html/head/body wrappers from 19 views, removed Layout = null line from 37 multi-line blocks, cleaned 13 empty @{ } blocks. Added ViewData["Title"] to Home/Index.cshtml. Removed Layout = null from admin Home/Index.cshtml. Error.cshtml and PageNotFound.cshtml kept standalone (Layout = null preserved). Deferred: IPageHeadBuilder (meta tags), theme engine, _Pager shared partial (inline paging already in views), ViewComponents for sidebar/footer content.
 
 - [ ] [5.27] Public: KeepAliveController → health check endpoint
   - Spec: specs/xcut-observability.md

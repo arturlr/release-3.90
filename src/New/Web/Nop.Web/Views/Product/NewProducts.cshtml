@@ -1,14 +1,7 @@
 @model List<Nop.Web.Models.Catalog.ProductOverviewModel>
 @{
-    Layout = null;
     ViewData["Title"] = "New Products";
 }
-<!DOCTYPE html>
-<html>
-<head>
-    <title>New Products</title>
-</head>
-<body>
     <div class="new-products-page">
         <h1>New Products</h1>
         @if (Model.Count == 0)
@@ -25,5 +18,3 @@
             </div>
         }
     </div>
-</body>
-</html>
