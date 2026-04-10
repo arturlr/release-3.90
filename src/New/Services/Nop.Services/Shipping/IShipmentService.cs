@@ -39,5 +39,7 @@ public interface IShipmentService
 
     Task<IList<ShipmentItem>> GetShipmentItemsByShipmentIdAsync(int shipmentId);
 
+    Task<IList<Shipment>> GetShipmentsByOrderIdAsync(int orderId);
+
     Task<int> GetQuantityInShipmentsAsync(Product product, int warehouseId, bool ignoreShipped, bool ignoreDelivered);
 }

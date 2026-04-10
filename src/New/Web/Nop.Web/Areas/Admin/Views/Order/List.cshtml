@@ -1,0 +1,143 @@
+@model Nop.Web.Areas.Admin.Models.Orders.OrderListModel
+@{ ViewData["Title"] = "Orders"; }
+
+<h1>Orders</h1>
+
+<form asp-action="List" method="get">
+    <div>
+        <label>Start date</label>
+        <input asp-for="StartDate" type="date" />
+    </div>
+    <div>
+        <label>End date</label>
+        <input asp-for="EndDate" type="date" />
+    </div>
+    <div>
+        <label>Order status</label>
+        <select asp-for="OrderStatusIds" asp-items="Model.AvailableOrderStatuses" multiple></select>
+    </div>
+    <div>
+        <label>Payment status</label>
+        <select asp-for="PaymentStatusIds" asp-items="Model.AvailablePaymentStatuses" multiple></select>
+    </div>
+    <div>
+        <label>Shipping status</label>
+        <select asp-for="ShippingStatusIds" asp-items="Model.AvailableShippingStatuses" multiple></select>
+    </div>
+    @if (!Model.IsLoggedInAsVendor)
+    {
+        <div>
+            <label>Store</label>
+            <select asp-for="StoreId" asp-items="Model.AvailableStores"></select>
+        </div>
+        <div>
+            <label>Vendor</label>
+            <select asp-for="VendorId" asp-items="Model.AvailableVendors"></select>
+        </div>
+    }
+    <div>
+        <label>Billing country</label>
+        <select asp-for="BillingCountryId" asp-items="Model.AvailableCountries"></select>
+    </div>
+    <div>
+        <label>Billing email</label>
+        <input asp-for="BillingEmail" />
+    </div>
+    <div>
+        <label>Billing last name</label>
+        <input asp-for="BillingLastName" />
+    </div>
+    <div>
+        <label>Order notes</label>
+        <input asp-for="OrderNotes" />
+    </div>
+    <button type="submit" id="search-orders">Search</button>
+</form>
+
+<form asp-action="GoToOrderNumber" method="post">
+    <input asp-for="GoDirectlyToNumber" placeholder="Go directly to order number" />
+    <button type="submit">Go</button>
+</form>
+
+@* Order grid — populated via AJAX POST to OrderList *@
+<div id="orders-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Order #</th>
+                <th>Order Status</th>
+                <th>Payment Status</th>
+                <th>Shipping Status</th>
+                <th>Customer</th>
+                <th>Store</th>
+                <th>Order Total</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="orders-tbody"></tbody>
+    </table>
+    <div id="orders-pager"></div>
+</div>
+
+<form asp-action="ExportExcelAll" method="post">
+    <input type="hidden" asp-for="StartDate" />
+    <input type="hidden" asp-for="EndDate" />
+    <input type="hidden" asp-for="OrderStatusIds" />
+    <input type="hidden" asp-for="PaymentStatusIds" />
+    <input type="hidden" asp-for="ShippingStatusIds" />
+    <input type="hidden" asp-for="StoreId" />
+    <input type="hidden" asp-for="VendorId" />
+    <input type="hidden" asp-for="BillingCountryId" />
+    <input type="hidden" asp-for="BillingEmail" />
+    <input type="hidden" asp-for="BillingLastName" />
+    <input type="hidden" asp-for="OrderNotes" />
+    <button type="submit">Export to Excel (all found)</button>
+</form>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadOrders(1, 15);
+    });
+
+    document.getElementById('search-orders')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        loadOrders(1, 15);
+    });
+
+    function loadOrders(page, pageSize) {
+        const form = document.querySelector('form[action*="List"]');
+        const data = new URLSearchParams(new FormData(form));
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("OrderList", "Order", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('orders-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (o) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (o.CustomOrderNumber || o.Id) + '</td>'
+                        + '<td>' + (o.OrderStatus || '') + '</td>'
+                        + '<td>' + (o.PaymentStatus || '') + '</td>'
+                        + '<td>' + (o.ShippingStatus || '') + '</td>'
+                        + '<td>' + (o.CustomerEmail || '') + '</td>'
+                        + '<td>' + (o.StoreName || '') + '</td>'
+                        + '<td>' + o.OrderTotal.toFixed(2) + '</td>'
+                        + '<td>' + new Date(o.CreatedOn).toLocaleDateString() + '</td>'
+                        + '<td><a href="/Admin/Order/Edit/' + o.Id + '">View</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('orders-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}

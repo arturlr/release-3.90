@@ -220,6 +220,15 @@ public class ShipmentService : IShipmentService
         return Task.FromResult<IList<ShipmentItem>>(items);
     }
 
+    public Task<IList<Shipment>> GetShipmentsByOrderIdAsync(int orderId)
+    {
+        var shipments = _shipmentRepository.TableNoTracking
+            .Where(s => s.OrderId == orderId)
+            .OrderByDescending(s => s.CreatedOnUtc)
+            .ToList();
+        return Task.FromResult<IList<Shipment>>(shipments);
+    }
+
     public Task<int> GetQuantityInShipmentsAsync(Product product, int warehouseId, bool ignoreShipped, bool ignoreDelivered)
     {
         ArgumentNullException.ThrowIfNull(product);

@@ -1,0 +1,279 @@
+@model Nop.Web.Areas.Admin.Models.Orders.OrderModel
+@{ ViewData["Title"] = $"Order #{Model.CustomOrderNumber}"; }
+
+<h1>Order #@Model.CustomOrderNumber</h1>
+
+<div>
+    <h2>Order Info</h2>
+    <dl>
+        <dt>Order GUID</dt><dd>@Model.OrderGuid</dd>
+        <dt>Store</dt><dd>@Model.StoreName</dd>
+        <dt>Customer</dt><dd>@Model.CustomerEmail (ID: @Model.CustomerId)</dd>
+        <dt>Order Status</dt><dd>@Model.OrderStatusName</dd>
+        <dt>Payment Status</dt><dd>@Model.PaymentStatusName</dd>
+        <dt>Shipping Status</dt><dd>@Model.ShippingStatusName</dd>
+        <dt>Payment Method</dt><dd>@Model.PaymentMethod</dd>
+        <dt>Customer IP</dt><dd>@Model.CustomerIp</dd>
+        <dt>Created</dt><dd>@Model.CreatedOn.ToString("g")</dd>
+    </dl>
+</div>
+
+<div>
+    <h2>Billing Address</h2>
+    <p>@Model.BillingFirstName @Model.BillingLastName</p>
+    <p>@Model.BillingEmail</p>
+    <p>@Model.BillingPhone</p>
+    <p>@Model.BillingAddress1</p>
+    <p>@Model.BillingCity @Model.BillingZipPostalCode</p>
+    <p>@Model.BillingCountry</p>
+</div>
+
+@if (Model.IsShippable)
+{
+    <div>
+        <h2>Shipping Address</h2>
+        <p>@Model.ShippingFirstName @Model.ShippingLastName</p>
+        <p>@Model.ShippingPhone</p>
+        <p>@Model.ShippingAddress1</p>
+        <p>@Model.ShippingCity @Model.ShippingZipPostalCode</p>
+        <p>@Model.ShippingCountry</p>
+        <p>Shipping method: @Model.ShippingMethod</p>
+    </div>
+}
+
+<div>
+    <h2>Totals</h2>
+    <dl>
+        <dt>Subtotal (incl tax)</dt><dd>@Model.OrderSubtotalInclTax.ToString("C")</dd>
+        <dt>Subtotal (excl tax)</dt><dd>@Model.OrderSubtotalExclTax.ToString("C")</dd>
+        <dt>Shipping (incl tax)</dt><dd>@Model.OrderShippingInclTax.ToString("C")</dd>
+        <dt>Shipping (excl tax)</dt><dd>@Model.OrderShippingExclTax.ToString("C")</dd>
+        <dt>Tax</dt><dd>@Model.OrderTax.ToString("C")</dd>
+        <dt>Discount</dt><dd>@Model.OrderDiscount.ToString("C")</dd>
+        <dt>Order Total</dt><dd>@Model.OrderTotal.ToString("C")</dd>
+        <dt>Refunded</dt><dd>@Model.RefundedAmount.ToString("C")</dd>
+    </dl>
+</div>
+
+<div>
+    <h2>Order Items</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>SKU</th>
+                <th>Unit Price (incl tax)</th>
+                <th>Qty</th>
+                <th>Discount (incl tax)</th>
+                <th>Total (incl tax)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td><a href="/Admin/Product/Edit/@item.ProductId">@item.ProductName</a></td>
+                    <td>@item.Sku</td>
+                    <td>@item.UnitPriceInclTax.ToString("C")</td>
+                    <td>@item.Quantity</td>
+                    <td>@item.DiscountInclTax.ToString("C")</td>
+                    <td>@item.SubTotalInclTax.ToString("C")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@* Change order status *@
+<div>
+    <h2>Change Order Status</h2>
+    <form asp-action="ChangeOrderStatus" asp-route-id="@Model.Id" method="post">
+        <select name="orderStatusId" asp-items="Model.AvailableOrderStatuses"></select>
+        <button type="submit">Change status</button>
+    </form>
+</div>
+
+@* Payment operations *@
+<div>
+    <h2>Payment Operations</h2>
+    @if (Model.CanCancelOrder)
+    {
+        <form asp-action="CancelOrder" asp-route-id="@Model.Id" method="post" style="display:inline">
+            <button type="submit">Cancel order</button>
+        </form>
+    }
+    @if (Model.CanCapture)
+    {
+        <form asp-action="CaptureOrder" asp-route-id="@Model.Id" method="post" style="display:inline">
+            <button type="submit">Capture</button>
+        </form>
+    }
+    @if (Model.CanMarkOrderAsPaid)
+    {
+        <form asp-action="MarkOrderAsPaid" asp-route-id="@Model.Id" method="post" style="display:inline">
+            <button type="submit">Mark as paid</button>
+        </form>
+    }
+    @if (Model.CanRefund)
+    {
+        <form asp-action="RefundOrder" asp-route-id="@Model.Id" method="post" style="display:inline">
+            <button type="submit">Refund (online)</button>
+        </form>
+    }
+    @if (Model.CanRefundOffline)
+    {
+        <form asp-action="RefundOrderOffline" asp-route-id="@Model.Id" method="post" style="display:inline">
+            <button type="submit">Refund (offline)</button>
+        </form>
+    }
+    @if (Model.CanVoid)
+    {
+        <form asp-action="VoidOrder" asp-route-id="@Model.Id" method="post" style="display:inline">
+            <button type="submit">Void (online)</button>
+        </form>
+    }
+    @if (Model.CanVoidOffline)
+    {
+        <form asp-action="VoidOrderOffline" asp-route-id="@Model.Id" method="post" style="display:inline">
+            <button type="submit">Void (offline)</button>
+        </form>
+    }
+</div>
+
+@* Shipments grid — deferred: AddShipment, ShipmentDetails, SetAsShipped, SetAsDelivered *@
+@if (Model.IsShippable)
+{
+    <div>
+        <h2>Shipments</h2>
+        <div id="shipments-grid">
+            <table>
+                <thead><tr><th>ID</th><th>Tracking #</th><th>Shipped</th><th>Delivered</th></tr></thead>
+                <tbody id="shipments-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@* Order notes *@
+<div>
+    <h2>Order Notes</h2>
+    <div id="notes-grid">
+        <table>
+            <thead><tr><th>Note</th><th>Display to customer</th><th>Created</th><th></th></tr></thead>
+            <tbody id="notes-tbody"></tbody>
+        </table>
+    </div>
+    <div>
+        <textarea id="note-message" rows="3" placeholder="Add a note..."></textarea>
+        <label><input type="checkbox" id="note-display" /> Display to customer</label>
+        <button type="button" id="add-note-btn">Add note</button>
+    </div>
+</div>
+
+@* Delete order *@
+<div>
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+        <button type="submit" onclick="return confirm('Are you sure?')">Delete order</button>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        @if (Model.IsShippable)
+        {
+            <text>loadShipments();</text>
+        }
+        loadNotes();
+    });
+
+    @if (Model.IsShippable)
+    {
+        <text>
+        function loadShipments() {
+            const data = new URLSearchParams();
+            data.append('orderId', '@Model.Id');
+            data.append('Page', '1');
+            data.append('PageSize', '100');
+            fetch('@Url.Action("ShipmentsByOrder", "Order", new { area = "Admin" })', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+                body: data
+            })
+            .then(r => r.json())
+            .then(result => {
+                const tbody = document.getElementById('shipments-tbody');
+                tbody.innerHTML = '';
+                if (result.Data) {
+                    result.Data.forEach(function (s) {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = '<td>' + s.Id + '</td>'
+                            + '<td>' + (s.TrackingNumber || '-') + '</td>'
+                            + '<td>' + (s.ShippedDate ? new Date(s.ShippedDate).toLocaleDateString() : '-') + '</td>'
+                            + '<td>' + (s.DeliveryDate ? new Date(s.DeliveryDate).toLocaleDateString() : '-') + '</td>';
+                        tbody.appendChild(tr);
+                    });
+                }
+            });
+        }
+        </text>
+    }
+
+    function loadNotes() {
+        const data = new URLSearchParams();
+        data.append('orderId', '@Model.Id');
+        data.append('Page', '1');
+        data.append('PageSize', '100');
+        fetch('@Url.Action("OrderNotesSelect", "Order", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('notes-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (n) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (n.Note || '') + '</td>'
+                        + '<td>' + (n.DisplayToCustomer ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + new Date(n.CreatedOn).toLocaleString() + '</td>'
+                        + '<td><button type="button" onclick="deleteNote(' + n.Id + ')">Delete</button></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
+
+    document.getElementById('add-note-btn')?.addEventListener('click', function () {
+        const message = document.getElementById('note-message').value;
+        if (!message) return;
+        const displayToCustomer = document.getElementById('note-display').checked;
+        const data = new URLSearchParams();
+        data.append('orderId', '@Model.Id');
+        data.append('message', message);
+        data.append('displayToCustomer', displayToCustomer);
+        fetch('@Url.Action("OrderNoteAdd", "Order", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(() => { document.getElementById('note-message').value = ''; loadNotes(); });
+    });
+
+    function deleteNote(noteId) {
+        const data = new URLSearchParams();
+        data.append('id', noteId);
+        data.append('orderId', '@Model.Id');
+        fetch('@Url.Action("OrderNoteDelete", "Order", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(() => loadNotes());
+    }
+</script>
+}

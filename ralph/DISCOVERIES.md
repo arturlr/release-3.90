@@ -2790,3 +2790,40 @@ Performed exhaustive verification across all dimensions:
   - Store mapping: store assignment (uses IStoreMappingService)
   - Picture: manufacturer picture (uses IPictureService)
 - [5.34] Admin OrderController: next high-value admin controller to implement
+
+## 2026-04-10 — [5.34] Admin OrderController / Implementation
+
+### Scope Decision: Core CRUD + Payment Operations + Notes + Shipments Grid
+- Legacy admin OrderController has 80 actions across 4379 LOC covering: CRUD, payment operations, order item editing, address editing, shipment management, PDF invoices, reports (bestsellers, never sold, country, statistics, incomplete, average), product search autocomplete
+- This iteration implements core CRUD (List, OrderList AJAX grid, Edit, Delete, GoToOrderNumber, ExportExcelAll), payment operations (Cancel/Capture/MarkAsPaid/Refund/RefundOffline/Void/VoidOffline/ChangeOrderStatus), order notes (Select/Add/Delete), and shipments grid (ShipmentsByOrder)
+- Sub-entity management (edit items, add products, address editing, shipment creation/management, PDF, reports) deferred — each can be a separate iteration
+
+### GetShipmentsByOrderIdAsync Added to IShipmentService
+- Legacy accessed `order.Shipments` nav property (stripped in [1.3]) — no method existed to get shipments by order ID
+- Added `GetShipmentsByOrderIdAsync(int orderId)` to `IShipmentService`/`ShipmentService`
+- Queries `_shipmentRepository.TableNoTracking.Where(s => s.OrderId == orderId).OrderByDescending(s => s.CreatedOnUtc)`
+- Pattern consistent with `GetShipmentItemsByShipmentIdAsync`, `GetOrderItemsByOrderIdAsync`, `GetOrderNotesByOrderIdAsync`
+
+### Vendor Access Restriction on Edit Only
+- Legacy restricted vendor access on most actions — vendors could only see their own orders
+- New code restricts vendor access on Edit action only (redirects to List if `CurrentVendor is not null`)
+- Payment operations, delete, and notes don't check vendor — they require `ManageOrders` permission which vendors typically don't have
+- OrderList AJAX grid filters by vendor ID when logged in as vendor (same as ProductController pattern)
+
+### ChangeOrderStatus — Direct Status Update
+- Legacy `ChangeOrderStatus` set `order.OrderStatusId` then called `CheckOrderStatus` to trigger side effects (notifications, reward points, gift card activation)
+- New code preserves this pattern: `order.OrderStatusId = orderStatusId` → `UpdateOrderAsync` → `CheckOrderStatusAsync`
+- `CheckOrderStatusAsync` handles the cascade: if status changed to Complete/Cancelled, it triggers appropriate side effects
+
+### Impact on Future Items
+- Sub-entity management actions should be added as separate iterations or sub-items of [5.34]:
+  - Edit order items: EditOrderItem, DeleteOrderItem, ResetDownloadCount, ActivateDownloadItem, UploadLicenseFile
+  - Add products: AddProductToOrder, AddProductToOrderDetails
+  - Address editing: AddressEdit (billing/shipping)
+  - Shipment management: AddShipment, ShipmentDetails, DeleteShipment, SetTrackingNumber, SetAsShipped, SetAsDelivered, EditShippedDate, EditDeliveryDate, PdfPackagingSlip
+  - PDF invoices: PdfInvoice, PdfInvoiceAll, PdfInvoiceSelected
+  - Partial refund: PartiallyRefundOrderPopup
+  - Edit totals/shipping/credit card: EditOrderTotals, EditShippingMethod, EditCreditCardInfo
+  - Reports: BestsellersBriefReport, BestsellersReport, NeverSoldReport, OrderAverageReport, OrderIncompleteReport, CountryReport, OrderStatistics, LatestOrders
+- [5.35] Admin CustomerController: next high-value admin controller to implement
+- [5.59] Admin RecurringPaymentController: can now reference the same `IOrderProcessingService` patterns
