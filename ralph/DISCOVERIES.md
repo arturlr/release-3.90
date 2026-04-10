@@ -1889,3 +1889,58 @@ Performed exhaustive verification across all dimensions:
 - [5.3-5.28] Public controllers: conventional routing is now active — controllers just need to follow `{controller}/{action}` naming convention
 - [5.26] Shared views: `_Layout.cshtml` will be needed when views need a shared layout (currently Index.cshtml has no layout)
 - [5.30] Admin HomeController: will need area route registration: `app.MapControllerRoute("admin", "Admin/{controller=Home}/{action=Index}/{id?}")`
+
+## 2026-04-10 — [4.10] Export/Import Services / Implementation
+
+### EPPlus → ClosedXML 0.104.2
+- Legacy used EPPlus 4.x (LGPL licensed). EPPlus 5+ switched to commercial license (Polyform Noncommercial)
+- New code uses ClosedXML 0.104.2 — MIT licensed, actively maintained, similar API surface
+- ClosedXML uses `IXLWorkbook`/`IXLWorksheet` instead of EPPlus `ExcelPackage`/`ExcelWorksheet`
+- Cell access: `ws.Cell(row, col).Value = value` instead of `worksheet.Cells[row, col].Value = value`
+- Decimal values must be cast to `double` for ClosedXML cell assignment (ClosedXML doesn't support `decimal` directly)
+
+### PropertyManager<T>/PropertyByName<T> Pattern Dropped
+- Legacy used a complex `PropertyManager<T>` + `PropertyByName<T>` helper pattern for column mapping with dropdown lists, ignore flags, and caption detection
+- New code uses direct cell writes — simpler, more readable, no abstraction overhead
+- ClosedXML's API is clean enough that the helper pattern adds complexity without benefit
+- Trade-off: column order is hardcoded in the export methods. If column reordering is needed, can add a mapping layer later
+
+### Presentation-Layer Concerns Dropped
+- `ExportImportUseDropdownlistsForAssociatedEntities` (CatalogSettings) — dropdown validation lists in Excel are a presentation concern
+- Vendor filtering (`_workContext.CurrentVendor`) — admin controller should filter before calling export/import
+- Advanced-mode property ignore (`product-advanced-mode`, `category-advanced-mode`, `manufacturer-advanced-mode` GenericAttributes) — admin UI concern
+- These can be re-added in admin controllers when Phase 5B is built
+
+### Product Attribute Export/Import Deferred
+- Legacy `ExportProductsToXlsxWithAttributes` and product attribute import are complex (200+ LOC each)
+- They use `ExportProductAttribute` DTO, outline levels for grouped rows, and multi-sheet Excel workbooks
+- Deferred until admin controllers need it — the core product export/import works without attributes
+- When needed, can add as a separate method or flag on the existing methods
+
+### GetProductTagsByProductIdAsync Added to IProductTagService
+- Legacy `ExportManager.GetProductTags(Product)` accessed `product.ProductTags` nav property (stripped in [1.3])
+- No method existed on `IProductTagService` to get tags for a specific product
+- Added `GetProductTagsByProductIdAsync(int productId)` — queries `ProductProductTagMapping` → `ProductTag`
+- This is a legitimate gap that would have been discovered by any consumer needing product tags
+
+### XmlWriter Modernization
+- Legacy used `new XmlTextWriter(stringWriter)` — deprecated in .NET
+- New code uses `XmlWriter.Create(stringWriter, new XmlWriterSettings { Indent = true, Async = true })`
+- Async XML writing via `WriteStartElementAsync`, `WriteEndElementAsync`, `FlushAsync`
+- `XmlWriterExtensions.WriteString` preserved as a simple extension method for element writing
+
+### Import Upsert Patterns
+- Products: SKU-based upsert (matching legacy) — `IProductService.GetProductBySkuAsync(sku)`
+- Categories: name-based upsert — `GetAllCategoriesAsync` then `FirstOrDefault` by name
+- Manufacturers: name-based upsert — `GetAllManufacturersAsync` then `FirstOrDefault` by name
+- Newsletter: email+storeId-based upsert — `GetNewsLetterSubscriptionByEmailAndStoreIdAsync`
+- States: countryId+name-based upsert — `GetStateProvincesByCountryIdAsync` then `FirstOrDefault` by name
+
+### Impact on Future Items
+- [4.11] Installation services: can now use `IImportManager` for seed data import if needed
+- [5.31] Admin ProductController: can now use `IExportManager.ExportProductsToXlsxAsync` and `IImportManager.ImportProductsFromXlsxAsync`
+- [5.32] Admin CategoryController: can now use category export/import
+- [5.33] Admin ManufacturerController: can now use manufacturer export/import
+- [5.34] Admin OrderController: can now use `IExportManager.ExportOrdersToXlsxAsync`
+- [5.35] Admin CustomerController: can now use `IExportManager.ExportCustomersToXlsxAsync`
+- Phase 4 is now COMPLETE — all 12 service layer items implemented (4.1-4.10)

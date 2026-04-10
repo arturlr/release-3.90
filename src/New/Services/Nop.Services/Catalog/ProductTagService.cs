@@ -151,4 +151,18 @@ public class ProductTagService : IProductTagService
 
         await _cacheManager.RemoveByPrefixAsync(ProductTagPrefix);
     }
+
+    public virtual Task<IList<ProductTag>> GetProductTagsByProductIdAsync(int productId)
+    {
+        var tagIds = _productProductTagMappingRepository.TableNoTracking
+            .Where(m => m.ProductId == productId)
+            .Select(m => m.ProductTagId)
+            .ToList();
+
+        IList<ProductTag> tags = _productTagRepository.TableNoTracking
+            .Where(t => tagIds.Contains(t.Id))
+            .ToList();
+
+        return Task.FromResult(tags);
+    }
 }

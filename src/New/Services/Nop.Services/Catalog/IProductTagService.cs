@@ -12,4 +12,5 @@ public interface IProductTagService
     Task UpdateProductTagAsync(ProductTag productTag);
     Task<int> GetProductCountAsync(int productTagId, int storeId);
     Task UpdateProductTagsAsync(Product product, string[] productTags);
+    Task<IList<ProductTag>> GetProductTagsByProductIdAsync(int productId);
 }

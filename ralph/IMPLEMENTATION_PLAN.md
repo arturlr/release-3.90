@@ -286,10 +286,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 4.9, 4.9a, 4.9b
   - Done: 2026-04-09. IOrderProcessingService (async-first, 25 methods) + OrderProcessingService (4 partial class files: main, PlaceOrder, Status, Payment, Shipping). PlaceOrderAsync with full workflow (validate → payment → create order → inventory → cart clear → notifications → events). Status transitions (CheckOrderStatus, SetOrderStatus, ProcessOrderPaid, reward points, gift cards). Payment operations (authorize, capture, mark as paid, refund, partial refund, void — online and offline). Shipping (ship, deliver). Recurring payments (process next, cancel, can-cancel, can-retry). Reorder, return request validation, min order validation, payment workflow check. Also added InsertOrderItemAsync to IOrderService/OrderService, and public GetRecurringCycleInfoAsync to IShoppingCartService/ShoppingCartService. UpdateOrderTotals deferred (depends on plugin-dependent shipping methods [2.10]).
 
-- [ ] [4.10] Export/Import services — IExportManager, IImportManager
+- [x] [4.10] Export/Import services — IExportManager, IImportManager
   - Spec: specs/svc-export-import.md
   - Scope: Nop.Services/ExportImport
   - Depends on: 4.4, 4.9
+  - Done: 2026-04-10. ClosedXML 0.104.2 replaces EPPlus (MIT license vs commercial). Dropped PropertyManager<T>/PropertyByName<T> helper pattern — ClosedXML API is simpler, direct cell writes. Dropped dropdown list features, vendor filtering, advanced-mode property ignore (presentation-layer concerns). Dropped hash-based picture import optimization (GetPicturesHash already dropped in [3.7]). Added GetProductTagsByProductIdAsync to IProductTagService. Product import uses SKU-based upsert, category/manufacturer import uses name-based upsert. Product attribute export/import deferred — complex feature, can be added when admin controllers need it.
 
 - [ ] [4.11] Installation services — IInstallationService, seed data
   - Spec: specs/svc-installation.md
