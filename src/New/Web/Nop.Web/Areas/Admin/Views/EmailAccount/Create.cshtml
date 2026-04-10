@@ -1,0 +1,44 @@
+@model Nop.Web.Areas.Admin.Models.Messages.EmailAccountModel
+@{ ViewData["Title"] = "Add a new email account"; }
+
+<h1>Add a new email account</h1>
+
+<form asp-action="Create" method="post">
+    <div>
+        <label asp-for="Email">Email</label>
+        <input asp-for="Email" />
+        <span asp-validation-for="Email"></span>
+    </div>
+    <div>
+        <label asp-for="DisplayName">Display name</label>
+        <input asp-for="DisplayName" />
+    </div>
+    <div>
+        <label asp-for="Host">Host</label>
+        <input asp-for="Host" />
+    </div>
+    <div>
+        <label asp-for="Port">Port</label>
+        <input asp-for="Port" />
+    </div>
+    <div>
+        <label asp-for="Username">Username</label>
+        <input asp-for="Username" />
+    </div>
+    <div>
+        <label asp-for="Password">Password</label>
+        <input asp-for="Password" type="password" />
+    </div>
+    <div>
+        <label asp-for="EnableSsl">Enable SSL</label>
+        <input asp-for="EnableSsl" />
+    </div>
+    <div>
+        <label asp-for="UseDefaultCredentials">Use default credentials</label>
+        <input asp-for="UseDefaultCredentials" />
+    </div>
+    <div>
+        <button type="submit" name="continueEditing" value="false">Save</button>
+        <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+    </div>
+</form>

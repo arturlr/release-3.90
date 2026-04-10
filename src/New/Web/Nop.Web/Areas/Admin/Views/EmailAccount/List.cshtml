@@ -1,0 +1,69 @@
+@{ ViewData["Title"] = "Email accounts"; }
+
+<h1>Email accounts</h1>
+
+<p>
+    <a asp-action="Create">Add new email account</a>
+</p>
+
+<div id="emailaccounts-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Display name</th>
+                <th>Host</th>
+                <th>Port</th>
+                <th>Username</th>
+                <th>SSL</th>
+                <th>Default</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="emailaccounts-tbody"></tbody>
+    </table>
+    <div id="emailaccounts-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadEmailAccounts(); });
+
+    function loadEmailAccounts() {
+        fetch('@Url.Action("EmailAccountList", "EmailAccount", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' }
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('emailaccounts-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (ea) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (ea.Email || '') + '</td>'
+                        + '<td>' + (ea.DisplayName || '') + '</td>'
+                        + '<td>' + (ea.Host || '') + '</td>'
+                        + '<td>' + ea.Port + '</td>'
+                        + '<td>' + (ea.Username || '') + '</td>'
+                        + '<td>' + (ea.EnableSsl ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (ea.IsDefaultEmailAccount ? '<strong>Yes</strong>' : '<a href="#" onclick="markDefault(' + ea.Id + '); return false;">Mark as default</a>') + '</td>'
+                        + '<td><a href="/Admin/EmailAccount/Edit/' + ea.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('emailaccounts-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+
+    function markDefault(id) {
+        const data = new URLSearchParams();
+        data.append('id', id);
+        fetch('@Url.Action("MarkAsDefaultEmail", "EmailAccount", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        }).then(function () { loadEmailAccounts(); });
+    }
+</script>
+}

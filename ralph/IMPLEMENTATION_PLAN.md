@@ -601,10 +601,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.3
   - Done: 2026-04-10. MeasureController with dimension CRUD (List, DimensionList AJAX grid, CreateDimension, EditDimension, DeleteDimension, MarkAsPrimaryDimension) and weight CRUD (WeightList AJAX grid, CreateWeight, EditWeight, DeleteWeight, MarkAsPrimaryWeight). 2 view models (MeasureDimensionModel, MeasureWeightModel). 1 Razor view (List.cshtml with two inline AJAX grids for dimensions and weights, each with add/edit/delete/mark-as-primary). ISettingService.SaveSettingAsync for primary dimension/weight settings. Follows CurrencyController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. No separate Create/Edit views — all CRUD in inline grid. Localization deferred (consistent with all other admin controllers).
 
-- [ ] [5.53] Admin: EmailAccountController + EmailAccount views
+- [x] [5.53] Admin: EmailAccountController + EmailAccount views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/EmailAccountController, Admin/Views/EmailAccount
   - Depends on: 5.1, 4.2
+  - Done: 2026-04-10. EmailAccountController with core CRUD (List, EmailAccountList AJAX grid, Create, Edit, Delete), MarkAsDefaultEmail (saves EmailAccountSettings.DefaultEmailAccountId via ISettingService), ChangePassword (separate POST endpoint — legacy used FormValueRequired), SendTestEmail (IEmailSender.SendEmailAsync with store name subject). 1 view model (EmailAccountModel). 3 Razor views (List with mark-as-default AJAX, Create, Edit with change password + send test email + delete). Follows CurrencyController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Localization deferred (consistent with all other admin controllers).
 
 - [ ] [5.54] Admin: MessageTemplateController + MessageTemplate views
   - Spec: specs/nop-admin.md

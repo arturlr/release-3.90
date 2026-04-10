@@ -3256,3 +3256,26 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.53] Admin EmailAccountController: next admin controller to implement — follows same simple CRUD pattern
 - Admin directory area is fully complete — no more directory controllers to implement
+
+## 2026-04-10 — [5.53] Admin EmailAccountController / Implementation
+
+### FormValueRequired Eliminated (Consistent Pattern)
+- Legacy used `[FormValueRequired("changepassword")]` and `[FormValueRequired("sendtestemail")]` to route two POST actions to the same Edit URL (`[HttpPost, ActionName("Edit")]`)
+- New code uses separate POST endpoints: `ChangePassword(int id, string? password)` and `SendTestEmail(int id, string? sendTestEmailTo)` — each form in Edit.cshtml posts to its own action
+- Consistent with ShoppingCartController [5.7], CheckoutController [5.8], OrderController [5.9], VendorController [5.19] patterns
+
+### IEmailSender.SendEmailAsync toName Parameter Is Non-Nullable
+- `IEmailSender.SendEmailAsync` signature has `string toName` (non-nullable) — passing `null` causes CS8625 with TreatWarningsAsErrors
+- Legacy passed `null` for toName in SendTestEmail — new code passes `string.Empty`
+- Impact: any future caller of `SendEmailAsync` must pass `string.Empty` instead of `null` for optional string parameters
+
+### Admin Messaging Area Started
+- EmailAccountController is the first admin messaging controller — establishes the pattern for [5.54] MessageTemplateController, [5.55] QueuedEmailController, [5.56] CampaignController, [5.57] NewsLetterSubscriptionController
+- All messaging controllers share the same permission: `ManageEmailAccounts`
+- `EmailAccountSettings.DefaultEmailAccountId` managed via `ISettingService.SaveSettingAsync` — same pattern as CurrencyController's primary currency settings
+
+### Impact on Future Items
+- [5.54] Admin MessageTemplateController: can now reference the same messaging admin pattern
+- [5.55] Admin QueuedEmailController: can now use `IEmailAccountService` for email account dropdown
+- [5.56] Admin CampaignController: can now use `IEmailAccountService` for email account selection
+- [5.57] Admin NewsLetterSubscriptionController: follows same simple CRUD pattern
