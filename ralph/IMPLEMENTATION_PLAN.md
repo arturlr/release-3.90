@@ -637,10 +637,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.9
   - Done: 2026-04-10. GiftCardController with core CRUD (List with activated/coupon/recipient filters, GiftCardList AJAX grid, Create, Edit, Delete), GenerateCouponCode (AJAX), NotifyRecipient (separate POST endpoint — FormValueRequired eliminated), UsageHistoryList (AJAX grid), UsageHistoryDelete. 4 view models (GiftCardListModel, GiftCardModel, GiftCardGridModel, GiftCardUsageHistoryModel). 3 Razor views (List, Create, Edit with usage history grid + notify recipient + delete). Added DeleteGiftCardUsageHistoryAsync to IGiftCardService/GiftCardService. Legacy nav properties replaced: giftCard.PurchasedWithOrderItem → IOrderService.GetOrderItemByIdAsync + GetOrderByIdAsync; giftCard.GiftCardUsageHistory → IGiftCardService.GetGiftCardUsageHistoryAsync; x.UsedWithOrder.CustomOrderNumber → IOrderService.GetOrderByIdAsync. ParameterBasedOnFormName eliminated — continueEditing is regular form parameter. Follows PollController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
-- [ ] [5.59] Admin: RecurringPaymentController + RecurringPayment views
+- [x] [5.59] Admin: RecurringPaymentController + RecurringPayment views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/RecurringPaymentController, Admin/Views/RecurringPayment
   - Depends on: 5.1, 4.9
+  - Done: 2026-04-10. RecurringPaymentController with core CRUD (List, RecurringPaymentList AJAX grid, Edit GET+POST, Delete), payment operations (ProcessNextPayment, CancelRecurringPayment), and history management (HistoryList AJAX grid). 2 view models (RecurringPaymentModel, RecurringPaymentHistoryModel). 2 Razor views (List with AJAX grid, Edit with info form + operations + history grid). Legacy nav properties replaced: recurringPayment.InitialOrder → IOrderService.GetOrderByIdAsync, recurringPayment.RecurringPaymentHistory → IOrderService.GetRecurringPaymentHistoryAsync, recurringPayment.InitialOrder.Customer → ICustomerService.GetCustomerByIdAsync. NextPaymentDate and CyclesRemaining computed from history (matching public OrderController pattern). FormValueRequired eliminated — separate endpoints for ProcessNextPayment and CancelRecurringPayment. ParameterBasedOnFormName eliminated — continueEditing is regular form parameter. Follows GiftCardController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
 - [ ] [5.60] Admin: ReturnRequestController + ReturnRequest views
   - Spec: specs/nop-admin.md

@@ -3402,3 +3402,30 @@ Performed exhaustive verification across all dimensions:
 - [5.59] Admin RecurringPaymentController: next order-related admin controller to implement
 - [5.60] Admin ReturnRequestController: can follow the same pattern for return request management
 - Admin order area progress: Order [5.34] ✓, GiftCard [5.58] ✓, RecurringPayment [5.59] pending, ReturnRequest [5.60] pending, ShoppingCart [5.61] pending
+
+## 2026-04-10 — [5.59] Admin RecurringPaymentController / Implementation
+
+### ComputeNextPaymentDate Duplicated from Public OrderController
+- Public `OrderController.Helpers.cs` has a `ComputeNextPaymentDate` static method for computing next payment date from `RecurringPayment` + `IList<RecurringPaymentHistory>`
+- Admin `RecurringPaymentController` duplicates this logic as a private static method
+- Both controllers need this computation because `RecurringPayment.NextPaymentDate` was a computed property depending on `RecurringPaymentHistory` nav property (stripped in [1.3])
+- Future: could extract to a shared utility in `Nop.Services/Orders/RecurringPaymentExtensions.cs` or add `ComputeNextPaymentDateAsync` to `IOrderService` if more consumers need it
+
+### CanCancelRecurringPayment Takes Order? initialOrder Parameter
+- Per [4.9c] discovery, `CanCancelRecurringPayment(Customer, RecurringPayment, Order?)` and `CanRetryLastRecurringPayment(Customer, RecurringPayment, Order?)` take `Order?` as explicit parameter
+- Admin controller loads initial order via `IOrderService.GetOrderByIdAsync(rp.InitialOrderId)` and passes it
+- Public OrderController [5.9] already follows this pattern
+
+### Enum ToString() Instead of GetLocalizedEnum
+- Legacy used `cyclePeriod.GetLocalizedEnum(_localizationService, _workContext)` for localized enum display names
+- New code uses `enum.ToString()` directly — localized enum display requires `ILocalizationService` + `IWorkContext` + localization resources seeded in DB
+- Consistent with all other admin controllers that use plain text instead of localized strings
+- When localization resources are seeded ([4.11] Installation services), enum display can be enhanced
+
+### Admin Order Area Progress
+- Order [5.34] ✓, GiftCard [5.58] ✓, RecurringPayment [5.59] ✓
+- Remaining: ReturnRequest [5.60], ShoppingCart [5.61]
+
+### Impact on Future Items
+- [5.60] Admin ReturnRequestController: next order-related admin controller to implement
+- [5.61] Admin ShoppingCartController: abandoned cart viewing

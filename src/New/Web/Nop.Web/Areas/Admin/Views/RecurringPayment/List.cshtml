@@ -1,0 +1,74 @@
+@{
+    ViewData["Title"] = "Recurring Payments";
+}
+
+<div class="content-header">
+    <h1>Recurring Payments</h1>
+</div>
+
+<div class="content">
+    <div class="form-horizontal">
+        <div id="recurringpayments-grid"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadGrid();
+    });
+
+    function loadGrid(page) {
+        page = page || 1;
+        const formData = new FormData();
+        formData.append('Page', page);
+        formData.append('PageSize', 15);
+
+        fetch('@Url.Action("RecurringPaymentList")', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            const grid = document.getElementById('recurringpayments-grid');
+            let html = '<table class="table table-bordered"><thead><tr>' +
+                '<th>ID</th><th>Cycle</th><th>Active</th><th>Start Date</th>' +
+                '<th>Next Payment</th><th>Cycles Remaining</th><th>Order</th>' +
+                '<th>Customer</th><th></th></tr></thead><tbody>';
+
+            if (data.Data && data.Data.length > 0) {
+                data.Data.forEach(function (item) {
+                    html += '<tr>' +
+                        '<td>' + item.Id + '</td>' +
+                        '<td>' + item.CycleLength + ' ' + item.CyclePeriodStr + '</td>' +
+                        '<td>' + (item.IsActive ? 'Yes' : 'No') + '</td>' +
+                        '<td>' + item.StartDate + '</td>' +
+                        '<td>' + (item.NextPaymentDate || 'N/A') + '</td>' +
+                        '<td>' + item.CyclesRemaining + '</td>' +
+                        '<td><a href="/Admin/Order/Edit/' + item.InitialOrderId + '">#' + item.InitialOrderId + '</a></td>' +
+                        '<td>' + item.CustomerEmail + '</td>' +
+                        '<td><a href="' + '@Url.Action("Edit")' + '/' + item.Id + '">Edit</a></td>' +
+                        '</tr>';
+                });
+            } else {
+                html += '<tr><td colspan="9">No recurring payments found.</td></tr>';
+            }
+
+            html += '</tbody></table>';
+
+            const totalPages = Math.ceil(data.Total / 15);
+            if (totalPages > 1) {
+                html += '<div class="pager">';
+                for (let i = 1; i <= totalPages; i++) {
+                    html += (i === page)
+                        ? '<strong>' + i + '</strong> '
+                        : '<a href="#" onclick="loadGrid(' + i + '); return false;">' + i + '</a> ';
+                }
+                html += '</div>';
+            }
+
+            grid.innerHTML = html;
+        });
+    }
+</script>
+}

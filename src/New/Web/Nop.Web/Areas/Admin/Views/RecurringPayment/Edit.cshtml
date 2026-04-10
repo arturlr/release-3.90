@@ -1,0 +1,171 @@
+@model Nop.Web.Areas.Admin.Models.Orders.RecurringPaymentModel
+@{
+    ViewData["Title"] = "Edit Recurring Payment";
+}
+
+<div class="content-header">
+    <h1>Edit Recurring Payment #@Model.Id</h1>
+</div>
+
+<div class="content">
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="Id" />
+
+        <div class="form-horizontal">
+            <div class="panel panel-default">
+                <div class="panel-heading">Info</div>
+                <div class="panel-body">
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Initial Order</label>
+                        <div class="col-md-9">
+                            <a href="@Url.Action("Edit", "Order", new { id = Model.InitialOrderId })">#@Model.InitialOrderId</a>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Customer</label>
+                        <div class="col-md-9">
+                            <a href="@Url.Action("Edit", "Customer", new { id = Model.CustomerId })">@Model.CustomerEmail</a>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Payment Type</label>
+                        <div class="col-md-9">
+                            <span>@Model.PaymentType</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Cycle Length</label>
+                        <div class="col-md-9">
+                            <input asp-for="CycleLength" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Cycle Period</label>
+                        <div class="col-md-9">
+                            <select asp-for="CyclePeriodId" class="form-control">
+                                <option value="0">Days</option>
+                                <option value="10">Weeks</option>
+                                <option value="20">Months</option>
+                                <option value="30">Years</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Total Cycles</label>
+                        <div class="col-md-9">
+                            <input asp-for="TotalCycles" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Active</label>
+                        <div class="col-md-9">
+                            <input asp-for="IsActive" type="checkbox" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Start Date</label>
+                        <div class="col-md-9">
+                            <span>@Model.StartDate</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Next Payment Date</label>
+                        <div class="col-md-9">
+                            <span>@(string.IsNullOrEmpty(Model.NextPaymentDate) ? "N/A" : Model.NextPaymentDate)</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Cycles Remaining</label>
+                        <div class="col-md-9">
+                            <span>@Model.CyclesRemaining</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="col-md-9 col-md-offset-3">
+                    <button type="submit" name="continueEditing" value="false" class="btn btn-primary">Save</button>
+                    <button type="submit" name="continueEditing" value="true" class="btn btn-default">Save and Continue Edit</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    @* Payment operations *@
+    <div class="panel panel-default" style="margin-top: 20px;">
+        <div class="panel-heading">Operations</div>
+        <div class="panel-body">
+            @if (Model.CanCancelRecurringPayment)
+            {
+                <form asp-action="CancelRecurringPayment" method="post" style="display:inline;">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn btn-warning"
+                            onclick="return confirm('Are you sure you want to cancel this recurring payment?');">
+                        Cancel Recurring Payment
+                    </button>
+                </form>
+            }
+            <form asp-action="ProcessNextPayment" method="post" style="display:inline;">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn btn-info"
+                        onclick="return confirm('Process next recurring payment?');">
+                    Process Next Payment
+                </button>
+            </form>
+            <form asp-action="Delete" method="post" style="display:inline;">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn btn-danger"
+                        onclick="return confirm('Are you sure you want to delete this recurring payment?');">
+                    Delete
+                </button>
+            </form>
+        </div>
+    </div>
+
+    @* History grid *@
+    <div class="panel panel-default" style="margin-top: 20px;">
+        <div class="panel-heading">History</div>
+        <div class="panel-body">
+            <div id="history-grid"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const formData = new FormData();
+        formData.append('recurringPaymentId', '@Model.Id');
+
+        fetch('@Url.Action("HistoryList")', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            const grid = document.getElementById('history-grid');
+            let html = '<table class="table table-bordered"><thead><tr>' +
+                '<th>Order</th><th>Order Status</th><th>Payment Status</th>' +
+                '<th>Shipping Status</th><th>Date</th></tr></thead><tbody>';
+
+            if (data.Data && data.Data.length > 0) {
+                data.Data.forEach(function (item) {
+                    html += '<tr>' +
+                        '<td><a href="/Admin/Order/Edit/' + item.OrderId + '">' + item.CustomOrderNumber + '</a></td>' +
+                        '<td>' + item.OrderStatus + '</td>' +
+                        '<td>' + item.PaymentStatus + '</td>' +
+                        '<td>' + item.ShippingStatus + '</td>' +
+                        '<td>' + new Date(item.CreatedOn).toLocaleString() + '</td>' +
+                        '</tr>';
+                });
+            } else {
+                html += '<tr><td colspan="5">No history records.</td></tr>';
+            }
+
+            html += '</tbody></table>';
+            grid.innerHTML = html;
+        });
+    });
+</script>
+}
