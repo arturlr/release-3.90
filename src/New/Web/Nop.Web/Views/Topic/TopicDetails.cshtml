@@ -1,0 +1,68 @@
+@model Nop.Web.Models.Topics.TopicModel
+@{
+    var isPopup = ViewBag.IsPopup as bool? ?? false;
+}
+@if (Model.IsPasswordProtected)
+{
+    <div class="topic-password" id="ph-password">
+        <form id="topic-password-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <div class="enter-password-title">Enter password to access this topic</div>
+            <div class="enter-password-form">
+                <input type="password" name="password" id="topic-password" />
+                <input type="button" id="button-password" value="Submit" class="button-1 topic-password-button" />
+            </div>
+            <div class="password-error" id="password-error" style="display: none;"></div>
+        </form>
+    </div>
+    <div class="page topic-page" id="ph-topic" style="display: none;">
+        <div class="page-title" id="ph-title">
+            <h1></h1>
+        </div>
+        <div class="page-body">
+        </div>
+    </div>
+    <script>
+        document.getElementById('button-password').addEventListener('click', function () {
+            var form = document.getElementById('topic-password-form');
+            var formData = new FormData(form);
+            fetch('@Url.Action("Authenticate", "Topic")', {
+                method: 'POST',
+                body: new URLSearchParams(formData)
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.Authenticated) {
+                    document.querySelector('#ph-topic #ph-title h1').innerHTML = data.Title;
+                    if (!data.Title) {
+                        document.getElementById('ph-title').style.display = 'none';
+                    }
+                    document.querySelector('#ph-topic .page-body').innerHTML = data.Body;
+                    document.getElementById('ph-password').style.display = 'none';
+                    document.getElementById('ph-topic').style.display = '';
+                } else {
+                    var err = document.getElementById('password-error');
+                    err.textContent = data.Error;
+                    err.style.display = '';
+                    document.getElementById('topic-password').select();
+                    document.getElementById('topic-password').focus();
+                }
+            });
+        });
+    </script>
+}
+else
+{
+    <div class="page topic-page">
+        @if (!string.IsNullOrEmpty(Model.Title))
+        {
+            <div class="page-title">
+                <h1>@Model.Title</h1>
+            </div>
+        }
+        <div class="page-body">
+            @Html.Raw(Model.Body)
+        </div>
+    </div>
+}

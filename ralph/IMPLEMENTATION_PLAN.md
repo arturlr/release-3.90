@@ -366,10 +366,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Controllers/BoardsController, Views/Boards
   - Depends on: 5.1, 4.3
 
-- [ ] [5.13] Public: TopicController + Topic views
+- [x] [5.13] Public: TopicController + Topic views
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/TopicController, Views/Topic
   - Depends on: 5.1, 3.11
+  - Done: 2026-04-10. TopicController with 4 actions: TopicDetails (by ID), TopicDetailsPopup (by systemName), TopicBlock (partial by systemName), Authenticate (POST password check). TopicModel view model. TopicDetails.cshtml (full page with password protection via fetch API), TopicBlock.cshtml (partial with Model.Id-suffixed element IDs). Inline model construction (no model factory). Replaced jQuery AJAX with vanilla JS fetch. Localized title/body deferred (requires ILocalizedEntityService parameter passing). TopicTemplate view path resolution via ITopicTemplateService.
 
 - [ ] [5.14] Public: PollController + Poll views
   - Spec: specs/nop-web-public.md

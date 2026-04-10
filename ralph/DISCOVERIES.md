@@ -2086,3 +2086,42 @@ Performed exhaustive verification across all dimensions:
 - [5.45] Admin NewsController: can now use `INewsService.InsertNewsCommentAsync` for admin comment management
 - [5.26] Shared views: HomePageNews ViewComponent should use the already-created news models
 - [7.13] reCAPTCHA: add `[CaptchaValidator]` to `NewsCommentAdd` action
+
+## 2026-04-10 — [5.13] Public TopicController / Implementation
+
+### TopicDetailsPopup Preserved
+- Legacy had `TopicDetailsPopup(string systemName)` that set `ViewBag.IsPopup = true` and returned `PartialView`
+- New code preserves this action — used by modal dialogs (e.g., Terms of Service popup during checkout)
+- View checks `ViewBag.IsPopup` to conditionally skip layout
+
+### Localized Title/Body Deferred
+- Legacy `PrepareTopicModel` used `topic.GetLocalized(x => x.Title)` and `topic.GetLocalized(x => x.Body)` via service locator
+- New code uses `topic.Title` and `topic.Body` directly — localized property resolution requires `ILocalizedEntityService` + `ILanguageService` parameters (per [2.3] discovery about service locator elimination)
+- When localized topics are needed, the controller can pass `ILocalizedEntityService` to a helper method
+- `MetaKeywords`, `MetaDescription`, `MetaTitle` also use direct entity properties (not localized)
+
+### Authenticate Returns Entity Properties Directly
+- Legacy `Authenticate` returned `topic.GetLocalized(x => x.Title)` and `topic.GetLocalized(x => x.Body)` for authenticated content
+- New code returns `topic.Title` and `topic.Body` directly — consistent with `PrepareTopicModelAsync` approach
+- Localization can be added uniformly when the localization parameter-passing pattern is established
+
+### jQuery → Vanilla JS Fetch API
+- Legacy views used jQuery `$.ajax()` for password authentication AJAX calls
+- New views use vanilla JS `fetch()` API — no jQuery dependency needed
+- `addAntiForgeryToken(postData)` replaced with `FormData` from form element (includes `__RequestVerificationToken` hidden field automatically)
+- `@Url.RouteUrl("TopicAuthenticate")` replaced with `@Url.Action("Authenticate", "Topic")` — named routes not configured yet
+
+### TopicBlock Element ID Suffixing
+- Legacy `TopicBlock.cshtml` used `@Model.Id`-suffixed element IDs (`#ph-topic-@Model.Id`, `#password-@Model.Id`, etc.)
+- This is critical: multiple `TopicBlock` partials can appear on the same page (e.g., footer columns), so IDs must be unique per topic
+- `TopicDetails.cshtml` does NOT suffix IDs (only one topic detail page at a time)
+
+### IPageHeadBuilder Not Available
+- Legacy `TopicDetails.cshtml` used `Html.AddTitleParts()`, `Html.AddMetaDescriptionParts()`, `Html.AddMetaKeywordParts()`, `Html.AddCanonicalUrlParts()` for SEO metadata
+- `IPageHeadBuilder` is deferred to [5.26] Shared views
+- New view does not set page title or meta tags — will be added when shared layout infrastructure is built
+
+### Impact on Future Items
+- [5.48] Admin TopicController: can now reference the same `TopicModel` pattern for admin topic management
+- [5.26] Shared views: when `IPageHeadBuilder` is built, add meta tag support to `TopicDetails.cshtml`
+- [5.8] CheckoutController: can use `TopicDetailsPopup` for Terms of Service modal
