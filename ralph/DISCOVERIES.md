@@ -2523,3 +2523,38 @@ Performed exhaustive verification across all dimensions:
 - [5.18] Public ProfileController: can now link to PM send page from user profiles
 - [5.46] Admin ForumController: PM management already available via `IForumService`
 - Forum subsystem is now complete: ForumService [4.3] + BoardsController [5.12] + PrivateMessagesController [5.17]
+
+## 2026-04-10 — [5.18] Public ProfileController / Implementation
+
+### Legacy Child Actions Inlined into Index
+- Legacy `Info` and `Posts` were `[ChildActionOnly]` actions rendered via `@Html.Action()` in Index.cshtml
+- New code inlines both into the `Index` action — `ProfileIndexModel` embeds `ProfileInfoModel` and `ProfilePostsModel` directly
+- Views use `@await Html.PartialAsync("_Info", Model.Info)` and `@await Html.PartialAsync("_Posts", Model.Posts)` instead of child actions
+- Tab switching uses vanilla JS (show/hide divs) instead of jQuery UI tabs — same pattern as PrivateMessagesController [5.17]
+- Trade-off: both info and posts are loaded on every Index request. Legacy loaded them lazily via child actions, but the overhead is minimal
+
+### IPermissionService Removed
+- Legacy used `IPermissionService` to check `AccessAdminPanel` + `ManageCustomers` for `DisplayEditLink(Url.Action("Edit", "Customer", new { id, area = "Admin" }))` — admin edit link on profile page
+- `DisplayEditLink` is a legacy `BasePublicController` method that doesn't exist in the new codebase (it set a ViewBag property consumed by the layout)
+- Removed `IPermissionService` from constructor to satisfy `TreatWarningsAsErrors` (CS9113 unread primary constructor parameter)
+- Admin edit link can be re-added when shared layout [5.26] provides the infrastructure
+
+### FormatUserName Replaced with Email
+- Legacy used `customer.FormatUserName()` extension method (service locator based, from `CustomerExtensions`) which formatted based on `CustomerSettings.CustomerNameFormat` (ShowEmails, ShowUsernames, ShowFullNames, ShowFirstName)
+- New code uses `customer.Email` directly — consistent with other controllers that don't populate customer names (BoardsController [5.12], PrivateMessagesController [5.17])
+- Full `FormatUserName` logic can be added as a service method when customer display formatting is needed across multiple controllers
+
+### ForumPost.ForumTopic Nav Property Replaced
+- Legacy `PrepareProfilePostsModel` accessed `forumPost.ForumTopic.Subject` and `forumPost.ForumTopic.GetSeName()` via nav properties
+- New code uses `forumService.GetTopicByIdAsync(forumPost.TopicId)` for each post — N+1 queries for N posts
+- Acceptable for profile page (typically 10-20 posts per page)
+- Future optimization: batch load topics for all posts at once, or add `GetTopicsByIdsAsync` to `IForumService`
+
+### RelativeFormat Replaced with Simple Helper
+- Legacy used `forumPost.CreatedOnUtc.RelativeFormat(true, "f")` — an extension method from `Nop.Core.Domain.Common.Extensions` using service locator for `ILocalizationService`
+- New code uses a simple `FormatRelativeDate` static helper: "just now", "X minutes ago", "X hours ago", "X days ago", or full date for >30 days
+- No localization — plain English strings. Localized relative dates can be added when localization parameter-passing pattern is established
+
+### Impact on Future Items
+- [5.35] Admin CustomerController: profile page now links to PM send page — PM infrastructure already available via [5.17]
+- [5.26] Shared views: when shared layout is built, can add admin edit link back using `IPermissionService` check in layout

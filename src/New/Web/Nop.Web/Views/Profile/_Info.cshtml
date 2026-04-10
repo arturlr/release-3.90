@@ -1,0 +1,48 @@
+@model Nop.Web.Models.Profile.ProfileInfoModel
+<div class="profile-info-box">
+    @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+    {
+        <div class="avatar">
+            <img src="@Model.AvatarUrl" class="avatar-img" alt="Avatar" />
+        </div>
+    }
+    <div class="profile-stats">
+        <div class="title"><strong>Statistics</strong></div>
+        <ul class="stats">
+            @if (Model.LocationEnabled)
+            {
+                <li class="location">
+                    <label>Country:</label>
+                    <span>@Model.Location</span>
+                </li>
+            }
+            @if (Model.TotalPostsEnabled)
+            {
+                <li>
+                    <label>Total Posts:</label>
+                    <span>@Model.TotalPosts</span>
+                </li>
+            }
+            @if (Model.JoinDateEnabled)
+            {
+                <li>
+                    <label>Join Date:</label>
+                    <span>@Model.JoinDate</span>
+                </li>
+            }
+            @if (Model.DateOfBirthEnabled)
+            {
+                <li>
+                    <label>Date of Birth:</label>
+                    <span>@Model.DateOfBirth</span>
+                </li>
+            }
+        </ul>
+    </div>
+    @if (Model.PMEnabled)
+    {
+        <div class="send-pm">
+            <a href="@Url.Action("SendPM", "PrivateMessages", new { toCustomerId = Model.CustomerProfileId })" class="pm-button">Send private message</a>
+        </div>
+    }
+</div>

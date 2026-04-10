@@ -402,10 +402,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.3
   - Done: 2026-04-10. PrivateMessagesController with 8 actions: Index (with inlined Inbox/SentItems tabs — legacy child actions eliminated), DeleteInboxPM (POST), MarkUnread (POST), DeleteSentPM (POST), SendPM (GET+POST), ViewPM, DeletePM. 3 view models (PrivateMessageIndexModel with embedded PrivateMessageListModel for both tabs, PrivateMessageModel, SendPrivateMessageModel). 3 Razor views. FormValueRequired eliminated — separate action endpoints (same as BoardsController [5.12], ShoppingCartController [5.7]). FormCollection parsing replaced with IEnumerable<int> model binding (same as BoardsController.CustomerForumSubscriptions). Inline model construction (no model factory). CustomerName not populated in message lists (requires per-message ICustomerService lookup). Vanilla JS tab switching replaces jQuery UI tabs.
 
-- [ ] [5.18] Public: ProfileController + Profile views
+- [x] [5.18] Public: ProfileController + Profile views
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/ProfileController, Views/Profile
   - Depends on: 5.1, 4.1
+  - Done: 2026-04-10. ProfileController with Index action (inline Info/Posts model preparation — legacy child actions eliminated). 4 view models (ProfileIndexModel with embedded ProfileInfoModel + ProfilePostsModel, PostModel) in ProfileModels.cs. 3 Razor views (Index.cshtml with vanilla JS tab switching replacing jQuery UI tabs, _Info.cshtml partial with avatar/stats/PM link, _Posts.cshtml partial with post list and inline pager). Guest check via ICustomerService role lookup (no nav properties). FormatUserName replaced with customer.Email. FormatPostText replaced with WebUtility.HtmlEncode + newline→br. RelativeFormat replaced with simple FormatRelativeDate helper. IPermissionService removed (legacy used it for admin edit link via DisplayEditLink — not available in new codebase). Widget zones dropped (depend on [3.15]). Localized strings replaced with plain text. No model factory — inline construction.
 
 - [ ] [5.19] Public: VendorController + Vendor views
   - Spec: specs/nop-web-public.md

@@ -1,0 +1,43 @@
+@model Nop.Web.Models.Profile.ProfilePostsModel
+@if (Model.Posts.Count > 0)
+{
+    <div class="latest-posts">
+        @foreach (var item in Model.Posts)
+        {
+            <div class="topic">
+                <div class="topic-title">
+                    <label>Topic:</label>
+                    <a href="@Url.Action("Topic", "Boards", new { id = item.ForumTopicId, slug = item.ForumTopicSlug })">@item.ForumTopicTitle</a>
+                </div>
+                <div class="topic-body">
+                    <p>@Html.Raw(item.ForumPostText)</p>
+                </div>
+                <div class="topic-data">
+                    <label>Posted on:</label>
+                    <span>@item.Posted</span>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="pager">
+            @for (var i = 1; i <= Model.TotalPages; i++)
+            {
+                if (i == Model.PageIndex + 1)
+                {
+                    <span class="current-page">@i</span>
+                }
+                else
+                {
+                    <a href="@Url.Action("Index", "Profile", new { id = Model.CustomerProfileId, page = i })">@i</a>
+                }
+            }
+        </div>
+    }
+}
+else
+{
+    <div class="no-data">No posts have been made.</div>
+}
