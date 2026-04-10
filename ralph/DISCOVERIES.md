@@ -1796,3 +1796,44 @@ Performed exhaustive verification across all dimensions:
 - [8.1] SQL Server schema migration: InitialCreate migration provides the baseline schema for data migration
 - [4.11] Installation services: can use `context.Database.MigrateAsync()` to create database from scratch
 - Future migrations: use `dotnet ef migrations add <Name>` from `src/New/Data/Nop.Data/` directory with `DOTNET_ROOT` set
+
+## 2026-04-10 — [2.7] Error Handling / Implementation
+
+### IExceptionHandler Pattern (ASP.NET Core 8+)
+- Used `IExceptionHandler` (new in .NET 8) instead of legacy `HandleErrorAttribute` or custom middleware
+- `NopExceptionHandler` registered via `builder.Services.AddExceptionHandler<NopExceptionHandler>()` + `app.UseExceptionHandler()` in non-dev environments
+- In development, the default developer exception page is used (no `UseExceptionHandler` call)
+
+### Optional DI Dependencies via RequestServices
+- `NopExceptionHandler` constructor only takes `IHostEnvironment` and `ILogger<T>` (always available)
+- `INopLogger` and `IWorkContext` resolved from `httpContext.RequestServices.GetService<T>()` at runtime — returns null if not registered
+- This pattern is necessary because the full DI composition root isn't built yet (services registered incrementally as plan items are completed)
+- When DI composition root is complete, these could be promoted to constructor injection, but the RequestServices pattern is more resilient
+
+### IWorkContext.CurrentCustomer Is Sync Property
+- `IWorkContext.CurrentCustomer` is a sync property (not `GetCurrentCustomerAsync()`)
+- This matches the legacy pattern where `WebWorkContext` resolves the customer synchronously from cookie auth
+- The exception handler accesses it synchronously — no async bridging needed
+
+### Program.cs Now Has MVC Infrastructure
+- `AddControllersWithViews()` and `MapControllers()` added to Program.cs for the first time
+- This enables all future controllers (Phase 5) to work without additional Program.cs changes
+- `UseStatusCodePagesWithReExecute("/page-not-found")` handles 404s by re-executing the request to CommonController.PageNotFound
+
+### API vs Browser Detection
+- `NopExceptionHandler` checks `Accept` header to distinguish API requests (JSON) from browser requests (HTML)
+- API requests get `ProblemDetails` JSON with stack trace in development mode only
+- Browser requests get a 302 redirect to `/error` which serves the Error.cshtml view
+- This pattern supports both the MVC storefront and any future API endpoints
+
+### Service Validation Pattern — Deferred
+- Spec acceptance criterion "Service validation errors returned as structured results" is a cross-cutting concern affecting all services
+- Existing services already use `IList<string>` error return pattern (e.g., `ShoppingCartService.GetShoppingCartWarningsAsync`)
+- A formal `Result<T>` pattern (FluentResults, OneOf) would require refactoring all service interfaces — not worth the disruption
+- Decision: keep existing `IList<string>` pattern for validation errors. Global exception handler covers unhandled exceptions only.
+
+### Impact on Future Items
+- [5.2-5.28] Public controllers: error pages available, controllers can throw and exceptions are caught
+- [5.30-5.82] Admin controllers: same error handling applies
+- [5.26] Shared views: Error.cshtml and PageNotFound.cshtml use standalone Layout=null — will integrate with shared layout when built
+- Program.cs: future DI registrations go before `var app = builder.Build()`, middleware goes after

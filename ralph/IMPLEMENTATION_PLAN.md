@@ -88,10 +88,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 2.4, 2.5
   - Done: 2026-04-09. NopPermissionRequirement (IAuthorizationRequirement per permission system name), NopPermissionHandler (AuthorizationHandler delegates to IPermissionService.Authorize), NopAuthorizationPolicyProvider (dynamic IAuthorizationPolicyProvider creates policies per permission system name — any [Authorize(Policy = "ManageProducts")] auto-resolves). Replaces legacy AdminAuthorizeAttribute + service locator pattern. AdminVendorValidation deferred to [5.1] (presentation-layer filter). DI registration (services.AddSingleton<IAuthorizationPolicyProvider, NopAuthorizationPolicyProvider>() + services.AddScoped<IAuthorizationHandler, NopPermissionHandler>()) deferred to Nop.Web Program.cs.
 
-- [ ] [2.7] Error handling — global exception handler, ProblemDetails, custom error pages
+- [x] [2.7] Error handling — global exception handler, ProblemDetails, custom error pages
   - Spec: specs/xcut-error-handling.md
   - Scope: Middleware + error views
   - Depends on: 2.2
+  - Done: 2026-04-10. NopExceptionHandler (IExceptionHandler) logs to INopLogger (best-effort) and Microsoft.Extensions.Logging, returns ProblemDetails JSON for API requests, redirects to /error for browser requests. CommonController serves Error.cshtml (500) and PageNotFound.cshtml (404). Program.cs wired with AddExceptionHandler, AddProblemDetails, UseStatusCodePagesWithReExecute. INopLogger/IWorkContext resolved from RequestServices (optional) since full DI composition root not yet built.
 
 - [ ] [2.8] Observability — health checks, OpenTelemetry metrics, distributed tracing
   - Spec: specs/xcut-observability.md
