@@ -1,0 +1,74 @@
+@model Nop.Web.Areas.Admin.Models.Orders.CheckoutAttributeModel
+@{ ViewData["Title"] = "Add checkout attribute"; }
+
+<h1>Add checkout attribute</h1>
+
+<form asp-action="Create" method="post">
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="TextPrompt">Text prompt</label>
+        <input asp-for="TextPrompt" />
+    </div>
+    <div>
+        <label asp-for="IsRequired">Required</label>
+        <input asp-for="IsRequired" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="ShippableProductRequired">Shippable product required</label>
+        <input asp-for="ShippableProductRequired" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="IsTaxExempt">Tax exempt</label>
+        <input asp-for="IsTaxExempt" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="TaxCategoryId">Tax category</label>
+        <select asp-for="TaxCategoryId">
+            @foreach (var tc in Model.AvailableTaxCategories)
+            {
+                <option value="@tc.Id">@tc.Name</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label asp-for="AttributeControlTypeId">Control type</label>
+        <select asp-for="AttributeControlTypeId">
+            @foreach (var ct in Model.AvailableControlTypes)
+            {
+                <option value="@ct.Id">@ct.Name</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label asp-for="DisplayOrder">Display order</label>
+        <input asp-for="DisplayOrder" type="number" />
+    </div>
+    <div>
+        <label asp-for="DefaultValue">Default value</label>
+        <input asp-for="DefaultValue" />
+    </div>
+    <div>
+        <label asp-for="ValidationMinLength">Min length</label>
+        <input asp-for="ValidationMinLength" type="number" />
+    </div>
+    <div>
+        <label asp-for="ValidationMaxLength">Max length</label>
+        <input asp-for="ValidationMaxLength" type="number" />
+    </div>
+    <div>
+        <label asp-for="ValidationFileAllowedExtensions">Allowed file extensions</label>
+        <input asp-for="ValidationFileAllowedExtensions" />
+    </div>
+    <div>
+        <label asp-for="ValidationFileMaximumSize">Max file size (KB)</label>
+        <input asp-for="ValidationFileMaximumSize" type="number" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>

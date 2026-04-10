@@ -1,0 +1,187 @@
+@model Nop.Web.Areas.Admin.Models.Orders.CheckoutAttributeModel
+@{ ViewData["Title"] = "Edit checkout attribute"; }
+
+<h1>Edit checkout attribute</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="TextPrompt">Text prompt</label>
+        <input asp-for="TextPrompt" />
+    </div>
+    <div>
+        <label asp-for="IsRequired">Required</label>
+        <input asp-for="IsRequired" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="ShippableProductRequired">Shippable product required</label>
+        <input asp-for="ShippableProductRequired" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="IsTaxExempt">Tax exempt</label>
+        <input asp-for="IsTaxExempt" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="TaxCategoryId">Tax category</label>
+        <select asp-for="TaxCategoryId">
+            @foreach (var tc in Model.AvailableTaxCategories)
+            {
+                <option value="@tc.Id" selected="@(tc.Id == Model.TaxCategoryId)">@tc.Name</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label asp-for="AttributeControlTypeId">Control type</label>
+        <select asp-for="AttributeControlTypeId">
+            @foreach (var ct in Model.AvailableControlTypes)
+            {
+                <option value="@ct.Id" selected="@(ct.Id == Model.AttributeControlTypeId)">@ct.Name</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label asp-for="DisplayOrder">Display order</label>
+        <input asp-for="DisplayOrder" type="number" />
+    </div>
+    <div>
+        <label asp-for="DefaultValue">Default value</label>
+        <input asp-for="DefaultValue" />
+    </div>
+    <div>
+        <label asp-for="ValidationMinLength">Min length</label>
+        <input asp-for="ValidationMinLength" type="number" />
+    </div>
+    <div>
+        <label asp-for="ValidationMaxLength">Max length</label>
+        <input asp-for="ValidationMaxLength" type="number" />
+    </div>
+    <div>
+        <label asp-for="ValidationFileAllowedExtensions">Allowed file extensions</label>
+        <input asp-for="ValidationFileAllowedExtensions" />
+    </div>
+    <div>
+        <label asp-for="ValidationFileMaximumSize">Max file size (KB)</label>
+        <input asp-for="ValidationFileMaximumSize" type="number" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post" onsubmit="return confirm('Are you sure?');">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit">Delete</button>
+</form>
+
+<hr />
+<h2>Values</h2>
+@* Condition attributes management deferred — depends on ICheckoutAttributeParser condition XML infrastructure *@
+@* Store mapping management deferred — consistent with all other admin controllers *@
+@* Localization deferred — consistent with all other admin controllers *@
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Color (RGB)</th>
+            <th>Price adj.</th>
+            <th>Weight adj.</th>
+            <th>Pre-selected</th>
+            <th>Display order</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="val-tbody"></tbody>
+</table>
+
+<h3>Add value</h3>
+<div>
+    <label>Name</label> <input type="text" id="val-name" />
+    <label>Color RGB</label> <input type="text" id="val-color" placeholder="#RRGGBB" />
+    <label>Price adj.</label> <input type="number" id="val-price" value="0" step="0.01" />
+    <label>Weight adj.</label> <input type="number" id="val-weight" value="0" step="0.01" />
+    <label><input type="checkbox" id="val-preselected" /> Pre-selected</label>
+    <label>Display order</label> <input type="number" id="val-order" value="0" />
+    <button type="button" onclick="addValue()">Add</button>
+</div>
+
+@section Scripts {
+<script>
+    const attrId = @Model.Id;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+
+    document.addEventListener('DOMContentLoaded', loadValues);
+
+    function loadValues() {
+        const data = new URLSearchParams();
+        data.append('checkoutAttributeId', attrId);
+
+        fetch('@Url.Action("ValueList", "CheckoutAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('val-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (v) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML =
+                        '<td><input type="text" value="' + (v.Name || '') + '" class="v-name" /></td>' +
+                        '<td><input type="text" value="' + (v.ColorSquaresRgb || '') + '" class="v-color" /></td>' +
+                        '<td><input type="number" value="' + v.PriceAdjustment + '" step="0.01" class="v-price" /></td>' +
+                        '<td><input type="number" value="' + v.WeightAdjustment + '" step="0.01" class="v-weight" /></td>' +
+                        '<td><input type="checkbox" class="v-preselected"' + (v.IsPreSelected ? ' checked' : '') + ' /></td>' +
+                        '<td><input type="number" value="' + v.DisplayOrder + '" class="v-order" /></td>' +
+                        '<td><button onclick="updateValue(' + v.Id + ', this)">Update</button>' +
+                        ' <button onclick="deleteValue(' + v.Id + ')">Delete</button></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
+
+    function addValue() {
+        const data = new URLSearchParams();
+        data.append('checkoutAttributeId', attrId);
+        data.append('Name', document.getElementById('val-name').value);
+        data.append('ColorSquaresRgb', document.getElementById('val-color').value);
+        data.append('PriceAdjustment', document.getElementById('val-price').value);
+        data.append('WeightAdjustment', document.getElementById('val-weight').value);
+        data.append('IsPreSelected', document.getElementById('val-preselected').checked);
+        data.append('DisplayOrder', document.getElementById('val-order').value);
+
+        fetch('@Url.Action("ValueAdd", "CheckoutAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => { document.getElementById('val-name').value = ''; document.getElementById('val-color').value = ''; loadValues(); });
+    }
+
+    function updateValue(id, btn) {
+        const row = btn.closest('tr');
+        const data = new URLSearchParams();
+        data.append('Id', id);
+        data.append('Name', row.querySelector('.v-name').value);
+        data.append('ColorSquaresRgb', row.querySelector('.v-color').value);
+        data.append('PriceAdjustment', row.querySelector('.v-price').value);
+        data.append('WeightAdjustment', row.querySelector('.v-weight').value);
+        data.append('IsPreSelected', row.querySelector('.v-preselected').checked);
+        data.append('DisplayOrder', row.querySelector('.v-order').value);
+
+        fetch('@Url.Action("ValueUpdate", "CheckoutAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => loadValues());
+    }
+
+    function deleteValue(id) {
+        if (!confirm('Delete this value?')) return;
+        const data = new URLSearchParams();
+        data.append('id', id);
+
+        fetch('@Url.Action("ValueDelete", "CheckoutAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => loadValues());
+    }
+</script>
+}

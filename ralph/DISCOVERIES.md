@@ -3572,3 +3572,40 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.65] Admin CheckoutAttributeController: next catalog-related admin controller to implement
 - [5.31] Admin ProductController sub-entity management: product review tab on product edit page can link to ProductReviewController.List with `SearchProductId` filter
+
+## 2026-04-10 — [5.65] Admin CheckoutAttributeController / Implementation
+
+### No New Service Methods Needed
+- All required methods already existed on `ICheckoutAttributeService` from [4.9]: `GetAllCheckoutAttributesAsync`, `GetCheckoutAttributeByIdAsync`, `InsertCheckoutAttributeAsync`, `UpdateCheckoutAttributeAsync`, `DeleteCheckoutAttributeAsync`, `GetCheckoutAttributeValuesAsync`, `GetCheckoutAttributeValueByIdAsync`, `InsertCheckoutAttributeValueAsync`, `UpdateCheckoutAttributeValueAsync`, `DeleteCheckoutAttributeValueAsync`
+- This is the third admin controller (after ProductAttributeController [5.62] and SpecificationAttributeController [5.63]) that required zero new service methods — all infrastructure was already in place from Phase 4
+
+### Legacy Popup Pattern → Inline AJAX Grid (Consistent with [5.62], [5.63])
+- Legacy used popup windows for value create/edit: `ValueCreatePopup` (GET+POST) and `ValueEditPopup` (GET+POST) with `ViewBag.RefreshPage` / `ViewBag.btnId` / `ViewBag.formId` for parent window refresh
+- New code uses inline AJAX grid with add/update/delete (matching SpecificationAttribute option management pattern from [5.63], ProductAttribute predefined values from [5.62], PollController answer management from [5.47])
+- Simpler: no popup views, no parent window refresh JavaScript, no `btnId`/`formId` plumbing
+
+### Tax Category Dropdown via ITaxCategoryService
+- Legacy used `PrepareTaxCategories` helper that called `_taxCategoryService.GetAllTaxCategories()` and added a "None" option
+- New code uses `PrepareModelAsync` helper that populates both tax category and control type dropdowns
+- Tax category dropdown includes "None" (Id=0) as first option — matching legacy behavior
+- `ITaxCategoryService` was already available from [4.6] — no new dependencies needed
+
+### Condition Attributes Management Deferred
+- Legacy had complex condition attribute management: `PrepareConditionAttributes` and `SaveConditionAttributes` helpers that used `ICheckoutAttributeParser.ParseCheckoutAttributes` and `ICheckoutAttributeParser.AddCheckoutAttribute` for XML-based conditional display rules
+- Condition attributes allow one checkout attribute to be shown/hidden based on the value of another checkout attribute
+- Deferred because: (1) complex feature with XML parsing, (2) depends on `ICheckoutAttributeParser` which is available but the condition UI requires multi-step form interaction, (3) low priority for initial admin functionality
+- `CheckoutAttribute.ConditionAttributeXml` property exists on the entity — can be managed when condition UI is built
+
+### Constructor Dependencies Reduced from 15 to 4
+- Legacy had 15 dependencies: ICheckoutAttributeService, ICheckoutAttributeParser, ILanguageService, ILocalizedEntityService, ILocalizationService, ITaxCategoryService, IWorkContext, ICurrencyService, CurrencySettings, IMeasureService, MeasureSettings, ICustomerActivityService, IPermissionService, IStoreService, IStoreMappingService
+- New code has 4: ICheckoutAttributeService, ITaxCategoryService, ICustomerActivityService, IPermissionService
+- Dropped: ICheckoutAttributeParser (condition attributes deferred), ILanguageService/ILocalizedEntityService/ILocalizationService (localization deferred), IWorkContext (only used for GetLocalizedEnum), ICurrencyService/CurrencySettings/IMeasureService/MeasureSettings (only used in value popup for currency code and weight unit display), IStoreService/IStoreMappingService (store mapping deferred)
+
+### Admin Attribute Controllers Complete
+- All 3 admin attribute controllers for catalog/checkout now implemented: ProductAttribute [5.62] ✓, SpecificationAttribute [5.63] ✓, CheckoutAttribute [5.65] ✓
+- Remaining attribute controllers: CustomerAttribute [5.37], AddressAttribute [5.77] — both follow the same pattern
+
+### Impact on Future Items
+- [5.37] Admin CustomerAttributeController: can follow the same pattern — CRUD for customer attributes + inline AJAX grid for customer attribute values
+- [5.77] Admin AddressAttributeController: can follow the same pattern — CRUD for address attributes + inline AJAX grid for address attribute values
+- [5.7] Public ShoppingCartController: checkout attribute management in cart already uses `ICheckoutAttributeService` — admin CRUD now available for managing the attributes themselves

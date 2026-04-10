@@ -1,0 +1,41 @@
+@{ ViewData["Title"] = "Checkout attributes"; }
+
+<h1>Checkout attributes</h1>
+
+<p><a href="@Url.Action("Create")">Add new</a></p>
+
+<table>
+    <thead>
+        <tr><th>Name</th><th>Control type</th><th>Required</th><th>Display order</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="grid-tbody"></tbody>
+</table>
+
+@section Scripts {
+<script>
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+
+    document.addEventListener('DOMContentLoaded', loadGrid);
+
+    function loadGrid() {
+        fetch('@Url.Action("CheckoutAttributeList", "CheckoutAttribute", new { area = "Admin" })', { method: 'POST', headers: headers })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('grid-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (a) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (a.Name || '') + '</td>'
+                        + '<td>' + (a.AttributeControlTypeName || '') + '</td>'
+                        + '<td>' + (a.IsRequired ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + a.DisplayOrder + '</td>'
+                        + '<td><a href="@Url.Action("Edit", "CheckoutAttribute", new { area = "Admin" })/' + a.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
+</script>
+}

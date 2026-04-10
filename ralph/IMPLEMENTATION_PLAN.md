@@ -673,10 +673,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.4
   - Done: 2026-04-10. ProductReviewController with List (search form with store/approved/date/text/productId filters), ProductReviewList AJAX grid, Edit GET+POST, Delete, DeleteSelected, ApproveSelected, DisapproveSelected, ProductSearchAutoComplete. Added UpdateProductReviewAsync to IProductService/ProductService (replaces legacy nav property pattern _productService.UpdateProduct(productReview.Product)). 2 view models (ProductReviewListModel, ProductReviewModel). 2 Razor views (List, Edit with vendor-restricted fields). Vendor access restriction on all actions (vendor can only edit ReplyText). Follows BlogController [5.44] comment management pattern for approve/disapprove batch operations.
 
-- [ ] [5.65] Admin: CheckoutAttributeController + CheckoutAttribute views
+- [x] [5.65] Admin: CheckoutAttributeController + CheckoutAttribute views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/CheckoutAttributeController, Admin/Views/CheckoutAttribute
   - Depends on: 5.1, 4.9
+  - Done: 2026-04-10. CheckoutAttributeController with core CRUD (List, CheckoutAttributeList AJAX grid, Create, Edit, Delete) and value management (ValueList, ValueAdd, ValueUpdate, ValueDelete). 3 view models (CheckoutAttributeModel, CheckoutAttributeValueModel, TaxCategoryItem/ControlTypeItem). 3 Razor views (List, Create, Edit with inline value grid). Tax category dropdown via ITaxCategoryService. Control type dropdown from AttributeControlType enum. No new service methods needed — all existed from [4.9]. 4 constructor dependencies (ICheckoutAttributeService, ITaxCategoryService, ICustomerActivityService, IPermissionService). Permission: ManageAttributes. Condition attributes management deferred (depends on ICheckoutAttributeParser condition XML infrastructure). Store mapping and localization deferred (consistent with all other admin controllers).
 
 - [ ] [5.66] Admin: AffiliateController + Affiliate views
   - Spec: specs/nop-admin.md
