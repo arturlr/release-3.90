@@ -1,0 +1,189 @@
+@model Nop.Web.Areas.Admin.Models.Affiliates.AffiliateModel
+@{ ViewData["Title"] = "Edit affiliate"; }
+
+<h1>Edit affiliate</h1>
+
+@if (!string.IsNullOrEmpty(Model.Url))
+{
+    <p>Affiliate URL: <a href="@Model.Url" target="_blank">@Model.Url</a></p>
+}
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <fieldset>
+        <legend>Affiliate info</legend>
+        <div>
+            <label asp-for="Active">Active</label>
+            <input asp-for="Active" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="FriendlyUrlName">Friendly URL name</label>
+            <input asp-for="FriendlyUrlName" />
+        </div>
+        <div>
+            <label asp-for="AdminComment">Admin comment</label>
+            <textarea asp-for="AdminComment"></textarea>
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Address</legend>
+        <div>
+            <label asp-for="FirstName">First name</label>
+            <input asp-for="FirstName" />
+        </div>
+        <div>
+            <label asp-for="LastName">Last name</label>
+            <input asp-for="LastName" />
+        </div>
+        <div>
+            <label asp-for="Email">Email</label>
+            <input asp-for="Email" type="email" />
+        </div>
+        <div>
+            <label asp-for="Company">Company</label>
+            <input asp-for="Company" />
+        </div>
+        <div>
+            <label asp-for="CountryId">Country</label>
+            <select asp-for="CountryId" asp-items="Model.AvailableCountries"></select>
+        </div>
+        <div>
+            <label asp-for="StateProvinceId">State / province</label>
+            <select asp-for="StateProvinceId" asp-items="Model.AvailableStates"></select>
+        </div>
+        <div>
+            <label asp-for="City">City</label>
+            <input asp-for="City" />
+        </div>
+        <div>
+            <label asp-for="Address1">Address 1</label>
+            <input asp-for="Address1" />
+        </div>
+        <div>
+            <label asp-for="Address2">Address 2</label>
+            <input asp-for="Address2" />
+        </div>
+        <div>
+            <label asp-for="ZipPostalCode">Zip / postal code</label>
+            <input asp-for="ZipPostalCode" />
+        </div>
+        <div>
+            <label asp-for="PhoneNumber">Phone number</label>
+            <input asp-for="PhoneNumber" />
+        </div>
+        <div>
+            <label asp-for="FaxNumber">Fax number</label>
+            <input asp-for="FaxNumber" />
+        </div>
+    </fieldset>
+
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post" onsubmit="return confirm('Are you sure?');">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit">Delete</button>
+</form>
+
+@* Affiliated orders grid *@
+<fieldset>
+    <legend>Affiliated orders</legend>
+    <div id="orders-grid">
+        <table>
+            <thead>
+                <tr><th>Order #</th><th>Order status</th><th>Payment status</th><th>Shipping status</th><th>Order total</th><th>Created on</th></tr>
+            </thead>
+            <tbody id="orders-tbody"></tbody>
+        </table>
+        <div id="orders-pager"></div>
+    </div>
+</fieldset>
+
+@* Affiliated customers grid *@
+<fieldset>
+    <legend>Affiliated customers</legend>
+    <div id="customers-grid">
+        <table>
+            <thead>
+                <tr><th>Name (Email)</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="customers-tbody"></tbody>
+        </table>
+        <div id="customers-pager"></div>
+    </div>
+</fieldset>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadOrders(1, 10);
+        loadCustomers(1, 10);
+    });
+
+    function getToken() {
+        return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    }
+
+    function loadOrders(page, pageSize) {
+        const data = new URLSearchParams();
+        data.append('affiliateId', '@Model.Id');
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("AffiliatedOrderList", "Affiliate", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('orders-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (o) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td><a href="/Admin/Order/Edit/' + o.Id + '">' + (o.CustomOrderNumber || o.Id) + '</a></td>'
+                        + '<td>' + (o.OrderStatus || '') + '</td>'
+                        + '<td>' + (o.PaymentStatus || '') + '</td>'
+                        + '<td>' + (o.ShippingStatus || '') + '</td>'
+                        + '<td>' + (o.OrderTotal || '') + '</td>'
+                        + '<td>' + new Date(o.CreatedOn).toLocaleString() + '</td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('orders-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+
+    function loadCustomers(page, pageSize) {
+        const data = new URLSearchParams();
+        data.append('affiliateId', '@Model.Id');
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("AffiliatedCustomerList", "Affiliate", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('customers-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (c) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (c.Name || '') + '</td>'
+                        + '<td><a href="/Admin/Customer/Edit/' + c.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('customers-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}

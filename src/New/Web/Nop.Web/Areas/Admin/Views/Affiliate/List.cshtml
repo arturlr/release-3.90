@@ -1,0 +1,87 @@
+@model Nop.Web.Areas.Admin.Models.Affiliates.AffiliateListModel
+@{ ViewData["Title"] = "Affiliates"; }
+
+<h1>Affiliates</h1>
+
+<form id="search-form">
+    <div>
+        <label asp-for="SearchFriendlyUrlName">Friendly URL name</label>
+        <input asp-for="SearchFriendlyUrlName" />
+    </div>
+    <div>
+        <label asp-for="SearchFirstName">First name</label>
+        <input asp-for="SearchFirstName" />
+    </div>
+    <div>
+        <label asp-for="SearchLastName">Last name</label>
+        <input asp-for="SearchLastName" />
+    </div>
+    <div>
+        <label asp-for="LoadOnlyWithOrders">Load only with orders</label>
+        <input asp-for="LoadOnlyWithOrders" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="OrdersCreatedFromUtc">Orders created from</label>
+        <input asp-for="OrdersCreatedFromUtc" type="date" />
+    </div>
+    <div>
+        <label asp-for="OrdersCreatedToUtc">Orders created to</label>
+        <input asp-for="OrdersCreatedToUtc" type="date" />
+    </div>
+    <button type="submit" id="search-affiliates">Search</button>
+</form>
+
+<p><a asp-action="Create">Add new</a></p>
+
+<div id="affiliates-grid">
+    <table>
+        <thead>
+            <tr><th>Name</th><th>Active</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="affiliates-tbody"></tbody>
+    </table>
+    <div id="affiliates-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadAffiliates(1, 15); });
+
+    document.getElementById('search-affiliates')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        loadAffiliates(1, 15);
+    });
+
+    function loadAffiliates(page, pageSize) {
+        const form = document.getElementById('search-form');
+        const data = new URLSearchParams(new FormData(form));
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("AffiliateList", "Affiliate", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('affiliates-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (a) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (a.Name || '') + '</td>'
+                        + '<td>' + (a.Active ? 'Yes' : 'No') + '</td>'
+                        + '<td><a href="/Admin/Affiliate/Edit/' + a.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('affiliates-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+
+    function getToken() {
+        return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    }
+</script>
+}

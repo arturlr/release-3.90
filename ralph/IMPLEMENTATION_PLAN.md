@@ -679,10 +679,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.9
   - Done: 2026-04-10. CheckoutAttributeController with core CRUD (List, CheckoutAttributeList AJAX grid, Create, Edit, Delete) and value management (ValueList, ValueAdd, ValueUpdate, ValueDelete). 3 view models (CheckoutAttributeModel, CheckoutAttributeValueModel, TaxCategoryItem/ControlTypeItem). 3 Razor views (List, Create, Edit with inline value grid). Tax category dropdown via ITaxCategoryService. Control type dropdown from AttributeControlType enum. No new service methods needed — all existed from [4.9]. 4 constructor dependencies (ICheckoutAttributeService, ITaxCategoryService, ICustomerActivityService, IPermissionService). Permission: ManageAttributes. Condition attributes management deferred (depends on ICheckoutAttributeParser condition XML infrastructure). Store mapping and localization deferred (consistent with all other admin controllers).
 
-- [ ] [5.66] Admin: AffiliateController + Affiliate views
+- [x] [5.66] Admin: AffiliateController + Affiliate views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/AffiliateController, Admin/Views/Affiliate
   - Depends on: 5.1, 3.9
+  - Done: 2026-04-10. AffiliateController with core CRUD (List, AffiliateList AJAX grid, Create, Edit, Delete) and sub-entity grids (AffiliatedOrderList, AffiliatedCustomerList). 6 view models (AffiliateListModel, AffiliateModel, AffiliateGridModel, AffiliatedOrderModel, AffiliatedCustomerModel). 3 Razor views (List, Create, Edit with affiliated orders/customers grids). Address fields inlined on AffiliateModel (no nested AddressModel — simpler than legacy). Legacy child action AffiliatedOrderList replaced with AJAX endpoint. Legacy AffiliatedOrderListModel eliminated — order search filters passed as action parameters. 11 constructor dependencies via primary constructor (reduced from legacy 12 — ILocalizationService/IWorkContext dropped, IAddressService added). Follows PollController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
 - [ ] [5.67] Admin: VendorController + Vendor views
   - Spec: specs/nop-admin.md

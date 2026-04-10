@@ -3609,3 +3609,32 @@ Performed exhaustive verification across all dimensions:
 - [5.37] Admin CustomerAttributeController: can follow the same pattern — CRUD for customer attributes + inline AJAX grid for customer attribute values
 - [5.77] Admin AddressAttributeController: can follow the same pattern — CRUD for address attributes + inline AJAX grid for address attribute values
 - [5.7] Public ShoppingCartController: checkout attribute management in cart already uses `ICheckoutAttributeService` — admin CRUD now available for managing the attributes themselves
+
+## 2026-04-10 — [5.66] Admin AffiliateController / Implementation
+
+### Address Fields Inlined — No Nested AddressModel
+- Legacy `AffiliateModel` used a nested `AddressModel` (from `Nop.Admin.Models.Common`) with 30+ properties including field-enabled/required flags and country/state dropdowns
+- New code inlines address fields directly on `AffiliateModel` (FirstName, LastName, Email, Company, CountryId, StateProvinceId, City, Address1, Address2, ZipPostalCode, PhoneNumber, FaxNumber)
+- Simpler: no nested model, no field-enabled/required flags (all fields always shown), no `AddressModel.ToEntity()` / `Address.ToModel()` AutoMapper mapping
+- Trade-off: if a shared `AddressModel` is needed by multiple admin controllers (Customer addresses, Warehouse addresses, Shipping origin), it should be extracted then. For now, inline is sufficient
+
+### Legacy AffiliatedOrderListModel Eliminated
+- Legacy had a separate `AffiliatedOrderListModel` with `AvailableOrderStatuses`, `AvailablePaymentStatuses`, `AvailableShippingStatuses` dropdown lists and date range filters
+- Legacy `AffiliatedOrderList` was a `[ChildActionOnly]` action that returned a partial view with the search form, and `AffiliatedOrderListGrid` was the AJAX data endpoint
+- New code eliminates the separate model — order search filters (startDate, endDate, orderStatusId, paymentStatusId, shippingStatusId) are passed as action parameters to `AffiliatedOrderList` AJAX endpoint
+- The Edit view can add filter inputs above the orders grid if needed — currently loads all orders for the affiliate
+
+### Constructor Dependencies: 11 (Reduced from Legacy 12)
+- Dropped: `ILocalizationService` (success notifications use plain text), `IWorkContext` (only used for `GetLocalizedEnum`)
+- Added: `IAddressService` (replaces `affiliate.Address` nav property access — address loaded separately via `GetAddressByIdAsync`)
+- Kept: `IAffiliateService`, `ICountryService`, `IStateProvinceService`, `IOrderService`, `ICustomerService`, `IDateTimeHelper`, `IPriceFormatter`, `IWebHelper`, `ICustomerActivityService`, `IPermissionService`
+
+### IPriceFormatter.FormatPriceAsync Is Async
+- Legacy `_priceFormatter.FormatPrice(order.OrderTotal, true, false)` was synchronous
+- New `priceFormatter.FormatPriceAsync(o.OrderTotal, true, false)` is async — requires `await` in a foreach loop instead of LINQ `.Select()`
+- This is consistent with the async-first pattern established across all new services
+
+### Impact on Future Items
+- [5.67] Admin VendorController: next admin controller to implement — follows same pattern with address management
+- [5.68] Admin StoreController: follows same simple CRUD pattern
+- Shared AddressModel: if multiple admin controllers need address editing (Vendor, Warehouse, Shipping origin), extract a shared address model and helper methods
