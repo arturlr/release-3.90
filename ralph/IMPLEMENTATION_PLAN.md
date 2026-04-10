@@ -631,10 +631,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.2
   - Done: 2026-04-10. NewsLetterSubscriptionController with 7 actions: List (search form with email/date/store/active/role filters), SubscriptionList (AJAX grid), SubscriptionUpdate (inline edit), SubscriptionDelete, ExportCsv (separate POST endpoint — FormValueRequired eliminated), ImportCsv (IFormFile replaces FormCollection). 2 view models (NewsLetterSubscriptionListModel, NewsLetterSubscriptionModel). 1 Razor view (List.cshtml with search form + inline AJAX grid + export/import). No ILocalizationService dependency (consistent with simplified admin controllers). Follows CampaignController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Admin messaging area complete: EmailAccount [5.53] ✓, MessageTemplate [5.54] ✓, QueuedEmail [5.55] ✓, Campaign [5.56] ✓, NewsLetterSubscription [5.57] ✓.
 
-- [ ] [5.58] Admin: GiftCardController + GiftCard views
+- [x] [5.58] Admin: GiftCardController + GiftCard views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/GiftCardController, Admin/Views/GiftCard
   - Depends on: 5.1, 4.9
+  - Done: 2026-04-10. GiftCardController with core CRUD (List with activated/coupon/recipient filters, GiftCardList AJAX grid, Create, Edit, Delete), GenerateCouponCode (AJAX), NotifyRecipient (separate POST endpoint — FormValueRequired eliminated), UsageHistoryList (AJAX grid), UsageHistoryDelete. 4 view models (GiftCardListModel, GiftCardModel, GiftCardGridModel, GiftCardUsageHistoryModel). 3 Razor views (List, Create, Edit with usage history grid + notify recipient + delete). Added DeleteGiftCardUsageHistoryAsync to IGiftCardService/GiftCardService. Legacy nav properties replaced: giftCard.PurchasedWithOrderItem → IOrderService.GetOrderItemByIdAsync + GetOrderByIdAsync; giftCard.GiftCardUsageHistory → IGiftCardService.GetGiftCardUsageHistoryAsync; x.UsedWithOrder.CustomOrderNumber → IOrderService.GetOrderByIdAsync. ParameterBasedOnFormName eliminated — continueEditing is regular form parameter. Follows PollController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
 - [ ] [5.59] Admin: RecurringPaymentController + RecurringPayment views
   - Spec: specs/nop-admin.md

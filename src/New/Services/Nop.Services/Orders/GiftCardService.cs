@@ -150,6 +150,13 @@ public class GiftCardService(
         return Task.CompletedTask;
     }
 
+    public Task DeleteGiftCardUsageHistoryAsync(GiftCardUsageHistory usageHistory)
+    {
+        ArgumentNullException.ThrowIfNull(usageHistory);
+        giftCardUsageHistoryRepository.Delete(usageHistory);
+        return Task.CompletedTask;
+    }
+
     private static string[] ParseGiftCardCouponCodes(string? couponCodesXml)
     {
         if (string.IsNullOrEmpty(couponCodesXml))

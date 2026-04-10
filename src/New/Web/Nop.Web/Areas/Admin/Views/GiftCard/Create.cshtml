@@ -1,0 +1,67 @@
+@model Nop.Web.Areas.Admin.Models.Orders.GiftCardModel
+@{
+    ViewData["Title"] = "Add a new gift card";
+}
+
+<form asp-action="Create" method="post">
+    <input type="hidden" name="continueEditing" id="continueEditing" value="false" />
+    <div>
+        <button type="submit" onclick="document.getElementById('continueEditing').value='false';">Save</button>
+        <button type="submit" onclick="document.getElementById('continueEditing').value='true';">Save and continue editing</button>
+    </div>
+
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <div>
+        <label>Gift card type</label>
+        <select asp-for="GiftCardTypeId">
+            <option value="0">Virtual</option>
+            <option value="1">Physical</option>
+        </select>
+    </div>
+    <div>
+        <label>Amount (@Model.PrimaryStoreCurrencyCode)</label>
+        <input asp-for="Amount" />
+    </div>
+    <div>
+        <label>Coupon code</label>
+        <input asp-for="GiftCardCouponCode" />
+        <button type="button" id="generate-coupon-btn">Generate coupon code</button>
+    </div>
+    <div>
+        <label>Recipient name</label>
+        <input asp-for="RecipientName" />
+    </div>
+    <div>
+        <label>Recipient email</label>
+        <input asp-for="RecipientEmail" />
+    </div>
+    <div>
+        <label>Sender name</label>
+        <input asp-for="SenderName" />
+    </div>
+    <div>
+        <label>Sender email</label>
+        <input asp-for="SenderEmail" />
+    </div>
+    <div>
+        <label>Message</label>
+        <textarea asp-for="Message" rows="4"></textarea>
+    </div>
+    <div>
+        <label>Is activated</label>
+        <input asp-for="IsGiftCardActivated" type="checkbox" />
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    document.getElementById('generate-coupon-btn').addEventListener('click', function() {
+        fetch('@Url.Action("GenerateCouponCode")', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                document.getElementById('GiftCardCouponCode').value = data.CouponCode;
+            });
+    });
+</script>
+}

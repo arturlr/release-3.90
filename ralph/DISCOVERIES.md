@@ -3378,3 +3378,27 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - Admin messaging area is fully complete — no more messaging controllers to implement
 - Next high-value admin controllers: [5.58] GiftCardController, [5.59] RecurringPaymentController, [5.60] ReturnRequestController, [5.66] AffiliateController, [5.67] VendorController, [5.68] StoreController, [5.69] ActivityLogController, [5.70] LogController
+
+## 2026-04-10 — [5.58] Admin GiftCardController / Implementation
+
+### DeleteGiftCardUsageHistoryAsync Added to IGiftCardService
+- Legacy GiftCardController did NOT have a UsageHistoryDelete action — usage history was read-only in the admin UI
+- New code adds `UsageHistoryDelete` action for admin management, requiring `DeleteGiftCardUsageHistoryAsync` on `IGiftCardService`/`GiftCardService`
+- This is a new capability not present in legacy — allows admins to correct erroneous usage history entries
+- Pattern consistent with other admin controllers that add delete capabilities for sub-entities (PollController answer delete, CountryController state delete)
+
+### Legacy Nav Property Replacements — Two-Step Lookup Pattern
+- Legacy `giftCard.PurchasedWithOrderItem` nav property required two-step replacement: `IOrderService.GetOrderItemByIdAsync(giftCard.PurchasedWithOrderItemId)` → `IOrderService.GetOrderByIdAsync(orderItem.OrderId)`
+- Legacy `x.UsedWithOrder.CustomOrderNumber` in UsageHistoryList required: `IOrderService.GetOrderByIdAsync(h.UsedWithOrderId)` per history entry
+- This creates N+1 queries for N usage history entries — acceptable for admin usage history volumes (typically <50 entries per gift card)
+- `PrepareGiftCardModelAsync` helper centralizes the two-step lookup to avoid duplication across Edit GET, Edit POST validation failure, and NotifyRecipient
+
+### ILocalizationService and ILanguageService Dependencies Reduced
+- Legacy injected both `ILocalizationService` (for `GetResource` success notifications) and `ILanguageService` (for NotifyRecipient language resolution)
+- New code only injects `ILanguageService` — `ILocalizationService` dropped since success notifications use plain text (consistent with simplified admin controller pattern)
+- `LocalizationSettings` kept for `DefaultAdminLanguageId` fallback in NotifyRecipient
+
+### Impact on Future Items
+- [5.59] Admin RecurringPaymentController: next order-related admin controller to implement
+- [5.60] Admin ReturnRequestController: can follow the same pattern for return request management
+- Admin order area progress: Order [5.34] ✓, GiftCard [5.58] ✓, RecurringPayment [5.59] pending, ReturnRequest [5.60] pending, ShoppingCart [5.61] pending

@@ -1,0 +1,83 @@
+@model Nop.Web.Areas.Admin.Models.Orders.GiftCardListModel
+@{
+    ViewData["Title"] = "Gift Cards";
+}
+
+<form asp-action="GiftCardList" method="post" id="search-form">
+    <div>
+        <label>Activated</label>
+        <select asp-for="ActivatedId" asp-items="Model.ActivatedList"></select>
+    </div>
+    <div>
+        <label>Coupon code</label>
+        <input asp-for="CouponCode" />
+    </div>
+    <div>
+        <label>Recipient name</label>
+        <input asp-for="RecipientName" />
+    </div>
+    <div>
+        <button type="button" id="search-btn">Search</button>
+    </div>
+</form>
+
+<div>
+    <a asp-action="Create">Add new</a>
+</div>
+
+<table id="giftcards-grid"></table>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var grid = document.getElementById('giftcards-grid');
+        var pageSize = 15;
+        var currentPage = 1;
+
+        function loadGrid(page) {
+            currentPage = page || 1;
+            var form = document.getElementById('search-form');
+            var formData = new FormData(form);
+            formData.append('Page', currentPage);
+            formData.append('PageSize', pageSize);
+
+            fetch('@Url.Action("GiftCardList")', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var html = '<thead><tr><th>Coupon code</th><th>Recipient</th><th>Amount</th><th>Remaining</th><th>Activated</th><th>Created</th><th>Edit</th></tr></thead><tbody>';
+                if (data.Data && data.Data.length) {
+                    data.Data.forEach(function(item) {
+                        html += '<tr>';
+                        html += '<td>' + (item.GiftCardCouponCode || '') + '</td>';
+                        html += '<td>' + (item.RecipientName || '') + '</td>';
+                        html += '<td>' + (item.AmountStr || '') + '</td>';
+                        html += '<td>' + (item.RemainingAmountStr || '') + '</td>';
+                        html += '<td>' + (item.IsGiftCardActivated ? 'Yes' : 'No') + '</td>';
+                        html += '<td>' + new Date(item.CreatedOn).toLocaleString() + '</td>';
+                        html += '<td><a href="@Url.Action("Edit")/' + item.Id + '">Edit</a></td>';
+                        html += '</tr>';
+                    });
+                } else {
+                    html += '<tr><td colspan="7">No data available</td></tr>';
+                }
+                html += '</tbody>';
+                var totalPages = Math.ceil(data.Total / pageSize);
+                if (totalPages > 1) {
+                    html += '<tfoot><tr><td colspan="7">Page ' + currentPage + ' of ' + totalPages + ' (' + data.Total + ' total)';
+                    if (currentPage > 1) html += ' <a href="#" onclick="window._gcLoadGrid(' + (currentPage - 1) + ');return false;">Prev</a>';
+                    if (currentPage < totalPages) html += ' <a href="#" onclick="window._gcLoadGrid(' + (currentPage + 1) + ');return false;">Next</a>';
+                    html += '</td></tr></tfoot>';
+                }
+                grid.innerHTML = html;
+            });
+        }
+
+        window._gcLoadGrid = loadGrid;
+        document.getElementById('search-btn').addEventListener('click', function() { loadGrid(1); });
+        loadGrid(1);
+    });
+</script>
+}

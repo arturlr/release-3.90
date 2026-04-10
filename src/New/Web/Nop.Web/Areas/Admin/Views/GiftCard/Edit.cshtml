@@ -1,0 +1,161 @@
+@model Nop.Web.Areas.Admin.Models.Orders.GiftCardModel
+@{
+    ViewData["Title"] = "Edit gift card";
+}
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" name="continueEditing" id="continueEditing" value="false" />
+    <div>
+        <button type="submit" onclick="document.getElementById('continueEditing').value='false';">Save</button>
+        <button type="submit" onclick="document.getElementById('continueEditing').value='true';">Save and continue editing</button>
+        <button type="button" id="notify-btn">Notify recipient</button>
+    </div>
+
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <div>
+        <label>Gift card type</label>
+        <select asp-for="GiftCardTypeId">
+            <option value="0">Virtual</option>
+            <option value="1">Physical</option>
+        </select>
+    </div>
+    @if (Model.PurchasedWithOrderId.HasValue)
+    {
+        <div>
+            <label>Purchased with order</label>
+            <a asp-area="Admin" asp-controller="Order" asp-action="Edit" asp-route-id="@Model.PurchasedWithOrderId">
+                @(Model.PurchasedWithOrderNumber ?? $"#{Model.PurchasedWithOrderId}")
+            </a>
+        </div>
+    }
+    <div>
+        <label>Amount (@Model.PrimaryStoreCurrencyCode)</label>
+        <input asp-for="Amount" />
+    </div>
+    <div>
+        <label>Amount</label>
+        <span>@Model.AmountStr</span>
+    </div>
+    <div>
+        <label>Remaining amount</label>
+        <span>@Model.RemainingAmountStr</span>
+    </div>
+    <div>
+        <label>Coupon code</label>
+        <input asp-for="GiftCardCouponCode" />
+        <button type="button" id="generate-coupon-btn">Generate coupon code</button>
+    </div>
+    <div>
+        <label>Recipient name</label>
+        <input asp-for="RecipientName" />
+    </div>
+    <div>
+        <label>Recipient email</label>
+        <input asp-for="RecipientEmail" />
+    </div>
+    <div>
+        <label>Sender name</label>
+        <input asp-for="SenderName" />
+    </div>
+    <div>
+        <label>Sender email</label>
+        <input asp-for="SenderEmail" />
+    </div>
+    <div>
+        <label>Message</label>
+        <textarea asp-for="Message" rows="4"></textarea>
+    </div>
+    <div>
+        <label>Is activated</label>
+        <input asp-for="IsGiftCardActivated" type="checkbox" />
+    </div>
+    <div>
+        <label>Is recipient notified</label>
+        <span>@(Model.IsRecipientNotified ? "Yes" : "No")</span>
+    </div>
+    <div>
+        <label>Created on</label>
+        <span>@Model.CreatedOn.ToString("g")</span>
+    </div>
+</form>
+
+@* Usage history *@
+<h3>Usage history</h3>
+<table id="usage-history-grid"></table>
+
+@* Delete *@
+<form asp-action="Delete" method="post" id="delete-form">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit" onclick="return confirm('Are you sure?');">Delete</button>
+</form>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Generate coupon code
+        document.getElementById('generate-coupon-btn').addEventListener('click', function() {
+            fetch('@Url.Action("GenerateCouponCode")', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    document.getElementById('GiftCardCouponCode').value = data.CouponCode;
+                });
+        });
+
+        // Notify recipient
+        document.getElementById('notify-btn').addEventListener('click', function() {
+            var form = new FormData();
+            form.append('id', '@Model.Id');
+            fetch('@Url.Action("NotifyRecipient")', { method: 'POST', body: form })
+                .then(function(r) {
+                    if (r.ok) window.location.reload();
+                });
+        });
+
+        // Usage history grid
+        var uhGrid = document.getElementById('usage-history-grid');
+        var uhPageSize = 10;
+        var uhCurrentPage = 1;
+
+        function loadUsageHistory(page) {
+            uhCurrentPage = page || 1;
+            var form = new FormData();
+            form.append('giftCardId', '@Model.Id');
+            form.append('Page', uhCurrentPage);
+            form.append('PageSize', uhPageSize);
+
+            fetch('@Url.Action("UsageHistoryList")', { method: 'POST', body: form })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var html = '<thead><tr><th>Order</th><th>Used value</th><th>Created on</th><th>Delete</th></tr></thead><tbody>';
+                    if (data.Data && data.Data.length) {
+                        data.Data.forEach(function(item) {
+                            html += '<tr>';
+                            html += '<td><a href="@Url.Action("Edit", "Order")/' + item.OrderId + '">' + (item.CustomOrderNumber || '#' + item.OrderId) + '</a></td>';
+                            html += '<td>' + (item.UsedValue || '') + '</td>';
+                            html += '<td>' + new Date(item.CreatedOn).toLocaleString() + '</td>';
+                            html += '<td><button type="button" onclick="window._uhDelete(' + item.Id + ')">Delete</button></td>';
+                            html += '</tr>';
+                        });
+                    } else {
+                        html += '<tr><td colspan="4">No usage history</td></tr>';
+                    }
+                    html += '</tbody>';
+                    uhGrid.innerHTML = html;
+                });
+        }
+
+        window._uhDelete = function(id) {
+            if (!confirm('Are you sure?')) return;
+            var form = new FormData();
+            form.append('id', id);
+            form.append('giftCardId', '@Model.Id');
+            fetch('@Url.Action("UsageHistoryDelete")', { method: 'POST', body: form })
+                .then(function() { loadUsageHistory(uhCurrentPage); });
+        };
+
+        loadUsageHistory(1);
+    });
+</script>
+}

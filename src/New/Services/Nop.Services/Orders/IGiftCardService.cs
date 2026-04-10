@@ -22,4 +22,5 @@ public interface IGiftCardService
     // Usage history
     Task<IList<GiftCardUsageHistory>> GetGiftCardUsageHistoryAsync(GiftCard giftCard);
     Task InsertGiftCardUsageHistoryAsync(GiftCardUsageHistory usageHistory);
+    Task DeleteGiftCardUsageHistoryAsync(GiftCardUsageHistory usageHistory);
 }
