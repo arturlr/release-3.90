@@ -1,0 +1,173 @@
+@model Nop.Web.Areas.Admin.Models.Messages.NewsLetterSubscriptionListModel
+@{
+    ViewData["Title"] = "Newsletter Subscriptions";
+}
+
+<div class="content-header">
+    <h1>Newsletter Subscriptions</h1>
+</div>
+
+<div class="content">
+    <div class="search-panel">
+        <form asp-action="ExportCsv" method="post">
+            <div class="form-group">
+                <label asp-for="SearchEmail">Email</label>
+                <input asp-for="SearchEmail" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="StartDate">Start date</label>
+                <input asp-for="StartDate" type="date" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="EndDate">End date</label>
+                <input asp-for="EndDate" type="date" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="StoreId">Store</label>
+                <select asp-for="StoreId" asp-items="Model.AvailableStores" class="form-control"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="ActiveId">Active</label>
+                <select asp-for="ActiveId" asp-items="Model.ActiveList" class="form-control"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="CustomerRoleId">Customer role</label>
+                <select asp-for="CustomerRoleId" asp-items="Model.AvailableCustomerRoles" class="form-control"></select>
+            </div>
+            <button type="button" id="search-btn" class="btn btn-primary">Search</button>
+            <button type="submit" class="btn btn-success">Export to CSV</button>
+        </form>
+    </div>
+
+    <div class="import-panel" style="margin-top: 10px;">
+        <form asp-action="ImportCsv" method="post" enctype="multipart/form-data">
+            <div class="form-group" style="display: inline-flex; align-items: center; gap: 10px;">
+                <input type="file" name="importcsvfile" accept=".txt,.csv" />
+                <button type="submit" class="btn btn-info">Import from CSV</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="grid-panel" style="margin-top: 20px;">
+        <table id="subscriptions-grid">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Active</th>
+                    <th>Store</th>
+                    <th>Created on</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div id="pager"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadGrid(1);
+
+        document.getElementById('search-btn').addEventListener('click', function () {
+            loadGrid(1);
+        });
+    });
+
+    function getSearchParams() {
+        return {
+            SearchEmail: document.querySelector('[name="SearchEmail"]').value,
+            StartDate: document.querySelector('[name="StartDate"]').value || null,
+            EndDate: document.querySelector('[name="EndDate"]').value || null,
+            StoreId: document.querySelector('[name="StoreId"]').value,
+            ActiveId: document.querySelector('[name="ActiveId"]').value,
+            CustomerRoleId: document.querySelector('[name="CustomerRoleId"]').value
+        };
+    }
+
+    function loadGrid(page) {
+        var params = getSearchParams();
+        params.Page = page;
+        params.PageSize = 15;
+
+        fetch('@Url.Action("SubscriptionList")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: JSON.stringify(params)
+        })
+        .then(r => r.json())
+        .then(result => {
+            var tbody = document.querySelector('#subscriptions-grid tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (item) {
+                    var tr = document.createElement('tr');
+                    tr.dataset.id = item.Id;
+                    tr.innerHTML =
+                        '<td><input type="text" class="form-control edit-email" value="' + escapeHtml(item.Email || '') + '" /></td>' +
+                        '<td><input type="checkbox" class="edit-active" ' + (item.Active ? 'checked' : '') + ' /></td>' +
+                        '<td>' + escapeHtml(item.StoreName || '') + '</td>' +
+                        '<td>' + new Date(item.CreatedOn).toLocaleString() + '</td>' +
+                        '<td>' +
+                            '<button class="btn btn-sm btn-primary" onclick="updateRow(' + item.Id + ', this)">Save</button> ' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteRow(' + item.Id + ')">Delete</button>' +
+                        '</td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            renderPager(page, Math.ceil((result.Total || 0) / 15));
+        });
+    }
+
+    function updateRow(id, btn) {
+        var tr = btn.closest('tr');
+        var data = {
+            Id: id,
+            Email: tr.querySelector('.edit-email').value,
+            Active: tr.querySelector('.edit-active').checked
+        };
+        fetch('@Url.Action("SubscriptionUpdate")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.Errors) alert(result.Errors);
+        });
+    }
+
+    function deleteRow(id) {
+        if (!confirm('Are you sure?')) return;
+        fetch('@Url.Action("SubscriptionDelete")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: JSON.stringify({ id: id })
+        })
+        .then(r => r.json())
+        .then(function () {
+            var currentPage = parseInt(document.querySelector('#pager .active')?.textContent || '1');
+            loadGrid(currentPage);
+        });
+    }
+
+    function renderPager(current, total) {
+        var pager = document.getElementById('pager');
+        pager.innerHTML = '';
+        for (var i = 1; i <= total; i++) {
+            var btn = document.createElement('button');
+            btn.textContent = i;
+            btn.className = 'btn btn-sm ' + (i === current ? 'btn-primary active' : 'btn-default');
+            btn.addEventListener('click', (function (p) { return function () { loadGrid(p); }; })(i));
+            pager.appendChild(btn);
+        }
+    }
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+</script>
+}
