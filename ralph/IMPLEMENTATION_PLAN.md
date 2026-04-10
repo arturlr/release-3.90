@@ -419,10 +419,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Controllers/ExternalAuthenticationController, Views/ExternalAuthentication
   - Depends on: 5.1, 2.5
 
-- [ ] [5.21] Public: DownloadController
+- [x] [5.21] Public: DownloadController
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/DownloadController
   - Depends on: 5.1, 3.7
+  - Done: 2026-04-10. DownloadController with 5 actions: Sample (product sample download), GetDownload (purchased product download with IsDownloadAllowed check, user agreement redirect, max download limit, download count increment), GetLicense (license file download with IsLicenseDownloadAllowed check), GetFileUpload (GUID-based file upload retrieval), GetOrderNoteFile (order note attachment with customer ownership check). Added UpdateOrderItemAsync to IOrderService/OrderService for download count increment. IsDownloadAllowed/IsLicenseDownloadAllowed implemented as private static method in controller (deferred from [3.7] service layer — logic checks order status, payment status, activation type, expiration). No views needed (file download endpoints only). No nav properties — Order/Product loaded via service calls from OrderItem FK IDs.
 
 - [x] [5.22] Public: CountryController (AJAX)
   - Spec: specs/nop-web-public.md

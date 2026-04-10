@@ -2580,3 +2580,30 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.67] Admin VendorController: can now reference the same `IVendorService` patterns for vendor CRUD + notes management
 - [7.13] reCAPTCHA: add `[CaptchaValidator]` to `ApplyVendorSubmit` action
+
+## 2026-04-10 — [5.21] Public DownloadController / Implementation
+
+### IsDownloadAllowed/IsLicenseDownloadAllowed — Implemented Inline in Controller
+- These methods were deferred from `IDownloadService` in [3.7] because they depended on `Order` and `Product` nav properties (stripped in [1.3])
+- New code implements the logic as a `private static bool IsDownloadAllowed(OrderItem, Order, Product)` method in `DownloadController`
+- Takes all three entities as explicit parameters — Order and Product loaded via `IOrderService.GetOrderByIdAsync` and `IProductService.GetProductByIdAsync` from OrderItem FK IDs
+- `IsLicenseDownloadAllowed` is inlined as an additional check: `IsDownloadAllowed && orderItem.LicenseDownloadId.HasValue && orderItem.LicenseDownloadId > 0`
+- Uses switch expression on `DownloadActivationType` enum — cleaner than legacy's nested switch/case/if blocks
+- Impact: if other controllers need download permission checks, they should call the same logic or it should be extracted to a shared utility
+
+### UpdateOrderItemAsync Added to IOrderService
+- Legacy `GetDownload` action incremented `orderItem.DownloadCount++` then called `_orderService.UpdateOrder(order)` — updating the entire order to persist an order item change
+- No `UpdateOrderItemAsync` existed in the new `IOrderService` — only `InsertOrderItemAsync` and `DeleteOrderItemAsync`
+- Added `UpdateOrderItemAsync(OrderItem)` to both `IOrderService` interface and `OrderService` implementation
+- More precise than legacy: updates only the order item, not the entire order entity
+- Impact: any future code needing to update order item properties (e.g., admin order editing) can use this method
+
+### UserAgreement Redirect
+- Legacy `GetDownload` redirected to `DownloadUserAgreement` named route when `product.HasUserAgreement && !agree`
+- New code redirects to `Customer/UserAgreement` action — the `UserAgreement` action was deferred in [5.6] (CustomerController)
+- When `UserAgreement` action is implemented, it should display the agreement text and redirect back to `GetDownload` with `agree=true`
+
+### Impact on Future Items
+- [5.6] CustomerController: should implement `UserAgreement` action for download user agreement display
+- [5.78] Admin DownloadController: separate admin download controller for admin file management
+- [5.9] OrderController: downloadable product links on order details page can now link to `GetDownload` and `GetLicense` actions

@@ -28,6 +28,7 @@ public interface IOrderService
     Task<IList<OrderItem>> GetDownloadableOrderItemsAsync(int customerId);
     Task DeleteOrderItemAsync(OrderItem orderItem);
     Task InsertOrderItemAsync(OrderItem orderItem);
+    Task UpdateOrderItemAsync(OrderItem orderItem);
 
     // Order notes
     Task<OrderNote?> GetOrderNoteByIdAsync(int orderNoteId);

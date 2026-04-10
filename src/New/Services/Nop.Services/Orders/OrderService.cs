@@ -157,6 +157,13 @@ public class OrderService(
         return eventPublisher.EntityInsertedAsync(orderItem);
     }
 
+    public Task UpdateOrderItemAsync(OrderItem orderItem)
+    {
+        ArgumentNullException.ThrowIfNull(orderItem);
+        orderItemRepository.Update(orderItem);
+        return eventPublisher.EntityUpdatedAsync(orderItem);
+    }
+
     // Order notes
     public Task<OrderNote?> GetOrderNoteByIdAsync(int orderNoteId) =>
         Task.FromResult(orderNoteId == 0 ? null : (OrderNote?)orderNoteRepository.GetById(orderNoteId));
