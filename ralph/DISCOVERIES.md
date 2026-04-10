@@ -2558,3 +2558,25 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.35] Admin CustomerController: profile page now links to PM send page — PM infrastructure already available via [5.17]
 - [5.26] Shared views: when shared layout is built, can add admin edit link back using `IPermissionService` check in layout
+
+## 2026-04-10 — [5.19] Public VendorController / Implementation
+
+### FormValueRequired Eliminated (Consistent with [5.7], [5.8], [5.9])
+- Legacy used `[FormValueRequired("save-info-button")]` and `[FormValueRequired("remove-picture")]` to route two POST actions to the same `Info` URL
+- New code uses separate endpoints: `InfoSave` (POST) for saving vendor info, `RemovePicture` (POST) for picture removal
+- Info.cshtml has two separate `<form>` elements posting to different actions — cleaner, no custom attribute needed
+- Consistent with ShoppingCartController [5.7], CheckoutController [5.8], OrderController [5.9] patterns
+
+### Captcha Deferred to [7.13]
+- Legacy `ApplyVendorSubmit` had `[CaptchaValidator]` attribute and `captchaValid` parameter
+- `DisplayCaptcha` property omitted from `ApplyVendorModel` (was presentation-only flag for captcha rendering)
+- Will be added when [7.13] Google reCAPTCHA integration is built
+
+### SeoSettings Dependency Added
+- Legacy used `vendor.ValidateSeName(name, name, true)` extension method (service locator resolved `IUrlRecordService` and `SeoSettings`)
+- New code passes `SeoSettings` as explicit constructor parameter — required by `ValidateSeNameAsync` extension method (per [3.4] discovery about service locator elimination)
+- This adds `SeoSettings` as a 10th constructor dependency
+
+### Impact on Future Items
+- [5.67] Admin VendorController: can now reference the same `IVendorService` patterns for vendor CRUD + notes management
+- [7.13] reCAPTCHA: add `[CaptchaValidator]` to `ApplyVendorSubmit` action

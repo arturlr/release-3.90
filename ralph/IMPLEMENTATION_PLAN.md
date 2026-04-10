@@ -408,10 +408,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.1
   - Done: 2026-04-10. ProfileController with Index action (inline Info/Posts model preparation — legacy child actions eliminated). 4 view models (ProfileIndexModel with embedded ProfileInfoModel + ProfilePostsModel, PostModel) in ProfileModels.cs. 3 Razor views (Index.cshtml with vanilla JS tab switching replacing jQuery UI tabs, _Info.cshtml partial with avatar/stats/PM link, _Posts.cshtml partial with post list and inline pager). Guest check via ICustomerService role lookup (no nav properties). FormatUserName replaced with customer.Email. FormatPostText replaced with WebUtility.HtmlEncode + newline→br. RelativeFormat replaced with simple FormatRelativeDate helper. IPermissionService removed (legacy used it for admin edit link via DisplayEditLink — not available in new codebase). Widget zones dropped (depend on [3.15]). Localized strings replaced with plain text. No model factory — inline construction.
 
-- [ ] [5.19] Public: VendorController + Vendor views
+- [x] [5.19] Public: VendorController + Vendor views
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/VendorController, Views/Vendor
   - Depends on: 5.1, 3.10
+  - Done: 2026-04-10. VendorController with 5 actions: ApplyVendor (GET), ApplyVendorSubmit (POST), Info (GET), InfoSave (POST), RemovePicture (POST). 2 view models (ApplyVendorModel, VendorInfoModel). 2 Razor views. FormValueRequired eliminated — separate endpoints (InfoSave instead of Info POST, ApplyVendorSubmit instead of ApplyVendor POST). IFormFile replaces HttpPostedFileBase. Inline model construction (no model factory). Captcha deferred to [7.13].
 
 - [ ] [5.20] Public: ExternalAuthenticationController + ExternalAuthentication views
   - Spec: specs/nop-web-public.md

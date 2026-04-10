@@ -1,0 +1,53 @@
+@model Nop.Web.Models.Vendor.ApplyVendorModel
+@{
+    Layout = null;
+}
+<div class="page apply-vendor-page">
+    <div class="page-title">
+        <h1>Apply for vendor account</h1>
+    </div>
+    <div class="page-body">
+        @if (Model.DisableFormInput)
+        {
+            <div class="result">@Model.Result</div>
+        }
+        else
+        {
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="message-error">
+                    <div asp-validation-summary="ModelOnly"></div>
+                </div>
+            }
+            <form asp-action="ApplyVendorSubmit" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="fieldset">
+                    <div class="form-fields">
+                        <div class="inputs">
+                            <label asp-for="Name">Name:</label>
+                            <input asp-for="Name" placeholder="Your vendor name" />
+                            <span asp-validation-for="Name"></span>
+                        </div>
+                        <div class="inputs">
+                            <label asp-for="Email">Email:</label>
+                            <input asp-for="Email" placeholder="Your email" />
+                            <span asp-validation-for="Email"></span>
+                        </div>
+                        <div class="inputs">
+                            <label asp-for="Description">Description:</label>
+                            <textarea asp-for="Description"></textarea>
+                        </div>
+                        <div class="inputs">
+                            <label>Picture:</label>
+                            <input name="uploadedFile" type="file" />
+                        </div>
+                        @* Captcha deferred to [7.13] *@
+                    </div>
+                </div>
+                <div class="buttons">
+                    <input type="submit" class="button-1 apply-vendor-button" value="Submit" />
+                </div>
+            </form>
+        }
+    </div>
+</div>

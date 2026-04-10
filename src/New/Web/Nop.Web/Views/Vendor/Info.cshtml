@@ -1,0 +1,60 @@
+@model Nop.Web.Models.Vendor.VendorInfoModel
+@{
+    Layout = null;
+}
+<div class="page account-page vendorinfo-page">
+    <div class="page-title">
+        <h1>My Account - Vendor Info</h1>
+    </div>
+    <div class="page-body">
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="message-error">
+                <div asp-validation-summary="ModelOnly"></div>
+            </div>
+        }
+        <form asp-action="InfoSave" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div class="fieldset">
+                <div class="form-fields">
+                    <div class="inputs">
+                        <label asp-for="Name">Name:</label>
+                        <input asp-for="Name" />
+                        <span asp-validation-for="Name"></span>
+                    </div>
+                    <div class="inputs">
+                        <label asp-for="Email">Email:</label>
+                        <input asp-for="Email" />
+                        <span asp-validation-for="Email"></span>
+                    </div>
+                    <div class="inputs">
+                        <label asp-for="Description">Description:</label>
+                        <textarea asp-for="Description"></textarea>
+                    </div>
+                    <div class="inputs">
+                        <label>Picture:</label>
+                        <input name="uploadedFile" type="file" />
+                        @if (!string.IsNullOrEmpty(Model.PictureUrl))
+                        {
+                            <div class="vendor-picture">
+                                <img src="@Model.PictureUrl" alt="Vendor picture" />
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="buttons">
+                <input type="submit" class="button-1 save-vendorinfo-button" value="Save" />
+            </div>
+        </form>
+        @if (!string.IsNullOrEmpty(Model.PictureUrl))
+        {
+            <form asp-action="RemovePicture" method="post">
+                @Html.AntiForgeryToken()
+                <div class="buttons">
+                    <input type="submit" class="button-2 remove-picture-button" value="Remove picture" />
+                </div>
+            </form>
+        }
+    </div>
+</div>
