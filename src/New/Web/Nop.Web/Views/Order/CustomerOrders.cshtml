@@ -1,0 +1,104 @@
+@model Nop.Web.Models.Order.CustomerOrderListModel
+
+@{
+    Layout = null;
+}
+
+<h1>My Orders</h1>
+
+@if (Model.RecurringPaymentErrors.Count > 0)
+{
+    <div class="message-error">
+        <ul>
+            @foreach (var error in Model.RecurringPaymentErrors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (Model.Orders.Count > 0)
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Order #</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Date</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in Model.Orders)
+            {
+                <tr>
+                    <td>@order.CustomOrderNumber</td>
+                    <td>@order.OrderStatus</td>
+                    <td>@order.OrderTotal</td>
+                    <td>@order.CreatedOn.ToString("D")</td>
+                    <td>
+                        <a href="@Url.Action("Details", "Order", new { orderId = order.Id })">Details</a>
+                        @if (order.IsReturnRequestAllowed)
+                        {
+                            <text> | </text>
+                            <a href="@Url.Action("ReturnRequest", "ReturnRequest", new { orderId = order.Id })">Return</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No orders yet.</p>
+}
+
+@if (Model.RecurringOrders.Count > 0)
+{
+    <h2>Recurring Payments</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Start Date</th>
+                <th>Cycle</th>
+                <th>Next Payment</th>
+                <th>Total / Remaining</th>
+                <th>Order #</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rp in Model.RecurringOrders)
+            {
+                <tr>
+                    <td>@rp.StartDate</td>
+                    <td>@rp.CycleInfo</td>
+                    <td>@rp.NextPayment</td>
+                    <td>@rp.TotalCycles / @rp.CyclesRemaining</td>
+                    <td>
+                        <a href="@Url.Action("Details", "Order", new { orderId = rp.InitialOrderId })">@rp.InitialOrderNumber</a>
+                    </td>
+                    <td>
+                        @if (rp.CanCancel)
+                        {
+                            <form asp-action="CancelRecurringPayment" asp-controller="Order" method="post">
+                                <input type="hidden" name="recurringPaymentId" value="@rp.Id" />
+                                <button type="submit">Cancel</button>
+                            </form>
+                        }
+                        @if (rp.CanRetryLastPayment)
+                        {
+                            <form asp-action="RetryLastRecurringPayment" asp-controller="Order" method="post">
+                                <input type="hidden" name="recurringPaymentId" value="@rp.Id" />
+                                <button type="submit">Retry</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

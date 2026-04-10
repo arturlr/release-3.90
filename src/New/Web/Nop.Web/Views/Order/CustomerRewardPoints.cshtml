@@ -1,0 +1,44 @@
+@model Nop.Web.Models.Order.CustomerRewardPointsModel
+
+@{
+    Layout = null;
+}
+
+<h1>Reward Points</h1>
+
+<div class="reward-points-summary">
+    <p><strong>Balance:</strong> @Model.RewardPointsBalance points (@Model.RewardPointsAmount)</p>
+    @if (Model.MinimumRewardPointsBalance > 0)
+    {
+        <p><strong>Minimum to use:</strong> @Model.MinimumRewardPointsBalance points (@Model.MinimumRewardPointsAmount)</p>
+    }
+</div>
+
+@if (Model.RewardPoints.Count > 0)
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Points</th>
+                <th>Balance</th>
+                <th>Message</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rp in Model.RewardPoints)
+            {
+                <tr>
+                    <td>@rp.Points</td>
+                    <td>@rp.PointsBalance</td>
+                    <td>@rp.Message</td>
+                    <td>@rp.CreatedOn.ToString("g")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No reward points history.</p>
+}

@@ -1,0 +1,134 @@
+@model Nop.Web.Models.Order.OrderDetailsModel
+
+@{
+    Layout = null;
+}
+
+<h1>Order #@Model.CustomOrderNumber</h1>
+
+@if (!Model.PrintMode && !Model.PdfInvoiceDisabled)
+{
+    <div class="actions">
+        <a href="@Url.Action("PrintOrderDetails", "Order", new { orderId = Model.Id })">Print</a>
+        <a href="@Url.Action("GetPdfInvoice", "Order", new { orderId = Model.Id })">PDF Invoice</a>
+    </div>
+}
+
+<div class="order-overview">
+    <p><strong>Date:</strong> @Model.CreatedOn.ToString("D")</p>
+    <p><strong>Status:</strong> @Model.OrderStatus</p>
+</div>
+
+@* --- Items --- *@
+<h2>Products</h2>
+<table>
+    <thead>
+        <tr>
+            @if (Model.ShowSku) { <th>SKU</th> }
+            <th>Product</th>
+            <th>Price</th>
+            <th>Qty</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Items)
+        {
+            <tr>
+                @if (Model.ShowSku) { <td>@item.Sku</td> }
+                <td>
+                    <a href="@Url.Action("ProductDetails", "Product", new { productId = item.ProductId })">@item.ProductName</a>
+                    @if (!string.IsNullOrEmpty(item.AttributeInfo))
+                    {
+                        <div class="attributes">@Html.Raw(item.AttributeInfo)</div>
+                    }
+                </td>
+                <td>@item.UnitPrice</td>
+                <td>@item.Quantity</td>
+                <td>@item.SubTotal</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@* --- Totals --- *@
+<div class="totals">
+    <p><strong>Sub-Total:</strong> @Model.OrderSubtotal</p>
+    @if (Model.OrderSubTotalDiscount != null) { <p><strong>Discount:</strong> @Model.OrderSubTotalDiscount</p> }
+    <p><strong>Shipping:</strong> @Model.OrderShipping</p>
+    @if (Model.PaymentMethodAdditionalFee != null) { <p><strong>Payment Fee:</strong> @Model.PaymentMethodAdditionalFee</p> }
+    @if (Model.DisplayTax) { <p><strong>Tax:</strong> @Model.Tax</p> }
+    @if (Model.OrderTotalDiscount != null) { <p><strong>Order Discount:</strong> @Model.OrderTotalDiscount</p> }
+    @foreach (var gc in Model.GiftCards)
+    {
+        <p><strong>Gift Card (@gc.CouponCode):</strong> @gc.Amount</p>
+    }
+    @if (Model.RedeemedRewardPoints > 0)
+    {
+        <p><strong>Reward Points (@Model.RedeemedRewardPoints pts):</strong> @Model.RedeemedRewardPointsAmount</p>
+    }
+    <p><strong>Order Total:</strong> @Model.OrderTotal</p>
+</div>
+
+@* --- Shipping --- *@
+@if (Model.IsShippable)
+{
+    <h2>Shipping</h2>
+    <p><strong>Method:</strong> @Model.ShippingMethod</p>
+    <p><strong>Status:</strong> @Model.ShippingStatus</p>
+
+    @if (Model.Shipments.Count > 0)
+    {
+        <table>
+            <thead>
+                <tr><th>Shipment #</th><th>Tracking</th><th>Shipped</th><th>Delivered</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.Shipments)
+                {
+                    <tr>
+                        <td><a href="@Url.Action("ShipmentDetails", "Order", new { shipmentId = s.Id })">@s.Id</a></td>
+                        <td>@s.TrackingNumber</td>
+                        <td>@s.ShippedDate?.ToString("d")</td>
+                        <td>@s.DeliveryDate?.ToString("d")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@* --- Order Notes --- *@
+@if (Model.OrderNotes.Count > 0)
+{
+    <h2>Notes</h2>
+    @foreach (var note in Model.OrderNotes)
+    {
+        <div class="order-note">
+            <p>@Html.Raw(note.Note)</p>
+            <small>@note.CreatedOn.ToString("g")</small>
+        </div>
+    }
+}
+
+@* --- Actions --- *@
+@if (!Model.PrintMode)
+{
+    <div class="actions">
+        @if (Model.IsReOrderAllowed)
+        {
+            <a href="@Url.Action("ReOrder", "Order", new { orderId = Model.Id })">Re-order</a>
+        }
+        @if (Model.IsReturnRequestAllowed)
+        {
+            <a href="@Url.Action("ReturnRequest", "ReturnRequest", new { orderId = Model.Id })">Return items</a>
+        }
+        @if (Model.CanRePostProcessPayment)
+        {
+            <form asp-action="RePostPayment" asp-controller="Order" method="post">
+                <input type="hidden" name="orderId" value="@Model.Id" />
+                <button type="submit">Complete Payment</button>
+            </form>
+        }
+    </div>
+}

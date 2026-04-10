@@ -1,0 +1,48 @@
+@model Nop.Web.Models.Order.ShipmentDetailsModel
+
+@{
+    Layout = null;
+}
+
+<h1>Shipment #@Model.Id</h1>
+
+<div class="shipment-overview">
+    <p><strong>Order:</strong> <a href="@Url.Action("Details", "Order", new { orderId = Model.OrderId })">#@Model.OrderId</a></p>
+    @if (!string.IsNullOrEmpty(Model.TrackingNumber))
+    {
+        <p><strong>Tracking:</strong> @Model.TrackingNumber</p>
+    }
+    @if (Model.ShippedDate.HasValue)
+    {
+        <p><strong>Shipped:</strong> @Model.ShippedDate.Value.ToString("D")</p>
+    }
+    @if (Model.DeliveryDate.HasValue)
+    {
+        <p><strong>Delivered:</strong> @Model.DeliveryDate.Value.ToString("D")</p>
+    }
+</div>
+
+<h2>Items</h2>
+<table>
+    <thead>
+        <tr>
+            @if (Model.ShowSku) { <th>SKU</th> }
+            <th>Product</th>
+            <th>Qty Ordered</th>
+            <th>Qty Shipped</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Items)
+        {
+            <tr>
+                @if (Model.ShowSku) { <td>@item.Sku</td> }
+                <td>
+                    <a href="@Url.Action("ProductDetails", "Product", new { productId = item.ProductId })">@item.ProductName</a>
+                </td>
+                <td>@item.QuantityOrdered</td>
+                <td>@item.QuantityShipped</td>
+            </tr>
+        }
+    </tbody>
+</table>

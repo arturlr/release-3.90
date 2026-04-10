@@ -348,10 +348,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.9
   - Done: 2026-04-10. CheckoutController as 2 partial class files (main + Steps) with multi-step checkout flow: Index (cart validation, checkout reset), BillingAddress (existing address selection + new address form), SelectBillingAddress (POST), NewBillingAddress (POST), ShippingAddress (existing + new), SelectShippingAddress (POST), NewShippingAddress (POST), ShippingMethod (auto-skips when no plugins), SelectShippingMethod (POST), PaymentMethod (auto-skips when no plugins), SelectPaymentMethod (POST with reward points), PaymentInfo (skips to confirm when no plugins), EnterPaymentInfo (POST), Confirm (GET), ConfirmOrder (POST with PlaceOrderAsync + PostProcessPaymentAsync), Completed. 7 view models in CheckoutModels.cs. 6 Razor views. Address deduplication via FindOrCreateAddressAsync using CustomerAddressMapping. Deferred: OPC (depends on RenderPartialViewToString), CheckoutProgress (ViewComponent for [5.26]), pickup points (plugin-dependent [2.10]).
 
-- [ ] [5.9] Public: OrderController + Order views (order history, order details)
+- [x] [5.9] Public: OrderController + Order views (order history, order details)
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/OrderController, Views/Order
   - Depends on: 5.1, 4.9
+  - Done: 2026-04-10. OrderController as 2 partial class files (main + helpers) with 10 actions: CustomerOrders (order list + recurring payments), CancelRecurringPayment (POST), RetryLastRecurringPayment (POST), CustomerRewardPoints (paged history), Details (full order detail with items/totals/shipping/notes), PrintOrderDetails (print mode), GetPdfInvoice (PDF download via IPdfService), ReOrder (re-add items to cart), RePostPayment (POST payment retry), ShipmentDetails (shipment items). 4 view models (CustomerOrderListModel, OrderDetailsModel, ShipmentDetailsModel, CustomerRewardPointsModel) in OrderModels.cs. 4 Razor views. FormValueRequired eliminated — separate action endpoints. IPdfService injected as nullable (no implementation yet). RecurringPayment.NextPaymentDate computed from history (no nav property). Gift cards queried via IGiftCardService.GetAllGiftCardsAsync(usedWithOrderId). Deferred: address display on order details (requires address model infrastructure), localized order status names, downloadable product links.
 
 - [x] [5.10] Public: BlogController + Blog views
   - Spec: specs/nop-web-public.md

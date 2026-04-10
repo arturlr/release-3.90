@@ -2342,3 +2342,38 @@ Performed exhaustive verification across all dimensions:
 - [5.26] Shared views: CheckoutProgress ViewComponent should use the already-created `CheckoutProgressModel`/`CheckoutProgressStep`
 - [2.10] Plugin system: must update ShippingMethod and PaymentMethod steps to enumerate actual shipping/payment plugins instead of auto-skipping
 - [6.1-6.5] Payment plugins: when registered, PaymentInfo step must collect payment details and store in session/TempData
+
+## 2026-04-10 — [5.9] Public OrderController / Implementation
+
+### RecurringPayment.NextPaymentDate — Computed from History
+- Legacy `RecurringPayment.NextPaymentDate` was a computed property that depended on `RecurringPaymentHistory` nav property (stripped in [1.3])
+- New code computes next payment date from `IOrderService.GetRecurringPaymentHistoryAsync` — takes last payment date and adds cycle length based on `CyclePeriod` (Days/Weeks/Months/Years)
+- Returns null if payment is inactive or all cycles are completed
+- Impact: any future code needing next payment date should use the same computation pattern
+
+### Gift Card Usage History — No Direct Order Query
+- Legacy `OrderDetailsModel` populated gift cards via `order.GiftCardUsageHistory` nav property
+- No `GetGiftCardUsageHistoryByOrderIdAsync` method exists on any service
+- New code uses `IGiftCardService.GetAllGiftCardsAsync(usedWithOrderId: order.Id)` to find gift cards used with the order, then `GetGiftCardUsageHistoryAsync(gc)` to find the specific usage entry
+- This is a two-step query but acceptable for order detail page (low frequency)
+
+### IPdfService Injected as Nullable
+- `IPdfService` has interface only — no implementation exists yet (deferred per [3.8] discovery)
+- `OrderController` injects `IPdfService?` (nullable) — `GetPdfInvoice` action redirects to order details if service is null
+- When a PDF library is chosen and `IPdfService` is implemented, the nullable injection can be changed to required
+
+### FormValueRequired Eliminated (Consistent with [5.7], [5.8])
+- Legacy used `[FormValueRequired(FormValueRequirement.StartsWith, "cancelRecurringPayment")]` and `[FormValueRequired(FormValueRequirement.StartsWith, "retryLastPayment")]` to route multiple POST actions to the same URL
+- New code uses separate action endpoints: `CancelRecurringPayment(int recurringPaymentId)` and `RetryLastRecurringPayment(int recurringPaymentId)` with hidden form fields
+- Consistent with ShoppingCartController [5.7] and CheckoutController [5.8] patterns
+
+### Order.RewardPointsHistoryEntryId (Not RedeemedRewardPointsEntryId)
+- Legacy `Order` entity had `RedeemedRewardPointsEntry` nav property
+- New `Order` entity has `RewardPointsHistoryEntryId` (int?) as the FK property
+- Any code referencing reward points on orders must use `order.RewardPointsHistoryEntryId`
+
+### Impact on Future Items
+- [5.16] Public ReturnRequestController: order details page links to return request — controller must implement `ReturnRequest` action
+- [5.34] Admin OrderController: can reference the same model preparation patterns
+- [5.59] Admin RecurringPaymentController: can use the same `ComputeNextPaymentDate` logic
+- IPdfService implementation: when built, `GetPdfInvoice` will work without controller changes
