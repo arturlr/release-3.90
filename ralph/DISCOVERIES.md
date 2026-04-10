@@ -2877,3 +2877,27 @@ Performed exhaustive verification across all dimensions:
   - Customer attributes: custom attribute form fields (uses ICustomerAttributeService + ICustomerAttributeParser)
 - [5.36] Admin CustomerRoleController: next logical admin controller for customer management
 - [5.37] Admin CustomerAttributeController: custom attribute management
+
+## 2026-04-10 — [5.36] Admin CustomerRoleController / Implementation
+
+### Simple CRUD — No Surprises
+- CustomerRoleController is a straightforward admin CRUD controller with 5 actions: List (AJAX grid), Create (GET+POST), Edit (GET+POST), Delete (POST)
+- Follows ManufacturerController pattern exactly: primary constructor, `Forbid()`, `DataSourceResult`, inline model mapping, `InsertActivity`
+- 4 constructor dependencies: `ICustomerService`, `IProductService` (for PurchasedWithProductName lookup), `ICustomerActivityService`, `IPermissionService`
+
+### System Role Protection — 3 Validation Rules
+- Legacy had 3 system role validation rules in Edit, all preserved:
+  1. Can't deactivate a system role (`IsSystemRole && !model.Active`)
+  2. Can't change the system name of a system role (`IsSystemRole && systemName changed`)
+  3. Can't set PurchasedWithProductId on the Registered role (would auto-assign all customers to the role on product purchase)
+- Delete action is protected by `ICustomerService.DeleteCustomerRoleAsync` which throws `NopException` for system roles
+
+### AssociateProductToCustomerRolePopup Deferred
+- Legacy had a complex popup for selecting a product to associate with a customer role (for `PurchasedWithProductId`)
+- The popup included product search with category/manufacturer/vendor/store/type filters — essentially a mini product list
+- Deferred: Edit view allows entering `PurchasedWithProductId` manually. The popup can be added when a shared product picker component is built (reusable across discount rules, customer roles, etc.)
+
+### Impact on Future Items
+- [5.37] Admin CustomerAttributeController: can follow the same simple CRUD pattern
+- [5.35] Admin CustomerController: customer role checkboxes on customer edit form already use `ICustomerService.GetAllCustomerRolesAsync` — no changes needed
+- Product picker popup: when built, can be shared across CustomerRoleController, DiscountController, and any other controller that needs product selection

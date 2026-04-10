@@ -1,0 +1,37 @@
+@model Nop.Web.Areas.Admin.Models.Customers.CustomerRoleModel
+@{ ViewData["Title"] = "Add a new customer role"; }
+
+<h1>Add a new customer role</h1>
+
+<form asp-action="Create" method="post">
+    <div>
+        <label asp-for="Name"></label>
+        <input asp-for="Name" />
+        <span asp-validation-for="Name"></span>
+    </div>
+    <div>
+        <label asp-for="Active"></label>
+        <input asp-for="Active" />
+    </div>
+    <div>
+        <label asp-for="FreeShipping"></label>
+        <input asp-for="FreeShipping" />
+    </div>
+    <div>
+        <label asp-for="TaxExempt"></label>
+        <input asp-for="TaxExempt" />
+    </div>
+    <div>
+        <label asp-for="EnablePasswordLifetime"></label>
+        <input asp-for="EnablePasswordLifetime" />
+    </div>
+    <div>
+        <label asp-for="SystemName"></label>
+        <input asp-for="SystemName" />
+    </div>
+
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>
+
+<p><a asp-action="List">back to customer role list</a></p>

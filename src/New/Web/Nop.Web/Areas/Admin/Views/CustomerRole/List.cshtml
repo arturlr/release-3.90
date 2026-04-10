@@ -1,0 +1,65 @@
+@model Nop.Web.Areas.Admin.Models.Customers.CustomerRoleModel
+@{ ViewData["Title"] = "Customer roles"; }
+
+<h1>Customer roles</h1>
+
+<p>
+    <a asp-action="Create">Add new</a>
+</p>
+
+<div id="customerroles-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>System name</th>
+                <th>Free shipping</th>
+                <th>Tax exempt</th>
+                <th>Active</th>
+                <th>System role</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="customerroles-tbody"></tbody>
+    </table>
+    <div id="customerroles-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadCustomerRoles();
+    });
+
+    function loadCustomerRoles() {
+        const data = new URLSearchParams();
+        data.append('Page', 1);
+        data.append('PageSize', 100);
+
+        fetch('@Url.Action("CustomerRoleList", "CustomerRole", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('customerroles-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (r) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (r.Name || '') + '</td>'
+                        + '<td>' + (r.SystemName || '') + '</td>'
+                        + '<td>' + (r.FreeShipping ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (r.TaxExempt ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (r.Active ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (r.IsSystemRole ? 'Yes' : 'No') + '</td>'
+                        + '<td><a href="/Admin/CustomerRole/Edit/' + r.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('customerroles-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}

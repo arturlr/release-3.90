@@ -503,10 +503,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.1
   - Done: 2026-04-10. CustomerController as 2 partial class files (main + helpers) with core CRUD actions: List (search form with email/username/name/DOB/company/phone/zip/IP/role filters), CustomerList (AJAX grid returning CustomerGridModel with role names and GenericAttribute lookups), Create (GET+POST), Edit (GET+POST), Delete (POST), DeleteSelected (POST batch), ExportExcelAll (filtered export). 3 view models: CustomerListModel (search filters + role checkboxes), CustomerModel (full customer fields + settings-driven visibility + dropdowns), CustomerGridModel (grid display with role names). 3 Razor views: List.cshtml (search form + vanilla JS AJAX grid), Create.cshtml (customer form with settings-driven field visibility), Edit.cshtml (customer form + read-only info + delete). 14 constructor dependencies via primary constructor (reduced from legacy 44 — IWorkContext removed as unused). GenericAttributes for form fields (FirstName, LastName, Gender, DOB, Company, Address, Phone, Fax). Customer roles managed via CustomerCustomerRoleMapping join entity. ValidateCustomerRoles ensures mutual exclusivity of Guests/Registered. SecondAdminAccountExistsAsync prevents last admin deactivation/deletion. Inline model construction (no model factory). Sub-entity management deferred: orders, addresses, shopping cart, activity log, back-in-stock subscriptions, reward points, newsletter subscriptions, send email/PM.
 
-- [ ] [5.36] Admin: CustomerRoleController + CustomerRole views
+- [x] [5.36] Admin: CustomerRoleController + CustomerRole views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/CustomerRoleController, Admin/Views/CustomerRole
   - Depends on: 5.1, 4.1
+  - Done: 2026-04-10. CustomerRoleController with core CRUD actions: List (AJAX grid), Create (GET+POST), Edit (GET+POST with system role protection), Delete (POST with system role guard). CustomerRoleModel view model. 3 Razor views. System role validation: can't deactivate system roles, can't change system name of system roles, can't set PurchasedWithProductId on Registered role. AssociateProductToCustomerRolePopup deferred (complex popup with product search — enter product ID manually for now). Follows ManufacturerController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
 - [ ] [5.37] Admin: CustomerAttributeController + CustomerAttribute views
   - Spec: specs/nop-admin.md
