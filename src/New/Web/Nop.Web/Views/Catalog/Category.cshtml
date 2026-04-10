@@ -1,0 +1,51 @@
+@model Nop.Web.Models.Catalog.CategoryModel
+@{
+    Layout = null;
+    ViewData["Title"] = !string.IsNullOrEmpty(Model.MetaTitle) ? Model.MetaTitle : Model.Name;
+}
+<div class="page category-page">
+    @if (Model.DisplayCategoryBreadcrumb && Model.CategoryBreadcrumb.Count > 0)
+    {
+        <div class="breadcrumb">
+            @foreach (var bc in Model.CategoryBreadcrumb)
+            {
+                <span><a href="@Url.Action("Category", "Catalog", new { categoryId = bc.Id, SeName = bc.SeName })">@bc.Name</a></span>
+            }
+        </div>
+    }
+
+    <div class="page-title"><h1>@Model.Name</h1></div>
+
+    @if (!string.IsNullOrEmpty(Model.Description))
+    {
+        <div class="category-description">@Html.Raw(Model.Description)</div>
+    }
+
+    @if (Model.SubCategories.Count > 0)
+    {
+        <div class="sub-category-grid">
+            @foreach (var sc in Model.SubCategories)
+            {
+                <div class="sub-category-item">
+                    <a href="@Url.Action("Category", "Catalog", new { categoryId = sc.Id, SeName = sc.SeName })">
+                        @if (!string.IsNullOrEmpty(sc.PictureUrl))
+                        {
+                            <img src="@sc.PictureUrl" alt="@sc.Name" />
+                        }
+                        <span>@sc.Name</span>
+                    </a>
+                </div>
+            }
+        </div>
+    }
+
+    @if (Model.Products.Count > 0)
+    {
+        <div class="product-grid">
+            @foreach (var product in Model.Products)
+            {
+                <partial name="_ProductBox" model="product" />
+            }
+        </div>
+    }
+</div>

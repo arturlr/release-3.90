@@ -1,0 +1,22 @@
+@model IList<Nop.Web.Models.Catalog.VendorModel>
+@{
+    Layout = null;
+    ViewData["Title"] = "All Vendors";
+}
+<div class="page vendor-all-page">
+    <div class="page-title"><h1>All Vendors</h1></div>
+    <div class="vendor-grid">
+        @foreach (var v in Model)
+        {
+            <div class="vendor-item">
+                <a href="@Url.Action("Vendor", "Catalog", new { vendorId = v.Id, SeName = v.SeName })">
+                    @if (!string.IsNullOrEmpty(v.PictureUrl))
+                    {
+                        <img src="@v.PictureUrl" alt="@v.Name" />
+                    }
+                    <span>@v.Name</span>
+                </a>
+            </div>
+        }
+    </div>
+</div>

@@ -2162,3 +2162,48 @@ Performed exhaustive verification across all dimensions:
 - [5.35] Admin CustomerController: should add CustomerStatistics ViewComponent for dashboard
 - [5.79] Admin CommonController: should add PopularSearchTermsReport ViewComponent for dashboard
 - [5.81] Admin Shared views: admin layout (`_Layout.cshtml`) will be needed when admin views need shared chrome
+
+## 2026-04-10 — [5.4] Public CatalogController / Implementation
+
+### ProductTag SeName — No ISlugSupported
+- `ProductTag` entity does NOT implement `ISlugSupported` — it only implements `ILocalizedEntity`
+- Legacy used `productTag.GetSeName()` extension method which generated a slug from the tag name directly (not from URL records)
+- New code uses `SeoExtensions.GetSeName(productTag.Name, false, false)` — generates slug from raw text
+- Impact: product tag URLs use name-derived slugs, not URL record lookups. This is correct behavior matching legacy
+
+### Model Factory Pattern Skipped (Consistent with [5.6], [5.10], [5.11])
+- Legacy used `ICatalogModelFactory` (1561 LOC) and `IProductModelFactory` (1561 LOC) for view model construction
+- New code inlines model construction in controller helper methods — simpler, matches admin area pattern
+- `PrepareProductOverviewModelAsync` is a shared helper used by Category, Manufacturer, Vendor, ProductsByTag, Search, and SearchTermAutoComplete
+- If model construction becomes complex, can extract to a factory later
+
+### Legacy Child Actions → ViewComponents (Deferred)
+- 7 legacy `[ChildActionOnly]` actions: CategoryNavigation, TopMenu, HomepageCategories, ManufacturerNavigation, VendorNavigation, PopularProductTags, SearchBox
+- These are sidebar/layout components rendered via `@Html.Action()` in legacy
+- ASP.NET Core replaces with ViewComponents (`@await Component.InvokeAsync()`)
+- Current implementation provides the actions as regular endpoints — will be converted to ViewComponents when shared layout [5.26] is built
+
+### Featured Products Deferred
+- Legacy `PrepareCategoryModel` made a separate `SearchProducts` call with `featuredProducts: true` for featured product display
+- New code only loads the main product grid — featured products require a second query per page load
+- Can be added when needed by calling `SearchProductsAsync(categoryIds: [id], featuredProducts: true, pageSize: catalogSettings.NumberOfFeaturedProducts)`
+
+### TopMenu Settings Hardcoded
+- Legacy `PrepareTopMenuModel` read `DisplayDefaultMenuItemSettings` (BlogEnabled, ForumEnabled, DisplayHomePageMenuItem, etc.) from `ISettingService`
+- New code hardcodes these to `true` — `DisplayDefaultMenuItemSettings` is a Settings POCO that requires DI registration via `ISettingService.LoadSettingAsync<T>()`
+- When DI composition root is built, these can be resolved from settings
+
+### Search — Child Category Resolution
+- Legacy used `ICategoryService.GetAllCategoriesByParentCategoryId` recursively to find child categories for "include subcategories" search
+- New code loads all categories once via `GetAllCategoriesAsync` then filters in-memory using `GetChildCategoryIds` static helper
+- More efficient for small-to-medium category trees (single DB query vs N recursive queries)
+
+### ACL + Store Mapping Checks on Category/Manufacturer
+- Category and Manufacturer actions check `IAclService.Authorize` (sync) and `IStoreMappingService.AuthorizeAsync` (async) before displaying
+- If entity fails ACL/store mapping check, falls back to permission check (`ManageCategories`/`ManageManufacturers`) for admin preview
+- Vendor action does NOT check ACL/store mapping — legacy didn't either (vendors are always public if active)
+
+### Impact on Future Items
+- [5.5] Public ProductController: can reuse `PrepareProductOverviewModelAsync` pattern for related/cross-sell products
+- [5.26] Shared views: CategoryNavigation, TopMenu, HomepageCategories, ManufacturerNavigation, VendorNavigation, PopularProductTags, SearchBox should become ViewComponents
+- [5.3] Public CommonController: TopMenu and SearchBox are commonly placed in shared layout — may need to move to CommonController or ViewComponents

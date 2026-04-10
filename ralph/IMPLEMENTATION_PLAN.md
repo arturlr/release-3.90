@@ -318,10 +318,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Controllers/CommonController, Views/Common
   - Depends on: 5.1, 3.2, 3.3, 3.15
 
-- [ ] [5.4] Public: CatalogController + Catalog views (category list, manufacturer list, search, filtering)
+- [x] [5.4] Public: CatalogController + Catalog views (category list, manufacturer list, search, filtering)
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/CatalogController, Views/Catalog
   - Depends on: 5.1, 4.4
+  - Done: 2026-04-10. CatalogController as 2 partial class files (main + helpers) with all 16 actions: Category (with breadcrumb, sub-categories, ACL+store mapping checks, template resolution), CategoryNavigation, TopMenu, HomepageCategories, Manufacturer (with ACL+store mapping checks, template resolution), ManufacturerAll, ManufacturerNavigation, Vendor, VendorAll, VendorNavigation, PopularProductTags, ProductsByTag, ProductTagsAll, Search (with advanced search, category/manufacturer/vendor dropdowns, search term tracking), SearchBox, SearchTermAutoComplete. 7 view models in Models/Catalog/. 7 Razor views including _ProductBox shared partial. ProductTag uses SeoExtensions.GetSeName(string) since it doesn't implement ISlugSupported. Inline model construction (no model factory). Legacy child actions (CategoryNavigation, TopMenu, HomepageCategories, ManufacturerNavigation, VendorNavigation, PopularProductTags, SearchBox) deferred to ViewComponents. Localized entity names deferred. Featured products deferred (requires separate SearchProducts call with featuredProducts:true).
 
 - [ ] [5.5] Public: ProductController + Product views (product detail, reviews)
   - Spec: specs/nop-web-public.md

@@ -1,0 +1,24 @@
+@model Nop.Web.Models.Catalog.ProductOverviewModel
+<div class="product-item" data-productid="@Model.Id">
+    <div class="picture">
+        <a href="@Url.Action("ProductDetails", "Product", new { productId = Model.Id, SeName = Model.SeName })">
+            <img src="@Model.ImageUrl" alt="@Model.Name" />
+        </a>
+    </div>
+    <div class="details">
+        <h2 class="product-title">
+            <a href="@Url.Action("ProductDetails", "Product", new { productId = Model.Id, SeName = Model.SeName })">@Model.Name</a>
+        </h2>
+        @if (!string.IsNullOrEmpty(Model.ShortDescription))
+        {
+            <div class="description">@Model.ShortDescription</div>
+        }
+        <div class="prices">
+            @if (!string.IsNullOrEmpty(Model.OldPrice))
+            {
+                <span class="old-price">@Model.OldPrice</span>
+            }
+            <span class="actual-price">@Model.Price</span>
+        </div>
+    </div>
+</div>

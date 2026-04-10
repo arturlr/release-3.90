@@ -1,0 +1,83 @@
+@model Nop.Web.Models.Catalog.SearchModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Search";
+}
+<div class="page search-page">
+    <div class="page-title"><h1>Search</h1></div>
+
+    <form asp-action="Search" asp-controller="Catalog" method="get">
+        <div class="search-input">
+            <input type="text" name="q" value="@Model.q" placeholder="Search..." />
+            <button type="submit">Search</button>
+        </div>
+
+        @if (Model.adv)
+        {
+            <div class="advanced-search">
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="cid">
+                        @foreach (var c in Model.AvailableCategories)
+                        {
+                            <option value="@c.Value" selected="@c.Selected">@c.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="isc" value="true" checked="@Model.isc" />
+                        Include subcategories
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>Manufacturer</label>
+                    <select name="mid">
+                        @foreach (var m in Model.AvailableManufacturers)
+                        {
+                            <option value="@m.Value" selected="@m.Selected">@m.Text</option>
+                        }
+                    </select>
+                </div>
+                @if (Model.asv)
+                {
+                    <div class="form-group">
+                        <label>Vendor</label>
+                        <select name="vid">
+                            @foreach (var v in Model.AvailableVendors)
+                            {
+                                <option value="@v.Value" selected="@v.Selected">@v.Text</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="sid" value="true" checked="@Model.sid" />
+                        Search in descriptions
+                    </label>
+                </div>
+            </div>
+        }
+    </form>
+
+    @if (!string.IsNullOrEmpty(Model.Warning))
+    {
+        <div class="warning">@Model.Warning</div>
+    }
+
+    @if (Model.NoResults)
+    {
+        <div class="no-result">No products were found that matched your criteria.</div>
+    }
+
+    @if (Model.Products.Count > 0)
+    {
+        <div class="product-grid search-results">
+            @foreach (var product in Model.Products)
+            {
+                <partial name="_ProductBox" model="product" />
+            }
+        </div>
+    }
+</div>

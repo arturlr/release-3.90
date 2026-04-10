@@ -1,0 +1,22 @@
+@model Nop.Web.Models.Catalog.ProductsByTagModel
+@{
+    Layout = null;
+    ViewData["Title"] = Model.TagName;
+}
+<div class="page products-by-tag-page">
+    <div class="page-title"><h1>@Model.TagName</h1></div>
+
+    @if (Model.Products.Count > 0)
+    {
+        <div class="product-grid">
+            @foreach (var product in Model.Products)
+            {
+                <partial name="_ProductBox" model="product" />
+            }
+        </div>
+    }
+    else
+    {
+        <div class="no-result">No products found.</div>
+    }
+</div>

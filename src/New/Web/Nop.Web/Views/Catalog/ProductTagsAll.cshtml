@@ -1,0 +1,16 @@
+@model Nop.Web.Models.Catalog.PopularProductTagsModel
+@{
+    Layout = null;
+    ViewData["Title"] = "All Product Tags";
+}
+<div class="page product-tags-all-page">
+    <div class="page-title"><h1>All Product Tags</h1></div>
+    <div class="product-tags-list">
+        @foreach (var tag in Model.Tags)
+        {
+            <span style="font-size:@(Model.GetFontSize(tag))%;">
+                <a href="@Url.Action("ProductsByTag", "Catalog", new { productTagId = tag.Id, SeName = tag.SeName })">@tag.Name</a>
+            </span>
+        }
+    </div>
+</div>
