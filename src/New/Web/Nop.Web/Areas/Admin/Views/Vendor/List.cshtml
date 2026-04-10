@@ -1,0 +1,67 @@
+@model Nop.Web.Areas.Admin.Models.Vendors.VendorListModel
+@{ ViewData["Title"] = "Vendors"; }
+
+<h1>Vendors</h1>
+
+<form id="search-form">
+    <div>
+        <label asp-for="SearchName">Vendor name</label>
+        <input asp-for="SearchName" />
+    </div>
+    <button type="submit" id="search-vendors">Search</button>
+</form>
+
+<p><a asp-action="Create">Add new</a></p>
+
+<div id="vendors-grid">
+    <table>
+        <thead>
+            <tr><th>Name</th><th>Active</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="vendors-tbody"></tbody>
+    </table>
+    <div id="vendors-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadVendors(1, 15); });
+
+    document.getElementById('search-vendors')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        loadVendors(1, 15);
+    });
+
+    function loadVendors(page, pageSize) {
+        const form = document.getElementById('search-form');
+        const data = new URLSearchParams(new FormData(form));
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("VendorList", "Vendor", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('vendors-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (v) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (v.Name || '') + '</td>'
+                        + '<td>' + (v.Active ? 'Yes' : 'No') + '</td>'
+                        + '<td><a href="/Admin/Vendor/Edit/' + v.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('vendors-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+
+    function getToken() {
+        return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    }
+</script>
+}

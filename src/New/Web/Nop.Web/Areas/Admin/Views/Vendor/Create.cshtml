@@ -1,0 +1,123 @@
+@model Nop.Web.Areas.Admin.Models.Vendors.VendorModel
+@{ ViewData["Title"] = "Add a new vendor"; }
+
+<h1>Add a new vendor</h1>
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <fieldset>
+        <legend>Vendor info</legend>
+        <div>
+            <label asp-for="Name">Name</label>
+            <input asp-for="Name" />
+        </div>
+        <div>
+            <label asp-for="Email">Email</label>
+            <input asp-for="Email" type="email" />
+        </div>
+        <div>
+            <label asp-for="Description">Description</label>
+            <textarea asp-for="Description"></textarea>
+        </div>
+        <div>
+            <label asp-for="AdminComment">Admin comment</label>
+            <textarea asp-for="AdminComment"></textarea>
+        </div>
+        <div>
+            <label asp-for="Active">Active</label>
+            <input asp-for="Active" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="DisplayOrder">Display order</label>
+            <input asp-for="DisplayOrder" type="number" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>SEO</legend>
+        <div>
+            <label asp-for="SeName">Search engine friendly page name</label>
+            <input asp-for="SeName" />
+        </div>
+        <div>
+            <label asp-for="MetaKeywords">Meta keywords</label>
+            <input asp-for="MetaKeywords" />
+        </div>
+        <div>
+            <label asp-for="MetaDescription">Meta description</label>
+            <textarea asp-for="MetaDescription"></textarea>
+        </div>
+        <div>
+            <label asp-for="MetaTitle">Meta title</label>
+            <input asp-for="MetaTitle" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Display</legend>
+        <div>
+            <label asp-for="PageSize">Page size</label>
+            <input asp-for="PageSize" type="number" />
+        </div>
+        <div>
+            <label asp-for="AllowCustomersToSelectPageSize">Allow customers to select page size</label>
+            <input asp-for="AllowCustomersToSelectPageSize" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="PageSizeOptions">Page size options</label>
+            <input asp-for="PageSizeOptions" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Address</legend>
+        <div>
+            <label asp-for="FirstName">First name</label>
+            <input asp-for="FirstName" />
+        </div>
+        <div>
+            <label asp-for="LastName">Last name</label>
+            <input asp-for="LastName" />
+        </div>
+        <div>
+            <label asp-for="Company">Company</label>
+            <input asp-for="Company" />
+        </div>
+        <div>
+            <label asp-for="CountryId">Country</label>
+            <select asp-for="CountryId" asp-items="Model.AvailableCountries"></select>
+        </div>
+        <div>
+            <label asp-for="StateProvinceId">State / province</label>
+            <select asp-for="StateProvinceId" asp-items="Model.AvailableStates"></select>
+        </div>
+        <div>
+            <label asp-for="City">City</label>
+            <input asp-for="City" />
+        </div>
+        <div>
+            <label asp-for="Address1">Address 1</label>
+            <input asp-for="Address1" />
+        </div>
+        <div>
+            <label asp-for="Address2">Address 2</label>
+            <input asp-for="Address2" />
+        </div>
+        <div>
+            <label asp-for="ZipPostalCode">Zip / postal code</label>
+            <input asp-for="ZipPostalCode" />
+        </div>
+        <div>
+            <label asp-for="PhoneNumber">Phone number</label>
+            <input asp-for="PhoneNumber" />
+        </div>
+        <div>
+            <label asp-for="FaxNumber">Fax number</label>
+            <input asp-for="FaxNumber" />
+        </div>
+    </fieldset>
+
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>

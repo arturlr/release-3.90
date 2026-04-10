@@ -79,6 +79,24 @@ public class VendorService : IVendorService
         return Task.FromResult(vendorNoteId == 0 ? null : _vendorNoteRepository.GetById(vendorNoteId));
     }
 
+    public Task<IList<VendorNote>> GetVendorNotesByVendorIdAsync(int vendorId)
+    {
+        IList<VendorNote> notes = _vendorNoteRepository.TableNoTracking
+            .Where(vn => vn.VendorId == vendorId)
+            .OrderByDescending(vn => vn.CreatedOnUtc)
+            .ToList();
+        return Task.FromResult(notes);
+    }
+
+    public async Task InsertVendorNoteAsync(VendorNote vendorNote)
+    {
+        ArgumentNullException.ThrowIfNull(vendorNote);
+
+        _vendorNoteRepository.Insert(vendorNote);
+
+        await _eventPublisher.EntityInsertedAsync(vendorNote);
+    }
+
     public async Task DeleteVendorNoteAsync(VendorNote vendorNote)
     {
         ArgumentNullException.ThrowIfNull(vendorNote);

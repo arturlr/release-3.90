@@ -1,0 +1,266 @@
+@model Nop.Web.Areas.Admin.Models.Vendors.VendorModel
+@{ ViewData["Title"] = "Edit vendor"; }
+
+<h1>Edit vendor</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <fieldset>
+        <legend>Vendor info</legend>
+        <div>
+            <label asp-for="Name">Name</label>
+            <input asp-for="Name" />
+        </div>
+        <div>
+            <label asp-for="Email">Email</label>
+            <input asp-for="Email" type="email" />
+        </div>
+        <div>
+            <label asp-for="Description">Description</label>
+            <textarea asp-for="Description"></textarea>
+        </div>
+        <div>
+            <label asp-for="AdminComment">Admin comment</label>
+            <textarea asp-for="AdminComment"></textarea>
+        </div>
+        <div>
+            <label asp-for="Active">Active</label>
+            <input asp-for="Active" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="DisplayOrder">Display order</label>
+            <input asp-for="DisplayOrder" type="number" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>SEO</legend>
+        <div>
+            <label asp-for="SeName">Search engine friendly page name</label>
+            <input asp-for="SeName" />
+        </div>
+        <div>
+            <label asp-for="MetaKeywords">Meta keywords</label>
+            <input asp-for="MetaKeywords" />
+        </div>
+        <div>
+            <label asp-for="MetaDescription">Meta description</label>
+            <textarea asp-for="MetaDescription"></textarea>
+        </div>
+        <div>
+            <label asp-for="MetaTitle">Meta title</label>
+            <input asp-for="MetaTitle" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Display</legend>
+        <div>
+            <label asp-for="PageSize">Page size</label>
+            <input asp-for="PageSize" type="number" />
+        </div>
+        <div>
+            <label asp-for="AllowCustomersToSelectPageSize">Allow customers to select page size</label>
+            <input asp-for="AllowCustomersToSelectPageSize" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="PageSizeOptions">Page size options</label>
+            <input asp-for="PageSizeOptions" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Address</legend>
+        <div>
+            <label asp-for="FirstName">First name</label>
+            <input asp-for="FirstName" />
+        </div>
+        <div>
+            <label asp-for="LastName">Last name</label>
+            <input asp-for="LastName" />
+        </div>
+        <div>
+            <label asp-for="Company">Company</label>
+            <input asp-for="Company" />
+        </div>
+        <div>
+            <label asp-for="CountryId">Country</label>
+            <select asp-for="CountryId" asp-items="Model.AvailableCountries"></select>
+        </div>
+        <div>
+            <label asp-for="StateProvinceId">State / province</label>
+            <select asp-for="StateProvinceId" asp-items="Model.AvailableStates"></select>
+        </div>
+        <div>
+            <label asp-for="City">City</label>
+            <input asp-for="City" />
+        </div>
+        <div>
+            <label asp-for="Address1">Address 1</label>
+            <input asp-for="Address1" />
+        </div>
+        <div>
+            <label asp-for="Address2">Address 2</label>
+            <input asp-for="Address2" />
+        </div>
+        <div>
+            <label asp-for="ZipPostalCode">Zip / postal code</label>
+            <input asp-for="ZipPostalCode" />
+        </div>
+        <div>
+            <label asp-for="PhoneNumber">Phone number</label>
+            <input asp-for="PhoneNumber" />
+        </div>
+        <div>
+            <label asp-for="FaxNumber">Fax number</label>
+            <input asp-for="FaxNumber" />
+        </div>
+    </fieldset>
+
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post" onsubmit="return confirm('Are you sure?');">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit">Delete</button>
+</form>
+
+@* Vendor notes *@
+<fieldset>
+    <legend>Vendor notes</legend>
+    <div>
+        <textarea id="vendor-note-message" rows="3" placeholder="Enter note..."></textarea>
+        <button type="button" id="add-vendor-note">Add note</button>
+    </div>
+    <div id="notes-grid">
+        <table>
+            <thead>
+                <tr><th>Note</th><th>Created on</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="notes-tbody"></tbody>
+        </table>
+    </div>
+</fieldset>
+
+@* Associated customers *@
+<fieldset>
+    <legend>Associated customers</legend>
+    <div id="customers-grid">
+        <table>
+            <thead>
+                <tr><th>Email</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="customers-tbody"></tbody>
+        </table>
+        <div id="customers-pager"></div>
+    </div>
+</fieldset>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadNotes();
+        loadCustomers(1, 10);
+    });
+
+    function getToken() {
+        return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    }
+
+    // Notes
+    function loadNotes() {
+        const data = new URLSearchParams();
+        data.append('vendorId', '@Model.Id');
+        data.append('Page', '1');
+        data.append('PageSize', '100');
+
+        fetch('@Url.Action("VendorNoteList", "Vendor", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('notes-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (n) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (n.Note || '') + '</td>'
+                        + '<td>' + new Date(n.CreatedOn).toLocaleString() + '</td>'
+                        + '<td><button type="button" onclick="deleteNote(' + n.Id + ')">Delete</button></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
+
+    document.getElementById('add-vendor-note')?.addEventListener('click', function () {
+        const msg = document.getElementById('vendor-note-message').value;
+        if (!msg) return;
+
+        const data = new URLSearchParams();
+        data.append('vendorId', '@Model.Id');
+        data.append('message', msg);
+
+        fetch('@Url.Action("VendorNoteAdd", "Vendor", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.Result) {
+                document.getElementById('vendor-note-message').value = '';
+                loadNotes();
+            }
+        });
+    });
+
+    function deleteNote(noteId) {
+        if (!confirm('Are you sure?')) return;
+
+        const data = new URLSearchParams();
+        data.append('id', noteId);
+        data.append('vendorId', '@Model.Id');
+
+        fetch('@Url.Action("VendorNoteDelete", "Vendor", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: data
+        })
+        .then(() => loadNotes());
+    }
+
+    // Customers
+    function loadCustomers(page, pageSize) {
+        const data = new URLSearchParams();
+        data.append('vendorId', '@Model.Id');
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("AssociatedCustomerList", "Vendor", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('customers-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (c) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (c.Email || '') + '</td>'
+                        + '<td><a href="/Admin/Customer/Edit/' + c.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('customers-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}

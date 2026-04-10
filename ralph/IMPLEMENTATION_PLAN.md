@@ -685,10 +685,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.9
   - Done: 2026-04-10. AffiliateController with core CRUD (List, AffiliateList AJAX grid, Create, Edit, Delete) and sub-entity grids (AffiliatedOrderList, AffiliatedCustomerList). 6 view models (AffiliateListModel, AffiliateModel, AffiliateGridModel, AffiliatedOrderModel, AffiliatedCustomerModel). 3 Razor views (List, Create, Edit with affiliated orders/customers grids). Address fields inlined on AffiliateModel (no nested AddressModel — simpler than legacy). Legacy child action AffiliatedOrderList replaced with AJAX endpoint. Legacy AffiliatedOrderListModel eliminated — order search filters passed as action parameters. 11 constructor dependencies via primary constructor (reduced from legacy 12 — ILocalizationService/IWorkContext dropped, IAddressService added). Follows PollController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
-- [ ] [5.67] Admin: VendorController + Vendor views
+- [x] [5.67] Admin: VendorController + Vendor views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/VendorController, Admin/Views/Vendor
   - Depends on: 5.1, 3.10
+  - Done: 2026-04-10. VendorController with core CRUD (List, VendorList AJAX grid, Create, Edit, Delete), vendor notes management (VendorNoteList, VendorNoteAdd, VendorNoteDelete), and associated customers grid (AssociatedCustomerList). Added GetVendorNotesByVendorIdAsync and InsertVendorNoteAsync to IVendorService/VendorService (replaces legacy vendor.VendorNotes nav property). 6 view models (VendorListModel, VendorModel, VendorGridModel, VendorNoteModel, AssociatedCustomerModel). 3 Razor views (List, Create, Edit with vendor notes + associated customers grids). Vendor implements ISlugSupported — uses ValidateSeNameAsync + SaveSlugAsync with languageId=0. Address fields inlined on VendorModel (no nested AddressModel — matching AffiliateController pattern). Delete clears associated customer VendorId references. 11 constructor dependencies via primary constructor. Follows AffiliateController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Picture management and localization deferred (consistent with all other admin controllers).
 
 - [ ] [5.68] Admin: StoreController + Store views
   - Spec: specs/nop-admin.md

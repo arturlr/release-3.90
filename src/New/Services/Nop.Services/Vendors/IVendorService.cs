@@ -21,5 +21,9 @@ public interface IVendorService
 
     Task<VendorNote?> GetVendorNoteByIdAsync(int vendorNoteId);
 
+    Task<IList<VendorNote>> GetVendorNotesByVendorIdAsync(int vendorId);
+
+    Task InsertVendorNoteAsync(VendorNote vendorNote);
+
     Task DeleteVendorNoteAsync(VendorNote vendorNote);
 }

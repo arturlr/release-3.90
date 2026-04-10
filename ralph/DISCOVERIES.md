@@ -3638,3 +3638,39 @@ Performed exhaustive verification across all dimensions:
 - [5.67] Admin VendorController: next admin controller to implement — follows same pattern with address management
 - [5.68] Admin StoreController: follows same simple CRUD pattern
 - Shared AddressModel: if multiple admin controllers need address editing (Vendor, Warehouse, Shipping origin), extract a shared address model and helper methods
+
+## 2026-04-10 — [5.67] Admin VendorController / Implementation
+
+### VendorService Methods Added for Nav Property Replacement
+- Legacy `VendorNotesSelect` accessed `vendor.VendorNotes` nav property (stripped in [1.3]) — no method existed to get vendor notes by vendor ID
+- Added `GetVendorNotesByVendorIdAsync(int vendorId)` to `IVendorService`/`VendorService` — queries `_vendorNoteRepository.TableNoTracking` ordered by `CreatedOnUtc` descending
+- Added `InsertVendorNoteAsync(VendorNote)` to `IVendorService`/`VendorService` — replaces legacy `vendor.VendorNotes.Add(note)` + `_vendorService.UpdateVendor(vendor)` nav property collection manipulation
+- Pattern consistent with `InsertBlogCommentAsync` ([5.10]), `InsertNewsCommentAsync` ([5.11]), `InsertPollAnswerAsync` ([5.47])
+
+### ValidateSeNameAsync Parameter Order
+- Extension method signature: `ValidateSeNameAsync(this T entity, string? seName, string? name, bool ensureNotEmpty, IUrlRecordService urlRecordService, SeoSettings seoSettings)`
+- Easy to confuse with other controllers that may have used different parameter ordering in earlier iterations
+- Impact: all future controllers using `ValidateSeNameAsync` must follow this exact parameter order
+
+### Delete Clears Associated Customer VendorId References
+- Legacy `Delete` action cleared `customer.VendorId = 0` for all associated customers before deleting the vendor
+- New code preserves this: queries `customerService.GetAllCustomersAsync(vendorId: vendor.Id)` then updates each customer
+- This prevents orphaned VendorId references on Customer entities after vendor deletion
+- Impact: any future entity deletion that has FK references from other entities should follow this cleanup pattern
+
+### Follows AffiliateController Pattern Exactly
+- Address fields inlined on VendorModel (no nested AddressModel) — matching AffiliateController [5.66]
+- Country/state dropdowns via `PrepareAddressDropdownsAsync` helper — same pattern
+- `MapToModel`/`MapToAddress` static helpers — same pattern
+- Sub-entity grids (vendor notes, associated customers) in Edit view — same pattern as affiliated orders/customers
+- 11 constructor dependencies via primary constructor (AffiliateController had 11 too)
+
+### Picture Management Deferred
+- Legacy had `UpdatePictureSeoNames` and picture change detection (`prevPictureId != vendor.PictureId` → delete old picture)
+- New code stores `PictureId` on the model/entity but does not manage picture upload/delete
+- Picture management deferred to [5.78] Admin PictureController — consistent with all other admin controllers
+
+### Impact on Future Items
+- [5.68] Admin StoreController: next admin controller to implement — follows same simple CRUD pattern
+- [5.19] Public VendorController: already implemented — uses `IVendorService` for vendor listing/detail pages
+- Admin vendor area is now complete — no more vendor-specific controllers to implement
