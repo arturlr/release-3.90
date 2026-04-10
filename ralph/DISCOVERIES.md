@@ -2291,3 +2291,54 @@ Performed exhaustive verification across all dimensions:
 - [5.26] Shared views: OrderTotals, FlyoutShoppingCart, OrderSummary ViewComponents should use the already-created helper methods
 - [7.13] reCAPTCHA: add `[CaptchaValidator]` to `EmailWishlistSend` action
 - [8.x] Data migration: must convert legacy XML gift card coupon codes to comma-separated format
+
+## 2026-04-10 — [5.8] Public CheckoutController / Implementation
+
+### OPC (One Page Checkout) Deferred
+- Legacy OPC methods (OnePageCheckout, OpcBillingForm, OpcSaveBilling, OpcSaveShipping, OpcSaveShippingMethod, OpcSavePaymentMethod, OpcSavePaymentInfo, OpcConfirmOrder, OpcCompleteRedirectionPayment) all depend on `this.RenderPartialViewToString()` — a custom extension method that renders a partial view to a string for AJAX JSON responses
+- `RenderPartialViewToString` requires `ICompositeViewEngine` and `ITempDataProvider` — infrastructure not yet available in the new codebase
+- OPC will be implemented when shared view infrastructure [5.26] is built, or as a separate plan item
+- Multi-step checkout is fully functional without OPC
+
+### Shipping/Payment Method Auto-Skip Pattern
+- Legacy checkout depended on `IPluginFinder` and `IShippingService.GetShippingOptions` / `IPaymentService.LoadActivePaymentMethods` for shipping and payment method selection
+- Plugin system [2.10] not built — no shipping rate computation methods or payment method plugins registered
+- New code auto-skips ShippingMethod step (saves a default JSON shipping option to GenericAttribute) and PaymentMethod step (saves null) when no methods are available
+- This allows the full checkout flow (billing address → shipping address → confirm → place order) to work end-to-end without plugins
+- When [2.10] is built and plugins register `IShippingRateComputationMethod` / `IPaymentMethod` implementations, the auto-skip logic should be replaced with actual method enumeration
+
+### Address Deduplication via FindOrCreateAddressAsync
+- Legacy used `customer.Addresses.ToList().FindAddress(...)` with nav property to check for duplicate addresses
+- New code uses `FindOrCreateAddressAsync` which queries `CustomerAddressMapping` → `IAddressService.GetAddressByIdAsync` and compares scalar fields
+- `AddressesMatch` compares FirstName, LastName, Email, Address1, City, ZipPostalCode, CountryId, StateProvinceId (case-insensitive)
+- Simpler than legacy's `FindAddress` which also compared PhoneNumber, FaxNumber, Company, Address2, CustomAttributes
+- Trade-off: slightly less strict matching, but prevents the most common duplicates (same person, same address)
+
+### FormValueRequired Eliminated (Consistent with [5.7])
+- Legacy used `[FormValueRequired("nextstep")]` to route multiple POST actions to the same URL
+- New code uses separate action endpoints: `NewBillingAddress`, `SelectBillingAddress`, `NewShippingAddress`, `SelectShippingAddress`, `SelectShippingMethod`, `SelectPaymentMethod`, `EnterPaymentInfo`, `ConfirmOrder`
+- Each form posts to its own action URL — simpler, no custom attribute needed
+- Consistent with ShoppingCartController pattern established in [5.7]
+
+### Session-Based Payment Info Eliminated
+- Legacy stored `ProcessPaymentRequest` in `HttpContext.Session["OrderPaymentInfo"]` between PaymentInfo and Confirm steps
+- New code creates `ProcessPaymentRequest` directly in `ConfirmOrder` action — no session dependency
+- Payment info collection (credit card details, etc.) depends on plugin system [2.10] — when payment plugins provide info collection forms, the session pattern may need to be reintroduced or replaced with encrypted hidden fields / TempData
+
+### CheckoutProgress ChildAction → ViewComponent (Deferred)
+- Legacy `CheckoutProgress(CheckoutProgressStep step)` was a `[ChildActionOnly]` action rendered via `@Html.Action("CheckoutProgress", "Checkout", new { step = ... })`
+- ASP.NET Core replaces child actions with ViewComponents
+- `CheckoutProgressModel` and `CheckoutProgressStep` enum are already created — ready for ViewComponent implementation when [5.26] Shared views is built
+
+### Unused Constructor Parameters Removed
+- `PaymentSettings`, `AddressSettings`, `CustomerSettings` were in the legacy constructor but not needed in the new implementation
+- `PaymentSettings` — only used for `BypassPaymentMethodSelectionIfOnlyOne` and `SkipPaymentInfoStepForRedirectionPaymentMethods` (both depend on plugin system [2.10])
+- `AddressSettings` — only used for `CountryEnabled` check when filtering payment methods by country (depends on [2.10])
+- `CustomerSettings` — only used for `RequireRegistrationForDownloadableProducts` check (deferred — requires product nav property on cart item)
+- These can be re-added when the plugin system provides the dependent functionality
+
+### Impact on Future Items
+- [5.9] Public OrderController: checkout flow now redirects to `Completed` action which links to `OrderDetails` — OrderController must implement `OrderDetails` action
+- [5.26] Shared views: CheckoutProgress ViewComponent should use the already-created `CheckoutProgressModel`/`CheckoutProgressStep`
+- [2.10] Plugin system: must update ShippingMethod and PaymentMethod steps to enumerate actual shipping/payment plugins instead of auto-skipping
+- [6.1-6.5] Payment plugins: when registered, PaymentInfo step must collect payment details and store in session/TempData

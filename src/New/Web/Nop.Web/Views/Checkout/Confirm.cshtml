@@ -1,0 +1,26 @@
+@model Nop.Web.Models.Checkout.CheckoutConfirmModel
+
+@{
+    Layout = null;
+    ViewBag.Title = "Confirm Order";
+}
+
+<h1>Confirm Order</h1>
+
+@if (Model.Warnings.Count > 0)
+{
+    <div class="message-error">
+        @foreach (var warning in Model.Warnings)
+        {
+            <p>@warning</p>
+        }
+    </div>
+}
+
+@* Order summary ViewComponent will be added when [5.26] Shared views is built *@
+<p>Please review your order and click "Confirm" to place it.</p>
+
+<form asp-action="ConfirmOrder" method="post">
+    @Html.AntiForgeryToken()
+    <button type="submit">Confirm</button>
+</form>

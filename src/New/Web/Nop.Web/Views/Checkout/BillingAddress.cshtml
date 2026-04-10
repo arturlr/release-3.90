@@ -1,0 +1,69 @@
+@model Nop.Web.Models.Checkout.CheckoutBillingAddressModel
+
+@{
+    Layout = null;
+    ViewBag.Title = "Billing Address";
+}
+
+<h1>Billing Address</h1>
+
+@if (Model.ExistingAddresses.Count > 0)
+{
+    <h2>Select an existing address</h2>
+    @foreach (var address in Model.ExistingAddresses)
+    {
+        <div class="address-item">
+            <p>@address.FirstName @address.LastName</p>
+            <p>@address.Address1</p>
+            @if (!string.IsNullOrEmpty(address.Address2))
+            {
+                <p>@address.Address2</p>
+            }
+            <p>@address.City, @address.ZipPostalCode</p>
+            <form asp-action="SelectBillingAddress" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="addressId" value="@address.Id" />
+                @if (Model.ShipToSameAddressAllowed)
+                {
+                    <label>
+                        <input type="checkbox" name="shipToSameAddress" value="true" checked="checked" />
+                        Ship to the same address
+                    </label>
+                }
+                <button type="submit">Use this address</button>
+            </form>
+        </div>
+    }
+    <hr />
+}
+
+<h2>Or enter a new address</h2>
+<form asp-action="NewBillingAddress" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <div><label>First Name</label><input asp-for="NewAddress.FirstName" /></div>
+    <div><label>Last Name</label><input asp-for="NewAddress.LastName" /></div>
+    <div><label>Email</label><input asp-for="NewAddress.Email" /></div>
+    <div><label>Company</label><input asp-for="NewAddress.Company" /></div>
+    <div><label>Country</label><select asp-for="NewAddress.CountryId" id="NewAddress_CountryId"></select></div>
+    <div><label>State/Province</label><select asp-for="NewAddress.StateProvinceId" id="NewAddress_StateProvinceId"></select></div>
+    <div><label>City</label><input asp-for="NewAddress.City" /></div>
+    <div><label>Address 1</label><input asp-for="NewAddress.Address1" /></div>
+    <div><label>Address 2</label><input asp-for="NewAddress.Address2" /></div>
+    <div><label>Zip/Postal Code</label><input asp-for="NewAddress.ZipPostalCode" /></div>
+    <div><label>Phone</label><input asp-for="NewAddress.PhoneNumber" /></div>
+    <div><label>Fax</label><input asp-for="NewAddress.FaxNumber" /></div>
+
+    @if (Model.ShipToSameAddressAllowed)
+    {
+        <div>
+            <label>
+                <input asp-for="ShipToSameAddress" />
+                Ship to the same address
+            </label>
+        </div>
+    }
+
+    <button type="submit">Next</button>
+</form>

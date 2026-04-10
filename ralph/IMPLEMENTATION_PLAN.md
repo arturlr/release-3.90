@@ -342,10 +342,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.9
   - Done: 2026-04-10. ShoppingCartController as 4 partial class files (main, Ajax, Wishlist, Helpers) with 16 actions: Cart (GET), UpdateCart (POST), ContinueShopping (POST), StartCheckout (POST), ApplyDiscountCoupon (POST), RemoveDiscountCoupon (POST), ApplyGiftCard (POST), RemoveGiftCardCode (POST), AddProductToCart_Catalog (AJAX), AddProductToCart_Details (AJAX), ProductDetails_AttributeChange (AJAX), CheckoutAttributeChange (AJAX), UploadFileProductAttribute (AJAX), UploadFileCheckoutAttribute (AJAX), Wishlist (GET), UpdateWishlist (POST), AddItemsToCartFromWishlist (POST). 4 view models (ShoppingCartModel, WishlistModel, MiniShoppingCartModel, OrderTotalsModel). 2 Razor views (Cart.cshtml, Wishlist.cshtml). Deferred: EmailWishlist (Captcha [7.13]), EstimateShipping (plugin-dependent [2.10]), OrderSummary/OrderTotals/FlyoutShoppingCart (ViewComponents for [5.26]).
 
-- [ ] [5.8] Public: CheckoutController + Checkout views (address, shipping, payment, confirm)
+- [x] [5.8] Public: CheckoutController + Checkout views (address, shipping, payment, confirm)
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/CheckoutController, Views/Checkout
   - Depends on: 5.1, 4.9
+  - Done: 2026-04-10. CheckoutController as 2 partial class files (main + Steps) with multi-step checkout flow: Index (cart validation, checkout reset), BillingAddress (existing address selection + new address form), SelectBillingAddress (POST), NewBillingAddress (POST), ShippingAddress (existing + new), SelectShippingAddress (POST), NewShippingAddress (POST), ShippingMethod (auto-skips when no plugins), SelectShippingMethod (POST), PaymentMethod (auto-skips when no plugins), SelectPaymentMethod (POST with reward points), PaymentInfo (skips to confirm when no plugins), EnterPaymentInfo (POST), Confirm (GET), ConfirmOrder (POST with PlaceOrderAsync + PostProcessPaymentAsync), Completed. 7 view models in CheckoutModels.cs. 6 Razor views. Address deduplication via FindOrCreateAddressAsync using CustomerAddressMapping. Deferred: OPC (depends on RenderPartialViewToString), CheckoutProgress (ViewComponent for [5.26]), pickup points (plugin-dependent [2.10]).
 
 - [ ] [5.9] Public: OrderController + Order views (order history, order details)
   - Spec: specs/nop-web-public.md

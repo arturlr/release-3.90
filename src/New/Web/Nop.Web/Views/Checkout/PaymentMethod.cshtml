@@ -1,0 +1,50 @@
+@model Nop.Web.Models.Checkout.CheckoutPaymentMethodModel
+
+@{
+    Layout = null;
+    ViewBag.Title = "Payment Method";
+}
+
+<h1>Payment Method</h1>
+
+@if (Model.PaymentMethods.Count > 0)
+{
+    <form asp-action="SelectPaymentMethod" method="post">
+        @Html.AntiForgeryToken()
+        @foreach (var method in Model.PaymentMethods)
+        {
+            <div class="payment-method-item">
+                <label>
+                    <input type="radio" name="paymentmethod"
+                           value="@method.PaymentMethodSystemName"
+                           @(method.Selected ? "checked" : "") />
+                    <strong>@method.Name</strong>
+                    @if (!string.IsNullOrEmpty(method.Fee))
+                    {
+                        <span>(@method.Fee)</span>
+                    }
+                </label>
+                @if (!string.IsNullOrEmpty(method.Description))
+                {
+                    <p>@method.Description</p>
+                }
+            </div>
+        }
+
+        @if (Model.DisplayRewardPoints)
+        {
+            <div class="reward-points">
+                <label>
+                    <input asp-for="UseRewardPoints" />
+                    Use my reward points (@Model.RewardPointsBalance points = @Model.RewardPointsAmount)
+                </label>
+            </div>
+        }
+
+        <button type="submit">Next</button>
+    </form>
+}
+else
+{
+    <p>No payment methods available.</p>
+}

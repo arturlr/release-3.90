@@ -1,0 +1,49 @@
+@model Nop.Web.Models.Checkout.CheckoutShippingMethodModel
+
+@{
+    Layout = null;
+    ViewBag.Title = "Shipping Method";
+}
+
+<h1>Shipping Method</h1>
+
+@if (Model.Warnings.Count > 0)
+{
+    <div class="message-error">
+        @foreach (var warning in Model.Warnings)
+        {
+            <p>@warning</p>
+        }
+    </div>
+}
+
+@if (Model.ShippingMethods.Count > 0)
+{
+    <form asp-action="SelectShippingMethod" method="post">
+        @Html.AntiForgeryToken()
+        @foreach (var method in Model.ShippingMethods)
+        {
+            <div class="shipping-method-item">
+                <label>
+                    <input type="radio" name="shippingoption"
+                           value="@(method.Name)___@(method.ShippingRateComputationMethodSystemName)"
+                           @(method.Selected ? "checked" : "") />
+                    <strong>@method.Name</strong>
+                    @if (!string.IsNullOrEmpty(method.Fee))
+                    {
+                        <span>(@method.Fee)</span>
+                    }
+                </label>
+                @if (!string.IsNullOrEmpty(method.Description))
+                {
+                    <p>@method.Description</p>
+                }
+            </div>
+        }
+        <button type="submit">Next</button>
+    </form>
+}
+else
+{
+    <p>No shipping methods available.</p>
+}

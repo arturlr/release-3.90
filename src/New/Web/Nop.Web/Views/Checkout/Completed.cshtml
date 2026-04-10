@@ -1,0 +1,18 @@
+@model Nop.Web.Models.Checkout.CheckoutCompletedModel
+
+@{
+    Layout = null;
+    ViewBag.Title = "Order Completed";
+}
+
+<h1>Your order has been successfully processed!</h1>
+
+<p>Order number: <strong>@Model.OrderId</strong></p>
+<p>
+    <a asp-action="OrderDetails" asp-controller="Order" asp-route-orderId="@Model.OrderId">
+        Click here for order details.
+    </a>
+</p>
+<p>
+    <a asp-action="Index" asp-controller="Home">Continue</a>
+</p>
