@@ -1,0 +1,35 @@
+@model Nop.Web.Areas.Admin.Models.Home.DashboardModel
+@{
+    ViewBag.Title = "Dashboard";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewBag.Title - Admin</title>
+</head>
+<body>
+    <div class="content-header">
+        <h1>Dashboard</h1>
+    </div>
+    <div class="content">
+        @if (!Model.IsLoggedInAsVendor)
+        {
+            @* NopCommerceNews intentionally not migrated — marketplace-specific (see DISCOVERIES.md iteration 3) *@
+
+            <div class="row">
+                <div class="col-md-12">
+                    @await Component.InvokeAsync("CommonStatistics")
+                </div>
+            </div>
+
+            @* OrderStatistics, CustomerStatistics — [5.34] Admin OrderController, [5.35] Admin CustomerController *@
+            @* OrderAverageReport, OrderIncompleteReport — [5.34] Admin OrderController *@
+            @* LatestOrders — [5.34] Admin OrderController *@
+            @* PopularSearchTermsReport — [5.79] Admin CommonController *@
+            @* BestsellersBriefReportByQuantity, BestsellersBriefReportByAmount — [5.34] Admin OrderController *@
+        }
+    </div>
+</body>
+</html>

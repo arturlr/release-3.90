@@ -1,0 +1,60 @@
+@model Nop.Web.Areas.Admin.Models.Home.CommonStatisticsModel
+
+<div class="box box-info" id="common-statistics-box">
+    <div class="box-header with-border clearfix">
+        <div class="box-title">
+            <i class="fa ion-stats-bars"></i>
+            Common Statistics
+        </div>
+    </div>
+    <div class="box-body">
+        <div class="col-lg-3 col-xs-6">
+            <div class="small-box bg-aqua">
+                <div class="inner">
+                    <h3>@Model.NumberOfOrders</h3>
+                    <p>Orders</p>
+                </div>
+                <div class="icon"><i class="ion ion-bag"></i></div>
+                <a href="@Url.Action("List", "Order", new { area = "Admin" })" class="small-box-footer">
+                    More info <i class="fa fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-3 col-xs-6">
+            <div class="small-box bg-yellow">
+                <div class="inner">
+                    <h3>@Model.NumberOfPendingReturnRequests</h3>
+                    <p>Pending Return Requests</p>
+                </div>
+                <div class="icon"><i class="ion ion-refresh"></i></div>
+                <a href="@Url.Action("List", "ReturnRequest", new { area = "Admin" })" class="small-box-footer">
+                    More info <i class="fa fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-3 col-xs-6">
+            <div class="small-box bg-green">
+                <div class="inner">
+                    <h3>@Model.NumberOfCustomers</h3>
+                    <p>Registered Customers</p>
+                </div>
+                <div class="icon"><i class="ion ion-person-add"></i></div>
+                <a href="@Url.Action("List", "Customer", new { area = "Admin" })" class="small-box-footer">
+                    More info <i class="fa fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-3 col-xs-6">
+            <div class="small-box bg-red">
+                <div class="inner">
+                    <h3>@Model.NumberOfLowStockProducts</h3>
+                    <p>Low Stock Products</p>
+                </div>
+                <div class="icon"><i class="ion ion-pie-graph"></i></div>
+                <a href="@Url.Action("LowStockReport", "Product", new { area = "Admin" })" class="small-box-footer">
+                    More info <i class="fa fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

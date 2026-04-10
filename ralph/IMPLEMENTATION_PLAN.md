@@ -452,10 +452,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
 
 ## Phase 5B: Admin Area
 
-- [ ] [5.30] Admin: HomeController + Home views (dashboard)
+- [x] [5.30] Admin: HomeController + Home views (dashboard)
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/HomeController, Admin/Views/Home
   - Depends on: 5.1
+  - Done: 2026-04-10. Admin HomeController with Index action (DashboardModel with IsLoggedInAsVendor). CommonStatisticsViewComponent replaces legacy child action (order/customer/return-request/low-stock counts). NopCommerceNews intentionally not migrated (marketplace-specific). Area route registered in Program.cs ({area:exists}/{controller=Home}/{action=Index}/{id?}) before default route.
 
 - [ ] [5.31] Admin: ProductController + Product views (CRUD, attributes, pictures, inventory)
   - Spec: specs/nop-admin.md

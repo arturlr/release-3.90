@@ -2125,3 +2125,40 @@ Performed exhaustive verification across all dimensions:
 - [5.48] Admin TopicController: can now reference the same `TopicModel` pattern for admin topic management
 - [5.26] Shared views: when `IPageHeadBuilder` is built, add meta tag support to `TopicDetails.cshtml`
 - [5.8] CheckoutController: can use `TopicDetailsPopup` for Terms of Service modal
+
+## 2026-04-10 — [5.30] Admin HomeController / Implementation
+
+### Admin Area Route Pattern
+- Added `MapControllerRoute("areaRoute", "{area:exists}/{controller=Home}/{action=Index}/{id?}")` BEFORE the default route in Program.cs
+- This enables conventional routing for ALL `[Area]` controllers — not just Admin. Any future area (e.g., Api) will automatically work
+- The `{area:exists}` constraint ensures the route only matches when a valid area is present, preventing conflicts with the default route
+- Impact: all future admin controllers just need `[Area("Admin")]` (inherited from `BaseAdminController`) — no additional route registration needed
+
+### Admin Area Directory Structure
+- Admin files live under `Areas/Admin/` inside `Nop.Web` project — standard ASP.NET Core area convention
+- Structure: `Areas/Admin/Controllers/`, `Areas/Admin/Models/Home/`, `Areas/Admin/Views/Home/`, `Areas/Admin/Views/Shared/Components/`, `Areas/Admin/Components/`
+- ViewComponent views follow ASP.NET Core convention: `Views/Shared/Components/{ComponentName}/Default.cshtml`
+- This is the first admin area content — establishes the directory pattern for all Phase 5B items
+
+### NopCommerceNews Intentionally Not Migrated
+- Legacy `NopCommerceNews` child action fetched RSS feed from `nopcommerce.com/NewsRSS.aspx` — marketplace-specific functionality
+- `NopCommerceNewsHideAdv` toggle also dropped — no marketplace advertisements in the new system
+- Confirmed by DISCOVERIES.md iteration 3: "Decision: Do NOT migrate — this is nopCommerce marketplace-specific functionality"
+
+### CommonStatistics → ViewComponent Pattern
+- Legacy `CommonStatistics` was a `[ChildActionOnly]` action rendered via `@Html.Action("CommonStatistics", "Home")`
+- ASP.NET Core replaces child actions with ViewComponents: `@await Component.InvokeAsync("CommonStatistics")`
+- `CommonStatisticsViewComponent` is the first admin ViewComponent — establishes the pattern for future dashboard sections (OrderStatistics, CustomerStatistics, etc.)
+- Legacy permission check (`ManageCustomers && ManageOrders && ManageReturnRequests && ManageProducts`) and vendor check moved to the dashboard view — ViewComponent always renders, view conditionally invokes it
+
+### Dashboard Sections Deferred
+- Legacy dashboard had 8 child actions: NopCommerceNews, CommonStatistics, OrderStatistics, CustomerStatistics, OrderAverageReport, OrderIncompleteReport, LatestOrders, PopularSearchTermsReport, BestsellersBriefReportByQuantity, BestsellersBriefReportByAmount
+- Only CommonStatistics implemented now — other sections depend on [5.34] Admin OrderController, [5.35] Admin CustomerController, [5.79] Admin CommonController
+- Each deferred section documented as Razor comment in Index.cshtml with plan item reference
+
+### Impact on Future Items
+- [5.31-5.82] Admin controllers: area route is now active, `Areas/Admin/` directory structure established
+- [5.34] Admin OrderController: should add OrderStatistics, OrderAverageReport, OrderIncompleteReport, LatestOrders, BestsellersBriefReport ViewComponents for dashboard
+- [5.35] Admin CustomerController: should add CustomerStatistics ViewComponent for dashboard
+- [5.79] Admin CommonController: should add PopularSearchTermsReport ViewComponent for dashboard
+- [5.81] Admin Shared views: admin layout (`_Layout.cshtml`) will be needed when admin views need shared chrome
