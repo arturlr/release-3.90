@@ -7,6 +7,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
     <PackageReference Include="xunit" Version="2.*" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.*" />
+    <PackageReference Include="FluentAssertions" Version="6.*" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\New\Core\Nop.Core.Domain\Nop.Core.Domain.csproj" />

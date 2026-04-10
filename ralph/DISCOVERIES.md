@@ -1638,3 +1638,36 @@ Performed exhaustive verification across all dimensions:
 - [5.34] Admin OrderController: can now use all payment/status operations
 - [5.59] Admin RecurringPaymentController: can now use recurring payment operations
 - Phase 4 is now COMPLETE — all service layer items implemented
+
+## 2026-04-09 — [1.7] Test Project Scaffold / Implementation
+
+### Test Infrastructure Choices
+- **NSubstitute 5.x** over Moq — simpler syntax, no Castle.Core dependency, better async support
+- **FluentAssertions 6.x** — readable assertion syntax, good xUnit integration
+- **EF Core InMemory 8.0.13** — matches EF Core version in Nop.Data for integration tests
+
+### Shared Test Helpers Pattern
+- `FakeRepository<T>` in `Nop.Tests` namespace (lives in Nop.Core.Tests/Helpers/) — `List<T>`-backed `IRepository<T>` with auto-incrementing IDs. No EF Core dependency, fast, deterministic
+- `FakeCacheManager` in `Nop.Tests` namespace — `ConcurrentDictionary`-backed `IStaticCacheManager`. Supports prefix-based invalidation matching production behavior
+- Both placed in Nop.Core.Tests project; Services.Tests references Core.Tests project for access
+- Namespace `Nop.Tests` (not `Nop.Core.Tests`) so any test project can use them without namespace confusion
+
+### xUnit Implicit Usings Gap
+- `ImplicitUsings: enable` in Directory.Build.props provides System/System.Linq/etc. but NOT `Xunit`
+- All test files must include explicit `using Xunit;` — this is standard for xUnit projects
+- Could add a `GlobalUsings.cs` to each test project but explicit imports are clearer for test files
+
+### Pre-existing Format Issues
+- `dotnet format --verify-no-changes` reports whitespace issues in `OrderProcessingService.Shipping.cs` and `OrderProcessingService.Status.cs` from previous iterations
+- These are NOT from [1.7] changes — test files pass format check cleanly
+- Should be fixed in a dedicated cleanup pass or when those files are next modified
+
+### Test Coverage Summary
+- Core layer: CommonHelper (email/IP validation, string utilities, type conversion), PagedList (all 3 constructors, pagination properties), CacheKey (constructor, prefixes, init property)
+- Data layer: EfRepository CRUD with InMemory provider (insert, batch insert, update, delete, batch delete, null guard, no-tracking query)
+- Services layer: EncryptionService (salt, hashing with 4 algorithms, AES encrypt/decrypt roundtrip), SettingService (set/get/overwrite/delete/load/save settings with FakeRepository + FakeCacheManager)
+
+### Impact on Future Items
+- All future service implementations can be tested using FakeRepository + FakeCacheManager + NSubstitute pattern
+- EfRepository integration tests can be extended for any entity type using InMemory provider
+- WebApplicationFactory-based E2E tests (acceptance criterion) deferred until [5.1] Nop.Web.Framework provides enough infrastructure

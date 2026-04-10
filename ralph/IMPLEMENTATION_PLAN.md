@@ -41,10 +41,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: EF Core migration
   - Depends on: 1.5
 
-- [ ] [1.7] Test project scaffold — xUnit projects per layer, shared test utilities
+- [x] [1.7] Test project scaffold — xUnit projects per layer, shared test utilities
   - Spec: specs/testing-strategy.md
   - Scope: Test projects for Core, Data, Services, Web
   - Depends on: 1.1
+  - Done: 2026-04-09. Added NSubstitute 5.x, FluentAssertions 6.x, EF Core InMemory 8.0.13 to test projects. Created FakeRepository<T> (in-memory IRepository) and FakeCacheManager (in-memory IStaticCacheManager) as shared test helpers in Nop.Tests namespace. 6 test files: CommonHelperTests (14 tests), PagedListTests (5 tests), CacheKeyTests (5 tests), EfRepositoryTests (7 tests with InMemory), EncryptionServiceTests (9 tests), SettingServiceTests (7 tests). All 65 tests pass.
 
 ---
 
