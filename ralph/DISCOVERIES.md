@@ -1996,3 +1996,26 @@ Performed exhaustive verification across all dimensions:
 - [5.35] Admin CustomerController: can now use `CustomerAddressMapping` for address management
 - [5.18] Public ProfileController: can now use `ICustomerService` for profile display
 - [5.20] Public ExternalAuthenticationController: must implement `TryAssociateAccountWithExternalAccount` when [6.17] is built
+
+## 2026-04-10 — [5.22] Public CountryController (AJAX) / Implementation
+
+### No Model Factory, No Caching
+- Legacy used `ICountryModelFactory` with `ICacheManager` caching (key: `STATEPROVINCES_BY_COUNTRY_MODEL_KEY` including countryId, addSelectStateItem, languageId)
+- New code inlines the logic directly in the controller — no model factory, no caching
+- Caching is unnecessary: `IStateProvinceService.GetStateProvincesByCountryIdAsync` already caches results internally (per [3.3] discovery)
+- Model factory pattern skipped per [5.6] discovery: "Model factory pattern skipped — inline model construction in controllers"
+
+### No PublicStoreAllowNavigationFilter
+- Legacy used `[PublicStoreAllowNavigation(true)]` attribute to make the action accessible even when store navigation is restricted
+- New code simply does NOT apply `PublicStoreAllowNavigationFilter` — the filter is opt-in (applied per-controller/action), so omitting it means the action is always accessible
+- This is the correct behavior: AJAX state/province lookups must work during checkout even if store navigation is restricted
+
+### Localized State Names Deferred
+- Legacy used `s.GetLocalized(x => x.Name)` for localized state names (via service locator)
+- New code uses `s.Name` directly — localized name resolution requires `ILocalizedEntityService` + `ILanguageService` parameters (per [2.3] discovery about service locator elimination)
+- When localized state names are needed, the controller can pass `ILocalizedEntityService` to a helper method
+
+### Impact on Future Items
+- [5.6] CustomerController.Addresses: AJAX state lookup now available for address forms
+- [5.8] CheckoutController: AJAX state lookup available for checkout address forms
+- [5.35] Admin CustomerController: admin area has its own CountryController ([5.51]) — not affected

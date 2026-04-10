@@ -32,21 +32,21 @@ public partial class CustomerController
             switch (loginResult)
             {
                 case CustomerLoginResults.Successful:
-                {
-                    var customer = customerSettings.UsernamesEnabled
-                        ? await customerService.GetCustomerByUsernameAsync(model.Username!)
-                        : await customerService.GetCustomerByEmailAsync(model.Email!);
+                    {
+                        var customer = customerSettings.UsernamesEnabled
+                            ? await customerService.GetCustomerByUsernameAsync(model.Username!)
+                            : await customerService.GetCustomerByEmailAsync(model.Email!);
 
-                    await shoppingCartService.MigrateShoppingCartAsync(workContext.CurrentCustomer, customer!, true);
-                    await authenticationService.SignInAsync(customer!, model.RememberMe);
-                    await eventPublisher.PublishAsync(new CustomerLoggedinEvent(customer!));
-                    customerActivityService.InsertActivity(customer!, "PublicStore.Login",
-                        await localizationService.GetResourceAsync("ActivityLog.PublicStore.Login"));
+                        await shoppingCartService.MigrateShoppingCartAsync(workContext.CurrentCustomer, customer!, true);
+                        await authenticationService.SignInAsync(customer!, model.RememberMe);
+                        await eventPublisher.PublishAsync(new CustomerLoggedinEvent(customer!));
+                        customerActivityService.InsertActivity(customer!, "PublicStore.Login",
+                            await localizationService.GetResourceAsync("ActivityLog.PublicStore.Login"));
 
-                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                        return Redirect(returnUrl);
-                    return RedirectToAction("Index", "Home");
-                }
+                        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                            return Redirect(returnUrl);
+                        return RedirectToAction("Index", "Home");
+                    }
                 case CustomerLoginResults.CustomerNotExist:
                     ModelState.AddModelError("", await localizationService.GetResourceAsync("Account.Login.WrongCredentials.CustomerNotExist"));
                     break;

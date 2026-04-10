@@ -409,10 +409,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Controllers/DownloadController
   - Depends on: 5.1, 3.7
 
-- [ ] [5.22] Public: CountryController (AJAX)
+- [x] [5.22] Public: CountryController (AJAX)
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/CountryController
   - Depends on: 5.1, 3.3
+  - Done: 2026-04-10. Single GetStatesByCountryId action. No model factory — inline construction. No PublicStoreAllowNavigationFilter (always accessible for AJAX). Returns JSON array of {id, name} with placeholder items matching legacy logic.
 
 - [ ] [5.23] Public: WidgetController + Widget views
   - Spec: specs/nop-web-public.md
