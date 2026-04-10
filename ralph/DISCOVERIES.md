@@ -3331,3 +3331,24 @@ Performed exhaustive verification across all dimensions:
 - [5.56] Admin CampaignController: next messaging admin controller — follows same simple CRUD pattern
 - [5.57] Admin NewsLetterSubscriptionController: follows same simple CRUD pattern
 - Admin messaging area progress: EmailAccount [5.53] ✓, MessageTemplate [5.54] ✓, QueuedEmail [5.55] ✓, Campaign [5.56] pending, NewsLetterSubscription [5.57] pending
+
+## 2026-04-10 — [5.56] Admin CampaignController / Implementation
+
+### FormValueRequired Eliminated (Consistent Pattern)
+- Legacy used `[FormValueRequired("send-test-email")]` and `[FormValueRequired("send-mass-email")]` to route SendTestEmail and SendMassEmail POST actions to the same Edit URL (`[HttpPost, ActionName("Edit")]`)
+- New code uses separate POST endpoints: `SendTestEmail(int id, string? testEmail, int emailAccountId)` and `SendMassEmail(int id, int customerRoleId, int emailAccountId)` — each form in Edit.cshtml posts to its own action
+- Consistent with ShoppingCartController [5.7], CheckoutController [5.8], OrderController [5.9], VendorController [5.19], EmailAccountController [5.53], MessageTemplateController [5.54], QueuedEmailController [5.55] patterns
+
+### Campaign.CustomerRoleId — Filter for Mass Email
+- Legacy `CampaignModel.CustomerRoleId` was used to filter newsletter subscribers when sending mass email
+- The `Campaign` entity itself does NOT have a `CustomerRoleId` property — it's a model-only field for the send operation
+- New code passes `customerRoleId` as a form parameter to `SendMassEmail` action, not stored on the campaign entity
+- `Campaign.StoreId` IS stored on the entity — used to filter subscribers by store during mass email
+
+### Admin Messaging Area Complete
+- All 5 admin messaging controllers now implemented: EmailAccount [5.53] ✓, MessageTemplate [5.54] ✓, QueuedEmail [5.55] ✓, Campaign [5.56] ✓, NewsLetterSubscription [5.57] pending
+- Only NewsLetterSubscription [5.57] remains to complete the admin messaging area
+
+### Impact on Future Items
+- [5.57] Admin NewsLetterSubscriptionController: last remaining admin messaging controller — follows same simple CRUD pattern with export/import
+- Admin messaging area will be fully complete after [5.57]

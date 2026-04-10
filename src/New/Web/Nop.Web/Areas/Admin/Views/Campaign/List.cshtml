@@ -1,0 +1,67 @@
+@model Nop.Web.Areas.Admin.Models.Messages.CampaignListModel
+@{ ViewData["Title"] = "Campaigns"; }
+
+<h1>Campaigns</h1>
+
+<div>
+    <a asp-action="Create">Add new</a>
+</div>
+
+<div style="margin-top:1em;">
+    <label asp-for="SearchStoreId">Store</label>
+    <select asp-for="SearchStoreId" asp-items="Model.AvailableStores" id="SearchStoreId"></select>
+    <button type="button" onclick="loadGrid()">Search</button>
+</div>
+
+<div id="campaigns-grid" style="margin-top:1em;">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Subject</th>
+                <th>Created on</th>
+                <th>Don't send before</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="campaigns-tbody"></tbody>
+    </table>
+    <div id="campaigns-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadGrid(); });
+
+    function loadGrid() {
+        var data = new URLSearchParams();
+        data.append('model.SearchStoreId', document.getElementById('SearchStoreId').value);
+        data.append('command.Page', '1');
+        data.append('command.PageSize', '50');
+        var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+        fetch('@Url.Action("CampaignList", "Campaign", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token },
+            body: data
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+            var tbody = document.getElementById('campaigns-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (c) {
+                    var tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (c.Name || '') + '</td>'
+                        + '<td>' + (c.Subject || '') + '</td>'
+                        + '<td>' + new Date(c.CreatedOn).toLocaleString() + '</td>'
+                        + '<td>' + (c.DontSendBeforeDate ? new Date(c.DontSendBeforeDate).toLocaleString() : '') + '</td>'
+                        + '<td><a href="/Admin/Campaign/Edit/' + c.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('campaigns-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}

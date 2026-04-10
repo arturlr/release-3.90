@@ -1,0 +1,39 @@
+@model Nop.Web.Areas.Admin.Models.Messages.CampaignModel
+@{ ViewData["Title"] = "Add a new campaign"; }
+
+<h1>Add a new campaign</h1>
+
+<form asp-action="Create" method="post">
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="Subject">Subject</label>
+        <input asp-for="Subject" />
+    </div>
+    <div>
+        <label asp-for="Body">Body (HTML)</label>
+        <textarea asp-for="Body" rows="12" style="width:100%;"></textarea>
+    </div>
+    <div>
+        <label>Allowed tokens</label>
+        <p>@Model.AllowedTokens</p>
+    </div>
+    <div>
+        <label asp-for="StoreId">Limited to store</label>
+        <select asp-for="StoreId" asp-items="Model.AvailableStores"></select>
+    </div>
+    <div>
+        <label asp-for="CustomerRoleId">Limited to customer role</label>
+        <select asp-for="CustomerRoleId" asp-items="Model.AvailableCustomerRoles"></select>
+    </div>
+    <div>
+        <label asp-for="DontSendBeforeDate">Don't send before</label>
+        <input asp-for="DontSendBeforeDate" type="datetime-local" />
+    </div>
+    <div style="margin-top:1em;">
+        <button type="submit" name="continueEditing" value="false">Save</button>
+        <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+    </div>
+</form>

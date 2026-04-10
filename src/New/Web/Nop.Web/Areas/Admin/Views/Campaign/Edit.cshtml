@@ -1,0 +1,90 @@
+@model Nop.Web.Areas.Admin.Models.Messages.CampaignModel
+@{ ViewData["Title"] = "Edit campaign"; }
+
+<h1>Edit campaign</h1>
+
+<form asp-action="Edit" method="post">
+    <input asp-for="Id" type="hidden" />
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="Subject">Subject</label>
+        <input asp-for="Subject" />
+    </div>
+    <div>
+        <label asp-for="Body">Body (HTML)</label>
+        <textarea asp-for="Body" rows="12" style="width:100%;"></textarea>
+    </div>
+    <div>
+        <label>Allowed tokens</label>
+        <p>@Model.AllowedTokens</p>
+    </div>
+    <div>
+        <label asp-for="StoreId">Limited to store</label>
+        <select asp-for="StoreId" asp-items="Model.AvailableStores"></select>
+    </div>
+    <div>
+        <label asp-for="CustomerRoleId">Limited to customer role</label>
+        <select asp-for="CustomerRoleId" asp-items="Model.AvailableCustomerRoles"></select>
+    </div>
+    <div>
+        <label asp-for="DontSendBeforeDate">Don't send before</label>
+        <input asp-for="DontSendBeforeDate" type="datetime-local" />
+    </div>
+    <div style="margin-top:1em;">
+        <button type="submit" name="continueEditing" value="false">Save</button>
+        <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+    </div>
+</form>
+
+<hr />
+
+<h2>Send test email</h2>
+<form asp-action="SendTestEmail" asp-route-id="@Model.Id" method="post">
+    <div>
+        <label asp-for="EmailAccountId">Email account</label>
+        <select asp-for="EmailAccountId" asp-items="Model.AvailableEmailAccounts"></select>
+    </div>
+    <div>
+        <label asp-for="TestEmail">Send test email to</label>
+        <input asp-for="TestEmail" type="email" />
+    </div>
+    <div>
+        <button type="submit">Send test email</button>
+    </div>
+</form>
+
+<hr />
+
+<h2>Send mass email</h2>
+<form asp-action="SendMassEmail" asp-route-id="@Model.Id" method="post">
+    <div>
+        <label asp-for="EmailAccountId">Email account</label>
+        <select name="emailAccountId">
+            @foreach (var ea in Model.AvailableEmailAccounts)
+            {
+                <option value="@ea.Value" selected="@(ea.Value == Model.EmailAccountId.ToString() ? "selected" : null)">@ea.Text</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label>Customer role</label>
+        <select name="customerRoleId">
+            @foreach (var role in Model.AvailableCustomerRoles)
+            {
+                <option value="@role.Value">@role.Text</option>
+            }
+        </select>
+    </div>
+    <div>
+        <button type="submit" onclick="return confirm('Are you sure you want to send this campaign to all matching subscribers?');">Send mass email</button>
+    </div>
+</form>
+
+<hr />
+
+<form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="margin-top:1em;">
+    <button type="submit" onclick="return confirm('Are you sure?');">Delete</button>
+</form>

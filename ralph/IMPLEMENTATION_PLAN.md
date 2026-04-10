@@ -619,10 +619,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.2
   - Done: 2026-04-10. QueuedEmailController with core CRUD (List with search form, QueuedEmailList AJAX grid, Edit GET+POST, Delete), batch operations (DeleteSelected, DeleteAll), navigation (GoToEmailByNumber), and Requeue (creates new queued email copy). 3 view models (QueuedEmailListModel, QueuedEmailModel, QueuedEmailGridModel). 2 Razor views (List with search filters + AJAX grid + select-all/delete-selected/delete-all + go-to-number, Edit with email detail form + requeue/delete). FormValueRequired eliminated — separate endpoints for GoToEmailByNumber, Requeue, DeleteAll. Legacy ParameterBasedOnFormName replaced with bool continueEditing parameter. PrepareQueuedEmailModelAsync helper resolves email account name via IEmailAccountService. 4 constructor dependencies (IQueuedEmailService, IEmailAccountService, IDateTimeHelper, IPermissionService). Permission: ManageMessageQueue. Follows EmailAccountController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
-- [ ] [5.56] Admin: CampaignController + Campaign views
+- [x] [5.56] Admin: CampaignController + Campaign views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/CampaignController, Admin/Views/Campaign
   - Depends on: 5.1, 4.2
+  - Done: 2026-04-10. CampaignController with core CRUD (List with store filter, CampaignList AJAX grid, Create, Edit, Delete) and email operations (SendTestEmail, SendMassEmail). 3 view models (CampaignListModel, CampaignModel, CampaignGridModel). 3 Razor views (List, Create, Edit with send test email + send mass email + delete). FormValueRequired eliminated — separate endpoints for SendTestEmail(id, testEmail, emailAccountId) and SendMassEmail(id, customerRoleId, emailAccountId). Follows QueuedEmailController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Localization deferred (consistent with all other admin controllers).
 
 - [ ] [5.57] Admin: NewsLetterSubscriptionController + views
   - Spec: specs/nop-admin.md
