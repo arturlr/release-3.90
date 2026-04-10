@@ -226,6 +226,13 @@ public class BlogService : IBlogService
         await _eventPublisher.EntityInsertedAsync(blogComment);
     }
 
+    public async Task UpdateBlogCommentAsync(BlogComment blogComment)
+    {
+        ArgumentNullException.ThrowIfNull(blogComment);
+        _blogCommentRepository.Update(blogComment);
+        await _eventPublisher.EntityUpdatedAsync(blogComment);
+    }
+
     public async Task DeleteBlogCommentAsync(BlogComment blogComment)
     {
         ArgumentNullException.ThrowIfNull(blogComment);

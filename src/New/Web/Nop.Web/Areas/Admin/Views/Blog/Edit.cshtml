@@ -1,0 +1,72 @@
+@model Nop.Web.Areas.Admin.Models.Blogs.BlogPostModel
+@{ ViewData["Title"] = "Edit blog post"; }
+
+<h1>Edit blog post</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="LanguageId">Language</label>
+        <select asp-for="LanguageId" asp-items="Model.AvailableLanguages"></select>
+    </div>
+    <div>
+        <label asp-for="Title">Title</label>
+        <input asp-for="Title" />
+    </div>
+    <div>
+        <label asp-for="Body">Body</label>
+        <textarea asp-for="Body" rows="10"></textarea>
+    </div>
+    <div>
+        <label asp-for="BodyOverview">Body overview</label>
+        <textarea asp-for="BodyOverview" rows="3"></textarea>
+    </div>
+    <div>
+        <label asp-for="AllowComments">Allow comments</label>
+        <input asp-for="AllowComments" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="Tags">Tags (comma separated)</label>
+        <input asp-for="Tags" />
+    </div>
+    <div>
+        <label asp-for="StartDate">Start date</label>
+        <input asp-for="StartDate" type="datetime-local" />
+    </div>
+    <div>
+        <label asp-for="EndDate">End date</label>
+        <input asp-for="EndDate" type="datetime-local" />
+    </div>
+    <div>
+        <label asp-for="SeName">Search engine friendly page name</label>
+        <input asp-for="SeName" />
+    </div>
+    <div>
+        <label asp-for="MetaKeywords">Meta keywords</label>
+        <input asp-for="MetaKeywords" />
+    </div>
+    <div>
+        <label asp-for="MetaDescription">Meta description</label>
+        <textarea asp-for="MetaDescription" rows="2"></textarea>
+    </div>
+    <div>
+        <label asp-for="MetaTitle">Meta title</label>
+        <input asp-for="MetaTitle" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post" onsubmit="return confirm('Are you sure?');">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit">Delete</button>
+</form>
+
+<p>
+    <a asp-action="Comments" asp-route-filterByBlogPostId="@Model.Id">Manage comments for this blog post</a>
+</p>
+
+@* Store mapping management deferred — see [5.44] plan notes *@

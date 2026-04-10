@@ -1,0 +1,77 @@
+@model Nop.Web.Areas.Admin.Models.Blogs.BlogPostListModel
+@{ ViewData["Title"] = "Blog Posts"; }
+
+<h1>Blog Posts</h1>
+
+<form asp-action="List" method="get" id="search-form">
+    <div>
+        <label>Store</label>
+        <select asp-for="SearchStoreId" asp-items="Model.AvailableStores"></select>
+    </div>
+    <button type="submit" id="search-blog">Search</button>
+</form>
+
+<p>
+    <a asp-action="Create">Add new</a>
+    |
+    <a asp-action="Comments">Manage comments</a>
+</p>
+
+<div id="blogposts-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Language</th>
+                <th>Approved comments</th>
+                <th>Not approved</th>
+                <th>Start date</th>
+                <th>End date</th>
+                <th>Created on</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="blogposts-tbody"></tbody>
+    </table>
+    <div id="blogposts-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadBlogPosts(1, 15); });
+    document.getElementById('search-blog')?.addEventListener('click', function (e) { e.preventDefault(); loadBlogPosts(1, 15); });
+
+    function loadBlogPosts(page, pageSize) {
+        const form = document.getElementById('search-form');
+        const data = new URLSearchParams(new FormData(form));
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("BlogPostList", "Blog", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('blogposts-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (bp) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (bp.Title || '') + '</td>'
+                        + '<td>' + (bp.LanguageName || '') + '</td>'
+                        + '<td>' + bp.ApprovedComments + '</td>'
+                        + '<td>' + bp.NotApprovedComments + '</td>'
+                        + '<td>' + (bp.StartDate || '') + '</td>'
+                        + '<td>' + (bp.EndDate || '') + '</td>'
+                        + '<td>' + (bp.CreatedOn || '') + '</td>'
+                        + '<td><a href="/Admin/Blog/Edit/' + bp.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('blogposts-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}

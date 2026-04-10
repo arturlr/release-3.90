@@ -39,6 +39,8 @@ public interface IBlogService
 
     Task InsertBlogCommentAsync(BlogComment blogComment);
 
+    Task UpdateBlogCommentAsync(BlogComment blogComment);
+
     Task DeleteBlogCommentAsync(BlogComment blogComment);
 
     Task DeleteBlogCommentsAsync(IList<BlogComment> blogComments);

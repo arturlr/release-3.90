@@ -546,10 +546,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Admin/Controllers/TaxController, Admin/Views/Tax
   - Depends on: 5.1, 4.6
 
-- [ ] [5.44] Admin: BlogController + Blog views
+- [x] [5.44] Admin: BlogController + Blog views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/BlogController, Admin/Views/Blog
   - Depends on: 5.1, 3.13
+  - Done: 2026-04-10. BlogController as 2 partial class files (main + helpers) with blog post CRUD (List, BlogPostList AJAX grid, Create, Edit, Delete) and comment management (Comments, CommentList AJAX grid, CommentUpdate, CommentDelete, DeleteSelectedComments, ApproveSelected, DisapproveSelected). 6 view models (BlogPostListModel, BlogPostModel, BlogPostGridModel, BlogCommentListModel, BlogCommentModel). 4 Razor views (List, Create, Edit, Comments). Added UpdateBlogCommentAsync to IBlogService/BlogService (replaces legacy nav property pattern). BlogPost implements ISlugSupported — uses ValidateSeNameAsync + SaveSlugAsync with LanguageId. Follows ManufacturerController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Store mapping management deferred (consistent with other admin controllers).
 
 - [ ] [5.45] Admin: NewsController + News views
   - Spec: specs/nop-admin.md

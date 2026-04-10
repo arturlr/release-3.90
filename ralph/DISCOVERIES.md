@@ -2974,3 +2974,34 @@ Performed exhaustive verification across all dimensions:
 - [5.31] Admin ProductController sub-entity management: product discount assignment can reference the same `DiscountProductMapping` pattern
 - [5.32] Admin CategoryController sub-entity management: category discount assignment can reference `DiscountCategoryMapping` pattern
 - [5.33] Admin ManufacturerController sub-entity management: manufacturer discount assignment can reference `DiscountManufacturerMapping` pattern
+
+## 2026-04-10 — [5.44] Admin BlogController / Implementation
+
+### UpdateBlogCommentAsync Added to IBlogService
+- Legacy `CommentUpdate` action modified `comment.IsApproved` then called `_blogService.UpdateBlogPost(comment.BlogPost)` — updating the parent blog post entity to persist a comment change via nav property
+- Nav properties stripped in [1.3] — no way to access `comment.BlogPost` from a `BlogComment` entity
+- Added `UpdateBlogCommentAsync(BlogComment)` to `IBlogService`/`BlogService` — updates the comment entity directly via `_blogCommentRepository.Update`
+- Pattern consistent with `InsertBlogCommentAsync` (added in [5.10]) and `UpdateBlogCommentAsync` is the natural complement
+- Impact: [5.45] Admin NewsController will need the same pattern — `UpdateNewsCommentAsync` should be added to `INewsService`
+
+### BlogPost.ValidateSeNameAsync Uses LanguageId
+- BlogPost implements `ISlugSupported` — URL records are language-specific (unlike Product/Category/Manufacturer which use languageId=0)
+- `SaveSlugAsync(blogPost, seName, blogPost.LanguageId)` passes the blog post's language ID, not 0
+- This means each blog post has a language-specific slug, matching legacy behavior where blog posts are per-language
+- Impact: any future code looking up blog post slugs must pass the correct `languageId` to `GetActiveSlugAsync`
+
+### Comment Grid Uses In-Memory Paging
+- `GetAllCommentsAsync` returns all matching comments as `IList<BlogComment>` (not `IPagedList`)
+- Admin comment grid applies `Skip/Take` paging in the controller after loading all comments
+- Acceptable for blog comment volumes (typically hundreds, not millions)
+- If performance becomes an issue, `GetAllCommentsAsync` should be changed to return `IPagedList<BlogComment>` with DB-level paging
+
+### BlogCommentApprovedEvent Not Published
+- Legacy `CommentUpdate` and `ApproveSelected` published `BlogCommentApprovedEvent(comment)` when a comment was newly approved
+- `BlogCommentApprovedEvent` class doesn't exist in the new codebase — no event consumers are registered for it
+- Omitted to avoid creating an unused event class. When event consumers are needed (e.g., for notifications), add the event class and publish it in `CommentUpdate`/`ApproveSelected`
+
+### Impact on Future Items
+- [5.45] Admin NewsController: follows the same pattern — add `UpdateNewsCommentAsync` to `INewsService`, create NewsController with post CRUD + comment management
+- [5.47] Admin PollController: simpler — no comments, just poll CRUD + answer management
+- [5.48] Admin TopicController: simpler — no comments, just topic CRUD
