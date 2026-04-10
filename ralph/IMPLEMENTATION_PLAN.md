@@ -607,10 +607,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.2
   - Done: 2026-04-10. EmailAccountController with core CRUD (List, EmailAccountList AJAX grid, Create, Edit, Delete), MarkAsDefaultEmail (saves EmailAccountSettings.DefaultEmailAccountId via ISettingService), ChangePassword (separate POST endpoint — legacy used FormValueRequired), SendTestEmail (IEmailSender.SendEmailAsync with store name subject). 1 view model (EmailAccountModel). 3 Razor views (List with mark-as-default AJAX, Create, Edit with change password + send test email + delete). Follows CurrencyController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Localization deferred (consistent with all other admin controllers).
 
-- [ ] [5.54] Admin: MessageTemplateController + MessageTemplate views
+- [x] [5.54] Admin: MessageTemplateController + MessageTemplate views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/MessageTemplateController, Admin/Views/MessageTemplate
   - Depends on: 5.1, 4.2
+  - Done: 2026-04-10. MessageTemplateController with core CRUD (List with store filter, MessageTemplateList AJAX grid, Edit GET+POST, Delete), CopyTemplate (separate POST endpoint), TestTemplate (GET with token inputs), SendTestTemplate (POST with form-based token parsing). 4 view models (MessageTemplateListModel, MessageTemplateModel, MessageTemplateGridModel, TestMessageTemplateModel). 3 Razor views (List, Edit, TestTemplate). FormValueRequired eliminated — separate endpoints for CopyTemplate and SendTestTemplate. Allowed tokens displayed from IMessageTokenProvider.GetListOfAllowedTokens. Email account dropdown via IEmailAccountService. Delay settings (SendImmediately toggle, DelayBeforeSend, DelayPeriod). Attached download ID field. Follows EmailAccountController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Localization deferred. Store mapping management deferred (consistent with all other admin controllers).
 
 - [ ] [5.55] Admin: QueuedEmailController + QueuedEmail views
   - Spec: specs/nop-admin.md

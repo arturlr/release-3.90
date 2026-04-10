@@ -1,0 +1,63 @@
+@model Nop.Web.Areas.Admin.Models.Messages.MessageTemplateListModel
+@{ ViewData["Title"] = "Message templates"; }
+
+<h1>Message templates</h1>
+
+<div>
+    <label for="SearchStoreId">Store</label>
+    <select id="SearchStoreId">
+        @foreach (var s in Model.AvailableStores)
+        {
+            <option value="@s.Id">@s.Name</option>
+        }
+    </select>
+    <button type="button" onclick="loadTemplates()">Search</button>
+</div>
+
+<div id="templates-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Active</th>
+                <th>Store(s)</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="templates-tbody"></tbody>
+    </table>
+    <div id="templates-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadTemplates(); });
+
+    function loadTemplates() {
+        const storeId = document.getElementById('SearchStoreId').value;
+        const data = new URLSearchParams();
+        data.append('searchStoreId', storeId);
+        fetch('@Url.Action("MessageTemplateList", "MessageTemplate", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('templates-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (t) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (t.Name || '') + '</td>'
+                        + '<td>' + (t.IsActive ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (t.ListOfStores || '') + '</td>'
+                        + '<td><a href="/Admin/MessageTemplate/Edit/' + t.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('templates-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}

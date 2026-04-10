@@ -3279,3 +3279,33 @@ Performed exhaustive verification across all dimensions:
 - [5.55] Admin QueuedEmailController: can now use `IEmailAccountService` for email account dropdown
 - [5.56] Admin CampaignController: can now use `IEmailAccountService` for email account selection
 - [5.57] Admin NewsLetterSubscriptionController: follows same simple CRUD pattern
+
+## 2026-04-10 — [5.54] Admin MessageTemplateController / Implementation
+
+### FormValueRequired Eliminated (Consistent Pattern)
+- Legacy used `[FormValueRequired("message-template-copy")]` and `[FormValueRequired("send-test")]` to route CopyTemplate and SendTestTemplate POST actions to the same Edit URL (`[HttpPost, ActionName("Edit")]` and `[HttpPost, ActionName("TestTemplate")]`)
+- New code uses separate POST endpoints: `CopyTemplate(int id)` and `SendTestTemplate(TestMessageTemplateModel model)` — each form in the view posts to its own action
+- Consistent with ShoppingCartController [5.7], CheckoutController [5.8], OrderController [5.9], VendorController [5.19], EmailAccountController [5.53] patterns
+
+### Token Parsing from Form — Request.Form Instead of FormCollection
+- Legacy `TestTemplate` POST used `FormCollection form` parameter and iterated `form.AllKeys` to find `token_` prefixed keys
+- ASP.NET Core doesn't have `FormCollection` as a parameter type in the same way — new code uses `Request.Form.Keys` directly
+- Token key extraction: `key["token_".Length..]` (range operator) replaces `formKey.Substring("token_".Length)`
+- Type coercion preserved: bool → int → decimal → string fallback chain for token values
+
+### Localization Deferred (Consistent Pattern)
+- Legacy Edit action used `AddLocales(_languageService, model.Locales, ...)` for per-language BccEmailAddresses, Subject, Body, EmailAccountId
+- Legacy also had `UpdateLocales(mt, model)` helper that called `_localizedEntityService.SaveLocalizedValue` for each localized field
+- New code defers localization — consistent with ALL other admin controllers (Product [5.31], Category [5.32], Blog [5.44], News [5.45], Topic [5.48], etc.)
+- When localization is added as a cross-cutting feature, MessageTemplateController should be updated to support per-language Subject/Body/BccEmailAddresses/EmailAccountId
+
+### Store Mapping in Grid — Simplified
+- Legacy grid computed `ListOfStores` by checking `IStoreMappingService.GetStoresIdsWithAccess(messageTemplate)` and joining matching store names
+- New code simplifies: if `LimitedToStores` is false, shows "All"; otherwise shows all store names (since store mapping management is deferred, the actual store-specific filtering isn't available)
+- When store mapping management is added, the grid should compute `ListOfStores` from actual `StoreMapping` records
+
+### Impact on Future Items
+- [5.55] Admin QueuedEmailController: next messaging admin controller — follows same simple CRUD pattern
+- [5.56] Admin CampaignController: can now reference the same messaging admin pattern
+- [5.57] Admin NewsLetterSubscriptionController: follows same simple CRUD pattern
+- Admin messaging area progress: EmailAccount [5.53] ✓, MessageTemplate [5.54] ✓, QueuedEmail [5.55] pending, Campaign [5.56] pending, NewsLetterSubscription [5.57] pending
