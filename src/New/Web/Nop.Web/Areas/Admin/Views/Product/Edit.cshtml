@@ -1,0 +1,115 @@
+@model Nop.Web.Areas.Admin.Models.Catalog.ProductModel
+@{ ViewData["Title"] = $"Edit product - {Model.Name}"; }
+
+<h1>Edit product — @Model.Name</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <fieldset>
+        <legend>Product info</legend>
+        <div>
+            <label asp-for="ProductTypeId">Product type</label>
+            <select asp-for="ProductTypeId" asp-items="Model.AvailableProductTypes"></select>
+        </div>
+        <div>
+            <label asp-for="Name">Name</label>
+            <input asp-for="Name" />
+            <span asp-validation-for="Name"></span>
+        </div>
+        <div>
+            <label asp-for="ShortDescription">Short description</label>
+            <textarea asp-for="ShortDescription"></textarea>
+        </div>
+        <div>
+            <label asp-for="FullDescription">Full description</label>
+            <textarea asp-for="FullDescription"></textarea>
+        </div>
+        <div>
+            <label asp-for="Sku">SKU</label>
+            <input asp-for="Sku" />
+        </div>
+        <div>
+            <label asp-for="Published">Published</label>
+            <input asp-for="Published" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="SeName">Search engine friendly page name</label>
+            <input asp-for="SeName" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Price</legend>
+        <div>
+            <label asp-for="Price">Price</label>
+            <input asp-for="Price" />
+        </div>
+        <div>
+            <label asp-for="OldPrice">Old price</label>
+            <input asp-for="OldPrice" />
+        </div>
+        <div>
+            <label asp-for="ProductCost">Product cost</label>
+            <input asp-for="ProductCost" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Shipping</legend>
+        <div>
+            <label asp-for="IsShipEnabled">Shipping enabled</label>
+            <input asp-for="IsShipEnabled" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="Weight">Weight</label>
+            <input asp-for="Weight" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Inventory</legend>
+        <div>
+            <label asp-for="ManageInventoryMethodId">Inventory method</label>
+            <input asp-for="ManageInventoryMethodId" />
+        </div>
+        <div>
+            <label asp-for="StockQuantity">Stock quantity</label>
+            <input asp-for="StockQuantity" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Tax</legend>
+        <div>
+            <label asp-for="IsTaxExempt">Tax exempt</label>
+            <input asp-for="IsTaxExempt" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="TaxCategoryId">Tax category</label>
+            <select asp-for="TaxCategoryId" asp-items="Model.AvailableTaxCategories"></select>
+        </div>
+    </fieldset>
+
+    @* Sub-entity management tabs will be added in future iterations:
+       - Pictures [5.31 sub-item]
+       - Product attributes [5.31 sub-item]
+       - Specification attributes [5.31 sub-item]
+       - Tier prices [5.31 sub-item]
+       - Related products [5.31 sub-item]
+       - Cross-sell products [5.31 sub-item]
+       - Purchased with orders [5.31 sub-item]
+       - Stock quantity history [5.31 sub-item]
+    *@
+
+    <button type="submit" name="save">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit" onclick="return confirm('Are you sure?');">Delete</button>
+</form>
+
+<p><a asp-action="List">back to product list</a></p>

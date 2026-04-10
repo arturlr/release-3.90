@@ -2673,3 +2673,64 @@ Performed exhaustive verification across all dimensions:
 - All future views automatically get the shared layout — no need to set `Layout` explicitly
 - Views that need standalone rendering (popups, print views) should set `Layout = null` explicitly
 - `IPageHeadBuilder` implementation should integrate with `_Layout.cshtml` `<head>` section for meta tags, CSS, and JS
+
+## 2026-04-10 — [5.31] Admin ProductController / Implementation
+
+### Scope Decision: Core CRUD Only
+- Legacy admin ProductController has 90 actions across 4857 LOC covering: CRUD, related/cross-sell/associated products, pictures, spec attributes, product tags, purchased-with-orders, export/import, low stock reports, bulk editing, tier prices, product attribute mappings/values/validation/conditions, attribute combinations, editor settings, stock quantity history
+- This iteration implements core CRUD only: List, ProductList (AJAX grid), Create, Edit, Delete, DeleteSelected, GoToSku, ExportExcelAll, ImportExcel
+- Sub-entity management (pictures, attributes, tier prices, etc.) documented as future items in Edit.cshtml comments — each can be a separate iteration
+
+### Unused Constructor Parameters Removed
+- Legacy ProductController had 40+ constructor dependencies. New code starts with 14 (only what's needed for core CRUD)
+- `ILocalizationService`, `IPictureService`, `IStoreService`, `IStoreMappingService` removed — not used by core CRUD actions
+- These will be re-added when sub-entity management (pictures, store mapping, localized names) is implemented
+- `TreatWarningsAsErrors` enforces this: CS9113 "Parameter is unread" is an error, not a warning
+
+### AccessDeniedView → Forbid()
+- Legacy `BaseAdminController` had `AccessDeniedView()` method returning a custom view
+- New code uses ASP.NET Core's built-in `Forbid()` — returns HTTP 403 and lets the authentication middleware handle the response
+- Simpler, no custom view needed. If a custom "access denied" page is needed later, configure it in the authentication middleware
+
+### ParameterBasedOnFormName Attribute Not Migrated
+- Legacy used `[ParameterBasedOnFormName("save-continue", "continueEditing")]` to map form button names to action parameters
+- This was a custom MVC 5 attribute that doesn't exist in ASP.NET Core
+- New code uses `bool continueEditing = false` as a regular form parameter — the "Save and continue editing" button submits `continueEditing=true` via its `name`/`value` attributes
+- Simpler, no custom attribute needed
+
+### SeoExtensions.ValidateSeNameAsync Is Extension Method
+- `ValidateSeNameAsync` is an extension method on `T where T : BaseEntity, ISlugSupported`
+- Must be called as `product.ValidateSeNameAsync(...)` not `SeoExtensions.ValidateSeNameAsync(product, ...)`
+- Extension method requires `IUrlRecordService` and `SeoSettings` as explicit parameters (per [3.4] discovery about service locator elimination)
+
+### IUrlRecordService Has No GetSeNameAsync
+- Legacy used `entity.GetSeName()` extension method (service locator based)
+- New `IUrlRecordService` has `GetActiveSlugAsync(entityId, entityName, languageId)` instead
+- Must pass entity type name as string: `urlRecordService.GetActiveSlugAsync(product.Id, "Product", 0)`
+
+### ICustomerActivityService.InsertActivity Takes params object[]
+- Legacy passed the entity as a parameter: `InsertActivity("AddNewProduct", "message", product)`
+- New code's `InsertActivity(string systemKeyword, string comment, params object[] commentParams)` uses `commentParams` for string formatting, not entity tracking
+- Activity log entity reference is not preserved — the comment string contains the product name for identification
+
+### Impact on Future Items
+- Sub-entity management actions should be added as separate iterations or sub-items of [5.31]:
+  - Pictures: ProductPictureAdd/List/Update/Delete
+  - Product attributes: ProductAttributeMappingList/Insert/Update/Delete, validation rules, conditions
+  - Product attribute values: EditAttributeValues, ProductAttributeValueList/Create/Edit/Delete
+  - Attribute combinations: ProductAttributeCombinationList/Update/Delete, AddAttributeCombinationPopup, GenerateAllAttributeCombinations
+  - Spec attributes: ProductSpecificationAttributeAdd/List/Update/Delete
+  - Tier prices: TierPriceList/Create/Edit/Delete (popup pattern)
+  - Related products: RelatedProductList/Update/Delete, RelatedProductAddPopup
+  - Cross-sell products: CrossSellProductList/Delete, CrossSellProductAddPopup
+  - Associated products: AssociatedProductList/Update/Delete, AssociatedProductAddPopup
+  - Product tags: ProductTags/EditProductTag/ProductTagDelete
+  - Purchased with orders: PurchasedWithOrders
+  - Export/Import: ExportXmlAll/ExportXmlSelected/ExportExcelSelected/DownloadCatalogAsPdf
+  - Low stock reports: LowStockReport/LowStockReportList
+  - Bulk editing: BulkEdit/BulkEditSelect/BulkEditUpdate/BulkEditDelete
+  - Stock quantity history: StockQuantityHistory
+  - Editor settings: SaveProductEditorSettings
+  - Copy product: CopyProduct
+- [5.32] Admin CategoryController: can follow the same pattern (List + CRUD + AJAX grid)
+- [5.33] Admin ManufacturerController: same pattern

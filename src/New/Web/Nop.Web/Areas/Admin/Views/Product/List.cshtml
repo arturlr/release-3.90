@@ -1,0 +1,123 @@
+@model Nop.Web.Areas.Admin.Models.Catalog.ProductListModel
+@{ ViewData["Title"] = "Products"; }
+
+<h1>Products</h1>
+
+<form asp-action="List" method="get">
+    <div>
+        <label>Product name</label>
+        <input asp-for="SearchProductName" />
+    </div>
+    @if (!Model.IsLoggedInAsVendor)
+    {
+        <div>
+            <label>Category</label>
+            <select asp-for="SearchCategoryId" asp-items="Model.AvailableCategories"></select>
+        </div>
+        <div>
+            <label>Manufacturer</label>
+            <select asp-for="SearchManufacturerId" asp-items="Model.AvailableManufacturers"></select>
+        </div>
+        <div>
+            <label>Vendor</label>
+            <select asp-for="SearchVendorId" asp-items="Model.AvailableVendors"></select>
+        </div>
+    }
+    <div>
+        <label>Product type</label>
+        <select asp-for="SearchProductTypeId" asp-items="Model.AvailableProductTypes"></select>
+    </div>
+    <div>
+        <label>Published</label>
+        <select asp-for="SearchPublishedId" asp-items="Model.AvailablePublishedOptions"></select>
+    </div>
+    <button type="submit" id="search-products">Search</button>
+</form>
+
+<form asp-action="GoToSku" method="post">
+    <input asp-for="GoDirectlyToSku" placeholder="Go directly to product SKU" />
+    <button type="submit">Go</button>
+</form>
+
+<p>
+    <a asp-action="Create">Add new</a>
+</p>
+
+@* Product grid — populated via AJAX POST to ProductList *@
+<div id="products-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>SKU</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Type</th>
+                <th>Published</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="products-tbody"></tbody>
+    </table>
+    <div id="products-pager"></div>
+</div>
+
+<form asp-action="ExportExcelAll" method="post">
+    <input type="hidden" asp-for="SearchProductName" />
+    <input type="hidden" asp-for="SearchCategoryId" />
+    <input type="hidden" asp-for="SearchManufacturerId" />
+    <input type="hidden" asp-for="SearchVendorId" />
+    <input type="hidden" asp-for="SearchProductTypeId" />
+    <input type="hidden" asp-for="SearchPublishedId" />
+    <button type="submit">Export to Excel (all found)</button>
+</form>
+
+<form asp-action="ImportExcel" method="post" enctype="multipart/form-data">
+    <input type="file" name="importexcelfile" />
+    <button type="submit">Import from Excel</button>
+</form>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadProducts(1, 15);
+    });
+
+    document.getElementById('search-products')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        loadProducts(1, 15);
+    });
+
+    function loadProducts(page, pageSize) {
+        const form = document.querySelector('form[action*="List"]');
+        const data = new URLSearchParams(new FormData(form));
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("ProductList", "Product", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('products-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (p) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (p.Name || '') + '</td>'
+                        + '<td>' + (p.Sku || '') + '</td>'
+                        + '<td>' + p.Price.toFixed(2) + '</td>'
+                        + '<td>' + p.StockQuantity + '</td>'
+                        + '<td>' + (p.ProductTypeName || '') + '</td>'
+                        + '<td>' + (p.Published ? 'Yes' : 'No') + '</td>'
+                        + '<td><a href="/Admin/Product/Edit/' + p.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('products-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}

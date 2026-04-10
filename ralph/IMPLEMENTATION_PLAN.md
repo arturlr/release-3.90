@@ -477,6 +477,7 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/ProductController (4857 LOC), Admin/Views/Product
   - Depends on: 5.1, 4.4
+  - Done: 2026-04-10. ProductController as 2 partial class files (main + helpers) with core CRUD actions: List (search form with category/manufacturer/vendor/type/published filters), ProductList (AJAX grid returning ProductGridModel), Create (GET+POST), Edit (GET+POST), Delete (POST), DeleteSelected (POST batch), GoToSku (SKU-based redirect), ExportExcelAll (filtered export), ImportExcel (file upload). 3 view models: ProductListModel (search filters + dropdowns), ProductModel (full product fields + dropdowns), ProductGridModel (grid display). 3 Razor views: List.cshtml (search form + vanilla JS AJAX grid), Create.cshtml (product form), Edit.cshtml (product form + delete). Inline model construction (no model factory). Vendor access restriction on all actions. Sub-entity management deferred: pictures, product attributes, spec attributes, tier prices, related/cross-sell products, purchased-with-orders, bulk editing, stock quantity history, product tags, attribute combinations, editor settings, copy product, low stock reports.
 
 - [ ] [5.32] Admin: CategoryController + Category views
   - Spec: specs/nop-admin.md
