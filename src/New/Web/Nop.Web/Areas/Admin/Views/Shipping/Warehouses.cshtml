@@ -1,0 +1,38 @@
+@{ ViewData["Title"] = "Warehouses"; }
+
+<h1>Warehouses</h1>
+
+<p><a asp-action="CreateWarehouse">Add new</a></p>
+
+<table>
+    <thead><tr><th>Name</th><th>Actions</th></tr></thead>
+    <tbody id="warehouses-tbody"></tbody>
+</table>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const data = new URLSearchParams();
+    data.append('Page', 1);
+    data.append('PageSize', 100);
+    fetch('@Url.Action("WarehouseList", "Shipping", new { area = "Admin" })', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+        body: data
+    })
+    .then(r => r.json())
+    .then(result => {
+        const tbody = document.getElementById('warehouses-tbody');
+        tbody.innerHTML = '';
+        if (result.Data) {
+            result.Data.forEach(function (r) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + (r.Name || '') + '</td>'
+                    + '<td><a href="/Admin/Shipping/EditWarehouse/' + r.Id + '">Edit</a></td>';
+                tbody.appendChild(tr);
+            });
+        }
+    });
+});
+</script>
+}

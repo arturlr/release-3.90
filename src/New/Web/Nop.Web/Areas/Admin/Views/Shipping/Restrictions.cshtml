@@ -1,0 +1,41 @@
+@model Nop.Web.Areas.Admin.Models.Shipping.ShippingMethodRestrictionModel
+@{ ViewData["Title"] = "Shipping method restrictions"; }
+
+<h1>Shipping method restrictions</h1>
+
+@if (Model.AvailableShippingMethods.Count == 0 || Model.AvailableCountries.Count == 0)
+{
+    <p>No shipping methods or countries configured.</p>
+}
+else
+{
+    <form asp-action="Restrictions" method="post">
+        <table>
+            <thead>
+                <tr>
+                    <th>Country</th>
+                    @foreach (var sm in Model.AvailableShippingMethods)
+                    {
+                        <th>@sm.Name</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model.AvailableCountries)
+                {
+                    <tr>
+                        <td>@c.Name</td>
+                        @foreach (var sm in Model.AvailableShippingMethods)
+                        {
+                            var isRestricted = Model.Restricted.ContainsKey(c.Id) && Model.Restricted[c.Id].ContainsKey(sm.Id) && Model.Restricted[c.Id][sm.Id];
+                            <td>
+                                <input type="checkbox" name="restrict_@sm.Id" value="@c.Id" @(isRestricted ? "checked" : "") />
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button type="submit">Save</button>
+    </form>
+}

@@ -133,6 +133,30 @@ public class ShippingService : IShippingService
 
     #endregion
 
+    #region Country restrictions
+
+    public Task<IList<ShippingMethodCountryMapping>> GetAllShippingMethodCountryMappingsAsync()
+    {
+        return Task.FromResult<IList<ShippingMethodCountryMapping>>(
+            _shippingMethodCountryMappingRepository.Table.ToList());
+    }
+
+    public Task InsertShippingMethodCountryMappingAsync(ShippingMethodCountryMapping mapping)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        _shippingMethodCountryMappingRepository.Insert(mapping);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteShippingMethodCountryMappingAsync(ShippingMethodCountryMapping mapping)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        _shippingMethodCountryMappingRepository.Delete(mapping);
+        return Task.CompletedTask;
+    }
+
+    #endregion
+
     #region Nearest warehouse
 
     public async Task<Warehouse?> GetNearestWarehouseAsync(Address? address, IList<Warehouse>? warehouses = null)

@@ -21,4 +21,9 @@ public interface IShippingService
 
     // Nearest warehouse
     Task<Warehouse?> GetNearestWarehouseAsync(Address? address, IList<Warehouse>? warehouses = null);
+
+    // Country restrictions
+    Task<IList<ShippingMethodCountryMapping>> GetAllShippingMethodCountryMappingsAsync();
+    Task InsertShippingMethodCountryMappingAsync(ShippingMethodCountryMapping mapping);
+    Task DeleteShippingMethodCountryMappingAsync(ShippingMethodCountryMapping mapping);
 }

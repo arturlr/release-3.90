@@ -531,10 +531,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.5
   - Done: 2026-04-10. DiscountController as 2 partial class files (main + helpers) with core CRUD actions: List (search form with name/coupon/type filters), DiscountList (AJAX grid returning DiscountGridModel), Create (GET+POST), Edit (GET+POST with discount type change cleanup), Delete (POST). Applied-to entity management: ProductList/ProductDelete/ProductAdd, CategoryList/CategoryDelete/CategoryAdd, ManufacturerList/ManufacturerDelete/ManufacturerAdd (all AJAX, using join entity mapping CRUD methods). Usage history: UsageHistoryList/UsageHistoryDelete (AJAX). 7 view models in DiscountModels.cs. 3 Razor views (List, Create, Edit with inline AJAX grids). Added 9 entity mapping CRUD methods to IDiscountService/DiscountService (Insert/Delete/Get for DiscountCategoryMapping, DiscountManufacturerMapping, DiscountProductMapping). Discount requirements management deferred (plugin-dependent [2.10]). Follows ManufacturerController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
-- [ ] [5.41] Admin: ShippingController + Shipping views
+- [x] [5.41] Admin: ShippingController + Shipping views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/ShippingController, Admin/Views/Shipping
   - Depends on: 5.1, 4.7
+  - Done: 2026-04-10. ShippingController as 2 partial class files (main + helpers) with 4 regions: shipping methods CRUD (Methods, MethodList AJAX grid, CreateMethod, EditMethod, DeleteMethod), dates/ranges CRUD (DatesAndRanges, DeliveryDateList/Create/Edit/Delete, ProductAvailabilityRangeList/Create/Edit/Delete), warehouses CRUD with address (Warehouses, WarehouseList AJAX grid, CreateWarehouse, EditWarehouse, DeleteWarehouse), restrictions matrix (Restrictions GET + RestrictionSave POST). 7 view models in ShippingModels.cs. 12 Razor views. Added 3 country restriction methods to IShippingService/ShippingService (GetAllShippingMethodCountryMappingsAsync, InsertShippingMethodCountryMappingAsync, DeleteShippingMethodCountryMappingAsync). Plugin-dependent sections (Providers, PickupPointProviders) deferred to [2.10]. Localization deferred (consistent with all other admin controllers). Follows ManufacturerController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
 - [ ] [5.42] Admin: PaymentController + Payment views
   - Spec: specs/nop-admin.md

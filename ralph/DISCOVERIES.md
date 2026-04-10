@@ -3034,3 +3034,35 @@ Performed exhaustive verification across all dimensions:
 - [5.47] Admin PollController: simpler — poll CRUD + answer management, no comments
 - [5.48] Admin TopicController: simpler — topic CRUD, no comments
 - Admin CMS area now complete: Blog [5.44] + News [5.45]. Forum [5.46], Poll [5.47], Topic [5.48] remain
+
+## 2026-04-10 — [5.41] Admin ShippingController / Implementation
+
+### Country Restriction Methods Added to IShippingService
+- Legacy `ShippingController.RestrictionSave` used `shippingMethod.RestrictedCountries.Add(country)` / `.Remove(country)` nav property collection manipulation
+- Nav properties stripped in [1.3] — added 3 methods to `IShippingService`/`ShippingService`: `GetAllShippingMethodCountryMappingsAsync`, `InsertShippingMethodCountryMappingAsync`, `DeleteShippingMethodCountryMappingAsync`
+- These operate on `ShippingMethodCountryMapping` join entity directly (table: `ShippingMethodRestrictions`)
+- `GetAllShippingMethodCountryMappingsAsync` loads all mappings at once — the Restrictions page needs the full matrix anyway, so a single query is more efficient than per-method queries
+- No caching or event publishing on restriction mappings — low-volume admin operations
+
+### Restrictions Matrix — HashSet-Based Lookup
+- Legacy used `shippingMethod.CountryRestrictionExists(countryId)` extension method (accessed `RestrictedCountries` nav property)
+- New code loads all `ShippingMethodCountryMapping` records once, converts to `HashSet<(int ShippingMethodId, int CountryId)>` for O(1) lookup per cell
+- `RestrictionSave` compares form checkbox values against existing mappings — inserts missing, deletes removed
+- Form key format preserved: `restrict_{shippingMethodId}` with comma-separated country IDs as value
+
+### Plugin-Dependent Sections Deferred to [2.10]
+- Legacy had 4 plugin-dependent sections: Providers (shipping rate computation methods), PickupPointProviders, ConfigureProvider, ConfigurePickupPointProvider
+- All depend on `IPluginFinder`, `IShippingService.LoadAllShippingRateComputationMethods`, `IShippingService.LoadAllPickupPointProviders` — none available until plugin system [2.10]
+- `ShippingRateComputationMethodModel` and `PickupPointProviderModel` not created — will be added with [2.10]
+
+### Warehouse Address Pattern
+- Legacy used `model.Address.ToEntity()` (AutoMapper) for address mapping
+- New code maps address fields manually in controller: `CountryId`, `StateProvinceId`, `City`, `Address1`, `ZipPostalCode`, `PhoneNumber`
+- `PrepareWarehouseAddressModelAsync` helper populates country/state dropdowns and maps existing address fields to model
+- Address is created/updated separately from warehouse — warehouse stores `AddressId` FK
+- Legacy `EditWarehouse` created a new address if none existed (`new Address { CreatedOnUtc = DateTime.UtcNow }`) — new code preserves this fallback
+
+### Impact on Future Items
+- [5.42] Admin PaymentController: can follow the same restriction matrix pattern for payment method country restrictions
+- [5.43] Admin TaxController: can reference the same address dropdown preparation pattern for tax origin address
+- [2.10] Plugin system: must add Providers and PickupPointProviders sections to ShippingController

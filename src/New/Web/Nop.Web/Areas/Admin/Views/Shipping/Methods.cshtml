@@ -1,0 +1,40 @@
+@{ ViewData["Title"] = "Shipping methods"; }
+
+<h1>Shipping methods</h1>
+
+<p><a asp-action="CreateMethod">Add new</a></p>
+
+<table>
+    <thead><tr><th>Name</th><th>Description</th><th>Display order</th><th>Actions</th></tr></thead>
+    <tbody id="methods-tbody"></tbody>
+</table>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const data = new URLSearchParams();
+    data.append('Page', 1);
+    data.append('PageSize', 100);
+    fetch('@Url.Action("MethodList", "Shipping", new { area = "Admin" })', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+        body: data
+    })
+    .then(r => r.json())
+    .then(result => {
+        const tbody = document.getElementById('methods-tbody');
+        tbody.innerHTML = '';
+        if (result.Data) {
+            result.Data.forEach(function (r) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + (r.Name || '') + '</td>'
+                    + '<td>' + (r.Description || '') + '</td>'
+                    + '<td>' + r.DisplayOrder + '</td>'
+                    + '<td><a href="/Admin/Shipping/EditMethod/' + r.Id + '">Edit</a></td>';
+                tbody.appendChild(tr);
+            });
+        }
+    });
+});
+</script>
+}

@@ -1,0 +1,48 @@
+@{ ViewData["Title"] = "Dates and ranges"; }
+
+<h1>Delivery dates</h1>
+<p><a asp-action="CreateDeliveryDate">Add new delivery date</a></p>
+<table>
+    <thead><tr><th>Name</th><th>Display order</th><th>Actions</th></tr></thead>
+    <tbody id="dd-tbody"></tbody>
+</table>
+
+<h1>Product availability ranges</h1>
+<p><a asp-action="CreateProductAvailabilityRange">Add new availability range</a></p>
+<table>
+    <thead><tr><th>Name</th><th>Display order</th><th>Actions</th></tr></thead>
+    <tbody id="par-tbody"></tbody>
+</table>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    loadGrid('dd-tbody', '@Url.Action("DeliveryDateList", "Shipping", new { area = "Admin" })', '/Admin/Shipping/EditDeliveryDate/');
+    loadGrid('par-tbody', '@Url.Action("ProductAvailabilityRangeList", "Shipping", new { area = "Admin" })', '/Admin/Shipping/EditProductAvailabilityRange/');
+});
+function loadGrid(tbodyId, url, editUrl) {
+    const data = new URLSearchParams();
+    data.append('Page', 1);
+    data.append('PageSize', 100);
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+        body: data
+    })
+    .then(r => r.json())
+    .then(result => {
+        const tbody = document.getElementById(tbodyId);
+        tbody.innerHTML = '';
+        if (result.Data) {
+            result.Data.forEach(function (r) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + (r.Name || '') + '</td>'
+                    + '<td>' + r.DisplayOrder + '</td>'
+                    + '<td><a href="' + editUrl + r.Id + '">Edit</a></td>';
+                tbody.appendChild(tr);
+            });
+        }
+    });
+}
+</script>
+}

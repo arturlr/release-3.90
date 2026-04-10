@@ -1,0 +1,17 @@
+@model Nop.Web.Areas.Admin.Models.Shipping.DeliveryDateModel
+@{ ViewData["Title"] = "Add a new delivery date"; }
+
+<h1>Add a new delivery date</h1>
+
+<form asp-action="CreateDeliveryDate" method="post">
+    <div>
+        <label asp-for="Name"></label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="DisplayOrder"></label>
+        <input asp-for="DisplayOrder" />
+    </div>
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>

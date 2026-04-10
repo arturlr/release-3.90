@@ -1,0 +1,23 @@
+@model Nop.Web.Areas.Admin.Models.Shipping.ProductAvailabilityRangeModel
+@{ ViewData["Title"] = "Edit product availability range"; }
+
+<h1>Edit product availability range</h1>
+
+<form asp-action="EditProductAvailabilityRange" method="post">
+    <input asp-for="Id" type="hidden" />
+    <div>
+        <label asp-for="Name"></label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="DisplayOrder"></label>
+        <input asp-for="DisplayOrder" />
+    </div>
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>
+
+<form asp-action="DeleteProductAvailabilityRange" method="post" style="display:inline">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+</form>

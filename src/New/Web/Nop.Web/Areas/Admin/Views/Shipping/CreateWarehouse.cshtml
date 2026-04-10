@@ -1,0 +1,44 @@
+@model Nop.Web.Areas.Admin.Models.Shipping.WarehouseModel
+@{ ViewData["Title"] = "Add a new warehouse"; }
+
+<h1>Add a new warehouse</h1>
+
+<form asp-action="CreateWarehouse" method="post">
+    <div>
+        <label asp-for="Name"></label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="AdminComment"></label>
+        <textarea asp-for="AdminComment"></textarea>
+    </div>
+    <fieldset>
+        <legend>Address</legend>
+        <div>
+            <label>Country</label>
+            <select asp-for="Address.CountryId" asp-items="Model.Address.AvailableCountries"></select>
+        </div>
+        <div>
+            <label>State / province</label>
+            <select asp-for="Address.StateProvinceId" asp-items="Model.Address.AvailableStates"></select>
+        </div>
+        <div>
+            <label>City</label>
+            <input asp-for="Address.City" />
+        </div>
+        <div>
+            <label>Address 1</label>
+            <input asp-for="Address.Address1" />
+        </div>
+        <div>
+            <label>Zip / postal code</label>
+            <input asp-for="Address.ZipPostalCode" />
+        </div>
+        <div>
+            <label>Phone number</label>
+            <input asp-for="Address.PhoneNumber" />
+        </div>
+    </fieldset>
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>
