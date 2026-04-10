@@ -349,10 +349,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Controllers/OrderController, Views/Order
   - Depends on: 5.1, 4.9
 
-- [ ] [5.10] Public: BlogController + Blog views
+- [x] [5.10] Public: BlogController + Blog views
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/BlogController, Views/Blog
   - Depends on: 5.1, 3.13
+  - Done: 2026-04-10. BlogController with List, BlogByTag, BlogByMonth, BlogPost (detail), BlogCommentAdd (POST). 8 view models (BlogPostModel, BlogPostListModel, BlogPagingFilteringModel, BlogCommentModel, AddBlogCommentModel, BlogPostTagModel, BlogPostTagListModel, BlogPostYearModel/BlogPostMonthModel). 2 Razor views (List.cshtml, BlogPost.cshtml). Added InsertBlogCommentAsync to IBlogService/BlogService. Inline model construction (no model factory). Legacy child actions (BlogTags, BlogMonths, RssHeaderLink) deferred to ViewComponents. ListRss deferred (needs RssActionResult). Captcha deferred to [7.13].
 
 - [ ] [5.11] Public: NewsController + News views
   - Spec: specs/nop-web-public.md

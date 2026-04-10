@@ -37,6 +37,8 @@ public interface IBlogService
 
     Task<int> GetBlogCommentsCountAsync(BlogPost blogPost, int storeId = 0, bool? isApproved = null);
 
+    Task InsertBlogCommentAsync(BlogComment blogComment);
+
     Task DeleteBlogCommentAsync(BlogComment blogComment);
 
     Task DeleteBlogCommentsAsync(IList<BlogComment> blogComments);

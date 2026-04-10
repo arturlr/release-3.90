@@ -1,0 +1,65 @@
+@model Nop.Web.Models.Blogs.BlogPostListModel
+<div class="page blog-page">
+    <div class="page-title">
+        <h1>
+            @if (!string.IsNullOrEmpty(Model.PagingFilteringContext.Tag))
+            {
+                <text>Blog — Tagged: @Model.PagingFilteringContext.Tag</text>
+            }
+            else if (Model.PagingFilteringContext.GetParsedMonth().HasValue)
+            {
+                var m = Model.PagingFilteringContext.GetParsedMonth()!.Value;
+                <text>Blog — @m.ToString("MMMM") @m.Year</text>
+            }
+            else
+            {
+                <text>Blog</text>
+            }
+        </h1>
+    </div>
+    <div class="page-body">
+        <div class="blog-posts">
+            @foreach (var item in Model.BlogPosts)
+            {
+                <div class="post">
+                    <div class="post-head">
+                        <a class="post-title" href="@Url.Action("BlogPost", "Blog", new { blogPostId = item.Id })">@item.Title</a>
+                        <span class="post-date">— @item.CreatedOn.ToString("D")</span>
+                    </div>
+                    <div class="post-body">
+                        @Html.Raw(!string.IsNullOrEmpty(item.BodyOverview) ? item.BodyOverview : item.Body)
+                    </div>
+                    <div class="blog-details">
+                        @if (item.Tags.Count > 0)
+                        {
+                            <div class="tags">
+                                <label>Tags:</label>
+                                @string.Join(", ", item.Tags.Select(t =>
+                                    $"<a href=\"{Url.Action("BlogByTag", "Blog", new { tag = t })}\">{t}</a>"))
+                            </div>
+                        }
+                        <div class="buttons">
+                            @if (item.AllowComments)
+                            {
+                                <a href="@Url.Action("BlogPost", "Blog", new { blogPostId = item.Id })#comments" class="read-comments">
+                                    @item.NumberOfComments comment(s)
+                                </a>
+                            }
+                            <a href="@Url.Action("BlogPost", "Blog", new { blogPostId = item.Id })" class="read-more">Read more</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        @if (Model.PagingFilteringContext.PageSize > 0 && Model.BlogPosts.Count >= Model.PagingFilteringContext.PageSize)
+        {
+            <div class="pager">
+                @if (Model.PagingFilteringContext.Page > 1)
+                {
+                    <a href="@Url.Action(null, null, new { page = Model.PagingFilteringContext.Page - 1, tag = Model.PagingFilteringContext.Tag, month = Model.PagingFilteringContext.Month })">Previous</a>
+                }
+                <a href="@Url.Action(null, null, new { page = Model.PagingFilteringContext.Page + 1, tag = Model.PagingFilteringContext.Tag, month = Model.PagingFilteringContext.Month })">Next</a>
+            </div>
+        }
+    </div>
+</div>

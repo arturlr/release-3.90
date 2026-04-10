@@ -2019,3 +2019,42 @@ Performed exhaustive verification across all dimensions:
 - [5.6] CustomerController.Addresses: AJAX state lookup now available for address forms
 - [5.8] CheckoutController: AJAX state lookup available for checkout address forms
 - [5.35] Admin CustomerController: admin area has its own CountryController ([5.51]) — not affected
+
+## 2026-04-10 — [5.10] Public BlogController + Blog Views / Implementation
+
+### InsertBlogCommentAsync Added to IBlogService
+- Legacy added comments via `blogPost.BlogComments.Add(comment)` + `_blogService.UpdateBlogPost(blogPost)` — nav property collection manipulation
+- Nav properties stripped in [1.3] — added `InsertBlogCommentAsync(BlogComment)` to `IBlogService`/`BlogService`
+- Pattern consistent with `InsertOrderItemAsync` added in [4.9c] and `InsertOrderNoteAsync` added in [4.9]
+
+### Legacy Child Actions → ViewComponents (Deferred)
+- Legacy `BlogTags()`, `BlogMonths()`, `RssHeaderLink()` were `[ChildActionOnly]` actions rendered via `@Html.Action()`
+- ASP.NET Core replaces child actions with ViewComponents (`@await Component.InvokeAsync()`)
+- These are sidebar/layout components — will be implemented as ViewComponents when shared layout [5.26] is built
+- Blog tag cloud model (`BlogPostTagListModel`) and year/month archive model (`BlogPostYearModel`/`BlogPostMonthModel`) are already created and ready for ViewComponent use
+
+### ListRss Deferred
+- Legacy used `RssActionResult` (custom `ActionResult` wrapping `SyndicationFeed`) and `System.ServiceModel.Syndication`
+- `System.ServiceModel.Syndication` is available as NuGet package for .NET Core but `RssActionResult` is a custom action result deferred in [5.1]
+- RSS feed generation can be added when custom action results are implemented or by returning `ContentResult` with XML directly
+
+### Captcha Deferred to [7.13]
+- Legacy `BlogCommentAdd` had `[CaptchaValidator]` attribute and `captchaValid` parameter
+- New code omits captcha validation — will be added when [7.13] Google reCAPTCHA integration is built
+- `AddBlogCommentModel.DisplayCaptcha` property omitted from model (was presentation-only flag)
+
+### BlogCommentApprovedEvent Not Implemented
+- Legacy published `BlogCommentApprovedEvent(comment)` when `comment.IsApproved` was true
+- Event class doesn't exist yet — `IEventPublisher` removed from controller constructor to avoid unused parameter error
+- When event consumers are needed (e.g., for notifications), add the event class and re-add publisher
+
+### CustomerName/Avatar Not Populated in Comment Model
+- Legacy `PrepareBlogPostCommentModel` used `blogComment.Customer.FormatUserName()` (nav property) and `IPictureService.GetPictureUrl()` for avatar
+- New code populates `CustomerId`, `CommentText`, `CreatedOn` but leaves `CustomerName` and `CustomerAvatarUrl` empty
+- Full customer info population requires `ICustomerService.GetCustomerByIdAsync` + `IGenericAttributeService` per comment — can be added when needed
+- `AllowViewingProfiles` also left as default (false) — requires `CustomerSettings.AllowViewingProfiles` check
+
+### Impact on Future Items
+- [5.44] Admin BlogController: can now use `IBlogService.InsertBlogCommentAsync` for admin comment management
+- [5.26] Shared views: BlogTags and BlogMonths ViewComponents should use the already-created tag/month models
+- [7.13] reCAPTCHA: add `[CaptchaValidator]` to `BlogCommentAdd` action

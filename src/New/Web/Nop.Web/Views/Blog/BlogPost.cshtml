@@ -1,0 +1,73 @@
+@model Nop.Web.Models.Blogs.BlogPostModel
+<div class="page blogpost-page">
+    <div class="page-title">
+        <h1>@Model.Title</h1>
+    </div>
+    <div class="page-body">
+        <div class="post-date">@Model.CreatedOn.ToString("D")</div>
+        <div class="post-body">
+            @Html.Raw(Model.Body)
+        </div>
+        @if (Model.Tags.Count > 0)
+        {
+            <div class="tags">
+                <label>Tags:</label>
+                @for (var i = 0; i < Model.Tags.Count; i++)
+                {
+                    <a href="@Url.Action("BlogByTag", "Blog", new { tag = Model.Tags[i] })">@Model.Tags[i]</a>
+                    if (i < Model.Tags.Count - 1) { <text>, </text> }
+                }
+            </div>
+        }
+        @if (Model.AllowComments)
+        {
+            <div class="fieldset new-comment" id="comments">
+                <div class="title"><strong>Leave your comment</strong></div>
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="message-error">
+                        <div asp-validation-summary="ModelOnly"></div>
+                    </div>
+                }
+                @if (TempData["nop.blog.addcomment.result"] is string result && !string.IsNullOrEmpty(result))
+                {
+                    <div class="result">@result</div>
+                }
+                <form asp-action="BlogPost" asp-route-blogPostId="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="form-fields">
+                        <div class="inputs">
+                            <label asp-for="AddNewComment.CommentText">Comment:</label>
+                            <textarea asp-for="AddNewComment.CommentText" class="enter-comment-text"></textarea>
+                        </div>
+                    </div>
+                    <div class="buttons">
+                        <input type="submit" name="add-comment" class="button-1 blog-post-add-comment-button" value="Submit comment" />
+                    </div>
+                </form>
+            </div>
+            @if (Model.Comments.Count > 0)
+            {
+                <div class="comment-list">
+                    <div class="title"><strong>Comments</strong></div>
+                    <div class="comments">
+                        @foreach (var comment in Model.Comments)
+                        {
+                            <div class="comment blog-comment">
+                                <div class="comment-content">
+                                    <div class="comment-time">
+                                        <label>Created on:</label>
+                                        <span>@comment.CreatedOn.ToString("g")</span>
+                                    </div>
+                                    <div class="comment-body">
+                                        @Html.Raw(System.Net.WebUtility.HtmlEncode(comment.CommentText ?? "").Replace("\n", "<br />"))
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
