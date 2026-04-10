@@ -171,6 +171,13 @@ public class NewsService : INewsService
         return Task.FromResult(query.Count());
     }
 
+    public async Task InsertNewsCommentAsync(NewsComment newsComment)
+    {
+        ArgumentNullException.ThrowIfNull(newsComment);
+        _newsCommentRepository.Insert(newsComment);
+        await _eventPublisher.EntityInsertedAsync(newsComment);
+    }
+
     public async Task DeleteNewsCommentAsync(NewsComment newsComment)
     {
         ArgumentNullException.ThrowIfNull(newsComment);

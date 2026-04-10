@@ -1,0 +1,43 @@
+@model Nop.Web.Models.News.NewsItemListModel
+<div class="page news-list-page">
+    <div class="page-title">
+        <h1>News</h1>
+    </div>
+    <div class="page-body">
+        <div class="news-items">
+            @foreach (var item in Model.NewsItems)
+            {
+                <div class="news-item">
+                    <div class="news-head">
+                        <a class="news-title" href="@Url.Action("NewsItem", "News", new { newsItemId = item.Id })">@item.Title</a>
+                        <span class="news-date">— @item.CreatedOn.ToString("D")</span>
+                    </div>
+                    <div class="news-body">
+                        @Html.Raw(!string.IsNullOrEmpty(item.Short) ? item.Short : item.Full)
+                    </div>
+                    <div class="news-details">
+                        <div class="buttons">
+                            @if (item.AllowComments)
+                            {
+                                <a href="@Url.Action("NewsItem", "News", new { newsItemId = item.Id })#comments" class="read-comments">
+                                    @item.NumberOfComments comment(s)
+                                </a>
+                            }
+                            <a href="@Url.Action("NewsItem", "News", new { newsItemId = item.Id })" class="read-more">Read more</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        @if (Model.PagingFilteringContext.PageSize > 0 && Model.NewsItems.Count >= Model.PagingFilteringContext.PageSize)
+        {
+            <div class="pager">
+                @if (Model.PagingFilteringContext.Page > 1)
+                {
+                    <a href="@Url.Action("List", "News", new { page = Model.PagingFilteringContext.Page - 1 })">Previous</a>
+                }
+                <a href="@Url.Action("List", "News", new { page = Model.PagingFilteringContext.Page + 1 })">Next</a>
+            </div>
+        }
+    </div>
+</div>

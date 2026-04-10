@@ -30,6 +30,8 @@ public interface INewsService
 
     Task<int> GetNewsCommentsCountAsync(NewsItem newsItem, int storeId = 0, bool? isApproved = null);
 
+    Task InsertNewsCommentAsync(NewsComment newsComment);
+
     Task DeleteNewsCommentAsync(NewsComment newsComment);
 
     Task DeleteNewsCommentsAsync(IList<NewsComment> newsComments);

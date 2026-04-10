@@ -355,10 +355,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.13
   - Done: 2026-04-10. BlogController with List, BlogByTag, BlogByMonth, BlogPost (detail), BlogCommentAdd (POST). 8 view models (BlogPostModel, BlogPostListModel, BlogPagingFilteringModel, BlogCommentModel, AddBlogCommentModel, BlogPostTagModel, BlogPostTagListModel, BlogPostYearModel/BlogPostMonthModel). 2 Razor views (List.cshtml, BlogPost.cshtml). Added InsertBlogCommentAsync to IBlogService/BlogService. Inline model construction (no model factory). Legacy child actions (BlogTags, BlogMonths, RssHeaderLink) deferred to ViewComponents. ListRss deferred (needs RssActionResult). Captcha deferred to [7.13].
 
-- [ ] [5.11] Public: NewsController + News views
+- [x] [5.11] Public: NewsController + News views
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/NewsController, Views/News
   - Depends on: 5.1, 3.14
+  - Done: 2026-04-10. NewsController with List, NewsItem (detail), NewsCommentAdd (POST). 5 view models (NewsItemModel, NewsItemListModel, NewsCommentModel, AddNewsCommentModel, NewsPagingFilteringModel). 2 Razor views (List.cshtml, NewsItem.cshtml). Added InsertNewsCommentAsync to INewsService/NewsService. News differs from Blog: has CommentTitle field in form and comment display, no tags, no month/tag filtering, simpler paging model. Inline model construction (no model factory). Legacy child actions (HomePageNews, RssHeaderLink) deferred to ViewComponents. ListRss deferred (needs RssActionResult). Captcha deferred to [7.13].
 
 - [ ] [5.12] Public: BoardsController + Boards views (forums)
   - Spec: specs/nop-web-public.md

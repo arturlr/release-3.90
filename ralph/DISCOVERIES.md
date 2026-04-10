@@ -2058,3 +2058,31 @@ Performed exhaustive verification across all dimensions:
 - [5.44] Admin BlogController: can now use `IBlogService.InsertBlogCommentAsync` for admin comment management
 - [5.26] Shared views: BlogTags and BlogMonths ViewComponents should use the already-created tag/month models
 - [7.13] reCAPTCHA: add `[CaptchaValidator]` to `BlogCommentAdd` action
+
+## 2026-04-10 — [5.11] Public NewsController + News Views / Implementation
+
+### InsertNewsCommentAsync Added to INewsService
+- Legacy added comments via `newsItem.NewsComments.Add(comment)` + `_newsService.UpdateNews(newsItem)` — nav property collection manipulation
+- Nav properties stripped in [1.3] — added `InsertNewsCommentAsync(NewsComment)` to `INewsService`/`NewsService`
+- Pattern consistent with `InsertBlogCommentAsync` added in [5.10] and `InsertOrderItemAsync` added in [4.9c]
+
+### News vs Blog Differences
+- News has `CommentTitle` field in both the add-comment form and comment display — Blog only has `CommentText`
+- News has no tags — no tag filtering, no tag cloud, no `ParseTags` equivalent
+- News has no month-based filtering — `NewsPagingFilteringModel` is empty (extends `BasePageableModel` only)
+- News uses `Short` and `Full` properties (legacy naming) instead of Blog's `BodyOverview` and `Body`
+- News paging uses `NewsSettings.NewsArchivePageSize` instead of Blog's `BlogSettings.PostsPageSize`
+
+### Legacy Child Actions Deferred
+- `HomePageNews()` — `[ChildActionOnly]` action for homepage news widget. Will be a ViewComponent when [5.26] Shared views is built
+- `RssHeaderLink()` — `[ChildActionOnly]` action for RSS link in `<head>`. Deferred with RSS infrastructure
+- `ListRss()` — RSS feed generation using `SyndicationFeed` + `RssActionResult`. Deferred until custom action results are implemented
+
+### Captcha Deferred to [7.13]
+- Legacy `NewsCommentAdd` had `[CaptchaValidator]` attribute and `captchaValid` parameter
+- New code omits captcha validation — will be added when [7.13] Google reCAPTCHA integration is built
+
+### Impact on Future Items
+- [5.45] Admin NewsController: can now use `INewsService.InsertNewsCommentAsync` for admin comment management
+- [5.26] Shared views: HomePageNews ViewComponent should use the already-created news models
+- [7.13] reCAPTCHA: add `[CaptchaValidator]` to `NewsCommentAdd` action
