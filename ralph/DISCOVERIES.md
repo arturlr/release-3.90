@@ -3309,3 +3309,25 @@ Performed exhaustive verification across all dimensions:
 - [5.56] Admin CampaignController: can now reference the same messaging admin pattern
 - [5.57] Admin NewsLetterSubscriptionController: follows same simple CRUD pattern
 - Admin messaging area progress: EmailAccount [5.53] ✓, MessageTemplate [5.54] ✓, QueuedEmail [5.55] pending, Campaign [5.56] pending, NewsLetterSubscription [5.57] pending
+
+## 2026-04-10 — [5.55] Admin QueuedEmailController / Implementation
+
+### FormValueRequired Eliminated (Consistent Pattern)
+- Legacy used `[FormValueRequired("go-to-email-by-number")]` for GoToEmailByNumber, `[FormValueRequired("save", "save-continue")]` + `[ParameterBasedOnFormName("save-continue", "continueEditing")]` for Edit save, `[FormValueRequired("requeue")]` for Requeue, and `[FormValueRequired("delete-all")]` for DeleteAll — all routing multiple POST actions to the same URL
+- New code uses separate POST endpoints: `GoToEmailByNumber`, `Edit` (with `bool continueEditing`), `Requeue`, `DeleteAll` — each form posts to its own action URL
+- Consistent with ShoppingCartController [5.7], CheckoutController [5.8], OrderController [5.9], VendorController [5.19], EmailAccountController [5.53], MessageTemplateController [5.54] patterns
+
+### ILocalizationService and IWorkContext Removed
+- Legacy used `ILocalizationService` for `SuccessNotification` messages and `IWorkContext` for `GetLocalizedEnum` (priority name localization)
+- New code drops both dependencies — priority name uses `enum.ToString()` directly, success notifications omitted (consistent with simplified admin controller pattern)
+- Reduces constructor dependencies from 5 (legacy) to 4 (new)
+
+### Edit POST Allows Field Modification
+- Legacy Edit POST allowed modifying all email fields (From, To, Subject, Body, CC, Bcc, etc.) plus DontSendBeforeDate
+- New code preserves this — queued emails can be edited before sending (useful for fixing typos in queued but unsent emails)
+- Priority is displayed as read-only text but passed as hidden field — editing priority is not a common use case
+
+### Impact on Future Items
+- [5.56] Admin CampaignController: next messaging admin controller — follows same simple CRUD pattern
+- [5.57] Admin NewsLetterSubscriptionController: follows same simple CRUD pattern
+- Admin messaging area progress: EmailAccount [5.53] ✓, MessageTemplate [5.54] ✓, QueuedEmail [5.55] ✓, Campaign [5.56] pending, NewsLetterSubscription [5.57] pending

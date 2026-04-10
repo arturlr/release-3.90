@@ -1,0 +1,132 @@
+@model Nop.Web.Areas.Admin.Models.Messages.QueuedEmailListModel
+@{ ViewData["Title"] = "Queued emails"; }
+
+<h1>Queued emails</h1>
+
+<form id="search-form">
+    <div>
+        <label asp-for="SearchStartDate">Start date</label>
+        <input asp-for="SearchStartDate" type="date" />
+    </div>
+    <div>
+        <label asp-for="SearchEndDate">End date</label>
+        <input asp-for="SearchEndDate" type="date" />
+    </div>
+    <div>
+        <label asp-for="SearchFromEmail">From email</label>
+        <input asp-for="SearchFromEmail" />
+    </div>
+    <div>
+        <label asp-for="SearchToEmail">To email</label>
+        <input asp-for="SearchToEmail" />
+    </div>
+    <div>
+        <label asp-for="SearchLoadNotSent">Load not sent only</label>
+        <input asp-for="SearchLoadNotSent" />
+    </div>
+    <div>
+        <label asp-for="SearchMaxSentTries">Maximum sent tries</label>
+        <input asp-for="SearchMaxSentTries" />
+    </div>
+    <div>
+        <button type="button" onclick="loadGrid()">Search</button>
+    </div>
+</form>
+
+<form asp-action="GoToEmailByNumber" method="post" style="margin-top:1em;">
+    <label asp-for="GoDirectlyToNumber">Go directly to email #</label>
+    <input asp-for="GoDirectlyToNumber" type="number" style="width:100px;" />
+    <button type="submit">Go</button>
+</form>
+
+<div style="margin-top:1em;">
+    <form asp-action="DeleteAll" method="post" style="display:inline;">
+        <button type="submit" onclick="return confirm('Are you sure you want to delete ALL queued emails?');">Delete all</button>
+    </form>
+</div>
+
+<div id="queuedemails-grid" style="margin-top:1em;">
+    <table>
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="select-all" /></th>
+                <th>Priority</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Subject</th>
+                <th>Created on</th>
+                <th>Sent tries</th>
+                <th>Sent on</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="queuedemails-tbody"></tbody>
+    </table>
+    <div id="queuedemails-pager"></div>
+    <button type="button" onclick="deleteSelected()">Delete selected</button>
+</div>
+
+@section Scripts {
+<script>
+    let currentPage = 1;
+    const pageSize = 20;
+
+    document.addEventListener('DOMContentLoaded', function () { loadGrid(); });
+    document.getElementById('select-all').addEventListener('change', function () {
+        document.querySelectorAll('.qe-checkbox').forEach(function (cb) { cb.checked = this.checked; }.bind(this));
+    });
+
+    function loadGrid() {
+        const form = document.getElementById('search-form');
+        const data = new URLSearchParams(new FormData(form));
+        data.append('command.Page', currentPage);
+        data.append('command.PageSize', pageSize);
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+        fetch('@Url.Action("QueuedEmailList", "QueuedEmail", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token },
+            body: data
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+            var tbody = document.getElementById('queuedemails-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (qe) {
+                    var tr = document.createElement('tr');
+                    tr.innerHTML = '<td><input type="checkbox" class="qe-checkbox" value="' + qe.Id + '" /></td>'
+                        + '<td>' + (qe.PriorityName || '') + '</td>'
+                        + '<td>' + (qe.From || '') + '</td>'
+                        + '<td>' + (qe.To || '') + '</td>'
+                        + '<td>' + (qe.Subject || '') + '</td>'
+                        + '<td>' + new Date(qe.CreatedOn).toLocaleString() + '</td>'
+                        + '<td>' + qe.SentTries + '</td>'
+                        + '<td>' + (qe.SentOn ? new Date(qe.SentOn).toLocaleString() : 'Not sent') + '</td>'
+                        + '<td><a href="/Admin/QueuedEmail/Edit/' + qe.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            var totalPages = Math.ceil(result.Total / pageSize);
+            document.getElementById('queuedemails-pager').textContent = 'Page ' + currentPage + ' of ' + totalPages + ' (Total: ' + result.Total + ')';
+        });
+    }
+
+    function deleteSelected() {
+        var ids = [];
+        document.querySelectorAll('.qe-checkbox:checked').forEach(function (cb) { ids.push(cb.value); });
+        if (ids.length === 0) { alert('No emails selected.'); return; }
+        if (!confirm('Delete ' + ids.length + ' selected email(s)?')) return;
+
+        var data = new URLSearchParams();
+        ids.forEach(function (id) { data.append('selectedIds', id); });
+        var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+        fetch('@Url.Action("DeleteSelected", "QueuedEmail", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token },
+            body: data
+        }).then(function () { loadGrid(); });
+    }
+</script>
+}

@@ -613,10 +613,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.2
   - Done: 2026-04-10. MessageTemplateController with core CRUD (List with store filter, MessageTemplateList AJAX grid, Edit GET+POST, Delete), CopyTemplate (separate POST endpoint), TestTemplate (GET with token inputs), SendTestTemplate (POST with form-based token parsing). 4 view models (MessageTemplateListModel, MessageTemplateModel, MessageTemplateGridModel, TestMessageTemplateModel). 3 Razor views (List, Edit, TestTemplate). FormValueRequired eliminated — separate endpoints for CopyTemplate and SendTestTemplate. Allowed tokens displayed from IMessageTokenProvider.GetListOfAllowedTokens. Email account dropdown via IEmailAccountService. Delay settings (SendImmediately toggle, DelayBeforeSend, DelayPeriod). Attached download ID field. Follows EmailAccountController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Localization deferred. Store mapping management deferred (consistent with all other admin controllers).
 
-- [ ] [5.55] Admin: QueuedEmailController + QueuedEmail views
+- [x] [5.55] Admin: QueuedEmailController + QueuedEmail views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/QueuedEmailController, Admin/Views/QueuedEmail
   - Depends on: 5.1, 4.2
+  - Done: 2026-04-10. QueuedEmailController with core CRUD (List with search form, QueuedEmailList AJAX grid, Edit GET+POST, Delete), batch operations (DeleteSelected, DeleteAll), navigation (GoToEmailByNumber), and Requeue (creates new queued email copy). 3 view models (QueuedEmailListModel, QueuedEmailModel, QueuedEmailGridModel). 2 Razor views (List with search filters + AJAX grid + select-all/delete-selected/delete-all + go-to-number, Edit with email detail form + requeue/delete). FormValueRequired eliminated — separate endpoints for GoToEmailByNumber, Requeue, DeleteAll. Legacy ParameterBasedOnFormName replaced with bool continueEditing parameter. PrepareQueuedEmailModelAsync helper resolves email account name via IEmailAccountService. 4 constructor dependencies (IQueuedEmailService, IEmailAccountService, IDateTimeHelper, IPermissionService). Permission: ManageMessageQueue. Follows EmailAccountController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
 - [ ] [5.56] Admin: CampaignController + Campaign views
   - Spec: specs/nop-admin.md

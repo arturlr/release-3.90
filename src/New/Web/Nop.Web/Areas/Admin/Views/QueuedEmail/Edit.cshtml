@@ -1,0 +1,99 @@
+@model Nop.Web.Areas.Admin.Models.Messages.QueuedEmailModel
+@{ ViewData["Title"] = "Edit queued email"; }
+
+<h1>Edit queued email #@Model.Id</h1>
+
+<form asp-action="Edit" method="post">
+    <input asp-for="Id" type="hidden" />
+    <div>
+        <label asp-for="PriorityName">Priority</label>
+        <span>@Model.PriorityName</span>
+        <input asp-for="PriorityName" type="hidden" />
+    </div>
+    <div>
+        <label asp-for="From">From</label>
+        <input asp-for="From" />
+    </div>
+    <div>
+        <label asp-for="FromName">From name</label>
+        <input asp-for="FromName" />
+    </div>
+    <div>
+        <label asp-for="To">To</label>
+        <input asp-for="To" />
+    </div>
+    <div>
+        <label asp-for="ToName">To name</label>
+        <input asp-for="ToName" />
+    </div>
+    <div>
+        <label asp-for="ReplyTo">Reply to</label>
+        <input asp-for="ReplyTo" />
+    </div>
+    <div>
+        <label asp-for="ReplyToName">Reply to name</label>
+        <input asp-for="ReplyToName" />
+    </div>
+    <div>
+        <label asp-for="CC">CC</label>
+        <input asp-for="CC" />
+    </div>
+    <div>
+        <label asp-for="Bcc">BCC</label>
+        <input asp-for="Bcc" />
+    </div>
+    <div>
+        <label asp-for="Subject">Subject</label>
+        <input asp-for="Subject" />
+    </div>
+    <div>
+        <label asp-for="Body">Body</label>
+        <textarea asp-for="Body" rows="10" style="width:100%;"></textarea>
+    </div>
+    <div>
+        <label asp-for="EmailAccountName">Email account</label>
+        <span>@Model.EmailAccountName</span>
+    </div>
+    <div>
+        <label asp-for="SendImmediately">Send immediately</label>
+        <input asp-for="SendImmediately" />
+    </div>
+    <div>
+        <label asp-for="DontSendBeforeDate">Don't send before</label>
+        <input asp-for="DontSendBeforeDate" type="datetime-local" />
+    </div>
+    <div>
+        <label asp-for="CreatedOn">Created on</label>
+        <span>@Model.CreatedOn.ToString("g")</span>
+    </div>
+    <div>
+        <label asp-for="SentTries">Sent tries</label>
+        <span>@Model.SentTries</span>
+    </div>
+    <div>
+        <label asp-for="SentOn">Sent on</label>
+        <span>@(Model.SentOn.HasValue ? Model.SentOn.Value.ToString("g") : "Not sent yet")</span>
+    </div>
+    <div>
+        <label asp-for="AttachmentFilePath">Attachment file path</label>
+        <span>@(Model.AttachmentFilePath ?? "None")</span>
+    </div>
+    <div>
+        <button type="submit" name="continueEditing" value="false">Save</button>
+        <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+    </div>
+</form>
+
+<h2>Actions</h2>
+<form asp-action="Requeue" asp-route-id="@Model.Id" method="post" style="display:inline;">
+    <input type="hidden" name="sendImmediately" value="@Model.SendImmediately.ToString().ToLowerInvariant()" />
+    @if (Model.DontSendBeforeDate.HasValue)
+    {
+        <input type="hidden" name="dontSendBeforeDate" value="@Model.DontSendBeforeDate.Value.ToString("o")" />
+    }
+    <button type="submit">Requeue</button>
+</form>
+
+<form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline;">
+    <button type="submit" onclick="return confirm('Are you sure you want to delete this queued email?');">Delete</button>
+</form>
