@@ -223,10 +223,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.5, 2.1, 2.3, 3.1, 3.6
   - Done: 2026-04-09. 9 interfaces + implementations: EmailAccountService (simple CRUD, event publishing), QueuedEmailService (CRUD + search with priority ordering), NewsLetterSubscriptionService (CRUD with subscribe/unsubscribe events, customer role filtering via join), MessageTemplateService (cached with store mapping, copy with localization), Tokenizer (%key% replacement with conditional statements, replaces System.Linq.Dynamic with simple evaluator), MessageTokenProvider (token builders for all entity types — Store/Customer/Vendor/Newsletter fully implemented, Order/Shipment minimal until Phase 4 services built), EmailSender (MailKit 4.3.0 replacing System.Net.Mail), WorkflowMessageService (30+ methods all following get-template/get-account/build-tokens/queue-email pattern), CampaignService (CRUD + bulk email to newsletter subscribers). Plus Token, TokenGroupNames, events, QueuedMessagesSendTask, MessageTemplateExtensions.
 
-- [ ] [4.3] Forum services — IForumService
+- [x] [4.3] Forum services — IForumService
   - Spec: specs/svc-forums.md
   - Scope: Nop.Services/Forums
   - Depends on: 1.5, 2.1, 4.1, 4.2
+  - Done: 2026-04-10. IForumService/ForumService (single service matching legacy — private messages NOT separate). 5 files: IForumService.cs (interface), ForumService.cs (constructor + utilities), ForumService.Groups.cs (ForumGroup + Forum CRUD with caching), ForumService.Topics.cs (ForumTopic + ForumPost CRUD with denormalized stats + notifications), ForumService.Messaging.cs (PrivateMessage + Subscription + Permission checks + PostVote). Replaced customer.IsGuest()/IsForumModerator() with ICustomerService role checks. Removed IWorkContext dependency from MoveTopic (permission check is caller's responsibility). PM keyword search uses OR (subject OR text) instead of legacy AND.
 
 - [x] [4.4] Catalog services — IProductService, ICategoryService, IManufacturerService, IProductAttributeService, IProductAttributeParser, IProductAttributeFormatter, IPriceCalculationService, IPriceFormatter, IProductTagService, ISpecificationAttributeService, ICopyProductService, IBackInStockSubscriptionService, IRecentlyViewedProductsService, ICompareProductsService, ICategoryTemplateService, IManufacturerTemplateService, IProductTemplateService
   - Spec: specs/svc-catalog.md

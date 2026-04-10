@@ -1671,3 +1671,38 @@ Performed exhaustive verification across all dimensions:
 - All future service implementations can be tested using FakeRepository + FakeCacheManager + NSubstitute pattern
 - EfRepository integration tests can be extended for any entity type using InMemory provider
 - WebApplicationFactory-based E2E tests (acceptance criterion) deferred until [5.1] Nop.Web.Framework provides enough infrastructure
+
+## 2026-04-10 — [4.3] Forum Services / Implementation
+
+### Single Service — No Separate IPrivateMessageService
+- Legacy `IForumService` handles ALL forum operations including private messages — no separate `IPrivateMessageService` exists
+- New code preserves this: `IForumService` / `ForumService` is a single service with 5 partial class files for manageability
+- ForumExtensions (FormatPostText, StripTopicSubject, FormatPrivateMessageText, GetFirstPost, GetLastPost) NOT migrated — these are presentation-layer concerns using service locator (`EngineContext.Current.Resolve<ForumSettings>()`) and will be handled by controllers/model factories
+
+### customer.IsGuest() / customer.IsForumModerator() Replaced
+- Legacy permission checks used `customer.IsGuest()` and `customer.IsForumModerator()` extension methods (service locator based, from `CustomerExtensions`)
+- New code uses `ICustomerService.GetCustomerRoleBySystemNameAsync(SystemCustomerRoleNames.Guests/ForumModerators)` + `GetCustomerRoleIdsAsync(customer)` + `Contains(roleId)`
+- This adds 2 async calls per permission check — acceptable since permission checks are low-frequency (once per user action)
+- Pattern: `IsGuestAsync(Customer)` and `IsForumModeratorAsync(Customer)` private helper methods in ForumService
+
+### IWorkContext Removed from MoveTopic
+- Legacy `MoveTopic` called `IsCustomerAllowedToMoveTopic(_workContext.CurrentCustomer, forumTopic)` internally
+- New `MoveTopicAsync` does NOT check permissions — the caller (controller) is responsible for checking `IsCustomerAllowedToMoveTopicAsync` before calling `MoveTopicAsync`
+- This removes the `IWorkContext` dependency from ForumService entirely — cleaner separation of concerns
+- Impact: [5.12] Public BoardsController must call `IsCustomerAllowedToMoveTopicAsync` before `MoveTopicAsync`
+
+### Private Message Keyword Search: OR Instead of AND
+- Legacy `GetAllPrivateMessages` with keywords applied TWO separate `.Where()` clauses: `pm.Subject.Contains(keywords)` AND `pm.Text.Contains(keywords)` — this means BOTH subject AND text must contain the keyword (very restrictive, likely a bug)
+- New code uses `pm.Subject.Contains(keywords) || pm.Text.Contains(keywords)` — matches if keyword appears in EITHER subject OR text (more intuitive)
+- Impact: search results may return more messages than legacy — this is an improvement
+
+### Notification Language ID
+- Legacy used `_workContext.WorkingLanguage.Id` for notification language
+- New code passes `0` (default language) since `IWorkContext` is not injected
+- When presentation layer is built, controllers can pass the correct language ID to `InsertTopicAsync`/`InsertPostAsync` if needed, or the notification methods can resolve default language internally
+
+### Impact on Future Items
+- [5.12] Public BoardsController: can now use `IForumService` for all forum operations
+- [5.17] Public PrivateMessagesController: can now use `IForumService` for PM operations
+- [5.46] Admin ForumController: can now use `IForumService` for forum CRUD
+- [3.16] GDPR: `PermanentDeleteCustomerAsync` already deletes forum posts/topics/subscriptions/private messages — no changes needed
