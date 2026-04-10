@@ -436,10 +436,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Controllers/WidgetController, Views/Widget
   - Depends on: 5.1, 3.15
 
-- [ ] [5.24] Public: BackInStockSubscriptionController + views
+- [x] [5.24] Public: BackInStockSubscriptionController + views
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/BackInStockSubscriptionController, Views/BackInStockSubscription
   - Depends on: 5.1, 4.4
+  - Done: 2026-04-10. BackInStockSubscriptionController with 4 actions: SubscribePopup (GET popup with subscription status), SubscribePopupPOST (toggle subscribe/unsubscribe via AJAX), CustomerSubscriptions (GET paged list), DeleteSelected (POST batch delete). 2 view models (BackInStockSubscribeModel, CustomerBackInStockSubscriptionsModel with nested BackInStockSubscriptionModel). 2 Razor views. FormCollection parsing replaced with IEnumerable<int> model binding (same as BoardsController [5.12], PrivateMessagesController [5.17]). FormValueRequired eliminated — separate POST endpoints. jQuery AJAX replaced with vanilla JS fetch. Inline model construction (no model factory). Product.StockQuantity used directly (simplified from legacy GetTotalStockQuantity which aggregated multi-warehouse stock).
 
 - [ ] [5.25] Public: InstallController + Install views
   - Spec: specs/nop-web-public.md

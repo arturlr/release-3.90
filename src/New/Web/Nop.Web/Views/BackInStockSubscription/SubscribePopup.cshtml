@@ -1,0 +1,55 @@
+@model Nop.Web.Models.Catalog.BackInStockSubscribeModel
+
+<div class="back-in-stock-subscription-page">
+    <div class="page-title">
+        <h1>
+            @if (Model.AlreadySubscribed)
+            {
+                <text>Already Subscribed</text>
+            }
+            else
+            {
+                <text>Notify me when available</text>
+            }
+        </h1>
+    </div>
+    <div class="page-body">
+        @if (!Model.SubscriptionAllowed)
+        {
+            <div>Subscription not allowed for this product.</div>
+        }
+        else if (!Model.IsCurrentCustomerRegistered)
+        {
+            <div>Only registered customers can subscribe to back-in-stock notifications.</div>
+        }
+        else if (!Model.AlreadySubscribed && Model.CurrentNumberOfBackInStockSubscriptions >= Model.MaximumBackInStockSubscriptions)
+        {
+            <div>You have reached the maximum number of back-in-stock subscriptions (@Model.MaximumBackInStockSubscriptions).</div>
+        }
+        else
+        {
+            @if (!Model.AlreadySubscribed)
+            {
+                <div class="tooltip">We will notify you when this product is back in stock.</div>
+            }
+            <button type="button" id="back-in-stock-notify-me" class="button-1 notify-me-button">
+                @(Model.AlreadySubscribed ? "Unsubscribe" : "Notify me")
+            </button>
+            <script>
+                document.getElementById('back-in-stock-notify-me').addEventListener('click', function () {
+                    var form = new FormData();
+                    form.append('productId', '@Model.ProductId');
+                    var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                    if (token) form.append('__RequestVerificationToken', token.value);
+                    fetch('@Url.Action("SubscribePopupPOST", "BackInStockSubscription")', {
+                        method: 'POST',
+                        body: form
+                    })
+                    .then(function (response) { return response.json(); })
+                    .then(function () { window.close ? window.close() : location.reload(); })
+                    .catch(function () { alert('Failed to change subscription.'); });
+                });
+            </script>
+        }
+    </div>
+</div>

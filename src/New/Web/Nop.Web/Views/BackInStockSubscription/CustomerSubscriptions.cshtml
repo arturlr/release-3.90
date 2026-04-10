@@ -1,0 +1,69 @@
+@model Nop.Web.Models.Catalog.CustomerBackInStockSubscriptionsModel
+
+<div class="page account-page back-in-stock-subscription-list-page">
+    <div class="page-title">
+        <h1>My Account - Back in stock subscriptions</h1>
+    </div>
+    <div class="page-body">
+        @if (Model.Subscriptions.Count > 0)
+        {
+            <div class="description">Below is a list of products you have subscribed to for back-in-stock notifications.</div>
+            <form asp-action="DeleteSelected" asp-controller="BackInStockSubscription" method="post">
+                <div class="subscription-list">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="select-boxes">
+                                    <input type="checkbox" id="selectall" />
+                                </th>
+                                <th class="product">Product</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Subscriptions)
+                            {
+                                <tr>
+                                    <td class="select-boxes">
+                                        <input type="checkbox" name="subscriptionIds" value="@item.Id" />
+                                    </td>
+                                    <td class="product">
+                                        <a href="@Url.Action("ProductDetails", "Product", new { productId = item.ProductId })">@item.ProductName</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    @if (Model.TotalPages > 1)
+                    {
+                        <div class="pager">
+                            @for (var i = 1; i <= Model.TotalPages; i++)
+                            {
+                                if (i == Model.PageIndex + 1)
+                                {
+                                    <span class="current-page">@i</span>
+                                }
+                                else
+                                {
+                                    <a href="@Url.Action("CustomerSubscriptions", "BackInStockSubscription", new { page = i })">@i</a>
+                                }
+                            }
+                        </div>
+                    }
+                    <div class="buttons">
+                        <input type="submit" value="Delete selected" class="button-1 delete-selected-button" />
+                    </div>
+                </div>
+            </form>
+            <script>
+                document.getElementById('selectall').addEventListener('change', function () {
+                    var checked = this.checked;
+                    document.querySelectorAll('input[name="subscriptionIds"]').forEach(function (cb) { cb.checked = checked; });
+                });
+            </script>
+        }
+        else
+        {
+            <div class="no-data">No back-in-stock subscriptions.</div>
+        }
+    </div>
+</div>

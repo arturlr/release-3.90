@@ -2607,3 +2607,29 @@ Performed exhaustive verification across all dimensions:
 - [5.6] CustomerController: should implement `UserAgreement` action for download user agreement display
 - [5.78] Admin DownloadController: separate admin download controller for admin file management
 - [5.9] OrderController: downloadable product links on order details page can now link to `GetDownload` and `GetLicense` actions
+
+## 2026-04-10 — [5.24] Public BackInStockSubscriptionController / Implementation
+
+### Simple Controller — No Surprises
+- BackInStockSubscriptionController is a straightforward controller with 4 actions: SubscribePopup (GET), SubscribePopupPOST (POST AJAX), CustomerSubscriptions (GET paged list), DeleteSelected (POST batch delete)
+- All required services (`IBackInStockSubscriptionService`, `IProductService`, `ICustomerService`, `ILocalizationService`, `IWorkContext`, `IStoreContext`, `CatalogSettings`, `CustomerSettings`) already existed — no new service methods needed
+- No model factory — inline model construction matching established pattern
+
+### FormCollection → IEnumerable<int> for Subscription Delete
+- Legacy `CustomerSubscriptionsPOST` parsed `FormCollection` manually: iterated all keys, checked for "on" value and "biss" prefix, extracted subscription ID from key name
+- New code uses `[FromForm] IEnumerable<int> subscriptionIds` — standard ASP.NET Core model binding from checkbox values
+- Same pattern as BoardsController.CustomerForumSubscriptions ([5.12]) and PrivateMessagesController ([5.17])
+
+### Product.StockQuantity Used Directly
+- Legacy used `product.GetTotalStockQuantity()` which aggregated stock across multiple warehouses when `product.UseMultipleWarehouses` was true
+- New code uses `product.StockQuantity` directly — multi-warehouse stock aggregation deferred (same simplification as ShoppingCartService [4.9a])
+- Impact: products using multiple warehouses may show incorrect out-of-stock status until multi-warehouse support is added
+
+### Localized Product Names Deferred
+- Legacy used `product.GetLocalized(x => x.Name)` for localized product names (via service locator)
+- New code uses `product.Name` directly — localized name resolution requires `ILocalizedEntityService` + `ILanguageService` parameters (per [2.3] discovery about service locator elimination)
+- Consistent with all other controllers that use direct entity properties
+
+### Impact on Future Items
+- [5.35] Admin CustomerController: BackInStockSubscriptions tab on customer detail page can now use `IBackInStockSubscriptionService.GetAllSubscriptionsByCustomerIdAsync`
+- [5.31] Admin ProductController: stock update can trigger `SendNotificationsToSubscribersAsync` when product comes back in stock
