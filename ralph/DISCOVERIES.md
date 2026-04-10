@@ -3457,3 +3457,34 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.61] Admin ShoppingCartController: last remaining order-related admin controller — abandoned cart viewing
 - [5.38] Admin SettingController: ReturnRequestReason/Action CRUD should be added as sub-items when localization is available
+
+## 2026-04-10 — [5.61] Admin ShoppingCartController / Implementation
+
+### Shared Utility Methods for Cart/Wishlist
+- Legacy had 6 separate actions with duplicated logic for shopping carts and wishlists (CurrentCarts/CurrentWishlists, GetCartDetails/GetWishlistDetails)
+- New code uses 2 shared private methods (`CustomerCartListAsync`, `CartDetailsAsync`) that take `ShoppingCartType` parameter — eliminates duplication
+- 6 public actions delegate to these 2 shared methods with the appropriate cart type
+- This is a pattern improvement over legacy — reduces code from ~180 LOC to ~140 LOC
+
+### Legacy customer.IsRegistered() → Role Check Pattern
+- Legacy used `customer.IsRegistered()` extension method (service locator based) to determine if customer email should be shown
+- New code uses `ICustomerService.GetCustomerRoleIdsAsync` + `GetCustomerRoleBySystemNameAsync(Registered)` — same pattern as all other admin controllers
+- Unregistered customers shown as "Guest" (matching legacy behavior)
+
+### Legacy GetTotalProducts Extension → Inline Sum
+- Legacy used `cart.GetTotalProducts()` extension method from `ShoppingCartExtensions` — just `Sum(sci.Quantity)`
+- New code uses `cart.Sum(sci => sci.Quantity)` inline — no extension method needed for a one-liner
+
+### Tax-Adjusted Prices in Cart Details
+- Legacy used `_taxService.GetProductPrice(sci.Product, _priceCalculationService.GetUnitPrice(sci), out taxRate)` — sync with out param
+- New code uses `await taxService.GetProductPriceAsync(product, unitPrice)` returning tuple `(decimal price, decimal taxRate)` — async-first, no out params
+- Product loaded separately via `IProductService.GetProductByIdAsync(sci.ProductId)` since nav properties were stripped in [1.3]
+- N+1 queries per cart item for product, store, price calculation, tax, formatting — acceptable for admin cart viewing (typically <50 items per customer)
+
+### Admin Order Area Complete
+- All 5 admin order controllers now implemented: Order [5.34] ✓, GiftCard [5.58] ✓, RecurringPayment [5.59] ✓, ReturnRequest [5.60] ✓, ShoppingCart [5.61] ✓
+- Next high-value admin controllers: [5.62] ProductAttributeController, [5.63] SpecificationAttributeController, [5.64] ProductReviewController, [5.65] CheckoutAttributeController, [5.66] AffiliateController, [5.67] VendorController, [5.68] StoreController, [5.69] ActivityLogController, [5.70] LogController
+
+### Impact on Future Items
+- [5.35] Admin CustomerController sub-entity management: Shopping Cart/Wishlist tab on customer detail page can now reference the same `IShoppingCartService.GetShoppingCartAsync` pattern
+- [5.79] Admin CommonController: abandoned cart statistics can use `ICustomerService.GetAllCustomersAsync(loadOnlyWithShoppingCart: true)` for dashboard counts

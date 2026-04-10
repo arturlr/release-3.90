@@ -1,0 +1,111 @@
+@{
+    ViewData["Title"] = "Current Shopping Carts";
+}
+
+<div class="content-header">
+    <h1>Current Shopping Carts</h1>
+</div>
+
+<div class="content">
+    <div id="carts-grid"></div>
+    <div id="cart-details" style="display:none;"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            loadCustomerGrid();
+        });
+
+        let currentPage = 1;
+        const pageSize = 20;
+
+        function loadCustomerGrid(page) {
+            currentPage = page || 1;
+            const form = new FormData();
+            form.append('Page', currentPage);
+            form.append('PageSize', pageSize);
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (token) form.append('__RequestVerificationToken', token.value);
+
+            fetch('@Url.Action("CurrentCartsList", "ShoppingCart", new { area = "Admin" })', {
+                method: 'POST',
+                body: form
+            })
+            .then(r => r.json())
+            .then(data => renderCustomerGrid(data));
+        }
+
+        function renderCustomerGrid(result) {
+            const rows = (result.Data || []).map(c =>
+                `<tr>
+                    <td><a href="@Url.Action("Edit", "Customer", new { area = "Admin" })/${c.CustomerId}">${escapeHtml(c.CustomerEmail)}</a></td>
+                    <td>${c.TotalItems}</td>
+                    <td><button type="button" onclick="loadDetails(${c.CustomerId})">Details</button></td>
+                </tr>`
+            ).join('');
+
+            const total = result.Total || 0;
+            const totalPages = Math.ceil(total / pageSize);
+            const pager = totalPages > 1
+                ? `<div style="margin-top:8px;">Page ${currentPage} of ${totalPages}
+                    ${currentPage > 1 ? `<button onclick="loadCustomerGrid(${currentPage - 1})">Prev</button>` : ''}
+                    ${currentPage < totalPages ? `<button onclick="loadCustomerGrid(${currentPage + 1})">Next</button>` : ''}
+                   </div>`
+                : '';
+
+            document.getElementById('carts-grid').innerHTML =
+                `<table><thead><tr><th>Customer</th><th>Total Items</th><th></th></tr></thead>
+                 <tbody>${rows || '<tr><td colspan="3">No shopping carts found.</td></tr>'}</tbody></table>${pager}`;
+            document.getElementById('cart-details').style.display = 'none';
+        }
+
+        function loadDetails(customerId) {
+            const form = new FormData();
+            form.append('customerId', customerId);
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (token) form.append('__RequestVerificationToken', token.value);
+
+            fetch('@Url.Action("GetCartDetails", "ShoppingCart", new { area = "Admin" })', {
+                method: 'POST',
+                body: form
+            })
+            .then(r => r.json())
+            .then(data => renderDetails(data, customerId));
+        }
+
+        function renderDetails(result, customerId) {
+            const items = result.Data || [];
+            if (!items.length) {
+                document.getElementById('cart-details').innerHTML = '<p>No items in cart.</p>';
+                document.getElementById('cart-details').style.display = 'block';
+                return;
+            }
+
+            const rows = items.map(i =>
+                `<tr>
+                    <td><a href="@Url.Action("Edit", "Product", new { area = "Admin" })/${i.ProductId}">${escapeHtml(i.ProductName)}</a>
+                        ${i.AttributeInfo ? `<div>${i.AttributeInfo}</div>` : ''}</td>
+                    <td>${i.Quantity}</td>
+                    <td>${escapeHtml(i.UnitPrice)}</td>
+                    <td>${escapeHtml(i.Total)}</td>
+                    <td>${escapeHtml(i.Store)}</td>
+                    <td>${new Date(i.UpdatedOn).toLocaleString()}</td>
+                </tr>`
+            ).join('');
+
+            document.getElementById('cart-details').innerHTML =
+                `<h3>Cart Items (Customer #${customerId})</h3>
+                 <table><thead><tr><th>Product</th><th>Quantity</th><th>Unit Price</th><th>Total</th><th>Store</th><th>Updated On</th></tr></thead>
+                 <tbody>${rows}</tbody></table>`;
+            document.getElementById('cart-details').style.display = 'block';
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+    </script>
+</div>
+
+@Html.AntiForgeryToken()
