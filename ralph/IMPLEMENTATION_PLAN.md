@@ -306,10 +306,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 2.3, 2.6, 2.7
   - Done: 2026-04-10. 12 files: BaseNopModel/BaseNopEntityModel/BasePageableModel (Mvc/), ActionConfirmationModel/DeleteConfirmationModel (Mvc/), BaseController (notifications, Kendo grid error, AddLocales), BasePublicController, BaseAdminController ([Area("Admin")] + [Authorize(Policy="AccessAdminPanel")]), WebWorkContext (IWorkContext: customer/language/currency/tax resolution, impersonation, guest cookie), NotifyType enum (UI/), 8 action filters as IAsyncActionFilter (Filters/: CustomerLastActivity, StoreClosed, StoreIpAddress, StoreLastVisitedPage, LanguageSeoCode placeholder, PublicStoreAllowNavigation, ValidatePassword, CheckAffiliate), BaseNopValidator<T> (FluentValidation 11.3.0), DataSourceRequest/DataSourceResult (Kendoui/), NopResourceDisplayName + ILocalizedModel<T> + ILocalizedModelLocal (Localization/). Deferred: theme engine, GenericPathRoute SEO routing, localized URL routing, IPageHeadBuilder, Captcha/Honeypot, RemotePost, custom model binders, custom action results.
 
-- [ ] [5.2] Public: HomeController + Home views
+- [x] [5.2] Public: HomeController + Home views
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/HomeController, Views/Home
   - Depends on: 5.1
+  - Done: 2026-04-10. HomeController extends BasePublicController with Index() action. Views/Home/Index.cshtml with Razor comments documenting each legacy child action/widget zone and which plan item will implement it. Program.cs updated: replaced MapGet("/") + MapControllers() with MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}") enabling conventional routing for all controllers.
 
 - [ ] [5.3] Public: CommonController + Common views (header, footer, widgets, language/currency selectors)
   - Spec: specs/nop-web-public.md

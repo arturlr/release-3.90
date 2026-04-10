@@ -1870,3 +1870,22 @@ Performed exhaustive verification across all dimensions:
 - [7.1] SMTP: add SMTP health check to health check builder
 - [9.7] Monitoring: dashboards can scrape `/metrics` for Prometheus data, `/health` for uptime monitoring
 - Custom `ActivitySource` for nopCommerce-specific spans can be added when payment/shipping API calls are implemented
+
+## 2026-04-10 — [5.2] Public HomeController + Home Views / Implementation
+
+### Conventional Routing Established
+- Replaced `app.MapGet("/", ...)` + `app.MapControllers()` with `app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}")`
+- This enables conventional routing so HomeController.Index serves `/` and all other controllers work via `{controller}/{action}/{id?}` pattern
+- `CommonController` uses `[Route]` attribute routing (explicit `/error` and `/page-not-found` routes) — attribute routing and conventional routing coexist in ASP.NET Core
+- Impact: all future public and admin controllers can use conventional routing without additional Program.cs changes. Admin area controllers will need `[Area("Admin")]` attribute + area route registration when Phase 5B begins
+
+### Legacy Child Actions → View Components (Future)
+- Legacy `Index.cshtml` used `@Html.Action("HomepageCategories", "Catalog")` etc. — ASP.NET MVC 5 child actions
+- ASP.NET Core replaces child actions with View Components (`@await Component.InvokeAsync("HomepageCategories")`)
+- Current view uses Razor comments documenting each placeholder and which plan item will implement it
+- When [5.4] Catalog, [5.5] Product, [5.11] News, [5.14] Poll, [5.13] Topic are implemented, they should register view components for homepage sections
+
+### Impact on Future Items
+- [5.3-5.28] Public controllers: conventional routing is now active — controllers just need to follow `{controller}/{action}` naming convention
+- [5.26] Shared views: `_Layout.cshtml` will be needed when views need a shared layout (currently Index.cshtml has no layout)
+- [5.30] Admin HomeController: will need area route registration: `app.MapControllerRoute("admin", "Admin/{controller=Home}/{action=Index}/{id?}")`

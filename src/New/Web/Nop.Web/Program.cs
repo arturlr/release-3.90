@@ -52,7 +52,8 @@ app.MapHealthChecks("/health");
 // Prometheus metrics endpoint
 app.MapPrometheusScrapingEndpoint("/metrics");
 
-app.MapControllers();
-app.MapGet("/", () => "nopCommerce");
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
