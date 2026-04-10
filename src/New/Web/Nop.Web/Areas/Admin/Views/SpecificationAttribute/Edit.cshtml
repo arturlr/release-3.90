@@ -1,0 +1,123 @@
+@model Nop.Web.Areas.Admin.Models.Catalog.SpecificationAttributeModel
+@{ ViewData["Title"] = "Edit specification attribute"; }
+
+<h1>Edit specification attribute</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="DisplayOrder">Display order</label>
+        <input asp-for="DisplayOrder" type="number" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post" onsubmit="return confirm('Are you sure?');">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit">Delete</button>
+</form>
+
+<hr />
+<h2>Options</h2>
+
+<div id="options-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Color (RGB)</th>
+                <th>Display order</th>
+                <th># Products</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="opt-tbody"></tbody>
+    </table>
+</div>
+
+<h3>Add option</h3>
+<div>
+    <label>Name</label> <input type="text" id="opt-name" />
+    <label>Color RGB</label> <input type="text" id="opt-color" placeholder="#RRGGBB" />
+    <label><input type="checkbox" id="opt-enablecolor" /> Enable color square</label>
+    <label>Display order</label> <input type="number" id="opt-order" value="0" />
+    <button type="button" onclick="addOption()">Add</button>
+</div>
+
+@section Scripts {
+<script>
+    const attrId = @Model.Id;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+
+    document.addEventListener('DOMContentLoaded', loadOptions);
+
+    function loadOptions() {
+        const data = new URLSearchParams();
+        data.append('specificationAttributeId', attrId);
+
+        fetch('@Url.Action("OptionList", "SpecificationAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('opt-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (o) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML =
+                        '<td><input type="text" value="' + (o.Name || '') + '" class="opt-name" /></td>' +
+                        '<td><input type="text" value="' + (o.ColorSquaresRgb || '') + '" class="opt-color" />' +
+                        ' <label><input type="checkbox" class="opt-enablecolor"' + (o.EnableColorSquaresRgb ? ' checked' : '') + ' /> Color</label></td>' +
+                        '<td><input type="number" value="' + o.DisplayOrder + '" class="opt-order" /></td>' +
+                        '<td>' + o.NumberOfAssociatedProducts + '</td>' +
+                        '<td><button onclick="updateOption(' + o.Id + ', this)">Update</button>' +
+                        ' <button onclick="deleteOption(' + o.Id + ')">Delete</button></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
+
+    function addOption() {
+        const data = new URLSearchParams();
+        data.append('specificationAttributeId', attrId);
+        data.append('Name', document.getElementById('opt-name').value);
+        data.append('ColorSquaresRgb', document.getElementById('opt-color').value);
+        data.append('EnableColorSquaresRgb', document.getElementById('opt-enablecolor').checked);
+        data.append('DisplayOrder', document.getElementById('opt-order').value);
+
+        fetch('@Url.Action("OptionAdd", "SpecificationAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => { document.getElementById('opt-name').value = ''; document.getElementById('opt-color').value = ''; loadOptions(); });
+    }
+
+    function updateOption(id, btn) {
+        const row = btn.closest('tr');
+        const data = new URLSearchParams();
+        data.append('Id', id);
+        data.append('Name', row.querySelector('.opt-name').value);
+        data.append('ColorSquaresRgb', row.querySelector('.opt-color').value);
+        data.append('EnableColorSquaresRgb', row.querySelector('.opt-enablecolor').checked);
+        data.append('DisplayOrder', row.querySelector('.opt-order').value);
+
+        fetch('@Url.Action("OptionUpdate", "SpecificationAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => loadOptions());
+    }
+
+    function deleteOption(id) {
+        if (!confirm('Delete this option?')) return;
+        const data = new URLSearchParams();
+        data.append('id', id);
+
+        fetch('@Url.Action("OptionDelete", "SpecificationAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => loadOptions());
+    }
+</script>
+}

@@ -1,0 +1,20 @@
+@model Nop.Web.Areas.Admin.Models.Catalog.SpecificationAttributeModel
+@{ ViewData["Title"] = "Add a new specification attribute"; }
+
+<h1>Add a new specification attribute</h1>
+
+<form asp-action="Create" method="post">
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="DisplayOrder">Display order</label>
+        <input asp-for="DisplayOrder" type="number" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>

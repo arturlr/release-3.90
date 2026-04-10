@@ -3512,3 +3512,34 @@ Performed exhaustive verification across all dimensions:
 - [5.37] Admin CustomerAttributeController: can follow the same pattern — CRUD for customer attributes + inline AJAX grid for customer attribute values
 - [5.65] Admin CheckoutAttributeController: can follow the same pattern — CRUD for checkout attributes + inline AJAX grid for checkout attribute values
 - [5.77] Admin AddressAttributeController: can follow the same pattern — CRUD for address attributes + inline AJAX grid for address attribute values
+
+## 2026-04-10 — [5.63] Admin SpecificationAttributeController / Implementation
+
+### No New Service Methods Needed
+- All required methods already existed on `ISpecificationAttributeService` from [4.4]: `GetSpecificationAttributesAsync`, `GetSpecificationAttributeByIdAsync`, `InsertSpecificationAttributeAsync`, `UpdateSpecificationAttributeAsync`, `DeleteSpecificationAttributeAsync`, `GetSpecificationAttributeOptionsBySpecificationAttributeAsync`, `GetSpecificationAttributeOptionByIdAsync`, `InsertSpecificationAttributeOptionAsync`, `UpdateSpecificationAttributeOptionAsync`, `DeleteSpecificationAttributeOptionAsync`, `GetProductSpecificationAttributeCountAsync`
+- This is the second admin controller (after ProductAttributeController [5.62]) that required zero new service methods — all infrastructure was already in place from Phase 4
+
+### Legacy Popup Pattern → Inline AJAX Grid (Consistent with [5.62])
+- Legacy used popup windows for option create/edit: `OptionCreatePopup` (GET+POST) and `OptionEditPopup` (GET+POST) with `ViewBag.RefreshPage` / `ViewBag.btnId` / `ViewBag.formId` for parent window refresh
+- New code uses inline AJAX grid with add/update/delete (matching ProductAttribute predefined values pattern from [5.62], PollController answer management from [5.47], CountryController state province from [5.51])
+- Simpler: no popup views, no parent window refresh JavaScript, no `btnId`/`formId` plumbing
+
+### GetOptionsByAttributeId — No Permission Check (Matching Legacy)
+- Legacy `GetOptionsByAttributeId` explicitly commented out permission check: "do not make any permission validation here because this method could be used on some other pages (such as product editing)"
+- New code preserves this: `GetOptionsByAttributeId` is a public AJAX endpoint with no permission check
+- Used by admin ProductController when adding specification attributes to products — the product editing page needs to populate option dropdowns dynamically
+
+### NumberOfAssociatedProducts — Sync-over-Async in LINQ Select
+- `OptionList` action computes `NumberOfAssociatedProducts` per option via `GetProductSpecificationAttributeCountAsync(0, o.Id).GetAwaiter().GetResult()` inside a LINQ `Select` projection
+- This is sync-over-async but acceptable: the method queries `IRepository<ProductSpecificationAttribute>` which is synchronous (in-memory EF Core), and option counts are typically small (10-20 options per attribute)
+- Alternative: load all counts in a batch query before the Select — can optimize if performance becomes an issue
+
+### Admin Catalog Attribute Area Complete
+- Both catalog attribute admin controllers now implemented: ProductAttribute [5.62] ✓, SpecificationAttribute [5.63] ✓
+- Remaining attribute controllers: CustomerAttribute [5.37], CheckoutAttribute [5.65], AddressAttribute [5.77] — all follow the same pattern
+
+### Impact on Future Items
+- [5.37] Admin CustomerAttributeController: can follow the same pattern — CRUD for customer attributes + inline AJAX grid for customer attribute values
+- [5.65] Admin CheckoutAttributeController: can follow the same pattern — CRUD for checkout attributes + inline AJAX grid for checkout attribute values
+- [5.77] Admin AddressAttributeController: can follow the same pattern — CRUD for address attributes + inline AJAX grid for address attribute values
+- [5.31] Admin ProductController sub-entity management: product specification attribute assignment can use `GetOptionsByAttributeId` AJAX helper for option dropdown population

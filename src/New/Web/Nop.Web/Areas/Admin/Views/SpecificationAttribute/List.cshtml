@@ -1,0 +1,53 @@
+@{ ViewData["Title"] = "Specification attributes"; }
+
+<h1>Specification attributes</h1>
+
+<p><a href="@Url.Action("Create")">Add new</a></p>
+
+<table>
+    <thead>
+        <tr><th>Name</th><th>Display order</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="grid-tbody"></tbody>
+</table>
+<div id="grid-pager"></div>
+
+@section Scripts {
+<script>
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+    let page = 1;
+    const pageSize = 10;
+
+    document.addEventListener('DOMContentLoaded', loadGrid);
+
+    function loadGrid() {
+        const data = new URLSearchParams();
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("SpecificationAttributeList", "SpecificationAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('grid-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (a) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td><a href="@Url.Action("Edit", "SpecificationAttribute", new { area = "Admin" })/' + a.Id + '">' + (a.Name || '') + '</a></td>'
+                        + '<td>' + a.DisplayOrder + '</td>'
+                        + '<td><a href="@Url.Action("Edit", "SpecificationAttribute", new { area = "Admin" })/' + a.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            const totalPages = Math.ceil((result.Total || 0) / pageSize);
+            const pager = document.getElementById('grid-pager');
+            pager.innerHTML = totalPages > 0
+                ? 'Page ' + page + ' of ' + totalPages
+                    + (page > 1 ? ' <button onclick="page--;loadGrid();">Prev</button>' : '')
+                    + (page < totalPages ? ' <button onclick="page++;loadGrid();">Next</button>' : '')
+                : '';
+        });
+    }
+</script>
+}

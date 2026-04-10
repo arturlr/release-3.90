@@ -661,10 +661,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.4
   - Done: 2026-04-10. ProductAttributeController with core CRUD (List, ProductAttributeList AJAX grid, Create, Edit, Delete), UsedByProducts AJAX grid, PredefinedValue inline AJAX grid (PredefinedValueList, PredefinedValueAdd, PredefinedValueUpdate, PredefinedValueDelete). 3 view models (ProductAttributeModel, PredefinedProductAttributeValueModel, UsedByProductModel). 3 Razor views (List, Create, Edit with predefined values grid + used-by-products grid). Legacy popup pattern for predefined values replaced with inline AJAX grid (matching PollController answer management pattern). 4 constructor dependencies (IProductAttributeService, IProductService, ICustomerActivityService, IPermissionService). Permission: ManageAttributes. Localization deferred (consistent with all other admin controllers).
 
-- [ ] [5.63] Admin: SpecificationAttributeController + SpecificationAttribute views
+- [x] [5.63] Admin: SpecificationAttributeController + SpecificationAttribute views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/SpecificationAttributeController, Admin/Views/SpecificationAttribute
   - Depends on: 5.1, 4.4
+  - Done: 2026-04-10. SpecificationAttributeController with core CRUD (List, SpecificationAttributeList AJAX grid, Create, Edit, Delete) and option management (OptionList, OptionAdd, OptionUpdate, OptionDelete) and GetOptionsByAttributeId AJAX helper for product editing. 2 view models (SpecificationAttributeModel, SpecificationAttributeOptionModel). 3 Razor views (List, Create, Edit with inline option grid). Legacy popup pattern for options replaced with inline AJAX grid (matching ProductAttribute predefined values pattern). ColorSquaresRgb handled via EnableColorSquaresRgb toggle. NumberOfAssociatedProducts computed via GetProductSpecificationAttributeCountAsync. No new service methods needed — all existed from [4.4]. 3 constructor dependencies (ISpecificationAttributeService, ICustomerActivityService, IPermissionService). Permission: ManageAttributes. Localization deferred (consistent with all other admin controllers).
 
 - [ ] [5.64] Admin: ProductReviewController + ProductReview views
   - Spec: specs/nop-admin.md
