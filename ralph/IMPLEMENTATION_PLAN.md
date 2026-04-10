@@ -571,10 +571,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.12
   - Done: 2026-04-10. PollController with poll CRUD (List, PollList AJAX grid, Create, Edit, Delete) and answer management (PollAnswerList, PollAnswerAdd, PollAnswerUpdate, PollAnswerDelete). 3 view models (PollModel, PollGridModel, PollAnswerModel). 3 Razor views (List, Create, Edit with inline answer grid). Added InsertPollAnswerAsync to IPollService/PollService (replaces legacy nav property pattern poll.PollAnswers.Add()). Language dropdown via ILanguageService. Follows ForumController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. No ILocalizationService dependency (consistent with simplified admin controllers). Localization deferred.
 
-- [ ] [5.48] Admin: TopicController + Topic views
+- [x] [5.48] Admin: TopicController + Topic views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/TopicController, Admin/Views/Topic
   - Depends on: 5.1, 3.11
+  - Done: 2026-04-10. TopicController with topic CRUD (List, TopicList AJAX grid, Create, Edit, Delete). 3 view models (TopicListModel, TopicModel, TopicGridModel). 3 Razor views (List with store filter + AJAX grid, Create, Edit with delete). Topic implements ISlugSupported — uses ValidateSeNameAsync + SaveSlugAsync with languageId=0. TopicTemplate dropdown via ITopicTemplateService. Follows PollController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. ACL/store mapping management deferred (consistent with other admin controllers). Localization deferred.
 
 - [ ] [5.49] Admin: LanguageController + Language views
   - Spec: specs/nop-admin.md

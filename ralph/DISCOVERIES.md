@@ -3119,3 +3119,28 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.48] Admin TopicController: last remaining admin CMS controller — follows same simple CRUD pattern
 - Admin CMS area (Blog, News, Forum, Poll, Topic) will be fully complete after [5.48]
+
+## 2026-04-10 — [5.48] Admin TopicController / Implementation
+
+### Admin CMS Area Complete
+- All 5 admin CMS controllers now implemented: Blog [5.44] ✓, News [5.45] ✓, Forum [5.46] ✓, Poll [5.47] ✓, Topic [5.48] ✓
+- Topic is the simplest CMS controller with SEO slug management: no comments (unlike Blog/News), no sub-entity management (unlike Poll answers), no hierarchy (unlike Forum groups/forums)
+- Topic implements `ISlugSupported` — uses `ValidateSeNameAsync` + `SaveSlugAsync` with `languageId=0` (unlike Blog/News which use `blogPost.LanguageId`/`newsItem.LanguageId`)
+
+### TopicList Returns All Topics (No Server-Side Paging)
+- Legacy `TopicController.List` loaded all topics via `_topicService.GetAllTopics(storeId, true, true)` and returned them all to the grid — no server-side paging
+- `ITopicService.GetAllTopicsAsync` returns `IList<Topic>` (not `IPagedList<Topic>`) — matching legacy behavior
+- New code preserves this: `TopicList` AJAX endpoint returns all topics matching the store filter
+- Acceptable for topic volumes (typically 10-50 topics per store)
+- If paging is needed later, `GetAllTopicsAsync` should be changed to return `IPagedList<Topic>` with `pageIndex`/`pageSize` parameters
+
+### ACL/Store Mapping Deferred (Consistent Pattern)
+- Legacy TopicController had full ACL (customer role access) and store mapping management
+- New code defers both — consistent with all other admin controllers (Product [5.31], Category [5.32], Manufacturer [5.33], Blog [5.44], News [5.45])
+- `Topic.SubjectToAcl` and `Topic.LimitedToStores` properties exist on the entity but are not managed by the admin controller yet
+- When ACL/store mapping management is needed, it should be added as a shared pattern across all admin controllers that support it
+
+### Impact on Future Items
+- Admin CMS area is fully complete — no more CMS controllers to implement
+- Next high-value admin controllers: [5.49] LanguageController, [5.53] EmailAccountController, [5.58] GiftCardController, [5.66] AffiliateController, [5.69] ActivityLogController
+- ACL/store mapping management should be added as a cross-cutting feature across all admin controllers that support `IAclSupported`/`IStoreMappingSupported` entities

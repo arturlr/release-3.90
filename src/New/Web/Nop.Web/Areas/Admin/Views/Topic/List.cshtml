@@ -1,0 +1,70 @@
+@model Nop.Web.Areas.Admin.Models.Topics.TopicListModel
+@{ ViewData["Title"] = "Topics"; }
+
+<h1>Topics</h1>
+
+<p>
+    <a asp-action="Create">Add new</a>
+</p>
+
+<div>
+    <label asp-for="SearchStoreId">Store</label>
+    <select asp-for="SearchStoreId" asp-items="Model.AvailableStores" id="SearchStoreId"></select>
+    <button type="button" id="search-btn">Search</button>
+</div>
+
+<div id="topics-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>System name</th>
+                <th>Title</th>
+                <th>Published</th>
+                <th>Password protected</th>
+                <th>Include in top menu</th>
+                <th>Display order</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="topics-tbody"></tbody>
+    </table>
+    <div id="topics-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadTopics(); });
+    document.getElementById('search-btn').addEventListener('click', loadTopics);
+
+    function loadTopics() {
+        const storeId = document.getElementById('SearchStoreId').value;
+        const data = new URLSearchParams();
+        data.append('SearchStoreId', storeId);
+
+        fetch('@Url.Action("TopicList", "Topic", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('topics-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (t) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (t.SystemName || '') + '</td>'
+                        + '<td>' + (t.Title || '') + '</td>'
+                        + '<td>' + (t.Published ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (t.IsPasswordProtected ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (t.IncludeInTopMenu ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + t.DisplayOrder + '</td>'
+                        + '<td><a href="/Admin/Topic/Edit/' + t.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('topics-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}

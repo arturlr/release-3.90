@@ -1,0 +1,94 @@
+@model Nop.Web.Areas.Admin.Models.Topics.TopicModel
+@{ ViewData["Title"] = "Edit topic"; }
+
+<h1>Edit topic</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="SystemName">System name</label>
+        <input asp-for="SystemName" />
+    </div>
+    <div>
+        <label asp-for="Title">Title</label>
+        <input asp-for="Title" />
+    </div>
+    <div>
+        <label asp-for="Body">Body</label>
+        <textarea asp-for="Body" rows="10"></textarea>
+    </div>
+    <div>
+        <label asp-for="TopicTemplateId">Topic template</label>
+        <select asp-for="TopicTemplateId" asp-items="Model.AvailableTopicTemplates"></select>
+    </div>
+    <div>
+        <label asp-for="Published">Published</label>
+        <input asp-for="Published" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="IsPasswordProtected">Password protected</label>
+        <input asp-for="IsPasswordProtected" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="Password">Password</label>
+        <input asp-for="Password" />
+    </div>
+    <div>
+        <label asp-for="IncludeInSitemap">Include in sitemap</label>
+        <input asp-for="IncludeInSitemap" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="IncludeInTopMenu">Include in top menu</label>
+        <input asp-for="IncludeInTopMenu" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="IncludeInFooterColumn1">Include in footer (column 1)</label>
+        <input asp-for="IncludeInFooterColumn1" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="IncludeInFooterColumn2">Include in footer (column 2)</label>
+        <input asp-for="IncludeInFooterColumn2" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="IncludeInFooterColumn3">Include in footer (column 3)</label>
+        <input asp-for="IncludeInFooterColumn3" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="AccessibleWhenStoreClosed">Accessible when store closed</label>
+        <input asp-for="AccessibleWhenStoreClosed" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DisplayOrder">Display order</label>
+        <input asp-for="DisplayOrder" type="number" />
+    </div>
+    <div>
+        <label asp-for="SeName">Search engine friendly page name</label>
+        <input asp-for="SeName" />
+    </div>
+    <div>
+        <label asp-for="MetaKeywords">Meta keywords</label>
+        <input asp-for="MetaKeywords" />
+    </div>
+    <div>
+        <label asp-for="MetaDescription">Meta description</label>
+        <textarea asp-for="MetaDescription" rows="3"></textarea>
+    </div>
+    <div>
+        <label asp-for="MetaTitle">Meta title</label>
+        <input asp-for="MetaTitle" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post" onsubmit="return confirm('Are you sure?');">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit">Delete</button>
+</form>
+
+@* ACL (customer roles) deferred — consistent with other admin controllers *@
+@* Store mapping deferred — consistent with other admin controllers *@
+@* Localization deferred — consistent with other admin controllers *@
