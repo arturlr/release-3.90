@@ -595,10 +595,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.3
   - Done: 2026-04-10. CountryController with country CRUD (List, CountryList AJAX grid, Create, Edit, Delete, DeleteSelected) and state province management (StateProvinceList, StateProvinceAdd, StateProvinceUpdate, StateProvinceDelete) and export/import (ExportCsv, ImportCsv). 3 view models (CountryListModel, CountryModel with search, CountryGridModel, StateProvinceModel). 3 Razor views (List with search + AJAX grid + batch delete + export/import CSV, Create, Edit with inline state province AJAX grid). Address-in-use guard on country and state delete. Legacy popup pattern for state create/edit replaced with inline AJAX grid (matching PollController answer management pattern). Follows PollController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Store mapping and localization deferred (consistent with all other admin controllers).
 
-- [ ] [5.52] Admin: MeasureController + Measure views
+- [x] [5.52] Admin: MeasureController + Measure views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/MeasureController, Admin/Views/Measure
   - Depends on: 5.1, 3.3
+  - Done: 2026-04-10. MeasureController with dimension CRUD (List, DimensionList AJAX grid, CreateDimension, EditDimension, DeleteDimension, MarkAsPrimaryDimension) and weight CRUD (WeightList AJAX grid, CreateWeight, EditWeight, DeleteWeight, MarkAsPrimaryWeight). 2 view models (MeasureDimensionModel, MeasureWeightModel). 1 Razor view (List.cshtml with two inline AJAX grids for dimensions and weights, each with add/edit/delete/mark-as-primary). ISettingService.SaveSettingAsync for primary dimension/weight settings. Follows CurrencyController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. No separate Create/Edit views — all CRUD in inline grid. Localization deferred (consistent with all other admin controllers).
 
 - [ ] [5.53] Admin: EmailAccountController + EmailAccount views
   - Spec: specs/nop-admin.md

@@ -1,0 +1,190 @@
+@{ ViewData["Title"] = "Measures"; }
+
+<h1>Measures</h1>
+
+<h3>Dimensions</h3>
+<div id="dim-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>System keyword</th>
+                <th>Ratio</th>
+                <th>Display order</th>
+                <th>Primary</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="dim-tbody"></tbody>
+        <tfoot>
+            <tr>
+                <td><input type="text" id="dim-add-name" placeholder="Name" /></td>
+                <td><input type="text" id="dim-add-keyword" placeholder="System keyword" /></td>
+                <td><input type="number" id="dim-add-ratio" placeholder="Ratio" step="any" value="1" /></td>
+                <td><input type="number" id="dim-add-order" placeholder="Display order" value="0" /></td>
+                <td></td>
+                <td><button type="button" onclick="addDimension()">Add</button></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<hr />
+
+<h3>Weights</h3>
+<div id="wt-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>System keyword</th>
+                <th>Ratio</th>
+                <th>Display order</th>
+                <th>Primary</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="wt-tbody"></tbody>
+        <tfoot>
+            <tr>
+                <td><input type="text" id="wt-add-name" placeholder="Name" /></td>
+                <td><input type="text" id="wt-add-keyword" placeholder="System keyword" /></td>
+                <td><input type="number" id="wt-add-ratio" placeholder="Ratio" step="any" value="1" /></td>
+                <td><input type="number" id="wt-add-order" placeholder="Display order" value="0" /></td>
+                <td></td>
+                <td><button type="button" onclick="addWeight()">Add</button></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+@section Scripts {
+<script>
+    const token = () => document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const postJson = (url, body) => fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token() },
+        body: body
+    }).then(r => r.json());
+
+    document.addEventListener('DOMContentLoaded', function () { loadDimensions(); loadWeights(); });
+
+    // --- Dimensions ---
+    function loadDimensions() {
+        postJson('@Url.Action("DimensionList", "Measure", new { area = "Admin" })').then(result => {
+            const tbody = document.getElementById('dim-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(d => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML =
+                        '<td><input type="text" value="' + (d.Name || '') + '" data-field="name" /></td>' +
+                        '<td><input type="text" value="' + (d.SystemKeyword || '') + '" data-field="keyword" /></td>' +
+                        '<td><input type="number" value="' + d.Ratio + '" step="any" data-field="ratio" /></td>' +
+                        '<td><input type="number" value="' + d.DisplayOrder + '" data-field="order" /></td>' +
+                        '<td>' + (d.IsPrimaryDimension
+                            ? '<strong>Primary</strong>'
+                            : '<a href="#" onclick="markPrimaryDimension(' + d.Id + '); return false;">Set primary</a>') + '</td>' +
+                        '<td>' +
+                            '<button type="button" onclick="editDimension(this, ' + d.Id + ')">Save</button> ' +
+                            (d.IsPrimaryDimension ? '' : '<button type="button" onclick="deleteDimension(' + d.Id + ')">Delete</button>') +
+                        '</td>';
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
+
+    function addDimension() {
+        const data = new URLSearchParams();
+        data.append('Name', document.getElementById('dim-add-name').value);
+        data.append('SystemKeyword', document.getElementById('dim-add-keyword').value);
+        data.append('Ratio', document.getElementById('dim-add-ratio').value);
+        data.append('DisplayOrder', document.getElementById('dim-add-order').value);
+        postJson('@Url.Action("CreateDimension", "Measure", new { area = "Admin" })', data).then(() => loadDimensions());
+    }
+
+    function editDimension(btn, id) {
+        const tr = btn.closest('tr');
+        const data = new URLSearchParams();
+        data.append('Id', id);
+        data.append('Name', tr.querySelector('[data-field="name"]').value);
+        data.append('SystemKeyword', tr.querySelector('[data-field="keyword"]').value);
+        data.append('Ratio', tr.querySelector('[data-field="ratio"]').value);
+        data.append('DisplayOrder', tr.querySelector('[data-field="order"]').value);
+        postJson('@Url.Action("EditDimension", "Measure", new { area = "Admin" })', data).then(() => loadDimensions());
+    }
+
+    function deleteDimension(id) {
+        if (!confirm('Are you sure?')) return;
+        const data = new URLSearchParams();
+        data.append('id', id);
+        postJson('@Url.Action("DeleteDimension", "Measure", new { area = "Admin" })', data).then(() => loadDimensions());
+    }
+
+    function markPrimaryDimension(id) {
+        const data = new URLSearchParams();
+        data.append('id', id);
+        postJson('@Url.Action("MarkAsPrimaryDimension", "Measure", new { area = "Admin" })', data).then(() => loadDimensions());
+    }
+
+    // --- Weights ---
+    function loadWeights() {
+        postJson('@Url.Action("WeightList", "Measure", new { area = "Admin" })').then(result => {
+            const tbody = document.getElementById('wt-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(w => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML =
+                        '<td><input type="text" value="' + (w.Name || '') + '" data-field="name" /></td>' +
+                        '<td><input type="text" value="' + (w.SystemKeyword || '') + '" data-field="keyword" /></td>' +
+                        '<td><input type="number" value="' + w.Ratio + '" step="any" data-field="ratio" /></td>' +
+                        '<td><input type="number" value="' + w.DisplayOrder + '" data-field="order" /></td>' +
+                        '<td>' + (w.IsPrimaryWeight
+                            ? '<strong>Primary</strong>'
+                            : '<a href="#" onclick="markPrimaryWeight(' + w.Id + '); return false;">Set primary</a>') + '</td>' +
+                        '<td>' +
+                            '<button type="button" onclick="editWeight(this, ' + w.Id + ')">Save</button> ' +
+                            (w.IsPrimaryWeight ? '' : '<button type="button" onclick="deleteWeight(' + w.Id + ')">Delete</button>') +
+                        '</td>';
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
+
+    function addWeight() {
+        const data = new URLSearchParams();
+        data.append('Name', document.getElementById('wt-add-name').value);
+        data.append('SystemKeyword', document.getElementById('wt-add-keyword').value);
+        data.append('Ratio', document.getElementById('wt-add-ratio').value);
+        data.append('DisplayOrder', document.getElementById('wt-add-order').value);
+        postJson('@Url.Action("CreateWeight", "Measure", new { area = "Admin" })', data).then(() => loadWeights());
+    }
+
+    function editWeight(btn, id) {
+        const tr = btn.closest('tr');
+        const data = new URLSearchParams();
+        data.append('Id', id);
+        data.append('Name', tr.querySelector('[data-field="name"]').value);
+        data.append('SystemKeyword', tr.querySelector('[data-field="keyword"]').value);
+        data.append('Ratio', tr.querySelector('[data-field="ratio"]').value);
+        data.append('DisplayOrder', tr.querySelector('[data-field="order"]').value);
+        postJson('@Url.Action("EditWeight", "Measure", new { area = "Admin" })', data).then(() => loadWeights());
+    }
+
+    function deleteWeight(id) {
+        if (!confirm('Are you sure?')) return;
+        const data = new URLSearchParams();
+        data.append('id', id);
+        postJson('@Url.Action("DeleteWeight", "Measure", new { area = "Admin" })', data).then(() => loadWeights());
+    }
+
+    function markPrimaryWeight(id) {
+        const data = new URLSearchParams();
+        data.append('id', id);
+        postJson('@Url.Action("MarkAsPrimaryWeight", "Measure", new { area = "Admin" })', data).then(() => loadWeights());
+    }
+</script>
+}

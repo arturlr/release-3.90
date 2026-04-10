@@ -3234,3 +3234,25 @@ Performed exhaustive verification across all dimensions:
 - [5.52] Admin MeasureController: next directory admin controller — follows same simple CRUD pattern for dimensions and weights
 - [5.41] Admin ShippingController: already implemented — uses `ICountryService` for shipping method country restrictions
 - Store mapping management: when added as cross-cutting feature, CountryController should be updated along with all other admin controllers
+
+## 2026-04-10 — [5.52] Admin MeasureController / Implementation
+
+### Simplest Admin Directory Controller
+- MeasureController is the simplest admin directory controller: single List view with two inline AJAX grids (dimensions and weights), no separate Create/Edit views
+- All CRUD happens in the inline grid — add via footer row, edit via inline inputs with Save button, delete with confirmation
+- Follows CurrencyController pattern exactly: primary constructor, `Forbid()`, `DataSourceResult`, inline model mapping, `ISettingService.SaveSettingAsync` for mark-as-primary
+- 5 constructor dependencies: `IMeasureService`, `MeasureSettings`, `ISettingService`, `ICustomerActivityService`, `IPermissionService`
+
+### SerializeErrors() Does Not Exist in New Codebase
+- Legacy `ModelState.SerializeErrors()` was an extension method in `Nop.Web.Framework.Mvc.ModelStateExtensions`
+- This extension was NOT migrated in [5.1] Nop.Web.Framework (dropped along with other `System.Linq.Dynamic`-dependent utilities)
+- New pattern: `ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)` — used by PollController [5.47] for inline grid validation errors
+- Impact: any future admin controller with inline AJAX grid CRUD must use this pattern, not `SerializeErrors()`
+
+### Admin Directory Area Complete
+- All 3 admin directory controllers now implemented: Country [5.51] ✓, Currency [5.50] ✓, Measure [5.52] ✓
+- Permission: all use `ManageShippingSettings` (Measure) or `ManageCountries`/`ManageCurrencies` — no shared permission pattern
+
+### Impact on Future Items
+- [5.53] Admin EmailAccountController: next admin controller to implement — follows same simple CRUD pattern
+- Admin directory area is fully complete — no more directory controllers to implement
