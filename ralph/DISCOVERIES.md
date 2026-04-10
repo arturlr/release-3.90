@@ -1837,3 +1837,36 @@ Performed exhaustive verification across all dimensions:
 - [5.30-5.82] Admin controllers: same error handling applies
 - [5.26] Shared views: Error.cshtml and PageNotFound.cshtml use standalone Layout=null — will integrate with shared layout when built
 - Program.cs: future DI registrations go before `var app = builder.Build()`, middleware goes after
+
+## 2026-04-10 — [2.8] Observability / Implementation
+
+### Health Check Architecture
+- `NopDbHealthCheck` lives in `Nop.Data` (closest to the DB dependency) — uses `NopDbContext.Database.CanConnectAsync()` for lightweight connectivity check
+- Health check registered with `"ready"` tag — readiness probe at `/health/ready` includes DB check, liveness probe at `/health/live` includes no checks (just confirms app process is running)
+- `/health` endpoint runs all registered checks (superset of ready)
+- Redis health check deferred to [7.2] — will add `AddCheck<RedisHealthCheck>("redis", tags: ["ready"])` when Redis integration is built
+- SMTP health check deferred to [7.1] — will add when MailKit integration has a health check wrapper
+
+### OpenTelemetry Package Versions
+- `OpenTelemetry.Extensions.Hosting` 1.10.0 — core hosting integration
+- `OpenTelemetry.Instrumentation.AspNetCore` 1.10.1 — auto-instruments HTTP request metrics and traces
+- `OpenTelemetry.Instrumentation.Http` 1.10.0 — auto-instruments outbound HttpClient calls (payment, shipping APIs when built)
+- `OpenTelemetry.Exporter.Prometheus.AspNetCore` 1.9.0-beta.2 — exposes `/metrics` endpoint for Prometheus scraping. Beta because the stable Prometheus exporter hasn't shipped yet for this version line
+- No OTLP exporter added — can be added later for pushing to Jaeger/Tempo/Grafana Cloud
+
+### Prometheus Exporter Is Beta
+- `OpenTelemetry.Exporter.Prometheus.AspNetCore` 1.9.0-beta.2 is the latest available version
+- The Prometheus exporter for ASP.NET Core has been in beta for several releases — stable enough for production use
+- If stability is a concern, can switch to OTLP exporter + Prometheus remote write adapter
+
+### Custom Business Metrics Deferred
+- Spec mentions "order count, cache hit/miss ratio, queue depth" — these require custom `Meter` and `Counter<T>` instruments
+- Will add custom metrics when the services that produce them are wired into DI (e.g., order count from OrderProcessingService, cache metrics from MemoryCacheManager)
+- ASP.NET Core instrumentation already provides: request count, request duration, error rates, active requests
+
+### Impact on Future Items
+- [5.27] KeepAliveController: can be replaced by `/health/live` endpoint — no controller needed
+- [7.2] Redis: add Redis health check to health check builder
+- [7.1] SMTP: add SMTP health check to health check builder
+- [9.7] Monitoring: dashboards can scrape `/metrics` for Prometheus data, `/health` for uptime monitoring
+- Custom `ActivitySource` for nopCommerce-specific spans can be added when payment/shipping API calls are implemented

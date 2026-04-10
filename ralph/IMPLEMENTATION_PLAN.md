@@ -94,10 +94,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 2.2
   - Done: 2026-04-10. NopExceptionHandler (IExceptionHandler) logs to INopLogger (best-effort) and Microsoft.Extensions.Logging, returns ProblemDetails JSON for API requests, redirects to /error for browser requests. CommonController serves Error.cshtml (500) and PageNotFound.cshtml (404). Program.cs wired with AddExceptionHandler, AddProblemDetails, UseStatusCodePagesWithReExecute. INopLogger/IWorkContext resolved from RequestServices (optional) since full DI composition root not yet built.
 
-- [ ] [2.8] Observability — health checks, OpenTelemetry metrics, distributed tracing
+- [x] [2.8] Observability — health checks, OpenTelemetry metrics, distributed tracing
   - Spec: specs/xcut-observability.md
   - Scope: Health check endpoints + OTel configuration
   - Depends on: 1.5, 2.1
+  - Done: 2026-04-10. NopDbHealthCheck (Nop.Data, EF Core CanConnectAsync). Health endpoints: /health (all checks), /health/live (liveness — no checks, confirms app running), /health/ready (readiness — DB tagged "ready"). OpenTelemetry metrics (ASP.NET Core + HttpClient instrumentation, Prometheus exporter at /metrics). OpenTelemetry tracing (ASP.NET Core + HttpClient instrumentation). Redis health check deferred to [7.2], SMTP health check deferred to [7.1]. OTel packages: OpenTelemetry.Extensions.Hosting 1.10.0, Instrumentation.AspNetCore 1.10.1, Instrumentation.Http 1.10.0, Exporter.Prometheus.AspNetCore 1.9.0-beta.2.
 
 - [x] [2.9] Domain events — IEventPublisher, IConsumer<T>, cache event consumers
   - Spec: specs/svc-events.md
