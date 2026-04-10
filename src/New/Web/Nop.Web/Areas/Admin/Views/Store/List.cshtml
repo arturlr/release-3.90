@@ -1,0 +1,57 @@
+@{
+    ViewData["Title"] = "Stores";
+}
+
+<h3>Stores</h3>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Add new</a>
+</p>
+
+<table id="stores-grid">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>URL</th>
+            <th>Hosts</th>
+            <th>Display order</th>
+            <th>Edit</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadStores();
+    });
+
+    function loadStores() {
+        fetch('@Url.Action("StoreList", "Store", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getToken() }
+        })
+        .then(r => r.json())
+        .then(data => {
+            var tbody = document.querySelector('#stores-grid tbody');
+            tbody.innerHTML = '';
+            (data.Data || []).forEach(function (s) {
+                var tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td>' + (s.Name || '') + '</td>' +
+                    '<td>' + (s.Url || '') + '</td>' +
+                    '<td>' + (s.Hosts || '') + '</td>' +
+                    '<td>' + s.DisplayOrder + '</td>' +
+                    '<td><a href="' + '@Url.Action("Edit", "Store", new { area = "Admin" })' + '/' + s.Id + '">Edit</a></td>';
+                tbody.appendChild(tr);
+            });
+        });
+    }
+
+    function getToken() {
+        var el = document.querySelector('input[name="__RequestVerificationToken"]');
+        return el ? el.value : '';
+    }
+</script>
+
+@Html.AntiForgeryToken()

@@ -3674,3 +3674,32 @@ Performed exhaustive verification across all dimensions:
 - [5.68] Admin StoreController: next admin controller to implement — follows same simple CRUD pattern
 - [5.19] Public VendorController: already implemented — uses `IVendorService` for vendor listing/detail pages
 - Admin vendor area is now complete — no more vendor-specific controllers to implement
+
+## 2026-04-10 — [5.68] Admin StoreController / Implementation
+
+### Simple CRUD — No Surprises
+- StoreController is a straightforward admin CRUD controller with 6 actions: List (GET), StoreList (AJAX grid), Create (GET+POST), Edit (GET+POST), Delete (POST)
+- Follows CurrencyController pattern exactly: primary constructor, `Forbid()`, `DataSourceResult`, inline model mapping
+- 5 constructor dependencies: `IStoreService`, `ISettingService`, `ILanguageService`, `ICustomerActivityService`, `IPermissionService`
+- No new service methods needed — all existed from [3.2] implementation
+
+### Per-Store Settings Cleanup on Delete (Matching Legacy)
+- Legacy `Delete` action cleaned up per-store settings after deleting a store: `_settingService.GetAllSettings().Where(s => s.StoreId == id)` → `DeleteSettings`
+- Legacy also cleaned up the last remaining store's per-store overrides when only one store remained (since per-store overrides are meaningless with a single store)
+- New code preserves both behaviors using `ISettingService.GetAllSettingsAsync` + `DeleteSettingsAsync`
+- `GetAllSettingsAsync` returns `IList<Setting>` (not cached dictionary) — acceptable for admin delete operations (low frequency)
+
+### EnsureTrailingSlash Pattern
+- Legacy ensured store URL ends with "/" before saving: `if (!store.Url.EndsWith("/")) store.Url += "/"`
+- New code uses `EnsureTrailingSlash` private static helper — same logic, extracted for reuse in Create and Edit
+- This is important: `WebStoreContext` host matching and URL generation depend on trailing slash consistency
+
+### Language Dropdown via ILanguageService
+- Legacy used `PrepareLanguagesModel` helper that called `_languageService.GetAllLanguages(true)` and added a "---" (Id=0) option
+- New code uses `PrepareLanguageDropdownAsync` private helper — same pattern, async-first
+- `DefaultLanguageId = 0` means "use system default" — the dropdown includes a "---" option for this
+
+### Impact on Future Items
+- [5.38] Admin SettingController: `ChangeStoreScopeConfiguration` action already uses `IStoreService.GetAllStoresAsync` for store scope dropdown — StoreController provides the CRUD for managing those stores
+- [5.79] Admin CommonController: system info page may show store count — can use `IStoreService.GetAllStoresAsync`
+- Store mapping management: when added as cross-cutting feature, StoreController should be updated to show which entities are mapped to each store

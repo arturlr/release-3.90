@@ -691,10 +691,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.10
   - Done: 2026-04-10. VendorController with core CRUD (List, VendorList AJAX grid, Create, Edit, Delete), vendor notes management (VendorNoteList, VendorNoteAdd, VendorNoteDelete), and associated customers grid (AssociatedCustomerList). Added GetVendorNotesByVendorIdAsync and InsertVendorNoteAsync to IVendorService/VendorService (replaces legacy vendor.VendorNotes nav property). 6 view models (VendorListModel, VendorModel, VendorGridModel, VendorNoteModel, AssociatedCustomerModel). 3 Razor views (List, Create, Edit with vendor notes + associated customers grids). Vendor implements ISlugSupported — uses ValidateSeNameAsync + SaveSlugAsync with languageId=0. Address fields inlined on VendorModel (no nested AddressModel — matching AffiliateController pattern). Delete clears associated customer VendorId references. 11 constructor dependencies via primary constructor. Follows AffiliateController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Picture management and localization deferred (consistent with all other admin controllers).
 
-- [ ] [5.68] Admin: StoreController + Store views
+- [x] [5.68] Admin: StoreController + Store views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/StoreController, Admin/Views/Store
   - Depends on: 5.1, 3.2
+  - Done: 2026-04-10. StoreController with core CRUD (List, StoreList AJAX grid, Create, Edit, Delete). 2 view models (StoreModel with language dropdown, StoreGridModel). 3 Razor views (List, Create, Edit with delete). Delete cleans up per-store settings via ISettingService.GetAllSettingsAsync + DeleteSettingsAsync (matching legacy behavior: removes store-specific overrides, and if only one store remains, removes its overrides too). EnsureTrailingSlash on URL (matching legacy). No new service methods needed — all existed from [3.2]. 5 constructor dependencies (IStoreService, ISettingService, ILanguageService, ICustomerActivityService, IPermissionService). Permission: ManageStores. Localization deferred (consistent with all other admin controllers). Follows CurrencyController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
 - [ ] [5.69] Admin: ActivityLogController + ActivityLog views
   - Spec: specs/nop-admin.md
