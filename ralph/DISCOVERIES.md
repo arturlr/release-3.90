@@ -2207,3 +2207,42 @@ Performed exhaustive verification across all dimensions:
 - [5.5] Public ProductController: can reuse `PrepareProductOverviewModelAsync` pattern for related/cross-sell products
 - [5.26] Shared views: CategoryNavigation, TopMenu, HomepageCategories, ManufacturerNavigation, VendorNavigation, PopularProductTags, SearchBox should become ViewComponents
 - [5.3] Public CommonController: TopMenu and SearchBox are commonly placed in shared layout — may need to move to CommonController or ViewComponents
+
+## 2026-04-10 — [5.5] Public ProductController / Implementation
+
+### IsAvailable — Static Helper, Not Extension Method
+- Legacy `Product.IsAvailable()` was an extension method in `Nop.Core.Domain.Catalog.ProductExtensions` — excluded from domain entities in [1.3]
+- New code uses `IsAvailable(Product)` as a private static helper method in `ProductController.Helpers.cs`
+- Checks `AvailableStartDateTimeUtc` and `AvailableEndDateTimeUtc` against `DateTime.UtcNow`
+- CatalogController also needs this check (already uses inline checks) — could extract to a shared utility if more controllers need it
+
+### InsertProductReviewAsync and SetProductReviewHelpfulnessAsync Added to IProductService
+- Legacy added reviews via `product.ProductReviews.Add(review)` + `_productService.UpdateProduct(product)` — nav property collection manipulation
+- Nav properties stripped in [1.3] — added `InsertProductReviewAsync(ProductReview)` to `IProductService`/`ProductService`
+- Pattern consistent with `InsertBlogCommentAsync` ([5.10]), `InsertNewsCommentAsync` ([5.11]), `InsertOrderItemAsync` ([4.9c])
+- `SetProductReviewHelpfulnessAsync` encapsulates the helpfulness vote logic: find existing entry, update or insert, recalculate totals
+- Legacy accessed `productReview.ProductReviewHelpfulnessEntries` nav property — new code queries `IRepository<ProductReviewHelpfulness>` directly
+
+### ChildAction Methods Deferred to ViewComponents
+- 6 legacy `[ChildActionOnly]` actions: RelatedProducts, ProductsAlsoPurchased, CrossSellProducts, HomepageBestSellers, HomepageProducts, RecentlyViewedProductsBlock
+- ASP.NET Core replaces child actions with ViewComponents (`@await Component.InvokeAsync()`)
+- These are sidebar/layout components — will be implemented as ViewComponents when shared layout [5.26] is built
+- `IOrderReportService` dependency removed from constructor since `ProductsAlsoPurchased` (which uses `GetAlsoPurchasedProductsIdsAsync`) is deferred
+
+### Deferred Actions
+- **NewProductsRss**: Requires `RssActionResult` custom action result (deferred in [5.1])
+- **ProductEmailAFriend/ProductEmailAFriendSend**: Low priority, requires Captcha ([7.13])
+- **CustomerProductReviews**: Requires paging model and customer account navigation — add when customer account pages are enriched
+- **Captcha on ProductReviewsAdd**: Deferred to [7.13] Google reCAPTCHA integration
+
+### Url.Action Extension Method Requires Microsoft.AspNetCore.Mvc Using
+- `Url.Action(string action, string controller, object values)` is an extension method from `Microsoft.AspNetCore.Mvc.UrlHelperExtensions`
+- Partial class files that call `Url.Action` with 3 arguments must have `using Microsoft.AspNetCore.Mvc;`
+- The main controller file gets this implicitly from the `[Controller]` attribute resolution, but helper partial files need it explicitly
+
+### Impact on Future Items
+- [5.7] ShoppingCartController: CrossSellProducts ViewComponent will use `IProductService.GetCrossSellProductsByShoppingCartAsync`
+- [5.26] Shared views: RelatedProducts, ProductsAlsoPurchased, HomepageBestSellers, HomepageProducts, RecentlyViewedProductsBlock should become ViewComponents
+- [5.31] Admin ProductController: can now reference the same `ProductDetailsModel` pattern
+- [5.64] Admin ProductReviewController: can now use `InsertProductReviewAsync` and `SetProductReviewHelpfulnessAsync`
+- [7.13] reCAPTCHA: add `[CaptchaValidator]` to `ProductReviewsAdd` action

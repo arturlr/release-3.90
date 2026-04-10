@@ -1,0 +1,84 @@
+@model Nop.Web.Models.Catalog.ProductReviewsModel
+@{
+    Layout = null;
+    ViewData["Title"] = $"Product Reviews - {Model.ProductName}";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>@ViewData["Title"]</title>
+</head>
+<body>
+    <div class="product-reviews-page">
+        <h1>Product Reviews for <a href="@Url.Action("ProductDetails", "Product", new { productId = Model.Id })">@Model.ProductName</a></h1>
+
+        @if (Model.AddProductReview.SuccessfullyAdded)
+        {
+            <div class="result">@Model.AddProductReview.Result</div>
+        }
+        else
+        {
+            <div class="write-review">
+                <h2>Write your own review</h2>
+                <form asp-action="ProductReviewsAdd" asp-route-productId="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="All"></div>
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" name="AddProductReview.Title" value="@Model.AddProductReview.Title" />
+                    </div>
+                    <div class="form-group">
+                        <label>Review text</label>
+                        <textarea name="AddProductReview.ReviewText">@Model.AddProductReview.ReviewText</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Rating</label>
+                        @for (var i = 1; i <= 5; i++)
+                        {
+                            <label>
+                                <input type="radio" name="AddProductReview.Rating" value="@i"
+                                       @(Model.AddProductReview.Rating == i ? "checked" : "") /> @i
+                            </label>
+                        }
+                    </div>
+                    <button type="submit" name="add-review">Submit review</button>
+                </form>
+            </div>
+        }
+
+        @if (Model.Items.Count > 0)
+        {
+            <div class="product-review-list">
+                <h2>Existing reviews</h2>
+                @foreach (var review in Model.Items)
+                {
+                    <div class="product-review-item">
+                        <div class="review-title"><strong>@review.Title</strong></div>
+                        <div class="review-text">@Html.Raw(review.ReviewText)</div>
+                        <div class="review-rating">Rating: @review.Rating / 5</div>
+                        <div class="review-date">@review.WrittenOnStr.ToString("D")</div>
+                        <div class="review-helpfulness">
+                            <span>Was this review helpful?</span>
+                            <button onclick="setReviewHelpfulness(@review.Id, true)">Yes (@review.HelpfulYesTotal)</button>
+                            <button onclick="setReviewHelpfulness(@review.Id, false)">No (@review.HelpfulNoTotal)</button>
+                            <span id="helpfulness-result-@review.Id"></span>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <script>
+        async function setReviewHelpfulness(reviewId, wasHelpful) {
+            const response = await fetch('@Url.Action("SetProductReviewHelpfulness", "Product")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `productReviewId=${reviewId}&washelpful=${wasHelpful}`
+            });
+            const data = await response.json();
+            document.getElementById(`helpfulness-result-${reviewId}`).textContent = data.result;
+        }
+    </script>
+</body>
+</html>

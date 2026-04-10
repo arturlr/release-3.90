@@ -98,6 +98,8 @@ public interface IProductService
         int pageIndex = 0, int pageSize = int.MaxValue);
     Task<ProductReview?> GetProductReviewByIdAsync(int productReviewId);
     Task<IList<ProductReview>> GetProductReviewsByIdsAsync(int[] productReviewIds);
+    Task InsertProductReviewAsync(ProductReview productReview);
+    Task SetProductReviewHelpfulnessAsync(ProductReview productReview, int customerId, bool wasHelpful);
     Task DeleteProductReviewAsync(ProductReview productReview);
     Task DeleteProductReviewsAsync(IList<ProductReview> productReviews);
 

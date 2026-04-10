@@ -760,6 +760,45 @@ public class ProductService : IProductService
         return Task.FromResult(reviews);
     }
 
+    public virtual async Task InsertProductReviewAsync(ProductReview productReview)
+    {
+        ArgumentNullException.ThrowIfNull(productReview);
+        _productReviewRepository.Insert(productReview);
+        await _eventPublisher.EntityInsertedAsync(productReview);
+    }
+
+    public virtual async Task SetProductReviewHelpfulnessAsync(ProductReview productReview, int customerId, bool wasHelpful)
+    {
+        ArgumentNullException.ThrowIfNull(productReview);
+
+        var existing = _productReviewHelpfulnessRepository.Table
+            .FirstOrDefault(prh => prh.ProductReviewId == productReview.Id && prh.CustomerId == customerId);
+
+        if (existing != null)
+        {
+            existing.WasHelpful = wasHelpful;
+            _productReviewHelpfulnessRepository.Update(existing);
+        }
+        else
+        {
+            _productReviewHelpfulnessRepository.Insert(new ProductReviewHelpfulness
+            {
+                ProductReviewId = productReview.Id,
+                CustomerId = customerId,
+                WasHelpful = wasHelpful,
+            });
+        }
+
+        // Recalculate totals
+        var allEntries = _productReviewHelpfulnessRepository.TableNoTracking
+            .Where(prh => prh.ProductReviewId == productReview.Id).ToList();
+        productReview.HelpfulYesTotal = allEntries.Count(x => x.WasHelpful);
+        productReview.HelpfulNoTotal = allEntries.Count(x => !x.WasHelpful);
+        _productReviewRepository.Update(productReview);
+
+        await Task.CompletedTask;
+    }
+
     public virtual async Task DeleteProductReviewAsync(ProductReview productReview)
     {
         ArgumentNullException.ThrowIfNull(productReview);

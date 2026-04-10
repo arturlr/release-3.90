@@ -1,0 +1,55 @@
+@model Nop.Web.Models.Catalog.CompareProductsModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Compare Products";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Compare Products</title>
+</head>
+<body>
+    <div class="compare-products-page">
+        <h1>Compare Products</h1>
+
+        @if (Model.Products.Count == 0)
+        {
+            <div class="no-data">You have no items to compare.</div>
+        }
+        else
+        {
+            <a href="@Url.Action("ClearCompareList", "Product")">Clear list</a>
+            <table class="compare-products-table">
+                <tr>
+                    <td>Product</td>
+                    @foreach (var product in Model.Products)
+                    {
+                        <td>
+                            <a href="@Url.Action("ProductDetails", "Product", new { productId = product.Id })">@product.Name</a>
+                            <br />
+                            <a href="@Url.Action("RemoveProductFromCompareList", "Product", new { productId = product.Id })">Remove</a>
+                        </td>
+                    }
+                </tr>
+                <tr>
+                    <td>Price</td>
+                    @foreach (var product in Model.Products)
+                    {
+                        <td>@product.Price</td>
+                    }
+                </tr>
+                @if (Model.IncludeShortDescriptionInCompareProducts)
+                {
+                    <tr>
+                        <td>Short Description</td>
+                        @foreach (var product in Model.Products)
+                        {
+                            <td>@Html.Raw(product.ShortDescription)</td>
+                        }
+                    </tr>
+                }
+            </table>
+        }
+    </div>
+</body>
+</html>

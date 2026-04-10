@@ -1,0 +1,87 @@
+@model Nop.Web.Models.Catalog.ProductDetailsModel
+@{
+    Layout = null;
+    ViewData["Title"] = Model.MetaTitle ?? Model.Name;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>@(Model.MetaTitle ?? Model.Name)</title>
+    @if (!string.IsNullOrEmpty(Model.MetaDescription))
+    {
+        <meta name="description" content="@Model.MetaDescription" />
+    }
+    @if (!string.IsNullOrEmpty(Model.MetaKeywords))
+    {
+        <meta name="keywords" content="@Model.MetaKeywords" />
+    }
+</head>
+<body>
+    @if (Model.DisplayEditLink && !string.IsNullOrEmpty(Model.EditLink))
+    {
+        <div class="admin-edit-link">
+            <a href="@Model.EditLink">Edit this product (admin)</a>
+        </div>
+    }
+
+    <div class="product-details-page">
+        <h1>@Model.Name</h1>
+
+        @if (Model.ShowSku && !string.IsNullOrEmpty(Model.Sku))
+        {
+            <div class="sku"><span>SKU:</span> @Model.Sku</div>
+        }
+
+        <div class="product-pictures">
+            @foreach (var pic in Model.Pictures)
+            {
+                <div class="picture">
+                    <a href="@pic.FullSizeImageUrl" title="@pic.Title">
+                        <img src="@pic.ImageUrl" alt="@pic.AlternateText" title="@pic.Title" />
+                    </a>
+                </div>
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ShortDescription))
+        {
+            <div class="short-description">@Html.Raw(Model.ShortDescription)</div>
+        }
+
+        <div class="product-price">
+            @if (!string.IsNullOrEmpty(Model.OldPrice))
+            {
+                <span class="old-price">@Model.OldPrice</span>
+            }
+            <span class="price">@Model.ProductPrice</span>
+        </div>
+
+        @if (Model.FreeShipping)
+        {
+            <div class="free-shipping">Free Shipping</div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.StockAvailability))
+        {
+            <div class="stock-availability">@Model.StockAvailability</div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.FullDescription))
+        {
+            <div class="full-description">@Html.Raw(Model.FullDescription)</div>
+        }
+
+        @* Related products — deferred to ViewComponent *@
+        @* Also purchased — deferred to ViewComponent *@
+
+        @if (Model.AllowCustomerReviews)
+        {
+            <div class="product-reviews-link">
+                <a href="@Url.Action("ProductReviews", "Product", new { productId = Model.Id })">
+                    Write a review
+                </a>
+            </div>
+        }
+    </div>
+</body>
+</html>
