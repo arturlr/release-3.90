@@ -1,0 +1,137 @@
+@model Nop.Web.Areas.Admin.Models.Orders.ReturnRequestModel
+@{
+    ViewData["Title"] = "Edit Return Request";
+}
+
+<div class="content-header">
+    <h1>Edit Return Request #@Model.CustomNumber</h1>
+</div>
+
+<div class="content">
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="Id" />
+
+        <div class="form-horizontal">
+            <div class="panel panel-default">
+                <div class="panel-heading">Info</div>
+                <div class="panel-body">
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Custom Number</label>
+                        <div class="col-md-9">
+                            <span>@Model.CustomNumber</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Order</label>
+                        <div class="col-md-9">
+                            <a href="@Url.Action("Edit", "Order", new { id = Model.OrderId })">@Model.CustomOrderNumber</a>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Customer</label>
+                        <div class="col-md-9">
+                            <a href="@Url.Action("Edit", "Customer", new { id = Model.CustomerId })">@Model.CustomerInfo</a>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Product</label>
+                        <div class="col-md-9">
+                            <a href="@Url.Action("Edit", "Product", new { id = Model.ProductId })">@Model.ProductName</a>
+                            @if (!string.IsNullOrEmpty(Model.AttributeInfo))
+                            {
+                                <br /><span>@Html.Raw(Model.AttributeInfo)</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Quantity</label>
+                        <div class="col-md-9">
+                            <input asp-for="Quantity" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Reason for Return</label>
+                        <div class="col-md-9">
+                            <textarea asp-for="ReasonForReturn" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Requested Action</label>
+                        <div class="col-md-9">
+                            <textarea asp-for="RequestedAction" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Customer Comments</label>
+                        <div class="col-md-9">
+                            <textarea asp-for="CustomerComments" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    @if (Model.UploadedFileGuid != Guid.Empty)
+                    {
+                        <div class="form-group">
+                            <label class="col-md-3 control-label">Uploaded File</label>
+                            <div class="col-md-9">
+                                <a href="@Url.Action("GetFileUpload", "Download", new { area = "", downloadId = Model.UploadedFileGuid })">Download</a>
+                            </div>
+                        </div>
+                    }
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Staff Notes</label>
+                        <div class="col-md-9">
+                            <textarea asp-for="StaffNotes" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Status</label>
+                        <div class="col-md-9">
+                            <select asp-for="ReturnRequestStatusId" class="form-control">
+                                <option value="0">Pending</option>
+                                <option value="10">Received</option>
+                                <option value="20">Return Authorized</option>
+                                <option value="30">Item(s) Repaired</option>
+                                <option value="40">Item(s) Refunded</option>
+                                <option value="50">Request Rejected</option>
+                                <option value="60">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Date</label>
+                        <div class="col-md-9">
+                            <span>@Model.CreatedOn.ToString("g")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="col-md-9 col-md-offset-3">
+                    <button type="submit" name="continueEditing" value="false" class="btn btn-primary">Save</button>
+                    <button type="submit" name="continueEditing" value="true" class="btn btn-default">Save and Continue Edit</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    @* Operations *@
+    <div class="panel panel-default" style="margin-top: 20px;">
+        <div class="panel-heading">Operations</div>
+        <div class="panel-body">
+            <form asp-action="NotifyCustomer" method="post" style="display:inline;">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn btn-info"
+                        onclick="return confirm('Send return request status notification to customer?');">
+                    Notify Customer
+                </button>
+            </form>
+            <form asp-action="Delete" method="post" style="display:inline;">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn btn-danger"
+                        onclick="return confirm('Are you sure you want to delete this return request?');">
+                    Delete
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

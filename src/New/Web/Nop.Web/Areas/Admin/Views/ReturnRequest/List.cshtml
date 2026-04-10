@@ -1,0 +1,125 @@
+@model Nop.Web.Areas.Admin.Models.Orders.ReturnRequestListModel
+@{
+    ViewData["Title"] = "Return Requests";
+}
+
+<div class="content-header">
+    <h1>Return Requests</h1>
+</div>
+
+<div class="content">
+    <div class="form-horizontal">
+        <div class="panel panel-default">
+            <div class="panel-heading">Search</div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label class="col-md-3 control-label">Start Date</label>
+                    <div class="col-md-9">
+                        <input type="date" id="StartDate" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-md-3 control-label">End Date</label>
+                    <div class="col-md-9">
+                        <input type="date" id="EndDate" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-md-3 control-label">Custom Number</label>
+                    <div class="col-md-9">
+                        <input type="text" id="CustomNumber" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-md-3 control-label">Status</label>
+                    <div class="col-md-9">
+                        <select id="ReturnRequestStatusId" class="form-control">
+                            <option value="-1" selected>All</option>
+                            <option value="0">Pending</option>
+                            <option value="10">Received</option>
+                            <option value="20">Return Authorized</option>
+                            <option value="30">Item(s) Repaired</option>
+                            <option value="40">Item(s) Refunded</option>
+                            <option value="50">Request Rejected</option>
+                            <option value="60">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-9 col-md-offset-3">
+                        <button type="button" class="btn btn-primary" onclick="loadGrid(1)">Search</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="returnrequests-grid"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadGrid(1);
+    });
+
+    function loadGrid(page) {
+        const formData = new FormData();
+        formData.append('Page', page);
+        formData.append('PageSize', 15);
+        const startDate = document.getElementById('StartDate').value;
+        const endDate = document.getElementById('EndDate').value;
+        const customNumber = document.getElementById('CustomNumber').value;
+        const statusId = document.getElementById('ReturnRequestStatusId').value;
+        if (startDate) formData.append('StartDate', startDate);
+        if (endDate) formData.append('EndDate', endDate);
+        if (customNumber) formData.append('CustomNumber', customNumber);
+        formData.append('ReturnRequestStatusId', statusId);
+
+        fetch('@Url.Action("ReturnRequestList")', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            const grid = document.getElementById('returnrequests-grid');
+            let html = '<table class="table table-bordered"><thead><tr>' +
+                '<th>Custom #</th><th>Order</th><th>Customer</th><th>Product</th>' +
+                '<th>Quantity</th><th>Status</th><th>Date</th><th></th>' +
+                '</tr></thead><tbody>';
+
+            if (data.Data && data.Data.length > 0) {
+                data.Data.forEach(function (item) {
+                    html += '<tr>' +
+                        '<td>' + item.CustomNumber + '</td>' +
+                        '<td>' + item.CustomOrderNumber + '</td>' +
+                        '<td><a href="/Admin/Customer/Edit/' + item.CustomerId + '">' + item.CustomerInfo + '</a></td>' +
+                        '<td>' + item.ProductName + '</td>' +
+                        '<td>' + item.Quantity + '</td>' +
+                        '<td>' + item.ReturnRequestStatusStr + '</td>' +
+                        '<td>' + new Date(item.CreatedOn).toLocaleString() + '</td>' +
+                        '<td><a href="@Url.Action("Edit")/' + item.Id + '">Edit</a></td>' +
+                        '</tr>';
+                });
+            } else {
+                html += '<tr><td colspan="8">No return requests found.</td></tr>';
+            }
+
+            html += '</tbody></table>';
+
+            const totalPages = Math.ceil(data.Total / 15);
+            if (totalPages > 1) {
+                html += '<div class="pager">';
+                for (let i = 1; i <= totalPages; i++) {
+                    html += (i === page)
+                        ? '<strong>' + i + '</strong> '
+                        : '<a href="#" onclick="loadGrid(' + i + '); return false;">' + i + '</a> ';
+                }
+                html += '</div>';
+            }
+
+            grid.innerHTML = html;
+        });
+    }
+</script>
+}

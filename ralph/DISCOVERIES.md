@@ -3429,3 +3429,31 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.60] Admin ReturnRequestController: next order-related admin controller to implement
 - [5.61] Admin ShoppingCartController: abandoned cart viewing
+
+## 2026-04-10 — [5.60] Admin ReturnRequestController / Implementation
+
+### Legacy _customerService.UpdateCustomer(returnRequest.Customer) Replaced
+- Legacy Edit POST saved return request changes by calling `_customerService.UpdateCustomer(returnRequest.Customer)` — this updated the entire Customer entity to persist a ReturnRequest change via nav property cascade
+- Nav properties stripped in [1.3] — new code uses `IReturnRequestService.UpdateReturnRequestAsync(returnRequest)` directly
+- This is more correct: updating a return request should not require updating the customer entity
+- Pattern consistent with all other admin controllers that replaced nav property saves with direct entity service calls
+
+### IProductService Added for Product Name Resolution
+- Legacy `PrepareReturnRequestModel` accessed `orderItem.Product.Name` via nav property
+- New code injects `IProductService` and calls `GetProductByIdAsync(orderItem.ProductId)` to resolve product name
+- This adds IProductService as a 9th constructor dependency (legacy had 10 including ILocalizationService and IWorkContext which were dropped)
+- ILocalizationService dropped — success notifications use plain text (consistent with simplified admin controller pattern)
+- IWorkContext dropped — only used by legacy for `GetLocalizedEnum` (enum display name localization)
+
+### FormValueRequired Eliminated — NotifyCustomer as Separate Endpoint
+- Legacy used `[FormValueRequired("notify-customer")]` + `[HttpPost, ActionName("Edit")]` to route NotifyCustomer POST to the same Edit URL
+- New code uses separate `NotifyCustomer(int id)` POST endpoint — the operations panel in Edit.cshtml posts directly to its own action
+- Consistent with ShoppingCartController [5.7], CheckoutController [5.8], OrderController [5.9], VendorController [5.19], EmailAccountController [5.53], MessageTemplateController [5.54], QueuedEmailController [5.55], CampaignController [5.56] patterns
+
+### Admin Order Area Progress
+- Order [5.34] ✓, GiftCard [5.58] ✓, RecurringPayment [5.59] ✓, ReturnRequest [5.60] ✓
+- Remaining: ShoppingCart [5.61]
+
+### Impact on Future Items
+- [5.61] Admin ShoppingCartController: last remaining order-related admin controller — abandoned cart viewing
+- [5.38] Admin SettingController: ReturnRequestReason/Action CRUD should be added as sub-items when localization is available

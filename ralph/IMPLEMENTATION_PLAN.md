@@ -643,10 +643,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.9
   - Done: 2026-04-10. RecurringPaymentController with core CRUD (List, RecurringPaymentList AJAX grid, Edit GET+POST, Delete), payment operations (ProcessNextPayment, CancelRecurringPayment), and history management (HistoryList AJAX grid). 2 view models (RecurringPaymentModel, RecurringPaymentHistoryModel). 2 Razor views (List with AJAX grid, Edit with info form + operations + history grid). Legacy nav properties replaced: recurringPayment.InitialOrder → IOrderService.GetOrderByIdAsync, recurringPayment.RecurringPaymentHistory → IOrderService.GetRecurringPaymentHistoryAsync, recurringPayment.InitialOrder.Customer → ICustomerService.GetCustomerByIdAsync. NextPaymentDate and CyclesRemaining computed from history (matching public OrderController pattern). FormValueRequired eliminated — separate endpoints for ProcessNextPayment and CancelRecurringPayment. ParameterBasedOnFormName eliminated — continueEditing is regular form parameter. Follows GiftCardController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
-- [ ] [5.60] Admin: ReturnRequestController + ReturnRequest views
+- [x] [5.60] Admin: ReturnRequestController + ReturnRequest views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/ReturnRequestController, Admin/Views/ReturnRequest
   - Depends on: 5.1, 4.9
+  - Done: 2026-04-10. ReturnRequestController with core CRUD (List with search form, ReturnRequestList AJAX grid, Edit GET+POST, Delete) and NotifyCustomer (separate POST endpoint — FormValueRequired eliminated). 3 view models (ReturnRequestListModel, ReturnRequestModel, ReturnRequestGridModel). 2 Razor views (List with search filters + AJAX grid, Edit with form + operations panel). PrepareReturnRequestModelAsync resolves OrderItem→Product name via IProductService, Order→CustomOrderNumber, Customer→email via role check, Download→GUID. Legacy _customerService.UpdateCustomer(returnRequest.Customer) replaced with IReturnRequestService.UpdateReturnRequestAsync. 9 constructor dependencies via primary constructor. Follows RecurringPaymentController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
 - [ ] [5.61] Admin: ShoppingCartController + ShoppingCart views (abandoned carts)
   - Spec: specs/nop-admin.md
