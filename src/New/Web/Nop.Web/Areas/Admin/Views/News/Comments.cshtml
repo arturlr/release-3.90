@@ -1,0 +1,134 @@
+@model Nop.Web.Areas.Admin.Models.News.NewsCommentListModel
+@{ ViewData["Title"] = "News Comments"; }
+
+<h1>News Comments</h1>
+
+<form id="search-form">
+    <input type="hidden" name="FilterByNewsItemId" value="@Model.FilterByNewsItemId" />
+    <div>
+        <label>Created from</label>
+        <input name="CreatedOnFrom" type="date" value="@Model.CreatedOnFrom?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div>
+        <label>Created to</label>
+        <input name="CreatedOnTo" type="date" value="@Model.CreatedOnTo?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div>
+        <label>Approved</label>
+        <select name="SearchApprovedId" asp-items="Model.AvailableApprovedOptions"></select>
+    </div>
+    <div>
+        <label>Comment text</label>
+        <input name="SearchText" value="@Model.SearchText" />
+    </div>
+    <button type="submit" id="search-comments">Search</button>
+</form>
+
+<p>
+    <button type="button" id="approve-selected-btn">Approve selected</button>
+    <button type="button" id="disapprove-selected-btn">Disapprove selected</button>
+    <button type="button" id="delete-selected-btn">Delete selected</button>
+</p>
+
+<div id="comments-grid">
+    <table>
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="select-all" /></th>
+                <th>News item</th>
+                <th>Customer</th>
+                <th>Title</th>
+                <th>Comment</th>
+                <th>Approved</th>
+                <th>Store</th>
+                <th>Created on</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="comments-tbody"></tbody>
+    </table>
+    <div id="comments-pager"></div>
+</div>
+
+<a asp-action="List">Back to news items</a>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadComments(1, 15); });
+    document.getElementById('search-comments')?.addEventListener('click', function (e) { e.preventDefault(); loadComments(1, 15); });
+    document.getElementById('select-all')?.addEventListener('change', function () {
+        document.querySelectorAll('.comment-checkbox').forEach(function (cb) { cb.checked = this.checked; }.bind(this));
+    });
+
+    function getToken() { return document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''; }
+
+    function getSelectedIds() {
+        return Array.from(document.querySelectorAll('.comment-checkbox:checked')).map(function (cb) { return cb.value; });
+    }
+
+    function loadComments(page, pageSize) {
+        const form = document.getElementById('search-form');
+        const data = new URLSearchParams(new FormData(form));
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("CommentList", "News", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: data
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+            var tbody = document.getElementById('comments-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (c) {
+                    var tr = document.createElement('tr');
+                    tr.innerHTML = '<td><input type="checkbox" class="comment-checkbox" value="' + c.Id + '" /></td>'
+                        + '<td><a href="/Admin/News/Edit/' + c.NewsItemId + '">' + (c.NewsItemTitle || '') + '</a></td>'
+                        + '<td>' + (c.CustomerInfo || '') + '</td>'
+                        + '<td>' + (c.CommentTitle || '') + '</td>'
+                        + '<td>' + (c.CommentText || '') + '</td>'
+                        + '<td>' + (c.IsApproved ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (c.StoreName || '') + '</td>'
+                        + '<td>' + (c.CreatedOn || '') + '</td>'
+                        + '<td><button onclick="deleteComment(' + c.Id + ')">Delete</button></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('comments-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+
+    function deleteComment(id) {
+        if (!confirm('Are you sure?')) return;
+        fetch('@Url.Action("CommentDelete", "News", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: 'id=' + id
+        }).then(function () { loadComments(1, 15); });
+    }
+
+    function bulkAction(url) {
+        var ids = getSelectedIds();
+        if (ids.length === 0) return;
+        var body = ids.map(function (id) { return 'selectedIds=' + id; }).join('&');
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': getToken() },
+            body: body
+        }).then(function () { loadComments(1, 15); });
+    }
+
+    document.getElementById('delete-selected-btn')?.addEventListener('click', function () {
+        if (confirm('Delete selected comments?'))
+            bulkAction('@Url.Action("DeleteSelectedComments", "News", new { area = "Admin" })');
+    });
+    document.getElementById('approve-selected-btn')?.addEventListener('click', function () {
+        bulkAction('@Url.Action("ApproveSelected", "News", new { area = "Admin" })');
+    });
+    document.getElementById('disapprove-selected-btn')?.addEventListener('click', function () {
+        bulkAction('@Url.Action("DisapproveSelected", "News", new { area = "Admin" })');
+    });
+</script>
+}

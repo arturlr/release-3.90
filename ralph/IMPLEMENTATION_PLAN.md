@@ -552,10 +552,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.13
   - Done: 2026-04-10. BlogController as 2 partial class files (main + helpers) with blog post CRUD (List, BlogPostList AJAX grid, Create, Edit, Delete) and comment management (Comments, CommentList AJAX grid, CommentUpdate, CommentDelete, DeleteSelectedComments, ApproveSelected, DisapproveSelected). 6 view models (BlogPostListModel, BlogPostModel, BlogPostGridModel, BlogCommentListModel, BlogCommentModel). 4 Razor views (List, Create, Edit, Comments). Added UpdateBlogCommentAsync to IBlogService/BlogService (replaces legacy nav property pattern). BlogPost implements ISlugSupported — uses ValidateSeNameAsync + SaveSlugAsync with LanguageId. Follows ManufacturerController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Store mapping management deferred (consistent with other admin controllers).
 
-- [ ] [5.45] Admin: NewsController + News views
+- [x] [5.45] Admin: NewsController + News views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/NewsController, Admin/Views/News
   - Depends on: 5.1, 3.14
+  - Done: 2026-04-10. NewsController as 2 partial class files (main + helpers) with news item CRUD (List, NewsItemList AJAX grid, Create, Edit, Delete) and comment management (Comments, CommentList AJAX grid, CommentUpdate, CommentDelete, DeleteSelectedComments, ApproveSelected, DisapproveSelected). 5 view models (NewsItemListModel, NewsItemModel, NewsItemGridModel, NewsCommentListModel, NewsCommentModel). 4 Razor views (List, Create, Edit, Comments). Added UpdateNewsCommentAsync to INewsService/NewsService (replaces legacy nav property pattern). NewsItem implements ISlugSupported — uses ValidateSeNameAsync + SaveSlugAsync with LanguageId. Key differences from BlogController: NewsItem has Published field, Short/Full instead of BodyOverview/Body, no Tags field; NewsComment has CommentTitle column in grid. Follows BlogController [5.44] pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Store mapping management deferred (consistent with other admin controllers).
 
 - [ ] [5.46] Admin: ForumController + Forum views
   - Spec: specs/nop-admin.md

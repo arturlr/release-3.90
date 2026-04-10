@@ -3005,3 +3005,32 @@ Performed exhaustive verification across all dimensions:
 - [5.45] Admin NewsController: follows the same pattern — add `UpdateNewsCommentAsync` to `INewsService`, create NewsController with post CRUD + comment management
 - [5.47] Admin PollController: simpler — no comments, just poll CRUD + answer management
 - [5.48] Admin TopicController: simpler — no comments, just topic CRUD
+
+## 2026-04-10 — [5.45] Admin NewsController / Implementation
+
+### Follows BlogController Pattern Exactly
+- NewsController is structurally identical to BlogController [5.44]: news item CRUD (List, Create, Edit, Delete) + comment management (Comments, CommentList, CommentUpdate, CommentDelete, DeleteSelectedComments, ApproveSelected, DisapproveSelected)
+- Same constructor dependencies (9): INewsService, ILanguageService, IDateTimeHelper, ICustomerService, IUrlRecordService, IStoreService, ICustomerActivityService, IPermissionService, SeoSettings
+- Same patterns: primary constructor, `Forbid()`, `DataSourceResult`, inline model mapping, `ValidateSeNameAsync` + `SaveSlugAsync` with `LanguageId`
+
+### Key Differences from BlogController
+- **Published field**: NewsItem has `Published` bool property — BlogPost does not. Grid shows Published column, Create defaults to `Published = true`
+- **Short/Full instead of BodyOverview/Body**: NewsItem uses `Short` and `Full` property names (legacy naming convention) instead of Blog's `BodyOverview` and `Body`
+- **No Tags field**: NewsItem has no `Tags` property — Blog has comma-separated tags with tag cloud and tag-based filtering
+- **CommentTitle**: NewsComment has `CommentTitle` property — BlogComment does not. Comments grid shows Title column
+
+### UpdateNewsCommentAsync Added to INewsService
+- Legacy `CommentUpdate` modified `comment.IsApproved` then called `_newsService.UpdateNews(comment.NewsItem)` — updating the parent news item entity to persist a comment change via nav property
+- Nav properties stripped in [1.3] — added `UpdateNewsCommentAsync(NewsComment)` to `INewsService`/`NewsService`
+- Pattern consistent with `UpdateBlogCommentAsync` (added in [5.44])
+
+### NewsCommentApprovedEvent Not Published
+- Legacy `CommentUpdate` and `ApproveSelected` published `NewsCommentApprovedEvent(comment)` when a comment was newly approved
+- `NewsCommentApprovedEvent` class doesn't exist in the new codebase — no event consumers are registered for it
+- Omitted to avoid creating an unused event class — consistent with BlogController [5.44] approach
+
+### Impact on Future Items
+- [5.46] Admin ForumController: next CMS admin controller to implement — more complex (forum groups, forums, topics, posts)
+- [5.47] Admin PollController: simpler — poll CRUD + answer management, no comments
+- [5.48] Admin TopicController: simpler — topic CRUD, no comments
+- Admin CMS area now complete: Blog [5.44] + News [5.45]. Forum [5.46], Poll [5.47], Topic [5.48] remain

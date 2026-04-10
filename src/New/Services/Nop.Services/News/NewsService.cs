@@ -194,5 +194,12 @@ public class NewsService : INewsService
         }
     }
 
+    public async Task UpdateNewsCommentAsync(NewsComment newsComment)
+    {
+        ArgumentNullException.ThrowIfNull(newsComment);
+        _newsCommentRepository.Update(newsComment);
+        await _eventPublisher.EntityUpdatedAsync(newsComment);
+    }
+
     #endregion
 }

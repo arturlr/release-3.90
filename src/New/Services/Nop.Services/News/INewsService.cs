@@ -35,4 +35,6 @@ public interface INewsService
     Task DeleteNewsCommentAsync(NewsComment newsComment);
 
     Task DeleteNewsCommentsAsync(IList<NewsComment> newsComments);
+
+    Task UpdateNewsCommentAsync(NewsComment newsComment);
 }

@@ -1,0 +1,79 @@
+@model Nop.Web.Areas.Admin.Models.News.NewsItemListModel
+@{ ViewData["Title"] = "News Items"; }
+
+<h1>News Items</h1>
+
+<form asp-action="List" method="get" id="search-form">
+    <div>
+        <label>Store</label>
+        <select asp-for="SearchStoreId" asp-items="Model.AvailableStores"></select>
+    </div>
+    <button type="submit" id="search-news">Search</button>
+</form>
+
+<p>
+    <a asp-action="Create">Add new</a>
+    |
+    <a asp-action="Comments">Manage comments</a>
+</p>
+
+<div id="news-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Language</th>
+                <th>Published</th>
+                <th>Approved comments</th>
+                <th>Not approved</th>
+                <th>Start date</th>
+                <th>End date</th>
+                <th>Created on</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="news-tbody"></tbody>
+    </table>
+    <div id="news-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadNews(1, 15); });
+    document.getElementById('search-news')?.addEventListener('click', function (e) { e.preventDefault(); loadNews(1, 15); });
+
+    function loadNews(page, pageSize) {
+        const form = document.getElementById('search-form');
+        const data = new URLSearchParams(new FormData(form));
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("NewsItemList", "News", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('news-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (n) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (n.Title || '') + '</td>'
+                        + '<td>' + (n.LanguageName || '') + '</td>'
+                        + '<td>' + (n.Published ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + n.ApprovedComments + '</td>'
+                        + '<td>' + n.NotApprovedComments + '</td>'
+                        + '<td>' + (n.StartDate || '') + '</td>'
+                        + '<td>' + (n.EndDate || '') + '</td>'
+                        + '<td>' + (n.CreatedOn || '') + '</td>'
+                        + '<td><a href="/Admin/News/Edit/' + n.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('news-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}
