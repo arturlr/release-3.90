@@ -1,0 +1,70 @@
+@model Nop.Web.Areas.Admin.Models.Discounts.DiscountModel
+@{ ViewData["Title"] = "Add a new discount"; }
+
+<h1>Add a new discount</h1>
+
+<form asp-action="Create" method="post">
+    <div>
+        <label asp-for="Name"></label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="DiscountTypeId">Discount type</label>
+        <select asp-for="DiscountTypeId" asp-items="Model.AvailableDiscountTypes"></select>
+    </div>
+    <div>
+        <label asp-for="UsePercentage"></label>
+        <input asp-for="UsePercentage" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DiscountPercentage"></label>
+        <input asp-for="DiscountPercentage" />
+    </div>
+    <div>
+        <label asp-for="DiscountAmount"></label>
+        <input asp-for="DiscountAmount" /> @Model.PrimaryStoreCurrencyCode
+    </div>
+    <div>
+        <label asp-for="MaximumDiscountAmount">Maximum discount amount</label>
+        <input asp-for="MaximumDiscountAmount" />
+    </div>
+    <div>
+        <label asp-for="StartDateUtc">Start date</label>
+        <input asp-for="StartDateUtc" type="datetime-local" />
+    </div>
+    <div>
+        <label asp-for="EndDateUtc">End date</label>
+        <input asp-for="EndDateUtc" type="datetime-local" />
+    </div>
+    <div>
+        <label asp-for="RequiresCouponCode"></label>
+        <input asp-for="RequiresCouponCode" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="CouponCode"></label>
+        <input asp-for="CouponCode" />
+    </div>
+    <div>
+        <label asp-for="IsCumulative"></label>
+        <input asp-for="IsCumulative" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DiscountLimitationId">Discount limitation</label>
+        <select asp-for="DiscountLimitationId" asp-items="Model.AvailableDiscountLimitationTypes"></select>
+    </div>
+    <div>
+        <label asp-for="LimitationTimes">N times</label>
+        <input asp-for="LimitationTimes" />
+    </div>
+    <div>
+        <label asp-for="MaximumDiscountedQuantity"></label>
+        <input asp-for="MaximumDiscountedQuantity" />
+    </div>
+    <div>
+        <label asp-for="AppliedToSubCategories"></label>
+        <input asp-for="AppliedToSubCategories" type="checkbox" />
+    </div>
+
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>

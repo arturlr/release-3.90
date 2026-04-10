@@ -525,10 +525,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Admin/Controllers/PluginController, Admin/Views/Plugin
   - Depends on: 5.1, 2.10
 
-- [ ] [5.40] Admin: DiscountController + Discount views
+- [x] [5.40] Admin: DiscountController + Discount views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/DiscountController, Admin/Views/Discount
   - Depends on: 5.1, 4.5
+  - Done: 2026-04-10. DiscountController as 2 partial class files (main + helpers) with core CRUD actions: List (search form with name/coupon/type filters), DiscountList (AJAX grid returning DiscountGridModel), Create (GET+POST), Edit (GET+POST with discount type change cleanup), Delete (POST). Applied-to entity management: ProductList/ProductDelete/ProductAdd, CategoryList/CategoryDelete/CategoryAdd, ManufacturerList/ManufacturerDelete/ManufacturerAdd (all AJAX, using join entity mapping CRUD methods). Usage history: UsageHistoryList/UsageHistoryDelete (AJAX). 7 view models in DiscountModels.cs. 3 Razor views (List, Create, Edit with inline AJAX grids). Added 9 entity mapping CRUD methods to IDiscountService/DiscountService (Insert/Delete/Get for DiscountCategoryMapping, DiscountManufacturerMapping, DiscountProductMapping). Discount requirements management deferred (plugin-dependent [2.10]). Follows ManufacturerController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
 - [ ] [5.41] Admin: ShippingController + Shipping views
   - Spec: specs/nop-admin.md

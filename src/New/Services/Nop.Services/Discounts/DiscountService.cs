@@ -197,6 +197,70 @@ public class DiscountService : IDiscountService
 
     #endregion
 
+    #region Entity mapping CRUD
+
+    public virtual Task InsertDiscountCategoryMappingAsync(DiscountCategoryMapping mapping)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        _discountCategoryMappingRepository.Insert(mapping);
+        return _cacheManager.RemoveByPrefixAsync(DiscountCategoryIdsPrefix);
+    }
+
+    public virtual Task DeleteDiscountCategoryMappingAsync(DiscountCategoryMapping mapping)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        _discountCategoryMappingRepository.Delete(mapping);
+        return _cacheManager.RemoveByPrefixAsync(DiscountCategoryIdsPrefix);
+    }
+
+    public virtual Task<DiscountCategoryMapping?> GetDiscountCategoryMappingAsync(int discountId, int categoryId)
+    {
+        return Task.FromResult(_discountCategoryMappingRepository.Table
+            .FirstOrDefault(m => m.DiscountId == discountId && m.CategoryId == categoryId));
+    }
+
+    public virtual Task InsertDiscountManufacturerMappingAsync(DiscountManufacturerMapping mapping)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        _discountManufacturerMappingRepository.Insert(mapping);
+        return _cacheManager.RemoveByPrefixAsync(DiscountManufacturerIdsPrefix);
+    }
+
+    public virtual Task DeleteDiscountManufacturerMappingAsync(DiscountManufacturerMapping mapping)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        _discountManufacturerMappingRepository.Delete(mapping);
+        return _cacheManager.RemoveByPrefixAsync(DiscountManufacturerIdsPrefix);
+    }
+
+    public virtual Task<DiscountManufacturerMapping?> GetDiscountManufacturerMappingAsync(int discountId, int manufacturerId)
+    {
+        return Task.FromResult(_discountManufacturerMappingRepository.Table
+            .FirstOrDefault(m => m.DiscountId == discountId && m.ManufacturerId == manufacturerId));
+    }
+
+    public virtual Task InsertDiscountProductMappingAsync(DiscountProductMapping mapping)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        _discountProductMappingRepository.Insert(mapping);
+        return Task.CompletedTask;
+    }
+
+    public virtual Task DeleteDiscountProductMappingAsync(DiscountProductMapping mapping)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        _discountProductMappingRepository.Delete(mapping);
+        return Task.CompletedTask;
+    }
+
+    public virtual Task<DiscountProductMapping?> GetDiscountProductMappingAsync(int discountId, int productId)
+    {
+        return Task.FromResult(_discountProductMappingRepository.Table
+            .FirstOrDefault(m => m.DiscountId == discountId && m.ProductId == productId));
+    }
+
+    #endregion
+
     #region Requirements
 
     public virtual Task<IList<DiscountRequirement>> GetAllDiscountRequirementsAsync(int discountId = 0, bool topLevelOnly = false)

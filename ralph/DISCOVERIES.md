@@ -2941,3 +2941,36 @@ Performed exhaustive verification across all dimensions:
 - Shipping/Tax settings sections should be added when their respective admin controllers ([5.41], [5.43]) are built
 - ReturnRequestReason/Action CRUD should be added when [5.60] Admin ReturnRequestController is built
 - Mode/StoreScopeConfiguration ViewComponents should be added when admin shared layout [5.81] is built
+
+## 2026-04-10 — [5.40] Admin DiscountController / Implementation
+
+### Entity Mapping CRUD Methods Added to IDiscountService
+- Legacy DiscountController used `discount.AppliedToProducts`, `discount.AppliedToCategories`, `discount.AppliedToManufacturers` nav properties for entity management (add/remove/list)
+- Nav properties stripped in [1.3] — `IDiscountService` only had `GetAppliedCategoryIdsAsync`, `GetAppliedManufacturerIdsAsync`, `GetAppliedProductIdsAsync` (read-only ID lists)
+- Added 9 methods: `InsertDiscountCategoryMappingAsync`, `DeleteDiscountCategoryMappingAsync`, `GetDiscountCategoryMappingAsync`, `InsertDiscountManufacturerMappingAsync`, `DeleteDiscountManufacturerMappingAsync`, `GetDiscountManufacturerMappingAsync`, `InsertDiscountProductMappingAsync`, `DeleteDiscountProductMappingAsync`, `GetDiscountProductMappingAsync`
+- These operate on the join entities directly (DiscountCategoryMapping, DiscountManufacturerMapping, DiscountProductMapping)
+- Cache invalidation: category and manufacturer mapping changes invalidate their respective cache prefixes; product mappings have no cache (matching existing pattern)
+
+### Discount Requirements Management Deferred
+- Legacy DiscountController had complex requirements management: `GetDiscountRequirementConfigurationUrl`, `GetDiscountRequirements`, `AddNewGroup` — all depend on `IDiscountRequirementRule` plugin resolution via `IPluginFinder`
+- Plugin system [2.10] not built — requirements management deferred entirely
+- Edit view has a Razor comment noting the deferral
+- When [2.10] is built and [6.14]/[6.15] discount rule plugins are implemented, add requirements management actions
+
+### Discount Type Change Cleanup Pattern
+- Legacy Edit action cleaned up entity mappings when discount type changed (e.g., from AssignedToCategories to AssignedToOrderTotal)
+- New code preserves this: `ClearCategoryMappingsAsync`, `ClearManufacturerMappingsAsync`, `ClearProductMappingsAsync` private helpers
+- Legacy also called `_productService.UpdateHasDiscountsApplied(product)` after product mapping changes — this method doesn't exist in the new `IProductService` (it was a denormalization optimization). Dropped — discount application is checked via join entity queries, not a denormalized flag
+
+### CategoryList Uses Inefficient N+1 Pattern
+- `GetMappedCategoryIdsAsync` iterates all categories and checks each for a mapping — O(N) queries where N = total categories
+- This is because `IDiscountService.GetAppliedCategoryIdsAsync` requires a `Customer` parameter (for subcategory expansion) and the admin controller doesn't have a customer context for raw mapping queries
+- Acceptable for admin operations (low frequency, small category counts typically <100)
+- Future optimization: add `GetDiscountCategoryMappingsByDiscountIdAsync(int discountId)` to `IDiscountService` returning all mappings directly
+
+### Impact on Future Items
+- [6.14] Plugin: DiscountRules.CustomerRoles: when built, add requirements management actions to DiscountController
+- [6.15] Plugin: DiscountRules.HasOneProduct: same as above
+- [5.31] Admin ProductController sub-entity management: product discount assignment can reference the same `DiscountProductMapping` pattern
+- [5.32] Admin CategoryController sub-entity management: category discount assignment can reference `DiscountCategoryMapping` pattern
+- [5.33] Admin ManufacturerController sub-entity management: manufacturer discount assignment can reference `DiscountManufacturerMapping` pattern

@@ -1,0 +1,242 @@
+@model Nop.Web.Areas.Admin.Models.Discounts.DiscountModel
+@{ ViewData["Title"] = "Edit discount"; }
+
+<h1>Edit discount - @Model.Name</h1>
+
+<form asp-action="Edit" method="post">
+    <input asp-for="Id" type="hidden" />
+    <div>
+        <label asp-for="Name"></label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="DiscountTypeId">Discount type</label>
+        <select asp-for="DiscountTypeId" asp-items="Model.AvailableDiscountTypes"></select>
+    </div>
+    <div>
+        <label asp-for="UsePercentage"></label>
+        <input asp-for="UsePercentage" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DiscountPercentage"></label>
+        <input asp-for="DiscountPercentage" />
+    </div>
+    <div>
+        <label asp-for="DiscountAmount"></label>
+        <input asp-for="DiscountAmount" /> @Model.PrimaryStoreCurrencyCode
+    </div>
+    <div>
+        <label asp-for="MaximumDiscountAmount">Maximum discount amount</label>
+        <input asp-for="MaximumDiscountAmount" />
+    </div>
+    <div>
+        <label asp-for="StartDateUtc">Start date</label>
+        <input asp-for="StartDateUtc" type="datetime-local" />
+    </div>
+    <div>
+        <label asp-for="EndDateUtc">End date</label>
+        <input asp-for="EndDateUtc" type="datetime-local" />
+    </div>
+    <div>
+        <label asp-for="RequiresCouponCode"></label>
+        <input asp-for="RequiresCouponCode" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="CouponCode"></label>
+        <input asp-for="CouponCode" />
+    </div>
+    <div>
+        <label asp-for="IsCumulative"></label>
+        <input asp-for="IsCumulative" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DiscountLimitationId">Discount limitation</label>
+        <select asp-for="DiscountLimitationId" asp-items="Model.AvailableDiscountLimitationTypes"></select>
+    </div>
+    <div>
+        <label asp-for="LimitationTimes">N times</label>
+        <input asp-for="LimitationTimes" />
+    </div>
+    <div>
+        <label asp-for="MaximumDiscountedQuantity"></label>
+        <input asp-for="MaximumDiscountedQuantity" />
+    </div>
+    <div>
+        <label asp-for="AppliedToSubCategories"></label>
+        <input asp-for="AppliedToSubCategories" type="checkbox" />
+    </div>
+
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+</form>
+
+@* Discount requirements — deferred to plugin system [2.10] *@
+
+@* Applied to products (only shown for AssignedToSkus type) *@
+<h2>Applied to products</h2>
+<div id="products-grid">
+    <table>
+        <thead><tr><th>Product</th><th>Actions</th></tr></thead>
+        <tbody id="products-tbody"></tbody>
+    </table>
+    <div id="products-pager"></div>
+</div>
+<div>
+    <label>Add product by ID:</label>
+    <input type="number" id="add-product-id" />
+    <button type="button" id="add-product-btn">Add</button>
+</div>
+
+@* Applied to categories (only shown for AssignedToCategories type) *@
+<h2>Applied to categories</h2>
+<div id="categories-grid">
+    <table>
+        <thead><tr><th>Category</th><th>Actions</th></tr></thead>
+        <tbody id="categories-tbody"></tbody>
+    </table>
+    <div id="categories-pager"></div>
+</div>
+<div>
+    <label>Add category by ID:</label>
+    <input type="number" id="add-category-id" />
+    <button type="button" id="add-category-btn">Add</button>
+</div>
+
+@* Applied to manufacturers (only shown for AssignedToManufacturers type) *@
+<h2>Applied to manufacturers</h2>
+<div id="manufacturers-grid">
+    <table>
+        <thead><tr><th>Manufacturer</th><th>Actions</th></tr></thead>
+        <tbody id="manufacturers-tbody"></tbody>
+    </table>
+    <div id="manufacturers-pager"></div>
+</div>
+<div>
+    <label>Add manufacturer by ID:</label>
+    <input type="number" id="add-manufacturer-id" />
+    <button type="button" id="add-manufacturer-btn">Add</button>
+</div>
+
+@* Usage history *@
+<h2>Usage history</h2>
+<div id="history-grid">
+    <table>
+        <thead><tr><th>Order</th><th>Order total</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody id="history-tbody"></tbody>
+    </table>
+    <div id="history-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    const discountId = @Model.Id;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+
+    function postData(url, params) {
+        return fetch(url, { method: 'POST', headers: headers, body: new URLSearchParams(params) }).then(r => r.json());
+    }
+
+    // Products
+    function loadProducts() {
+        postData('@Url.Action("ProductList", "Discount", new { area = "Admin" })', { discountId: discountId, Page: 1, PageSize: 50 })
+        .then(result => {
+            const tbody = document.getElementById('products-tbody');
+            tbody.innerHTML = '';
+            (result.Data || []).forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + (p.ProductName || '') + ' (ID: ' + p.ProductId + ')</td>'
+                    + '<td><button onclick="deleteProduct(' + p.ProductId + ')">Remove</button></td>';
+                tbody.appendChild(tr);
+            });
+            document.getElementById('products-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+    function deleteProduct(productId) {
+        postData('@Url.Action("ProductDelete", "Discount", new { area = "Admin" })', { discountId: discountId, productId: productId }).then(() => loadProducts());
+    }
+    document.getElementById('add-product-btn')?.addEventListener('click', function () {
+        const id = document.getElementById('add-product-id').value;
+        if (id) postData('@Url.Action("ProductAdd", "Discount", new { area = "Admin" })', { discountId: discountId, selectedProductIds: id }).then(() => { loadProducts(); document.getElementById('add-product-id').value = ''; });
+    });
+
+    // Categories
+    function loadCategories() {
+        postData('@Url.Action("CategoryList", "Discount", new { area = "Admin" })', { discountId: discountId, Page: 1, PageSize: 50 })
+        .then(result => {
+            const tbody = document.getElementById('categories-tbody');
+            tbody.innerHTML = '';
+            (result.Data || []).forEach(c => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + (c.CategoryName || '') + ' (ID: ' + c.CategoryId + ')</td>'
+                    + '<td><button onclick="deleteCategory(' + c.CategoryId + ')">Remove</button></td>';
+                tbody.appendChild(tr);
+            });
+            document.getElementById('categories-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+    function deleteCategory(categoryId) {
+        postData('@Url.Action("CategoryDelete", "Discount", new { area = "Admin" })', { discountId: discountId, categoryId: categoryId }).then(() => loadCategories());
+    }
+    document.getElementById('add-category-btn')?.addEventListener('click', function () {
+        const id = document.getElementById('add-category-id').value;
+        if (id) postData('@Url.Action("CategoryAdd", "Discount", new { area = "Admin" })', { discountId: discountId, selectedCategoryIds: id }).then(() => { loadCategories(); document.getElementById('add-category-id').value = ''; });
+    });
+
+    // Manufacturers
+    function loadManufacturers() {
+        postData('@Url.Action("ManufacturerList", "Discount", new { area = "Admin" })', { discountId: discountId, Page: 1, PageSize: 50 })
+        .then(result => {
+            const tbody = document.getElementById('manufacturers-tbody');
+            tbody.innerHTML = '';
+            (result.Data || []).forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + (m.ManufacturerName || '') + ' (ID: ' + m.ManufacturerId + ')</td>'
+                    + '<td><button onclick="deleteManufacturer(' + m.ManufacturerId + ')">Remove</button></td>';
+                tbody.appendChild(tr);
+            });
+            document.getElementById('manufacturers-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+    function deleteManufacturer(manufacturerId) {
+        postData('@Url.Action("ManufacturerDelete", "Discount", new { area = "Admin" })', { discountId: discountId, manufacturerId: manufacturerId }).then(() => loadManufacturers());
+    }
+    document.getElementById('add-manufacturer-btn')?.addEventListener('click', function () {
+        const id = document.getElementById('add-manufacturer-id').value;
+        if (id) postData('@Url.Action("ManufacturerAdd", "Discount", new { area = "Admin" })', { discountId: discountId, selectedManufacturerIds: id }).then(() => { loadManufacturers(); document.getElementById('add-manufacturer-id').value = ''; });
+    });
+
+    // Usage history
+    function loadHistory() {
+        postData('@Url.Action("UsageHistoryList", "Discount", new { area = "Admin" })', { discountId: discountId, Page: 1, PageSize: 50 })
+        .then(result => {
+            const tbody = document.getElementById('history-tbody');
+            tbody.innerHTML = '';
+            (result.Data || []).forEach(h => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td><a href="/Admin/Order/Edit/' + h.OrderId + '">#' + h.OrderId + '</a></td>'
+                    + '<td>' + (h.OrderTotal || '') + '</td>'
+                    + '<td>' + new Date(h.CreatedOn).toLocaleString() + '</td>'
+                    + '<td><button onclick="deleteHistory(' + h.Id + ')">Delete</button></td>';
+                tbody.appendChild(tr);
+            });
+            document.getElementById('history-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+    function deleteHistory(id) {
+        postData('@Url.Action("UsageHistoryDelete", "Discount", new { area = "Admin" })', { id: id }).then(() => loadHistory());
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        loadProducts();
+        loadCategories();
+        loadManufacturers();
+        loadHistory();
+    });
+</script>
+}

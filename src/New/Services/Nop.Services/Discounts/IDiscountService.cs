@@ -19,6 +19,17 @@ public interface IDiscountService
     Task<IList<int>> GetAppliedManufacturerIdsAsync(int discountId);
     Task<IList<int>> GetAppliedProductIdsAsync(int discountId);
 
+    // Entity mapping CRUD
+    Task InsertDiscountCategoryMappingAsync(DiscountCategoryMapping mapping);
+    Task DeleteDiscountCategoryMappingAsync(DiscountCategoryMapping mapping);
+    Task<DiscountCategoryMapping?> GetDiscountCategoryMappingAsync(int discountId, int categoryId);
+    Task InsertDiscountManufacturerMappingAsync(DiscountManufacturerMapping mapping);
+    Task DeleteDiscountManufacturerMappingAsync(DiscountManufacturerMapping mapping);
+    Task<DiscountManufacturerMapping?> GetDiscountManufacturerMappingAsync(int discountId, int manufacturerId);
+    Task InsertDiscountProductMappingAsync(DiscountProductMapping mapping);
+    Task DeleteDiscountProductMappingAsync(DiscountProductMapping mapping);
+    Task<DiscountProductMapping?> GetDiscountProductMappingAsync(int discountId, int productId);
+
     // Requirements
     Task<IList<DiscountRequirement>> GetAllDiscountRequirementsAsync(int discountId = 0, bool topLevelOnly = false);
     Task DeleteDiscountRequirementAsync(DiscountRequirement discountRequirement);

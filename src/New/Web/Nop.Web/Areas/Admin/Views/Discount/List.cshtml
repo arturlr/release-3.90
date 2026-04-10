@@ -1,0 +1,78 @@
+@model Nop.Web.Areas.Admin.Models.Discounts.DiscountListModel
+@{ ViewData["Title"] = "Discounts"; }
+
+<h1>Discounts</h1>
+
+<form asp-action="List" method="get" id="search-form">
+    <div>
+        <label>Discount name</label>
+        <input asp-for="SearchDiscountName" />
+    </div>
+    <div>
+        <label>Coupon code</label>
+        <input asp-for="SearchDiscountCouponCode" />
+    </div>
+    <div>
+        <label>Discount type</label>
+        <select asp-for="SearchDiscountTypeId" asp-items="Model.AvailableDiscountTypes"></select>
+    </div>
+    <button type="submit" id="search-discounts">Search</button>
+</form>
+
+<p>
+    <a asp-action="Create">Add new</a>
+</p>
+
+<div id="discounts-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Discount type</th>
+                <th>Amount</th>
+                <th>Times used</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="discounts-tbody"></tbody>
+    </table>
+    <div id="discounts-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadDiscounts(1, 15); });
+    document.getElementById('search-discounts')?.addEventListener('click', function (e) { e.preventDefault(); loadDiscounts(1, 15); });
+
+    function loadDiscounts(page, pageSize) {
+        const form = document.getElementById('search-form');
+        const data = new URLSearchParams(new FormData(form));
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("DiscountList", "Discount", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('discounts-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (d) {
+                    const tr = document.createElement('tr');
+                    const amount = d.UsePercentage ? d.DiscountPercentage + '%' : d.DiscountAmount.toFixed(2);
+                    tr.innerHTML = '<td>' + (d.Name || '') + '</td>'
+                        + '<td>' + (d.DiscountTypeName || '') + '</td>'
+                        + '<td>' + amount + '</td>'
+                        + '<td>' + d.TimesUsed + '</td>'
+                        + '<td><a href="/Admin/Discount/Edit/' + d.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('discounts-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}
