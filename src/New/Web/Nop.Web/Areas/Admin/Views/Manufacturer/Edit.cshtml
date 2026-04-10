@@ -1,0 +1,92 @@
+@model Nop.Web.Areas.Admin.Models.Catalog.ManufacturerModel
+@{ ViewData["Title"] = $"Edit manufacturer - {Model.Name}"; }
+
+<h1>Edit manufacturer — @Model.Name</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <fieldset>
+        <legend>Manufacturer info</legend>
+        <div>
+            <label asp-for="Name">Name</label>
+            <input asp-for="Name" />
+            <span asp-validation-for="Name"></span>
+        </div>
+        <div>
+            <label asp-for="Description">Description</label>
+            <textarea asp-for="Description"></textarea>
+        </div>
+        <div>
+            <label asp-for="ManufacturerTemplateId">Manufacturer template</label>
+            <select asp-for="ManufacturerTemplateId" asp-items="Model.AvailableManufacturerTemplates"></select>
+        </div>
+        <div>
+            <label asp-for="SeName">Search engine friendly page name</label>
+            <input asp-for="SeName" />
+        </div>
+        <div>
+            <label asp-for="Published">Published</label>
+            <input asp-for="Published" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="DisplayOrder">Display order</label>
+            <input asp-for="DisplayOrder" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Display</legend>
+        <div>
+            <label asp-for="PageSize">Page size</label>
+            <input asp-for="PageSize" />
+        </div>
+        <div>
+            <label asp-for="AllowCustomersToSelectPageSize">Allow customers to select page size</label>
+            <input asp-for="AllowCustomersToSelectPageSize" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="PageSizeOptions">Page size options</label>
+            <input asp-for="PageSizeOptions" />
+        </div>
+        <div>
+            <label asp-for="PriceRanges">Price ranges</label>
+            <input asp-for="PriceRanges" />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>SEO</legend>
+        <div>
+            <label asp-for="MetaKeywords">Meta keywords</label>
+            <input asp-for="MetaKeywords" />
+        </div>
+        <div>
+            <label asp-for="MetaDescription">Meta description</label>
+            <textarea asp-for="MetaDescription"></textarea>
+        </div>
+        <div>
+            <label asp-for="MetaTitle">Meta title</label>
+            <input asp-for="MetaTitle" />
+        </div>
+    </fieldset>
+
+    @* Sub-entity management tabs will be added in future iterations:
+       - Products (ProductList/Update/Delete/AddPopup) [5.33 sub-item]
+       - Discounts [5.33 sub-item]
+       - ACL (customer roles) [5.33 sub-item]
+       - Store mapping [5.33 sub-item]
+       - Picture [5.33 sub-item]
+    *@
+
+    <button type="submit" name="save">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit" onclick="return confirm('Are you sure?');">Delete</button>
+</form>
+
+<p><a asp-action="List">back to manufacturer list</a></p>

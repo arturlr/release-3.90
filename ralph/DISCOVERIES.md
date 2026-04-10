@@ -2761,3 +2761,32 @@ Performed exhaustive verification across all dimensions:
   - ACL: customer role access (uses IAclService)
   - Store mapping: store assignment (uses IStoreMappingService)
   - Picture: category picture (uses IPictureService)
+
+## 2026-04-10 — [5.33] Admin ManufacturerController / Implementation
+
+### Scope: Core CRUD Only (Matching CategoryController/ProductController Pattern)
+- Legacy admin ManufacturerController has actions for: List, Create, Edit, Delete, ExportXml, ExportXlsx, ImportFromXlsx, ProductList, ProductUpdate, ProductDelete, ProductAddPopup
+- This iteration implements core CRUD only: List, ManufacturerList (AJAX), Create, Edit, Delete, DeleteSelected, ExportExcel, ImportExcel
+- Sub-entity management (products, discounts, ACL, store mapping, picture) deferred — each can be a separate iteration
+- Follows CategoryController [5.32] pattern exactly: primary constructor, `Forbid()`, `DataSourceResult`, inline model mapping, `ValidateSeNameAsync`, `InsertActivity`
+
+### Simpler Than Category — No Parent Hierarchy
+- Manufacturer has no `ParentCategoryId` equivalent — no parent dropdown, no breadcrumb computation, no self-exclusion logic
+- No `ShowOnHomePage` or `IncludeInTopMenu` properties — simpler form
+- Has `PriceRanges` field that Category doesn't have — included in model and views
+- Grid model has no Breadcrumb column (unlike CategoryGridModel)
+
+### ExportManufacturersToXlsx Is Sync
+- `IExportManager.ExportManufacturersToXlsx` returns `byte[]` (sync), not `Task<byte[]>` (async)
+- `ExportCategoriesToXlsxAsync` is async — inconsistency in the ExportManager API
+- ManufacturerController calls `exportManager.ExportManufacturersToXlsx(manufacturers)` directly (no await)
+- This is a minor API inconsistency that could be normalized in a future cleanup pass
+
+### Impact on Future Items
+- Sub-entity management actions should be added as separate iterations or sub-items of [5.33]:
+  - Products: ProductList/Update/Delete/AddPopup (uses IManufacturerService.GetProductManufacturersByManufacturerIdAsync)
+  - Discounts: discount assignment (uses IDiscountService.GetAllDiscounts + DiscountManufacturerMapping)
+  - ACL: customer role access (uses IAclService)
+  - Store mapping: store assignment (uses IStoreMappingService)
+  - Picture: manufacturer picture (uses IPictureService)
+- [5.34] Admin OrderController: next high-value admin controller to implement

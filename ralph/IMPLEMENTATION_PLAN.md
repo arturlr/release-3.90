@@ -485,10 +485,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.4
   - Done: 2026-04-10. CategoryController as 2 partial class files (main + helpers) with core CRUD actions: List (search form with name/store filters), CategoryList (AJAX grid returning CategoryGridModel with breadcrumb), Create (GET+POST), Edit (GET+POST), Delete (POST), DeleteSelected (POST batch), ExportExcel, ImportExcel. 3 view models: CategoryListModel (search filters + store dropdown), CategoryModel (all category fields + parent category dropdown + template dropdown), CategoryGridModel (grid display with breadcrumb). 3 Razor views: List.cshtml (search form + vanilla JS AJAX grid), Create.cshtml (category form), Edit.cshtml (category form + delete). Inline model construction (no model factory). Breadcrumb computed via static helper walking parent chain. Sub-entity management deferred: products (ProductList/Update/Delete/AddPopup), discounts, ACL (customer roles), store mapping, picture.
 
-- [ ] [5.33] Admin: ManufacturerController + Manufacturer views
+- [x] [5.33] Admin: ManufacturerController + Manufacturer views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/ManufacturerController, Admin/Views/Manufacturer
   - Depends on: 5.1, 4.4
+  - Done: 2026-04-10. ManufacturerController as 2 partial class files (main + helpers) with core CRUD actions: List (search form with name/store filters), ManufacturerList (AJAX grid returning ManufacturerGridModel), Create (GET+POST), Edit (GET+POST), Delete (POST), DeleteSelected (POST batch), ExportExcel, ImportExcel. 3 view models: ManufacturerListModel (search filters + store dropdown), ManufacturerModel (all manufacturer fields + template dropdown), ManufacturerGridModel (grid display). 3 Razor views: List.cshtml (search form + vanilla JS AJAX grid), Create.cshtml (manufacturer form), Edit.cshtml (manufacturer form + delete). Simpler than Category: no ParentCategoryId (no parent dropdown, no breadcrumb), no ShowOnHomePage, no IncludeInTopMenu. Has PriceRanges field. ExportManufacturersToXlsx is sync (not async). Permission is ManageManufacturers. Sub-entity management deferred: products, discounts, ACL, store mapping, picture.
 
 - [ ] [5.34] Admin: OrderController + Order views (list, detail, status, refunds, shipments)
   - Spec: specs/nop-admin.md
