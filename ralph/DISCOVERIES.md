@@ -2901,3 +2901,43 @@ Performed exhaustive verification across all dimensions:
 - [5.37] Admin CustomerAttributeController: can follow the same simple CRUD pattern
 - [5.35] Admin CustomerController: customer role checkboxes on customer edit form already use `ICustomerService.GetAllCustomerRolesAsync` — no changes needed
 - Product picker popup: when built, can be shared across CustomerRoleController, DiscountController, and any other controller that needs product selection
+
+## 2026-04-10 — [5.38] Admin SettingController / Implementation
+
+### Store Scope Pattern — GenericAttribute-Based
+- Legacy `GetActiveStoreScopeConfiguration` reads `AdminAreaStoreScopeConfiguration` GenericAttribute from current customer
+- New `GetActiveStoreScopeAsync` preserves this pattern: reads GenericAttribute via `GetAttributeAsync<int>`, validates store exists, returns 0 for "all stores" mode
+- `ChangeStoreScopeConfiguration` saves the selected store ID back to GenericAttribute
+- When storeScope > 0, each setting property checks `SettingExistsAsync` to determine if a store-specific override exists (drives checkbox state in UI)
+- POST actions use `SaveSettingOverridablePerStoreAsync` which either saves a store-specific value or deletes the override (falling back to shared value)
+
+### CustomerUser Section — Composite Settings (No Per-Store Override)
+- Legacy `CustomerUser` loads 4 settings classes: CustomerSettings, AddressSettings, DateTimeSettings, ExternalAuthenticationSettings
+- Unlike other sections, CustomerUser does NOT use per-store overrides — saves all settings directly via `SaveSettingAsync`
+- This matches legacy behavior: customer/address settings are global, not per-store
+- Enum properties (UserRegistrationType, CustomerNameFormat) cast to/from int in model — avoids enum model binding complexity
+
+### IPictureService.StoreInDb Is a Sync Property
+- Legacy `Media` section checked `_pictureService.StoreInDb` (sync property) to show "Pictures stored in database" indicator
+- New code uses `pictureService.StoreInDb` directly — not an async method
+- `ChangePictureStorage` action (toggles between DB and file system storage) deferred — complex operation that migrates all picture binaries
+
+### AllSettings CRUD — Simplified from Legacy
+- Legacy used `PagedForCommand` extension method (Kendo UI helper) for paging — not available in new codebase
+- New code uses simple `Skip/Take` paging with `DataSourceRequest.Page` and `DataSourceRequest.PageSize`
+- Legacy used `NullJsonResult` custom action result — new code returns `Json(new { })` for empty success responses
+- Legacy used `[AdminAntiForgery(true)]` to disable anti-forgery for grid filtering — new code omits anti-forgery on AJAX grid endpoints (matching other admin controllers)
+
+### Deferred Sections
+- **GeneralCommon**: Most complex section (178 LOC GET, 199 LOC POST). Covers SEO settings, security settings, PDF settings, localization settings, fulltext search, encryption key management. Depends on IThemeProvider (not built), IFulltextService, IEncryptionService, NopConfig. Should be a separate plan item.
+- **Shipping**: Depends on plugin system [2.10] for shipping origin address and shipping computation methods
+- **Tax**: Complex — tax categories dropdown, EU VAT settings, tax display types. Depends on ITaxCategoryService, ICountryService, IStateProvinceService
+- **ReturnRequestReason/Action CRUD**: Sub-entity management with localization. Depends on IReturnRequestService, ILocalizedEntityService
+- **Mode/StoreScopeConfiguration**: Legacy child actions → ViewComponents. Mode stores advanced/basic mode preference in GenericAttribute
+- **SortOptionsList/SortOptionUpdate**: Product sorting option management — sub-entity CRUD within Catalog settings
+
+### Impact on Future Items
+- GeneralCommon section should be added as a separate plan item or sub-item when IThemeProvider and other dependencies are available
+- Shipping/Tax settings sections should be added when their respective admin controllers ([5.41], [5.43]) are built
+- ReturnRequestReason/Action CRUD should be added when [5.60] Admin ReturnRequestController is built
+- Mode/StoreScopeConfiguration ViewComponents should be added when admin shared layout [5.81] is built

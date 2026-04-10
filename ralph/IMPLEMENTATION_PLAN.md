@@ -514,10 +514,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Scope: Admin/Controllers/CustomerAttributeController, Admin/Views/CustomerAttribute
   - Depends on: 5.1, 4.1
 
-- [ ] [5.38] Admin: SettingController + Setting views (all configuration sections)
+- [x] [5.38] Admin: SettingController + Setting views (all configuration sections)
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/SettingController (2339 LOC), Admin/Views/Setting
   - Depends on: 5.1, 3.1
+  - Done: 2026-04-10. SettingController as 5 partial class files (main + BlogVendorForumNews + Catalog + OrderCartMedia + CustomerAllSettings). 11 settings sections implemented: Blog, Vendor, Forum, News, Catalog, Order, ShoppingCart, Media, CustomerUser (CustomerSettings + AddressSettings + DateTimeSettings + ExternalAuthenticationSettings), RewardPoints, AllSettings (raw CRUD grid with search/add/update/delete). Store-scoped overrides via SaveSettingOverridablePerStoreAsync for all per-store settings. GetActiveStoreScopeAsync reads AdminAreaStoreScopeConfiguration GenericAttribute. ChangeStoreScopeConfiguration action for store scope switching. 20 view models in SettingModels.cs. Deferred: GeneralCommon (complex: SEO, security, PDF, localization, fulltext, encryption key), Shipping (depends on plugin system [2.10]), Tax (complex: tax categories, EU VAT), ReturnRequestReason/Action CRUD (sub-entity management), ChangePictureStorage (storage mode migration), Mode/StoreScopeConfiguration child actions (ViewComponents).
 
 - [ ] [5.39] Admin: PluginController + Plugin views (install, uninstall, configure)
   - Spec: specs/nop-admin.md
