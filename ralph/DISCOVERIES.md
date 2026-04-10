@@ -1706,3 +1706,61 @@ Performed exhaustive verification across all dimensions:
 - [5.17] Public PrivateMessagesController: can now use `IForumService` for PM operations
 - [5.46] Admin ForumController: can now use `IForumService` for forum CRUD
 - [3.16] GDPR: `PermanentDeleteCustomerAsync` already deletes forum posts/topics/subscriptions/private messages — no changes needed
+
+## 2026-04-10 — [5.1] Nop.Web.Framework / Implementation
+
+### Service Locator Elimination — Complete
+- All 8 legacy action filter attributes used `EngineContext.Current.Resolve<T>()` (service locator pattern)
+- New code uses `IAsyncActionFilter` with primary constructor DI injection — zero service locator calls
+- `NopResourceDisplayName` is the only exception: uses static `IHttpContextAccessor` because `DisplayNameAttribute` is instantiated by the MVC metadata system, not DI. Requires `NopResourceDisplayName.Configure(httpContextAccessor)` call at startup
+
+### WebWorkContext — Removed IStoreMappingService and LocalizationSettings Dependencies
+- Legacy `WebWorkContext` used `IStoreMappingService` for language store filtering and `LocalizationSettings` for SEO URL language detection
+- Language store filtering was already deferred in [2.3] discovery — `GetAllLanguagesAsync(storeId)` handles store filtering at the service level
+- SEO URL language detection deferred to `LanguageSeoCodeFilter` (currently a no-op placeholder) — requires localized URL routing infrastructure
+- Removing these dependencies simplifies the constructor from 15 to 12 parameters
+
+### Action Filters — IAsyncActionFilter vs ActionFilterAttribute
+- Legacy used `ActionFilterAttribute` (ASP.NET MVC 5) with `OnActionExecuting` override
+- New code uses `IAsyncActionFilter` (ASP.NET Core) with `OnActionExecutionAsync` — supports async operations natively
+- Tracking filters (CustomerLastActivity, StoreIpAddress, StoreLastVisitedPage, CheckAffiliate) run AFTER action execution (`await next()` first)
+- Blocking filters (StoreClosed, PublicStoreAllowNavigation, ValidatePassword) run BEFORE action execution (set `context.Result` to short-circuit)
+- `LanguageSeoCodeFilter` is a no-op placeholder — full implementation requires localized URL routing infrastructure (LocalizedRoute, LocalizedUrlExtensions)
+
+### ValidatePassword — No PasswordIsExpired Extension Method
+- Legacy used `customer.PasswordIsExpired()` extension method (service locator based, from `CustomerExtensions`)
+- New code uses `ICustomerService.GetCurrentPasswordAsync(customer.Id)` + `CustomerSettings.PasswordLifetime` to check expiration directly
+- Also checks if customer is registered via `ICustomerService.GetCustomerRoleIdsAsync` (no nav properties)
+
+### BaseController — No Service Locator for Logging
+- Legacy `LogException` used `EngineContext.Current.Resolve<IWorkContext>()` and `EngineContext.Current.Resolve<ILogger>()`
+- New `ErrorNotification(Exception)` uses `HttpContext.RequestServices.GetService<ILogger<BaseController>>()` — scoped to the request, not a global service locator
+- This is the only `RequestServices` usage in the entire Web.Framework — all other DI is via constructor injection
+
+### FluentValidation — SetDatabaseValidationRules Dropped
+- Legacy `BaseNopValidator<T>.SetDatabaseValidationRules` used `System.Linq.Dynamic` to dynamically create validation rules from DB column metadata
+- This required `IDbContext.GetColumnsMaxLength()` and `IDbContext.GetDecimalMaxValue()` — EF Core doesn't expose these
+- New approach: validators use explicit `RuleFor(x => x.Name).MaximumLength(400)` rules matching entity configuration
+- Trade-off: validation rules must be manually kept in sync with EF Core configurations. This is standard practice in modern ASP.NET Core apps
+
+### Kendo UI — Filter/Sort/QueryableExtensions Dropped
+- Legacy `Filter`, `Sort`, `QueryableExtensions`, `ModelStateExtensions` all depended on `System.Linq.Dynamic`
+- New code only provides `DataSourceRequest` (Page/PageSize) and `DataSourceResult` (Data/Total/Errors/ExtraData)
+- Admin grids will use server-side paging: controller receives `DataSourceRequest`, queries with `.Skip((page-1)*pageSize).Take(pageSize)`, returns `DataSourceResult`
+- No dynamic LINQ filtering/sorting — admin controllers will implement filtering explicitly in LINQ queries
+
+### Deferred Components
+- **Theme engine** (IThemeContext, IThemeProvider, ThemeableRazorViewEngine): requires view location expander infrastructure — deferred until views are built
+- **GenericPathRoute SEO routing**: requires ASP.NET Core endpoint routing customization — deferred until public controllers need SEO-friendly URLs
+- **Localized URL routing** (LocalizedRoute, LocalizedUrlExtensions): requires route constraint infrastructure — deferred
+- **IPageHeadBuilder**: requires layout views — deferred until [5.26] Shared views
+- **Captcha/Honeypot**: deferred to [7.13] Google reCAPTCHA integration
+- **RemotePost**: deferred until payment plugins need form POST redirects
+- **Custom model binders** (NopModelBinder, CommaSeparatedModelBinder): deferred until controllers need them
+- **Custom action results** (RssActionResult, NullJsonResult, XmlDownloadResult): deferred until controllers need them
+
+### Impact on Future Items
+- [5.2-5.28] Public controllers: can now extend `BasePublicController`, use `IWorkContext` via DI
+- [5.30-5.82] Admin controllers: can now extend `BaseAdminController`, use `[Authorize(Policy = "...")]` for permissions
+- Action filters must be registered as global filters or per-controller in `Program.cs`: `services.AddScoped<CustomerLastActivityFilter>()` + `options.Filters.AddService<CustomerLastActivityFilter>()`
+- `NopResourceDisplayName.Configure(httpContextAccessor)` must be called in `Program.cs` after DI container is built

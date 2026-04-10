@@ -6,6 +6,9 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\Core\Nop.Core\Nop.Core.csproj" />
     <ProjectReference Include="..\..\Services\Nop.Services\Nop.Services.csproj" />
   </ItemGroup>
