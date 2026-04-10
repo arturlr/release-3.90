@@ -1,0 +1,78 @@
+@model Nop.Web.Models.Polls.PollModel
+<div class="poll" id="poll-block-@Model.Id">
+    <strong class="poll-display-text">@Model.Name</strong>
+    @if (Model.AlreadyVoted)
+    {
+        <ul class="poll-results">
+            @foreach (var item in Model.Answers)
+            {
+                <li class="answer">
+                    @item.Name — @item.NumberOfVotes votes (@item.PercentOfTotalVotes.ToString("0.0")%)
+                </li>
+            }
+        </ul>
+        <span class="poll-total-votes">Total votes: @Model.TotalVotes</span>
+    }
+    else
+    {
+        <form id="poll-form-@Model.Id">
+            <ul class="poll-options">
+                @foreach (var item in Model.Answers)
+                {
+                    <li class="answer">
+                        <input id="pollanswers-@item.Id" type="radio" name="pollAnswerId" value="@item.Id" />
+                        <label for="pollanswers-@item.Id">@item.Name</label>
+                    </li>
+                }
+            </ul>
+            <div class="buttons">
+                <button type="button" class="button-2 vote-poll-button" data-poll-id="@Model.Id">Vote</button>
+                <span id="poll-voting-progress-@Model.Id" style="display: none;" class="please-wait">Please wait...</span>
+            </div>
+            <div class="poll-vote-error" id="block-poll-vote-error-@Model.Id" style="display:none"></div>
+        </form>
+        <script>
+            document.querySelector('[data-poll-id="@Model.Id"]').addEventListener('click', async function () {
+                var form = document.getElementById('poll-form-@Model.Id');
+                var selected = form.querySelector('input[name="pollAnswerId"]:checked');
+                if (!selected) {
+                    alert('Please select an answer.');
+                    return;
+                }
+                var progress = document.getElementById('poll-voting-progress-@Model.Id');
+                var errorBlock = document.getElementById('block-poll-vote-error-@Model.Id');
+                progress.style.display = '';
+                errorBlock.style.display = 'none';
+                try {
+                    var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                    var response = await fetch('@Url.Action("Vote", "Poll")', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token },
+                        body: 'pollAnswerId=' + selected.value + '&__RequestVerificationToken=' + encodeURIComponent(token)
+                    });
+                    var data = await response.json();
+                    progress.style.display = 'none';
+                    if (data.error) {
+                        errorBlock.textContent = data.error;
+                        errorBlock.style.display = '';
+                        setTimeout(function () { errorBlock.style.display = 'none'; }, 3000);
+                    } else if (data.poll) {
+                        var container = document.getElementById('poll-block-@Model.Id');
+                        var html = '<strong class="poll-display-text">' + data.poll.name + '</strong>';
+                        html += '<ul class="poll-results">';
+                        for (var i = 0; i < data.poll.answers.length; i++) {
+                            var a = data.poll.answers[i];
+                            html += '<li class="answer">' + a.name + ' \u2014 ' + a.numberOfVotes + ' votes (' + a.percentOfTotalVotes.toFixed(1) + '%)</li>';
+                        }
+                        html += '</ul>';
+                        html += '<span class="poll-total-votes">Total votes: ' + data.poll.totalVotes + '</span>';
+                        container.innerHTML = html;
+                    }
+                } catch {
+                    progress.style.display = 'none';
+                    alert('Failed to vote.');
+                }
+            });
+        </script>
+    }
+</div>

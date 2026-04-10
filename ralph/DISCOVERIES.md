@@ -2416,3 +2416,28 @@ Performed exhaustive verification across all dimensions:
 - [5.46] Admin ForumController: can now reference the same model preparation patterns
 - [5.26] Shared views: LastPost, ForumBreadcrumb, ActiveDiscussionsSmall should become ViewComponents
 - RSS infrastructure: when `RssActionResult` or equivalent is built, add `ActiveDiscussionsRss` and `ForumRss` actions
+
+## 2026-04-10 — [5.14] Public PollController / Implementation
+
+### Vote Action — JSON Data Instead of Rendered HTML
+- Legacy `Vote` action returned `Json(new { html = this.RenderPartialViewToString("_Poll", model) })` — server-side rendered HTML injected via jQuery `replaceWith`
+- `RenderPartialViewToString` is a custom extension method requiring `ICompositeViewEngine` and `ITempDataProvider` — not available in the new codebase (deferred in [5.1])
+- New code returns `Json(new { success = true, poll = model })` — client-side JavaScript rebuilds the DOM from JSON data
+- Trade-off: client-side rendering is slightly more code in the view's `<script>` block, but eliminates the `RenderPartialViewToString` dependency entirely
+- This is the same pattern used by TopicController's Authenticate action (returns JSON data, client-side DOM update)
+
+### Service Methods Added for Nav Property Replacement
+- `GetPollAnswersByPollIdAsync(int pollId)` — replaces `poll.PollAnswers` nav property (ordered by DisplayOrder)
+- `UpdatePollAnswerAsync(PollAnswer)` — needed to increment `NumberOfVotes` after voting
+- `InsertPollVotingRecordAsync(PollVotingRecord)` — replaces `pollAnswer.PollVotingRecords.Add()` nav property collection manipulation
+- Pattern consistent with `InsertBlogCommentAsync` ([5.10]), `InsertNewsCommentAsync` ([5.11]), `InsertOrderItemAsync` ([4.9c])
+
+### No Caching (Deferred)
+- Legacy used `ModelCacheEventConsumer` with `POLL_BY_SYSTEMNAME_MODEL_KEY` and `HOMEPAGE_POLLS_MODEL_KEY` for presentation-layer caching
+- Legacy also cloned cached models to set per-customer `AlreadyVoted` property without mutating the cache
+- New code has no presentation-layer caching — `IPollService` queries are uncached (matching [3.12] discovery)
+- Caching can be added when `ModelCacheEventConsumer` or equivalent is built for the new codebase
+
+### Impact on Future Items
+- [5.47] Admin PollController: can now use `IPollService` with the new methods for poll CRUD + answer management
+- [5.26] Shared views: PollBlock and HomePagePolls should become ViewComponents when shared layout is built

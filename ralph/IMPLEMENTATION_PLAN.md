@@ -378,10 +378,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.11
   - Done: 2026-04-10. TopicController with 4 actions: TopicDetails (by ID), TopicDetailsPopup (by systemName), TopicBlock (partial by systemName), Authenticate (POST password check). TopicModel view model. TopicDetails.cshtml (full page with password protection via fetch API), TopicBlock.cshtml (partial with Model.Id-suffixed element IDs). Inline model construction (no model factory). Replaced jQuery AJAX with vanilla JS fetch. Localized title/body deferred (requires ILocalizedEntityService parameter passing). TopicTemplate view path resolution via ITopicTemplateService.
 
-- [ ] [5.14] Public: PollController + Poll views
+- [x] [5.14] Public: PollController + Poll views
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/PollController, Views/Poll
   - Depends on: 5.1, 3.12
+  - Done: 2026-04-10. PollController with 3 actions: PollBlock (by systemKeyword), Vote (POST AJAX with anti-forgery), HomePagePolls (homepage polls list). Added GetPollAnswersByPollIdAsync, UpdatePollAnswerAsync, InsertPollVotingRecordAsync to IPollService/PollService (replaces nav property access). PollModel/PollAnswerModel view models. 3 Razor views (_Poll.cshtml, PollBlock.cshtml, HomePagePolls.cshtml). Vote returns JSON data (client-side DOM update) instead of rendered HTML (legacy RenderPartialViewToString). Vanilla JS fetch replaces jQuery AJAX. No model factory — inline model construction. No caching (legacy cached via ModelCacheEventConsumer — deferred). PollBlock and HomePagePolls are regular actions (ViewComponent conversion deferred to [5.26]).
 
 - [ ] [5.15] Public: NewsletterController + Newsletter views
   - Spec: specs/nop-web-public.md

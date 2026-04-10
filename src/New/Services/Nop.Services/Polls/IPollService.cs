@@ -23,7 +23,13 @@ public interface IPollService
 
     Task<PollAnswer?> GetPollAnswerByIdAsync(int pollAnswerId);
 
+    Task<IList<PollAnswer>> GetPollAnswersByPollIdAsync(int pollId);
+
     Task DeletePollAnswerAsync(PollAnswer pollAnswer);
+
+    Task UpdatePollAnswerAsync(PollAnswer pollAnswer);
+
+    Task InsertPollVotingRecordAsync(PollVotingRecord pollVotingRecord);
 
     Task<bool> AlreadyVotedAsync(int pollId, int customerId);
 }

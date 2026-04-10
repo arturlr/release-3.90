@@ -95,6 +95,31 @@ public class PollService : IPollService
         await _eventPublisher.EntityDeletedAsync(pollAnswer);
     }
 
+    public Task<IList<PollAnswer>> GetPollAnswersByPollIdAsync(int pollId)
+    {
+        IList<PollAnswer> result = pollId == 0
+            ? []
+            : _pollAnswerRepository.TableNoTracking
+                .Where(pa => pa.PollId == pollId)
+                .OrderBy(pa => pa.DisplayOrder)
+                .ToList();
+        return Task.FromResult(result);
+    }
+
+    public async Task UpdatePollAnswerAsync(PollAnswer pollAnswer)
+    {
+        ArgumentNullException.ThrowIfNull(pollAnswer);
+        _pollAnswerRepository.Update(pollAnswer);
+        await _eventPublisher.EntityUpdatedAsync(pollAnswer);
+    }
+
+    public async Task InsertPollVotingRecordAsync(PollVotingRecord pollVotingRecord)
+    {
+        ArgumentNullException.ThrowIfNull(pollVotingRecord);
+        _pollVotingRecordRepository.Insert(pollVotingRecord);
+        await _eventPublisher.EntityInsertedAsync(pollVotingRecord);
+    }
+
     public Task<bool> AlreadyVotedAsync(int pollId, int customerId)
     {
         if (pollId == 0 || customerId == 0)
