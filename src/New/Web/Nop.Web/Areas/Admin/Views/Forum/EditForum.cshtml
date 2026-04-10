@@ -1,0 +1,35 @@
+@model Nop.Web.Areas.Admin.Models.Forums.ForumModel
+@{ ViewData["Title"] = "Edit forum"; }
+
+<h1>Edit forum</h1>
+
+<form asp-action="EditForum" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div>
+        <label asp-for="ForumGroupId"></label>
+        <select asp-for="ForumGroupId" asp-items="Model.AvailableForumGroups"></select>
+        <span asp-validation-for="ForumGroupId"></span>
+    </div>
+    <div>
+        <label asp-for="Name"></label>
+        <input asp-for="Name" />
+        <span asp-validation-for="Name"></span>
+    </div>
+    <div>
+        <label asp-for="Description"></label>
+        <textarea asp-for="Description"></textarea>
+        <span asp-validation-for="Description"></span>
+    </div>
+    <div>
+        <label asp-for="DisplayOrder"></label>
+        <input asp-for="DisplayOrder" />
+        <span asp-validation-for="DisplayOrder"></span>
+    </div>
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>
+
+<form asp-action="DeleteForum" method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+</form>

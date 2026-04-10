@@ -1,0 +1,19 @@
+@model Nop.Web.Areas.Admin.Models.Forums.ForumGroupModel
+@{ ViewData["Title"] = "Add a new forum group"; }
+
+<h1>Add a new forum group</h1>
+
+<form asp-action="CreateForumGroup" method="post">
+    <div>
+        <label asp-for="Name"></label>
+        <input asp-for="Name" />
+        <span asp-validation-for="Name"></span>
+    </div>
+    <div>
+        <label asp-for="DisplayOrder"></label>
+        <input asp-for="DisplayOrder" />
+        <span asp-validation-for="DisplayOrder"></span>
+    </div>
+    <button type="submit" name="continueEditing" value="false">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>

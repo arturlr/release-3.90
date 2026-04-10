@@ -559,10 +559,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.14
   - Done: 2026-04-10. NewsController as 2 partial class files (main + helpers) with news item CRUD (List, NewsItemList AJAX grid, Create, Edit, Delete) and comment management (Comments, CommentList AJAX grid, CommentUpdate, CommentDelete, DeleteSelectedComments, ApproveSelected, DisapproveSelected). 5 view models (NewsItemListModel, NewsItemModel, NewsItemGridModel, NewsCommentListModel, NewsCommentModel). 4 Razor views (List, Create, Edit, Comments). Added UpdateNewsCommentAsync to INewsService/NewsService (replaces legacy nav property pattern). NewsItem implements ISlugSupported — uses ValidateSeNameAsync + SaveSlugAsync with LanguageId. Key differences from BlogController: NewsItem has Published field, Short/Full instead of BodyOverview/Body, no Tags field; NewsComment has CommentTitle column in grid. Follows BlogController [5.44] pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Store mapping management deferred (consistent with other admin controllers).
 
-- [ ] [5.46] Admin: ForumController + Forum views
+- [x] [5.46] Admin: ForumController + Forum views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/ForumController, Admin/Views/Forum
   - Depends on: 5.1, 4.3
+  - Done: 2026-04-10. ForumController with forum group CRUD (List, ForumGroupList AJAX grid, CreateForumGroup, EditForumGroup, DeleteForumGroup) and forum CRUD (ForumList AJAX grid by group, CreateForum, EditForum, DeleteForum). 2 view models (ForumGroupModel, ForumModel with AvailableForumGroups dropdown). 5 Razor views (List with nested group→forum display, CreateForumGroup, EditForumGroup, CreateForum, EditForum). PrepareForumGroupDropdownAsync helper for forum group selection. Follows ManufacturerController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. No ILocalizationService dependency (consistent with simplified admin controllers). Localization deferred. Topic/post management not in scope (admin manages structure only — topics/posts managed via public BoardsController [5.12]).
 
 - [ ] [5.47] Admin: PollController + Poll views
   - Spec: specs/nop-admin.md

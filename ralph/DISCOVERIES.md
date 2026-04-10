@@ -3066,3 +3066,33 @@ Performed exhaustive verification across all dimensions:
 - [5.42] Admin PaymentController: can follow the same restriction matrix pattern for payment method country restrictions
 - [5.43] Admin TaxController: can reference the same address dropdown preparation pattern for tax origin address
 - [2.10] Plugin system: must add Providers and PickupPointProviders sections to ShippingController
+
+## 2026-04-10 — [5.46] Admin ForumController / Implementation
+
+### Simplest Admin CMS Controller
+- Legacy ForumController was only 230 LOC — the simplest admin controller in the codebase
+- Only manages forum structure (groups + forums), NOT topics/posts — those are managed via public BoardsController [5.12]
+- No comments management (unlike Blog [5.44] and News [5.45])
+- No SEO slug management (ForumGroup and Forum don't implement ISlugSupported)
+- No export/import (unlike Product [5.31], Category [5.32], Manufacturer [5.33])
+
+### Legacy ForumList Used Nav Property
+- Legacy `ForumList` action accessed `forumGroup.Forums` nav property to get forums for a group
+- Nav properties stripped in [1.3] — new code uses `forumService.GetAllForumsByGroupIdAsync(forumGroupId)` which was already available in `IForumService`
+- No new service methods needed — all required methods existed from [4.3] implementation
+
+### List View — Nested Group→Forum Display
+- Legacy used Kendo UI hierarchical grid with detail template for expanding forum groups to show forums
+- New code uses vanilla JS with nested table rendering — each forum group row is followed by a sub-row containing a forums table
+- Both forum group and forum grids loaded via AJAX POST on page load
+- Delete operations use inline JS with confirmation dialogs and page reload
+
+### No ILocalizationService Dependency
+- Legacy ForumController did NOT use `ILocalizationService` for success notifications — it used `_localizationService.GetResource("Admin.ContentManagement.Forums.ForumGroup.Added")` etc.
+- New code uses `ICustomerActivityService.InsertActivity` for audit logging but omits localized success notifications (consistent with simplified admin controller pattern)
+- `SuccessNotification` method from `BaseController` is available but requires localization resources to be seeded — deferred until [4.11] Installation services
+
+### Impact on Future Items
+- [5.47] Admin PollController: next CMS admin controller — follows same simple CRUD pattern
+- [5.48] Admin TopicController: same pattern — topic CRUD without comments
+- Admin CMS area progress: Blog [5.44] ✓, News [5.45] ✓, Forum [5.46] ✓, Poll [5.47] pending, Topic [5.48] pending

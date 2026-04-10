@@ -1,0 +1,119 @@
+@{ ViewData["Title"] = "Forums"; }
+
+<h1>Forums</h1>
+
+<p>
+    <a asp-action="CreateForumGroup">Add new forum group</a>
+    |
+    <a asp-action="CreateForum">Add new forum</a>
+</p>
+
+@* Forum groups grid — each group expandable to show its forums *@
+<div id="forumgroups-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Display order</th>
+                <th>Created on</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="forumgroups-tbody"></tbody>
+    </table>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadForumGroups();
+    });
+
+    function loadForumGroups() {
+        const data = new URLSearchParams();
+        data.append('Page', 1);
+        data.append('PageSize', 100);
+
+        fetch('@Url.Action("ForumGroupList", "Forum", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('forumgroups-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (fg) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td><strong>' + (fg.Name || '') + '</strong></td>'
+                        + '<td>' + fg.DisplayOrder + '</td>'
+                        + '<td>' + new Date(fg.CreatedOn).toLocaleDateString() + '</td>'
+                        + '<td><a href="/Admin/Forum/EditForumGroup/' + fg.Id + '">Edit</a>'
+                        + ' | <button onclick="deleteForumGroup(' + fg.Id + ')">Delete</button></td>';
+                    tbody.appendChild(tr);
+
+                    // Forums sub-row
+                    const subTr = document.createElement('tr');
+                    subTr.id = 'forums-' + fg.Id;
+                    subTr.innerHTML = '<td colspan="4"><div id="forums-container-' + fg.Id + '">Loading forums...</div></td>';
+                    tbody.appendChild(subTr);
+
+                    loadForums(fg.Id);
+                });
+            }
+        });
+    }
+
+    function loadForums(forumGroupId) {
+        const data = new URLSearchParams();
+        data.append('forumGroupId', forumGroupId);
+
+        fetch('@Url.Action("ForumList", "Forum", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const container = document.getElementById('forums-container-' + forumGroupId);
+            if (!result.Data || result.Data.length === 0) {
+                container.innerHTML = '<em>No forums in this group</em>';
+                return;
+            }
+            let html = '<table><thead><tr><th>Forum name</th><th>Display order</th><th>Created on</th><th>Actions</th></tr></thead><tbody>';
+            result.Data.forEach(function (f) {
+                html += '<tr><td>' + (f.Name || '') + '</td>'
+                    + '<td>' + f.DisplayOrder + '</td>'
+                    + '<td>' + new Date(f.CreatedOn).toLocaleDateString() + '</td>'
+                    + '<td><a href="/Admin/Forum/EditForum/' + f.Id + '">Edit</a>'
+                    + ' | <button onclick="deleteForum(' + f.Id + ')">Delete</button></td></tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        });
+    }
+
+    function deleteForumGroup(id) {
+        if (!confirm('Are you sure you want to delete this forum group? All forums and topics within it will be deleted.')) return;
+        const data = new URLSearchParams();
+        data.append('id', id);
+        fetch('/Admin/Forum/DeleteForumGroup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        }).then(() => window.location.reload());
+    }
+
+    function deleteForum(id) {
+        if (!confirm('Are you sure you want to delete this forum? All topics within it will be deleted.')) return;
+        const data = new URLSearchParams();
+        data.append('id', id);
+        fetch('/Admin/Forum/DeleteForum', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        }).then(() => window.location.reload());
+    }
+</script>
+}
