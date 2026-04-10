@@ -1,0 +1,160 @@
+@model Nop.Web.Areas.Admin.Models.Directory.CountryModel
+@{ ViewData["Title"] = "Edit country"; }
+
+<h1>Edit country</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="TwoLetterIsoCode">Two letter ISO code</label>
+        <input asp-for="TwoLetterIsoCode" />
+    </div>
+    <div>
+        <label asp-for="ThreeLetterIsoCode">Three letter ISO code</label>
+        <input asp-for="ThreeLetterIsoCode" />
+    </div>
+    <div>
+        <label asp-for="NumericIsoCode">Numeric ISO code</label>
+        <input asp-for="NumericIsoCode" type="number" />
+    </div>
+    <div>
+        <label asp-for="AllowsBilling">Allows billing</label>
+        <input asp-for="AllowsBilling" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="AllowsShipping">Allows shipping</label>
+        <input asp-for="AllowsShipping" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="SubjectToVat">Subject to VAT</label>
+        <input asp-for="SubjectToVat" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="Published">Published</label>
+        <input asp-for="Published" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DisplayOrder">Display order</label>
+        <input asp-for="DisplayOrder" type="number" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post" onsubmit="return confirm('Are you sure?');">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit">Delete</button>
+</form>
+
+@* Store mapping management deferred (consistent with all other admin controllers) *@
+@* Localization deferred *@
+
+<hr />
+<h2>State / provinces</h2>
+
+<div id="states-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Abbreviation</th>
+                <th>Published</th>
+                <th>Display order</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="states-tbody"></tbody>
+    </table>
+</div>
+
+<h3>Add state / province</h3>
+<div>
+    <label>Name</label>
+    <input type="text" id="new-state-name" />
+    <label>Abbreviation</label>
+    <input type="text" id="new-state-abbr" />
+    <label>Published</label>
+    <input type="checkbox" id="new-state-published" checked />
+    <label>Display order</label>
+    <input type="number" id="new-state-order" value="0" />
+    <button type="button" onclick="addState()">Add</button>
+</div>
+
+@section Scripts {
+<script>
+    const countryId = @Model.Id;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+
+    document.addEventListener('DOMContentLoaded', loadStates);
+
+    function loadStates() {
+        const data = new URLSearchParams();
+        data.append('countryId', countryId);
+
+        fetch('@Url.Action("StateProvinceList", "Country", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('states-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (s) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td><input type="text" value="' + (s.Name || '') + '" data-id="' + s.Id + '" class="state-name" /></td>'
+                        + '<td><input type="text" value="' + (s.Abbreviation || '') + '" data-id="' + s.Id + '" class="state-abbr" /></td>'
+                        + '<td><input type="checkbox" ' + (s.Published ? 'checked' : '') + ' data-id="' + s.Id + '" class="state-published" /></td>'
+                        + '<td><input type="number" value="' + s.DisplayOrder + '" data-id="' + s.Id + '" class="state-order" /></td>'
+                        + '<td><button onclick="updateState(' + s.Id + ', this)">Update</button>'
+                        + ' <button onclick="deleteState(' + s.Id + ')">Delete</button></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
+
+    function addState() {
+        const data = new URLSearchParams();
+        data.append('countryId', countryId);
+        data.append('Name', document.getElementById('new-state-name').value);
+        data.append('Abbreviation', document.getElementById('new-state-abbr').value);
+        data.append('Published', document.getElementById('new-state-published').checked);
+        data.append('DisplayOrder', document.getElementById('new-state-order').value);
+
+        fetch('@Url.Action("StateProvinceAdd", "Country", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => { document.getElementById('new-state-name').value = ''; document.getElementById('new-state-abbr').value = ''; loadStates(); });
+    }
+
+    function updateState(id, btn) {
+        const row = btn.closest('tr');
+        const data = new URLSearchParams();
+        data.append('Id', id);
+        data.append('Name', row.querySelector('.state-name').value);
+        data.append('Abbreviation', row.querySelector('.state-abbr').value);
+        data.append('Published', row.querySelector('.state-published').checked);
+        data.append('DisplayOrder', row.querySelector('.state-order').value);
+
+        fetch('@Url.Action("StateProvinceUpdate", "Country", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => loadStates());
+    }
+
+    function deleteState(id) {
+        if (!confirm('Delete this state/province?')) return;
+        const data = new URLSearchParams();
+        data.append('id', id);
+
+        fetch('@Url.Action("StateProvinceDelete", "Country", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            if (result.Errors) { alert(result.Errors); return; }
+            loadStates();
+        });
+    }
+</script>
+}

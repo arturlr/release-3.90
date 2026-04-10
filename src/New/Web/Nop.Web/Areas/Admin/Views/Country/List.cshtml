@@ -1,0 +1,99 @@
+@model Nop.Web.Areas.Admin.Models.Directory.CountryListModel
+@{ ViewData["Title"] = "Countries"; }
+
+<h1>Countries</h1>
+
+<div>
+    <label asp-for="SearchCountryName">Country name</label>
+    <input asp-for="SearchCountryName" />
+    <button type="button" onclick="loadCountries()">Search</button>
+</div>
+
+<p>
+    <a asp-action="Create">Add new country</a>
+    |
+    <a asp-action="ExportCsv">Export states to CSV</a>
+</p>
+
+<form id="import-form" asp-action="ImportCsv" method="post" enctype="multipart/form-data" style="display:inline;">
+    <input type="file" name="importcsvfile" />
+    <button type="submit">Import states from CSV</button>
+</form>
+
+<div id="countries-grid">
+    <table>
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="select-all" onclick="toggleAll(this)" /></th>
+                <th>Name</th>
+                <th>Allows billing</th>
+                <th>Allows shipping</th>
+                <th>Two letter ISO code</th>
+                <th>Three letter ISO code</th>
+                <th>Numeric ISO code</th>
+                <th>Subject to VAT</th>
+                <th>Published</th>
+                <th>Display order</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="countries-tbody"></tbody>
+    </table>
+    <div id="countries-pager"></div>
+</div>
+
+<button type="button" onclick="deleteSelected()">Delete selected</button>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', loadCountries);
+
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+
+    function loadCountries() {
+        const name = document.querySelector('[name="SearchCountryName"]').value;
+        const data = new URLSearchParams();
+        if (name) data.append('SearchCountryName', name);
+
+        fetch('@Url.Action("CountryList", "Country", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('countries-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (c) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td><input type="checkbox" class="country-cb" value="' + c.Id + '" /></td>'
+                        + '<td>' + (c.Name || '') + '</td>'
+                        + '<td>' + (c.AllowsBilling ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (c.AllowsShipping ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (c.TwoLetterIsoCode || '') + '</td>'
+                        + '<td>' + (c.ThreeLetterIsoCode || '') + '</td>'
+                        + '<td>' + c.NumericIsoCode + '</td>'
+                        + '<td>' + (c.SubjectToVat ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (c.Published ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + c.DisplayOrder + '</td>'
+                        + '<td><a href="/Admin/Country/Edit/' + c.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('countries-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+
+    function toggleAll(cb) {
+        document.querySelectorAll('.country-cb').forEach(function (c) { c.checked = cb.checked; });
+    }
+
+    function deleteSelected() {
+        const ids = Array.from(document.querySelectorAll('.country-cb:checked')).map(c => c.value);
+        if (!ids.length || !confirm('Delete selected countries?')) return;
+        const data = new URLSearchParams();
+        ids.forEach(id => data.append('selectedIds', id));
+
+        fetch('@Url.Action("DeleteSelected", "Country", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => loadCountries());
+    }
+</script>
+}

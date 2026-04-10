@@ -3205,3 +3205,32 @@ Performed exhaustive verification across all dimensions:
 - [5.51] Admin CountryController: next directory admin controller — more complex (state province sub-entity management)
 - [5.52] Admin MeasureController: follows same simple CRUD pattern for dimensions and weights
 - [6.16] Plugin: ExchangeRate.EcbExchange: when built, add live rates and exchange rate provider selection to CurrencyController List view
+
+## 2026-04-10 — [5.51] Admin CountryController / Implementation
+
+### Legacy Popup Pattern → Inline AJAX Grid
+- Legacy used popup windows for state province create/edit: `StateCreatePopup` (GET+POST) and `StateEditPopup` (GET+POST) with `ViewBag.RefreshPage` / `ViewBag.btnId` / `ViewBag.formId` for parent window refresh
+- New code uses inline AJAX grid with add/update/delete (matching PollController answer management pattern from [5.47])
+- Simpler: no popup views, no parent window refresh JavaScript, no `btnId`/`formId` plumbing
+- Trade-off: inline editing is less spacious than popup forms, but sufficient for state province fields (Name, Abbreviation, Published, DisplayOrder)
+
+### Legacy PublishSelected/UnpublishSelected → DeleteSelected
+- Legacy had `PublishSelected` and `UnpublishSelected` batch actions for toggling country Published status
+- New code replaces with `DeleteSelected` batch action (matching ProductController [5.31], CategoryController [5.32], ManufacturerController [5.33] pattern)
+- Publish/unpublish can be done via individual Edit actions — batch publish toggle is low-value for countries (typically set once)
+
+### Address-in-Use Guard Pattern
+- Legacy `Delete` threw `NopException("The country can't be deleted. It has associated addresses")` caught by try/catch with `ErrorNotification`
+- New code returns redirect to Edit page instead of throwing — simpler, no exception for expected validation (matching CurrencyController [5.50] pattern for primary currency guard)
+- State province delete returns `DataSourceResult { Errors = "..." }` for AJAX grid error display (matching PollController answer delete pattern)
+- `DeleteSelected` silently skips countries with associated addresses — no error notification for batch operations
+
+### Legacy GetStatesByCountryId AJAX → Not Needed
+- Legacy had `GetStatesByCountryId` action for admin address forms (state dropdown population based on selected country)
+- This action is NOT needed in CountryController — it's already available in the public CountryController [5.22] (`GetStatesByCountryId`)
+- Admin address forms can call the public endpoint or a shared AJAX endpoint when needed
+
+### Impact on Future Items
+- [5.52] Admin MeasureController: next directory admin controller — follows same simple CRUD pattern for dimensions and weights
+- [5.41] Admin ShippingController: already implemented — uses `ICountryService` for shipping method country restrictions
+- Store mapping management: when added as cross-cutting feature, CountryController should be updated along with all other admin controllers

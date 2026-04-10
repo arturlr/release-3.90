@@ -1,0 +1,48 @@
+@model Nop.Web.Areas.Admin.Models.Directory.CountryModel
+@{ ViewData["Title"] = "Add a new country"; }
+
+<h1>Add a new country</h1>
+
+<form asp-action="Create" method="post">
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="TwoLetterIsoCode">Two letter ISO code</label>
+        <input asp-for="TwoLetterIsoCode" />
+    </div>
+    <div>
+        <label asp-for="ThreeLetterIsoCode">Three letter ISO code</label>
+        <input asp-for="ThreeLetterIsoCode" />
+    </div>
+    <div>
+        <label asp-for="NumericIsoCode">Numeric ISO code</label>
+        <input asp-for="NumericIsoCode" type="number" />
+    </div>
+    <div>
+        <label asp-for="AllowsBilling">Allows billing</label>
+        <input asp-for="AllowsBilling" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="AllowsShipping">Allows shipping</label>
+        <input asp-for="AllowsShipping" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="SubjectToVat">Subject to VAT</label>
+        <input asp-for="SubjectToVat" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="Published">Published</label>
+        <input asp-for="Published" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DisplayOrder">Display order</label>
+        <input asp-for="DisplayOrder" type="number" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>

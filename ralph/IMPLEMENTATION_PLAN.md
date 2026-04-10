@@ -589,10 +589,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.3
   - Done: 2026-04-10. CurrencyController with core CRUD (List, CurrencyList AJAX grid, Create, Edit, Delete) and currency management (ApplyRate, MarkAsPrimaryExchangeRateCurrency, MarkAsPrimaryStoreCurrency). 2 view models (CurrencyModel, CurrencyGridModel). 3 Razor views (List with mark-as-primary AJAX, Create, Edit with delete). ISettingService.SaveSettingAsync for primary currency settings. Live rates and exchange rate provider selection deferred (plugin-dependent [2.10]). Localization and store mapping deferred (consistent with all other admin controllers). Follows PollController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping.
 
-- [ ] [5.51] Admin: CountryController + Country views
+- [x] [5.51] Admin: CountryController + Country views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/CountryController, Admin/Views/Country
   - Depends on: 5.1, 3.3
+  - Done: 2026-04-10. CountryController with country CRUD (List, CountryList AJAX grid, Create, Edit, Delete, DeleteSelected) and state province management (StateProvinceList, StateProvinceAdd, StateProvinceUpdate, StateProvinceDelete) and export/import (ExportCsv, ImportCsv). 3 view models (CountryListModel, CountryModel with search, CountryGridModel, StateProvinceModel). 3 Razor views (List with search + AJAX grid + batch delete + export/import CSV, Create, Edit with inline state province AJAX grid). Address-in-use guard on country and state delete. Legacy popup pattern for state create/edit replaced with inline AJAX grid (matching PollController answer management pattern). Follows PollController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Store mapping and localization deferred (consistent with all other admin controllers).
 
 - [ ] [5.52] Admin: MeasureController + Measure views
   - Spec: specs/nop-admin.md
