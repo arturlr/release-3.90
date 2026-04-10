@@ -1,0 +1,33 @@
+@model Nop.Web.Models.Boards.EditForumPostModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Edit Post";
+}
+
+<h1>Edit Post</h1>
+<p>Topic: <a asp-action="Topic" asp-route-id="@Model.ForumTopicId">@Model.ForumTopicSubject</a></p>
+
+<form asp-action="PostEdit" method="post">
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <input type="hidden" name="ForumTopicId" value="@Model.ForumTopicId" />
+
+    <div asp-validation-summary="All"></div>
+
+    <div>
+        <label>Message</label>
+        <textarea name="Text" rows="10">@Model.Text</textarea>
+    </div>
+
+    @if (Model.IsCustomerAllowedToSubscribe)
+    {
+        <div>
+            <label>
+                <input type="checkbox" name="Subscribed" value="true" @(Model.Subscribed ? "checked" : "") />
+                Notify me when a reply is posted
+            </label>
+        </div>
+    }
+
+    <button type="submit">Save</button>
+</form>

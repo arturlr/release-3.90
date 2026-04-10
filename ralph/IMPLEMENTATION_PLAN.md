@@ -366,10 +366,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 3.14
   - Done: 2026-04-10. NewsController with List, NewsItem (detail), NewsCommentAdd (POST). 5 view models (NewsItemModel, NewsItemListModel, NewsCommentModel, AddNewsCommentModel, NewsPagingFilteringModel). 2 Razor views (List.cshtml, NewsItem.cshtml). Added InsertNewsCommentAsync to INewsService/NewsService. News differs from Blog: has CommentTitle field in form and comment display, no tags, no month/tag filtering, simpler paging model. Inline model construction (no model factory). Legacy child actions (HomePageNews, RssHeaderLink) deferred to ViewComponents. ListRss deferred (needs RssActionResult). Captcha deferred to [7.13].
 
-- [ ] [5.12] Public: BoardsController + Boards views (forums)
+- [x] [5.12] Public: BoardsController + Boards views (forums)
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/BoardsController, Views/Boards
   - Depends on: 5.1, 4.3
+  - Done: 2026-04-10. BoardsController as 3 partial class files (main, Topics, Posts) with 17 actions: Index, ActiveDiscussions, ForumGroup, Forum, ForumWatch (AJAX), TopicWatch (AJAX), PostVote (AJAX), Topic, TopicCreate (GET+POST), TopicEdit (GET+POST), TopicDelete (AJAX), TopicMove (GET+POST), PostCreate (GET+POST), PostEdit (GET+POST), PostDelete (AJAX), Search, CustomerForumSubscriptions (GET+POST). 10 view models in BoardsModels.cs. 12 Razor views. Deferred: RSS actions (ActiveDiscussionsRss, ForumRss — need RssActionResult), ChildAction methods (LastPost, ForumBreadcrumb, ActiveDiscussionsSmall → ViewComponents). CustomerName/Avatar not populated in post models (requires ICustomerService per-post lookup). FormatPostText uses simple HtmlEncode + newline→br (legacy ForumExtensions.FormatPostText used BBCode/service locator). CustomerForumSubscriptionsDelete uses IEnumerable<int> subscriptionIds instead of legacy FormCollection parsing.
 
 - [x] [5.13] Public: TopicController + Topic views
   - Spec: specs/nop-web-public.md

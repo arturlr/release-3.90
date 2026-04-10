@@ -1,0 +1,41 @@
+@model Nop.Web.Models.Boards.ActiveDiscussionsModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Active Discussions";
+}
+
+<h1>Active Discussions</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Topic</th>
+            <th>Replies</th>
+            <th>Views</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var topic in Model.ForumTopics)
+        {
+            <tr>
+                <td>
+                    <a asp-action="Topic" asp-route-id="@topic.Id">@topic.Subject</a>
+                </td>
+                <td>@topic.NumReplies</td>
+                <td>@topic.Views</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (Model.TopicTotalRecords > Model.TopicPageSize)
+{
+    var totalPages = (int)Math.Ceiling((double)Model.TopicTotalRecords / Model.TopicPageSize);
+    <nav>
+        @for (var i = 1; i <= totalPages; i++)
+        {
+            <a asp-action="ActiveDiscussions" asp-route-page="@i">@i</a>
+        }
+    </nav>
+}

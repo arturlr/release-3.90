@@ -2377,3 +2377,42 @@ Performed exhaustive verification across all dimensions:
 - [5.34] Admin OrderController: can reference the same model preparation patterns
 - [5.59] Admin RecurringPaymentController: can use the same `ComputeNextPaymentDate` logic
 - IPdfService implementation: when built, `GetPdfInvoice` will work without controller changes
+
+## 2026-04-10 — [5.12] Public BoardsController / Implementation
+
+### ForumExtensions Not Migrated — Presentation-Layer Concern
+- Legacy `ForumExtensions` (Nop.Services/Forums/) contained `FormatPostText`, `StripTopicSubject`, `FormatPrivateMessageText`, `GetFirstPost`, `GetLastPost`
+- All used service locator (`EngineContext.Current.Resolve<ForumSettings>()`) and were presentation-layer formatting concerns
+- `FormatPostText` replaced with simple `WebUtility.HtmlEncode(text).Replace("\n", "<br />")` in controller — legacy version used BBCode parsing via `BBCodeHelper` which itself used service locator for `CommonSettings`
+- `StripTopicSubject` (truncation with "..." suffix) not needed — views can use CSS text-overflow
+- `GetFirstPost`/`GetLastPost` replaced with `GetAllPostsAsync(topicId, ascSort: true, pageSize: 1)` — direct service call instead of extension method
+
+### FormCollection → IEnumerable<int> for Subscription Delete
+- Legacy `CustomerForumSubscriptionsPOST` parsed `FormCollection` manually: iterated all keys, checked for "on" value and "fs" prefix, extracted subscription ID from key name
+- New code uses `[FromForm] IEnumerable<int> subscriptionIds` — standard ASP.NET Core model binding from checkbox values
+- View uses `<input type="checkbox" name="subscriptionIds" value="@sub.Id" />` — cleaner, type-safe
+- Impact: no FormCollection dependency, no string parsing, no `FormValueRequired` attribute needed
+
+### CustomerName/Avatar Not Populated in Post Models
+- Legacy `ForumPostModel` populated `CustomerName` via `customer.FormatUserName()` (service locator) and `CustomerAvatarUrl` via `IPictureService.GetPictureUrl()` (nav property)
+- New code leaves `CustomerName` and `CustomerAvatarUrl` as null — populating requires `ICustomerService.GetCustomerByIdAsync` per post (N+1 queries)
+- `AllowViewingProfiles` also left as default (false) — requires `CustomerSettings.AllowViewingProfiles` check
+- When customer display is needed, can add batch customer loading (load all unique customer IDs from posts, then map)
+
+### RSS Actions Deferred
+- `ActiveDiscussionsRss` and `ForumRss` both depend on `RssActionResult` (custom action result wrapping `SyndicationFeed`)
+- `RssActionResult` was deferred in [5.1] Nop.Web.Framework
+- Also depend on `System.ServiceModel.Syndication` NuGet package (available for .NET Core but not yet referenced)
+- Can be implemented when custom action results are built, or by returning `ContentResult` with XML directly
+
+### Topic SeName Uses Subject-Based Slug (Not URL Records)
+- Forum topics do NOT implement `ISlugSupported` — they don't have URL records in the database
+- Legacy used `forumTopic.GetSeName()` extension method which generated a slug from `Subject` directly
+- New code uses `SeoExtensions.GetSeName(forumTopic.Subject, false, false)` — same approach as ProductTag in [5.4]
+- Forum groups and forums also use name-based slugs (not URL records)
+
+### Impact on Future Items
+- [5.17] Public PrivateMessagesController: can now reference the same `IForumService` patterns for PM operations
+- [5.46] Admin ForumController: can now reference the same model preparation patterns
+- [5.26] Shared views: LastPost, ForumBreadcrumb, ActiveDiscussionsSmall should become ViewComponents
+- RSS infrastructure: when `RssActionResult` or equivalent is built, add `ActiveDiscussionsRss` and `ForumRss` actions

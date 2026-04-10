@@ -1,0 +1,34 @@
+@model Nop.Web.Models.Boards.ForumGroupModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = Model.Name;
+}
+
+<h1>@Model.Name</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Forum</th>
+            <th>Topics</th>
+            <th>Posts</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var forum in Model.Forums)
+        {
+            <tr>
+                <td>
+                    <a asp-action="Forum" asp-route-id="@forum.Id">@forum.Name</a>
+                    @if (!string.IsNullOrEmpty(forum.Description))
+                    {
+                        <p>@forum.Description</p>
+                    }
+                </td>
+                <td>@forum.NumTopics</td>
+                <td>@forum.NumPosts</td>
+            </tr>
+        }
+    </tbody>
+</table>

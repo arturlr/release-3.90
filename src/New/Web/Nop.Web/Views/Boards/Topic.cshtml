@@ -1,0 +1,64 @@
+@model Nop.Web.Models.Boards.ForumTopicPageModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = Model.Subject;
+}
+
+<h1>@Model.Subject</h1>
+
+<div class="topic-actions">
+    @if (Model.IsCustomerAllowedToSubscribe)
+    {
+        <span>@Model.WatchTopicText</span>
+    }
+    @if (Model.IsCustomerAllowedToEditTopic)
+    {
+        <a asp-action="TopicEdit" asp-route-id="@Model.Id">Edit</a>
+    }
+    @if (Model.IsCustomerAllowedToDeleteTopic)
+    {
+        <a asp-action="TopicDelete" asp-route-id="@Model.Id">Delete</a>
+    }
+    @if (Model.IsCustomerAllowedToMoveTopic)
+    {
+        <a asp-action="TopicMove" asp-route-id="@Model.Id">Move</a>
+    }
+</div>
+
+@foreach (var post in Model.ForumPostModels)
+{
+    <div class="forum-post" id="@post.Id">
+        <div class="post-info">
+            <strong>Customer #@post.CustomerId</strong>
+            <br /><small>@post.PostCreatedOnStr</small>
+        </div>
+        <div class="post-body">
+            @Html.Raw(post.FormattedText)
+        </div>
+        <div class="post-actions">
+            @if (post.IsCurrentCustomerAllowedToEditPost)
+            {
+                <a asp-action="PostEdit" asp-route-id="@post.Id">Edit</a>
+            }
+            @if (post.IsCurrentCustomerAllowedToDeletePost)
+            {
+                <a asp-action="PostDelete" asp-route-id="@post.Id">Delete</a>
+            }
+            <a asp-action="PostCreate" asp-route-id="@Model.Id" asp-route-quote="@post.Id">Quote</a>
+        </div>
+    </div>
+}
+
+<p><a asp-action="PostCreate" asp-route-id="@Model.Id">Reply</a></p>
+
+@if (Model.PostsTotalRecords > Model.PostsPageSize)
+{
+    var totalPages = (int)Math.Ceiling((double)Model.PostsTotalRecords / Model.PostsPageSize);
+    <nav>
+        @for (var i = 1; i <= totalPages; i++)
+        {
+            <a asp-action="Topic" asp-route-id="@Model.Id" asp-route-page="@i">@i</a>
+        }
+    </nav>
+}

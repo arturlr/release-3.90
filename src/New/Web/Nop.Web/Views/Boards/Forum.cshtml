@@ -1,0 +1,50 @@
+@model Nop.Web.Models.Boards.ForumPageModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = Model.Name;
+}
+
+<h1>@Model.Name</h1>
+@if (!string.IsNullOrEmpty(Model.Description))
+{
+    <p>@Model.Description</p>
+}
+
+<p>
+    <a asp-action="TopicCreate" asp-route-id="@Model.Id">New Topic</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Topic</th>
+            <th>Replies</th>
+            <th>Views</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var topic in Model.ForumTopics)
+        {
+            <tr>
+                <td>
+                    <a asp-action="Topic" asp-route-id="@topic.Id">@topic.Subject</a>
+                    <br /><small>by Customer #@topic.CustomerId</small>
+                </td>
+                <td>@topic.NumReplies</td>
+                <td>@topic.Views</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (Model.TopicTotalRecords > Model.TopicPageSize)
+{
+    var totalPages = (int)Math.Ceiling((double)Model.TopicTotalRecords / Model.TopicPageSize);
+    <nav>
+        @for (var i = 1; i <= totalPages; i++)
+        {
+            <a asp-action="Forum" asp-route-id="@Model.Id" asp-route-page="@i">@i</a>
+        }
+    </nav>
+}

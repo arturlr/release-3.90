@@ -1,0 +1,20 @@
+@model Nop.Web.Models.Boards.TopicMoveModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Move Topic";
+}
+
+<h1>Move Topic</h1>
+
+<form asp-action="TopicMove" method="post">
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div>
+        <label>Move to forum:</label>
+        <select name="ForumSelected" asp-items="Model.ForumList"></select>
+    </div>
+
+    <button type="submit">Move</button>
+    <a asp-action="Topic" asp-route-id="@Model.Id">Cancel</a>
+</form>

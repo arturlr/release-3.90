@@ -1,0 +1,82 @@
+@model Nop.Web.Models.Boards.ForumSearchModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Forum Search";
+}
+
+<h1>Forum Search</h1>
+
+<form asp-action="Search" method="get">
+    <div>
+        <label>Search terms</label>
+        <input type="text" name="searchterms" value="@Model.SearchTerms" />
+    </div>
+
+    @if (Model.ShowAdvancedSearch)
+    {
+        <input type="hidden" name="adv" value="true" />
+        <div>
+            <label>Forum</label>
+            <select name="forumId" asp-items="Model.ForumList"></select>
+        </div>
+        <div>
+            <label>Search within</label>
+            <select name="within" asp-items="Model.WithinList"></select>
+        </div>
+        <div>
+            <label>Limit results to previous</label>
+            <select name="limitDays" asp-items="Model.LimitList"></select>
+        </div>
+    }
+    else
+    {
+        <a asp-action="Search" asp-route-adv="true">Advanced Search</a>
+    }
+
+    <button type="submit">Search</button>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="alert alert-warning">@Model.Error</div>
+}
+
+@if (Model.NoResultsVisible)
+{
+    <p>No results found.</p>
+}
+
+@if (Model.SearchResultsVisible)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Topic</th>
+                <th>Replies</th>
+                <th>Views</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var topic in Model.ForumTopics)
+            {
+                <tr>
+                    <td><a asp-action="Topic" asp-route-id="@topic.Id">@topic.Subject</a></td>
+                    <td>@topic.NumReplies</td>
+                    <td>@topic.Views</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (Model.TopicTotalRecords > Model.TopicPageSize)
+    {
+        var totalPages = (int)Math.Ceiling((double)Model.TopicTotalRecords / Model.TopicPageSize);
+        <nav>
+            @for (var i = 1; i <= totalPages; i++)
+            {
+                <a asp-action="Search" asp-route-searchterms="@Model.SearchTerms" asp-route-adv="@Model.ShowAdvancedSearch" asp-route-page="@i">@i</a>
+            }
+        </nav>
+    }
+}

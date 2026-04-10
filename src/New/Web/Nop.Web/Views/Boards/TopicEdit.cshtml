@@ -1,0 +1,47 @@
+@model Nop.Web.Models.Boards.EditForumTopicModel
+
+@* TopicEdit reuses the same form as TopicCreate *@
+@{
+    Layout = null;
+    ViewData["Title"] = "Edit Topic";
+}
+
+<h1>Edit Topic</h1>
+<p>Forum: <a asp-action="Forum" asp-route-id="@Model.ForumId">@Model.ForumName</a></p>
+
+<form asp-action="TopicEdit" method="post">
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <input type="hidden" name="ForumId" value="@Model.ForumId" />
+
+    <div asp-validation-summary="All"></div>
+
+    @if (Model.IsCustomerAllowedToSetTopicPriority)
+    {
+        <div>
+            <label>Topic Type</label>
+            <select name="TopicTypeId" asp-items="Model.TopicPriorities"></select>
+        </div>
+    }
+
+    <div>
+        <label>Subject</label>
+        <input type="text" name="Subject" value="@Model.Subject" />
+    </div>
+
+    <div>
+        <label>Message</label>
+        <textarea name="Text" rows="10">@Model.Text</textarea>
+    </div>
+
+    @if (Model.IsCustomerAllowedToSubscribe)
+    {
+        <div>
+            <label>
+                <input type="checkbox" name="Subscribed" value="true" @(Model.Subscribed ? "checked" : "") />
+                Notify me when a reply is posted
+            </label>
+        </div>
+    }
+
+    <button type="submit">Save</button>
+</form>

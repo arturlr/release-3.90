@@ -1,0 +1,47 @@
+@model Nop.Web.Models.Boards.CustomerForumSubscriptionsModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Forum Subscriptions";
+}
+
+<h1>Forum Subscriptions</h1>
+
+@if (Model.ForumSubscriptions.Any())
+{
+    <form asp-action="CustomerForumSubscriptionsDelete" method="post">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Subscription</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sub in Model.ForumSubscriptions)
+                {
+                    <tr>
+                        <td>
+                            <input type="checkbox" name="subscriptionIds" value="@sub.Id" />
+                        </td>
+                        <td>
+                            @if (sub.TopicSubscription)
+                            {
+                                <a asp-action="Topic" asp-route-id="@sub.ForumTopicId">@sub.Title</a>
+                            }
+                            else
+                            {
+                                <a asp-action="Forum" asp-route-id="@sub.ForumId">@sub.Title</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button type="submit">Delete Selected</button>
+    </form>
+}
+else
+{
+    <p>No subscriptions.</p>
+}
