@@ -1,0 +1,89 @@
+@model Nop.Web.Areas.Admin.Models.Catalog.CategoryListModel
+@{ ViewData["Title"] = "Categories"; }
+
+<h1>Categories</h1>
+
+<form asp-action="List" method="get" id="search-form">
+    <div>
+        <label>Category name</label>
+        <input asp-for="SearchCategoryName" />
+    </div>
+    <div>
+        <label>Store</label>
+        <select asp-for="SearchStoreId" asp-items="Model.AvailableStores"></select>
+    </div>
+    <button type="submit" id="search-categories">Search</button>
+</form>
+
+<p>
+    <a asp-action="Create">Add new</a>
+</p>
+
+@* Category grid — populated via AJAX POST to CategoryList *@
+<div id="categories-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Breadcrumb</th>
+                <th>Published</th>
+                <th>Display order</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="categories-tbody"></tbody>
+    </table>
+    <div id="categories-pager"></div>
+</div>
+
+<form asp-action="ExportExcel" method="post">
+    <button type="submit">Export to Excel</button>
+</form>
+
+<form asp-action="ImportExcel" method="post" enctype="multipart/form-data">
+    <input type="file" name="importexcelfile" />
+    <button type="submit">Import from Excel</button>
+</form>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadCategories(1, 15);
+    });
+
+    document.getElementById('search-categories')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        loadCategories(1, 15);
+    });
+
+    function loadCategories(page, pageSize) {
+        const form = document.getElementById('search-form');
+        const data = new URLSearchParams(new FormData(form));
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("CategoryList", "Category", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('categories-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (c) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (c.Name || '') + '</td>'
+                        + '<td>' + (c.Breadcrumb || '') + '</td>'
+                        + '<td>' + (c.Published ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + c.DisplayOrder + '</td>'
+                        + '<td><a href="/Admin/Category/Edit/' + c.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('categories-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}

@@ -2734,3 +2734,30 @@ Performed exhaustive verification across all dimensions:
   - Copy product: CopyProduct
 - [5.32] Admin CategoryController: can follow the same pattern (List + CRUD + AJAX grid)
 - [5.33] Admin ManufacturerController: same pattern
+
+## 2026-04-10 — [5.32] Admin CategoryController / Implementation
+
+### Scope: Core CRUD Only (Matching ProductController Pattern)
+- Legacy admin CategoryController has 15 actions: List, Create, Edit, Delete, ExportXml, ExportXlsx, ImportFromXlsx, ProductList, ProductUpdate, ProductDelete, ProductAddPopup, ProductAddPopupList, ProductAddPopup (POST save)
+- This iteration implements core CRUD only: List, CategoryList (AJAX), Create, Edit, Delete, DeleteSelected, ExportExcel, ImportExcel
+- Sub-entity management (products, discounts, ACL, store mapping, picture) deferred — each can be a separate iteration
+- Follows ProductController [5.31] pattern exactly: primary constructor, `Forbid()`, `DataSourceResult`, inline model mapping, `ValidateSeNameAsync`, `InsertActivity`
+
+### Breadcrumb Computation — Static Helper
+- Legacy used `CategoryExtensions.GetFormattedBreadCrumb(category, ICategoryService)` extension method with service locator
+- New code uses `GetFormattedBreadCrumb(Category, IEnumerable<Category>)` static helper in controller — walks parent chain via `ParentCategoryId` using dictionary lookup
+- All categories loaded once per `CategoryList` AJAX call for breadcrumb computation — acceptable since categories are cached by `ICategoryService`
+- Separator: `" >> "` matching legacy
+
+### Parent Category Dropdown — Self-Exclusion
+- `PrepareCategoryModelDropdownsAsync` excludes the current category from the parent dropdown to prevent circular parent assignment
+- Uses breadcrumb-formatted names in dropdown for clarity (e.g., "Electronics >> Computers >> Laptops" instead of just "Laptops")
+
+### Impact on Future Items
+- [5.33] Admin ManufacturerController: can follow the same pattern (List + CRUD + AJAX grid) — simpler than Category (no parent hierarchy, no breadcrumb)
+- Sub-entity management actions should be added as separate iterations or sub-items of [5.32]:
+  - Products: ProductList/Update/Delete/AddPopup (uses ICategoryService.GetProductCategoriesByCategoryId)
+  - Discounts: discount assignment (uses IDiscountService.GetAllDiscounts + DiscountCategoryMapping)
+  - ACL: customer role access (uses IAclService)
+  - Store mapping: store assignment (uses IStoreMappingService)
+  - Picture: category picture (uses IPictureService)
