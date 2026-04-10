@@ -223,8 +223,10 @@ public partial class OrderProcessingService
 
         await orderService.InsertOrderNoteAsync(new OrderNote
         {
-            OrderId = order.Id, Note = "Order has been cancelled",
-            DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+            OrderId = order.Id,
+            Note = "Order has been cancelled",
+            DisplayToCustomer = false,
+            CreatedOnUtc = DateTime.UtcNow
         });
 
         await ReturnBackRedeemedRewardPointsAsync(order);
@@ -279,8 +281,10 @@ public partial class OrderProcessingService
 
         await orderService.InsertOrderNoteAsync(new OrderNote
         {
-            OrderId = order.Id, Note = "Order has been deleted",
-            DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+            OrderId = order.Id,
+            Note = "Order has been deleted",
+            DisplayToCustomer = false,
+            CreatedOnUtc = DateTime.UtcNow
         });
 
         await orderService.DeleteOrderAsync(order);

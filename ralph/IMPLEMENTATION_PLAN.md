@@ -36,10 +36,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 1.3, 1.4
   - Done: 2026-04-09. NopDbContext (105 DbSets), EfRepository<T> (IRepository<T>), 17 configuration files covering all entities. EF Core 8.0.13. No nav properties → convention-based FKs. Enum properties Ignored. Decimal precision(18,4) money, (18,8) rates. Computed properties (NumReplies, FriendlyName) Ignored. Configs auto-discovered via ApplyConfigurationsFromAssembly.
 
-- [ ] [1.6] EF Core initial migration — create database from entity configurations
+- [x] [1.6] EF Core initial migration — create database from entity configurations
   - Spec: specs/nop-data.md
   - Scope: EF Core migration
   - Depends on: 1.5
+  - Done: 2026-04-10. Added Microsoft.EntityFrameworkCore.Design 8.0.13 (PrivateAssets=all). Created NopDbContextFactory (IDesignTimeDbContextFactory) for dotnet-ef tooling. Fixed OverriddenPrice decimal precision (18,4) on ProductAttributeCombinationConfiguration. InitialCreate migration generates 113 tables matching all 105 DbSets + join entities. Pre-existing format issues in OrderProcessingService.*.cs fixed.
 
 - [x] [1.7] Test project scaffold — xUnit projects per layer, shared test utilities
   - Spec: specs/testing-strategy.md

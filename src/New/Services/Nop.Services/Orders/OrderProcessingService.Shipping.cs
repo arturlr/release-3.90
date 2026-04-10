@@ -33,8 +33,10 @@ public partial class OrderProcessingService
 
         await orderService.InsertOrderNoteAsync(new OrderNote
         {
-            OrderId = order.Id, Note = $"Shipment# {shipment.Id} has been sent",
-            DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+            OrderId = order.Id,
+            Note = $"Shipment# {shipment.Id} has been sent",
+            DisplayToCustomer = false,
+            CreatedOnUtc = DateTime.UtcNow
         });
 
         if (notifyCustomer)
@@ -61,8 +63,10 @@ public partial class OrderProcessingService
 
         await orderService.InsertOrderNoteAsync(new OrderNote
         {
-            OrderId = order.Id, Note = $"Shipment# {shipment.Id} has been delivered",
-            DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+            OrderId = order.Id,
+            Note = $"Shipment# {shipment.Id} has been delivered",
+            DisplayToCustomer = false,
+            CreatedOnUtc = DateTime.UtcNow
         });
 
         if (notifyCustomer)
@@ -321,8 +325,10 @@ public partial class OrderProcessingService
                 await orderService.UpdateRecurringPaymentAsync(recurringPayment);
                 await orderService.InsertOrderNoteAsync(new OrderNote
                 {
-                    OrderId = initialOrder.Id, Note = "Recurring payment has been cancelled",
-                    DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+                    OrderId = initialOrder.Id,
+                    Note = "Recurring payment has been cancelled",
+                    DisplayToCustomer = false,
+                    CreatedOnUtc = DateTime.UtcNow
                 });
                 await workflowMessageService.SendRecurringPaymentCancelledStoreOwnerNotificationAsync(
                     recurringPayment, localizationSettings.DefaultAdminLanguageId);
@@ -339,8 +345,10 @@ public partial class OrderProcessingService
             var error = string.Join(". ", result.Errors.Select((e, i) => $"Error {i}: {e}"));
             await orderService.InsertOrderNoteAsync(new OrderNote
             {
-                OrderId = initialOrder.Id, Note = $"Unable to cancel recurring payment. {error}",
-                DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+                OrderId = initialOrder.Id,
+                Note = $"Unable to cancel recurring payment. {error}",
+                DisplayToCustomer = false,
+                CreatedOnUtc = DateTime.UtcNow
             });
             logger.Error($"Error cancelling recurring payment. Order #{initialOrder.Id}. Error: {error}");
         }

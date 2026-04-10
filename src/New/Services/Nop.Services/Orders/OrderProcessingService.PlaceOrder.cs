@@ -559,7 +559,10 @@ public partial class OrderProcessingService
             : "Order placed";
         await orderService.InsertOrderNoteAsync(new OrderNote
         {
-            OrderId = order.Id, Note = noteText, DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+            OrderId = order.Id,
+            Note = noteText,
+            DisplayToCustomer = false,
+            CreatedOnUtc = DateTime.UtcNow
         });
 
         // Store owner notification

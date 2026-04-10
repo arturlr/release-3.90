@@ -146,6 +146,7 @@ public class ProductAttributeCombinationConfiguration : IEntityTypeConfiguration
     {
         builder.ToTable("ProductAttributeCombination");
         builder.HasKey(pac => pac.Id);
+        builder.Property(pac => pac.OverriddenPrice).HasPrecision(18, 4);
     }
 }
 

@@ -1764,3 +1764,35 @@ Performed exhaustive verification across all dimensions:
 - [5.30-5.82] Admin controllers: can now extend `BaseAdminController`, use `[Authorize(Policy = "...")]` for permissions
 - Action filters must be registered as global filters or per-controller in `Program.cs`: `services.AddScoped<CustomerLastActivityFilter>()` + `options.Filters.AddService<CustomerLastActivityFilter>()`
 - `NopResourceDisplayName.Configure(httpContextAccessor)` must be called in `Program.cs` after DI container is built
+
+## 2026-04-10 — [1.6] EF Core Initial Migration / Implementation
+
+### dotnet-ef Tool Setup
+- `dotnet-ef` global tool was not installed — installed version 8.0.25 matching SDK 8.0.413
+- Requires `DOTNET_ROOT=/home/artrodri/.dotnet` environment variable for tool to find the runtime
+- Tool path: `/home/artrodri/.dotnet/tools` must be on PATH
+
+### NopDbContextFactory Design-Time Factory
+- EF Core migrations tooling (`dotnet ef`) needs `IDesignTimeDbContextFactory<NopDbContext>` to instantiate the context without a running application
+- Connection string in factory is design-time only (used for migration generation, not runtime) — points to a dummy `NopCommerce_Design` database
+- Factory lives in `Nop.Data/NopDbContextFactory.cs` alongside the context
+
+### OverriddenPrice Precision Fix
+- `ProductAttributeCombination.OverriddenPrice` (decimal?) had no precision configured in `ProductAttributeCombinationConfiguration`
+- EF Core warned: "No store type was specified for the decimal property 'OverriddenPrice'" — values would be silently truncated
+- Fixed by adding `builder.Property(pac => pac.OverriddenPrice).HasPrecision(18, 4)` — matching money field convention
+- All other decimal properties already had precision configured in their respective entity configurations
+
+### Migration Statistics
+- 113 `CreateTable` calls in the migration — covers all 105 DbSets plus join entities (CustomerCustomerRoleMapping, PermissionRecordRoleMapping, ProductProductTagMapping, DiscountCategoryMapping, DiscountManufacturerMapping, DiscountProductMapping, ShippingMethodCountryMapping) and additional entities
+- Migration file sizes: ~144K (Up/Down), ~159K (Designer), ~159K (Snapshot)
+- No manual edits to generated migration files — all schema derived from entity configurations
+
+### Pre-existing Format Issues Fixed
+- `OrderProcessingService.Payment.cs`, `OrderProcessingService.PlaceOrder.cs`, `OrderProcessingService.Shipping.cs`, `OrderProcessingService.Status.cs` had whitespace formatting issues from previous iterations
+- Fixed via `dotnet format` — these were noted in [1.7] discoveries but not resolved until now
+
+### Impact on Future Items
+- [8.1] SQL Server schema migration: InitialCreate migration provides the baseline schema for data migration
+- [4.11] Installation services: can use `context.Database.MigrateAsync()` to create database from scratch
+- Future migrations: use `dotnet ef migrations add <Name>` from `src/New/Data/Nop.Data/` directory with `DOTNET_ROOT` set

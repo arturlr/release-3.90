@@ -25,8 +25,10 @@ public partial class OrderProcessingService
         await orderService.UpdateOrderAsync(order);
         await orderService.InsertOrderNoteAsync(new OrderNote
         {
-            OrderId = order.Id, Note = "Order has been marked as authorized",
-            DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+            OrderId = order.Id,
+            Note = "Order has been marked as authorized",
+            DisplayToCustomer = false,
+            CreatedOnUtc = DateTime.UtcNow
         });
         await CheckOrderStatusAsync(order);
     }
@@ -63,8 +65,10 @@ public partial class OrderProcessingService
                 await orderService.UpdateOrderAsync(order);
                 await orderService.InsertOrderNoteAsync(new OrderNote
                 {
-                    OrderId = order.Id, Note = "Order has been captured",
-                    DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+                    OrderId = order.Id,
+                    Note = "Order has been captured",
+                    DisplayToCustomer = false,
+                    CreatedOnUtc = DateTime.UtcNow
                 });
                 await CheckOrderStatusAsync(order);
                 if (order.PaymentStatus == PaymentStatus.Paid)
@@ -82,8 +86,10 @@ public partial class OrderProcessingService
             var error = string.Join(". ", result.Errors.Select((e, i) => $"Error {i}: {e}"));
             await orderService.InsertOrderNoteAsync(new OrderNote
             {
-                OrderId = order.Id, Note = $"Unable to capture order. {error}",
-                DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+                OrderId = order.Id,
+                Note = $"Unable to capture order. {error}",
+                DisplayToCustomer = false,
+                CreatedOnUtc = DateTime.UtcNow
             });
             logger.Error($"Error capturing order #{order.Id}. Error: {error}");
         }
@@ -112,8 +118,10 @@ public partial class OrderProcessingService
         await orderService.UpdateOrderAsync(order);
         await orderService.InsertOrderNoteAsync(new OrderNote
         {
-            OrderId = order.Id, Note = "Order has been marked as paid",
-            DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+            OrderId = order.Id,
+            Note = "Order has been marked as paid",
+            DisplayToCustomer = false,
+            CreatedOnUtc = DateTime.UtcNow
         });
         await CheckOrderStatusAsync(order);
         if (order.PaymentStatus == PaymentStatus.Paid)
@@ -151,8 +159,10 @@ public partial class OrderProcessingService
                 await orderService.UpdateOrderAsync(order);
                 await orderService.InsertOrderNoteAsync(new OrderNote
                 {
-                    OrderId = order.Id, Note = $"Order has been refunded. Amount = {request.AmountToRefund}",
-                    DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+                    OrderId = order.Id,
+                    Note = $"Order has been refunded. Amount = {request.AmountToRefund}",
+                    DisplayToCustomer = false,
+                    CreatedOnUtc = DateTime.UtcNow
                 });
                 await CheckOrderStatusAsync(order);
                 await workflowMessageService.SendOrderRefundedStoreOwnerNotificationAsync(order, request.AmountToRefund, localizationSettings.DefaultAdminLanguageId);
@@ -171,8 +181,10 @@ public partial class OrderProcessingService
             var error = string.Join(". ", result.Errors.Select((e, i) => $"Error {i}: {e}"));
             await orderService.InsertOrderNoteAsync(new OrderNote
             {
-                OrderId = order.Id, Note = $"Unable to refund order. {error}",
-                DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+                OrderId = order.Id,
+                Note = $"Unable to refund order. {error}",
+                DisplayToCustomer = false,
+                CreatedOnUtc = DateTime.UtcNow
             });
             logger.Error($"Error refunding order #{order.Id}. Error: {error}");
         }
@@ -199,8 +211,10 @@ public partial class OrderProcessingService
         await orderService.UpdateOrderAsync(order);
         await orderService.InsertOrderNoteAsync(new OrderNote
         {
-            OrderId = order.Id, Note = $"Order has been marked as refunded. Amount = {amountToRefund}",
-            DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+            OrderId = order.Id,
+            Note = $"Order has been marked as refunded. Amount = {amountToRefund}",
+            DisplayToCustomer = false,
+            CreatedOnUtc = DateTime.UtcNow
         });
         await CheckOrderStatusAsync(order);
         await workflowMessageService.SendOrderRefundedStoreOwnerNotificationAsync(order, amountToRefund, localizationSettings.DefaultAdminLanguageId);
@@ -242,8 +256,10 @@ public partial class OrderProcessingService
                 await orderService.UpdateOrderAsync(order);
                 await orderService.InsertOrderNoteAsync(new OrderNote
                 {
-                    OrderId = order.Id, Note = $"Order has been partially refunded. Amount = {amountToRefund}",
-                    DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+                    OrderId = order.Id,
+                    Note = $"Order has been partially refunded. Amount = {amountToRefund}",
+                    DisplayToCustomer = false,
+                    CreatedOnUtc = DateTime.UtcNow
                 });
                 await CheckOrderStatusAsync(order);
                 await workflowMessageService.SendOrderRefundedStoreOwnerNotificationAsync(order, amountToRefund, localizationSettings.DefaultAdminLanguageId);
@@ -262,8 +278,10 @@ public partial class OrderProcessingService
             var error = string.Join(". ", result.Errors.Select((e, i) => $"Error {i}: {e}"));
             await orderService.InsertOrderNoteAsync(new OrderNote
             {
-                OrderId = order.Id, Note = $"Unable to partially refund order. {error}",
-                DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+                OrderId = order.Id,
+                Note = $"Unable to partially refund order. {error}",
+                DisplayToCustomer = false,
+                CreatedOnUtc = DateTime.UtcNow
             });
             logger.Error($"Error refunding order #{order.Id}. Error: {error}");
         }
@@ -291,8 +309,10 @@ public partial class OrderProcessingService
         await orderService.UpdateOrderAsync(order);
         await orderService.InsertOrderNoteAsync(new OrderNote
         {
-            OrderId = order.Id, Note = $"Order has been marked as partially refunded. Amount = {amountToRefund}",
-            DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+            OrderId = order.Id,
+            Note = $"Order has been marked as partially refunded. Amount = {amountToRefund}",
+            DisplayToCustomer = false,
+            CreatedOnUtc = DateTime.UtcNow
         });
         await CheckOrderStatusAsync(order);
         await workflowMessageService.SendOrderRefundedStoreOwnerNotificationAsync(order, amountToRefund, localizationSettings.DefaultAdminLanguageId);
@@ -328,8 +348,10 @@ public partial class OrderProcessingService
                 await orderService.UpdateOrderAsync(order);
                 await orderService.InsertOrderNoteAsync(new OrderNote
                 {
-                    OrderId = order.Id, Note = "Order has been voided",
-                    DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+                    OrderId = order.Id,
+                    Note = "Order has been voided",
+                    DisplayToCustomer = false,
+                    CreatedOnUtc = DateTime.UtcNow
                 });
                 await CheckOrderStatusAsync(order);
             }
@@ -345,8 +367,10 @@ public partial class OrderProcessingService
             var error = string.Join(". ", result.Errors.Select((e, i) => $"Error {i}: {e}"));
             await orderService.InsertOrderNoteAsync(new OrderNote
             {
-                OrderId = order.Id, Note = $"Unable to void order. {error}",
-                DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+                OrderId = order.Id,
+                Note = $"Unable to void order. {error}",
+                DisplayToCustomer = false,
+                CreatedOnUtc = DateTime.UtcNow
             });
             logger.Error($"Error voiding order #{order.Id}. Error: {error}");
         }
@@ -370,8 +394,10 @@ public partial class OrderProcessingService
         await orderService.UpdateOrderAsync(order);
         await orderService.InsertOrderNoteAsync(new OrderNote
         {
-            OrderId = order.Id, Note = "Order has been marked as voided",
-            DisplayToCustomer = false, CreatedOnUtc = DateTime.UtcNow
+            OrderId = order.Id,
+            Note = "Order has been marked as voided",
+            DisplayToCustomer = false,
+            CreatedOnUtc = DateTime.UtcNow
         });
         await CheckOrderStatusAsync(order);
     }

@@ -260,27 +260,27 @@ public class DiscountService : IDiscountService
         switch (discount.DiscountLimitation)
         {
             case DiscountLimitationType.NTimesOnly:
-            {
-                var usedTimes = (await GetAllDiscountUsageHistoryAsync(discount.Id, pageSize: 1)).TotalCount;
-                if (usedTimes >= discount.LimitationTimes)
-                    return result;
-                break;
-            }
-            case DiscountLimitationType.NTimesPerCustomer:
-            {
-                var roleIds = await _customerService.GetCustomerRoleIdsAsync(customer);
-                var registeredRole = await _customerService.GetCustomerRoleBySystemNameAsync(SystemCustomerRoleNames.Registered);
-                if (registeredRole != null && roleIds.Contains(registeredRole.Id))
                 {
-                    var usedTimes = (await GetAllDiscountUsageHistoryAsync(discount.Id, customer.Id, pageSize: 1)).TotalCount;
+                    var usedTimes = (await GetAllDiscountUsageHistoryAsync(discount.Id, pageSize: 1)).TotalCount;
                     if (usedTimes >= discount.LimitationTimes)
-                    {
-                        result.Errors = [await _localizationService.GetResourceAsync("ShoppingCart.Discount.CannotBeUsedAnymore")];
                         return result;
-                    }
+                    break;
                 }
-                break;
-            }
+            case DiscountLimitationType.NTimesPerCustomer:
+                {
+                    var roleIds = await _customerService.GetCustomerRoleIdsAsync(customer);
+                    var registeredRole = await _customerService.GetCustomerRoleBySystemNameAsync(SystemCustomerRoleNames.Registered);
+                    if (registeredRole != null && roleIds.Contains(registeredRole.Id))
+                    {
+                        var usedTimes = (await GetAllDiscountUsageHistoryAsync(discount.Id, customer.Id, pageSize: 1)).TotalCount;
+                        if (usedTimes >= discount.LimitationTimes)
+                        {
+                            result.Errors = [await _localizationService.GetResourceAsync("ShoppingCart.Discount.CannotBeUsedAnymore")];
+                            return result;
+                        }
+                    }
+                    break;
+                }
         }
 
         // discount requirements — evaluate hierarchical AND/OR tree
