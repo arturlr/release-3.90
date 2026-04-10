@@ -2246,3 +2246,48 @@ Performed exhaustive verification across all dimensions:
 - [5.31] Admin ProductController: can now reference the same `ProductDetailsModel` pattern
 - [5.64] Admin ProductReviewController: can now use `InsertProductReviewAsync` and `SetProductReviewHelpfulnessAsync`
 - [7.13] reCAPTCHA: add `[CaptchaValidator]` to `ProductReviewsAdd` action
+
+## 2026-04-10 — [5.7] Public ShoppingCartController / Implementation
+
+### FormValueRequired Attribute Eliminated
+- Legacy used `[FormValueRequired("updatecart")]`, `[FormValueRequired("continueshopping")]`, `[FormValueRequired("checkout")]`, `[FormValueRequired("applydiscountcouponcode")]`, `[FormValueRequired("applygiftcardcouponcode")]` to route multiple POST actions to the same URL (`[HttpPost, ActionName("Cart")]`)
+- `FormValueRequiredAttribute` is not available in ASP.NET Core — it was a custom MVC 5 filter that checked form values to select the correct action
+- New code uses separate action endpoints: `UpdateCart`, `ContinueShopping`, `StartCheckout`, `ApplyDiscountCoupon`, `ApplyGiftCard`, `RemoveDiscountCoupon`, `RemoveGiftCardCode`
+- Each form in the view posts to its own action URL — simpler, no custom attribute needed
+- Impact: view forms use `asp-action` tag helper pointing to individual endpoints instead of all posting to "Cart"
+
+### ICustomerActivityService Is Sync
+- Legacy `ICustomerActivityService.InsertActivity` is synchronous (returns `ActivityLog?`, not `Task<ActivityLog?>`)
+- New code calls `customerActivityService.InsertActivity(...)` synchronously inside async controller methods
+- This is acceptable: activity logging is a fire-and-forget side effect, not on the critical path
+- If async is needed later, `ICustomerActivityService` interface must be updated to async-first
+
+### GenericAttribute Extension Method Pattern
+- `GetAttributeAsync<T>` is an extension method on `BaseEntity`, not a method on `IGenericAttributeService`
+- Call pattern: `entity.GetAttributeAsync<T>(key, genericAttributeService, storeId)` — service passed as parameter
+- `SaveAttributeAsync<T>` is a method on `IGenericAttributeService` directly: `genericAttributeService.SaveAttributeAsync(entity, key, value, storeId)`
+- This asymmetry (extension for read, direct for write) is by design — read is entity-centric, write is service-centric
+
+### Coupon Code Storage: Comma-Separated Strings
+- Legacy used `customer.ApplyDiscountCouponCode()` / `customer.RemoveDiscountCouponCode()` extension methods (service locator based)
+- Legacy used `customer.ApplyGiftCardCouponCode()` / `customer.RemoveGiftCardCouponCode()` extension methods (XML format for gift cards)
+- New code stores both as comma-separated strings in GenericAttribute (keys: `DiscountCouponCode`, `GiftCardCouponCodes`)
+- Gift card codes simplified from XML to comma-separated — legacy XML format was unnecessarily complex for a simple list of strings
+- Impact: [8.x] data migration must convert legacy XML gift card codes to comma-separated format
+
+### ChildAction Methods → ViewComponents (Deferred)
+- 3 legacy `[ChildActionOnly]` actions: OrderSummary, OrderTotals, FlyoutShoppingCart
+- ASP.NET Core replaces child actions with ViewComponents (`@await Component.InvokeAsync()`)
+- `PrepareMiniShoppingCartModelAsync` and `PrepareOrderTotalsModelAsync` helper methods already created — ready for ViewComponent use when [5.26] Shared views is built
+- `OrderSummary` was used by CheckoutController for order review — will be a ViewComponent invoked from checkout views
+
+### Deferred Actions
+- **EmailWishlist/EmailWishlistSend**: Depends on Captcha ([7.13]) and `IWorkflowMessageService.SendWishlistEmailAFriendMessage`
+- **GetEstimateShipping**: Depends on plugin-dependent shipping methods ([2.10]) — `IShippingService.GetShippingOptions` not available
+- **OrderSummary/OrderTotals/FlyoutShoppingCart**: ChildAction → ViewComponent conversion deferred to [5.26]
+
+### Impact on Future Items
+- [5.8] CheckoutController: can now use `IShoppingCartService.GetShoppingCartAsync` and `StartCheckout` pattern for checkout flow
+- [5.26] Shared views: OrderTotals, FlyoutShoppingCart, OrderSummary ViewComponents should use the already-created helper methods
+- [7.13] reCAPTCHA: add `[CaptchaValidator]` to `EmailWishlistSend` action
+- [8.x] Data migration: must convert legacy XML gift card coupon codes to comma-separated format

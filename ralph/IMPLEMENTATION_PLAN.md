@@ -336,10 +336,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.1, 2.5
   - Done: 2026-04-10. CustomerController as 4 partial class files (constructor, Login, Register, Account, Addresses). 10 view models (LoginModel, RegisterModel, RegisterResultModel, PasswordRecoveryModel, PasswordRecoveryConfirmModel, ChangePasswordModel, AccountActivationModel, EmailRevalidationModel, CustomerAvatarModel, AddressModels). 13 Razor views. CustomerAddressMapping join entity + EF config + DbSet for customer-address many-to-many (replaces legacy Customer.Addresses nav property). CustomerEvents (CustomerLoggedinEvent, CustomerLoggedOutEvent, CustomerRegisteredEvent). Deferred: DownloadableProducts/UserAgreement (depend on order items), CustomerNavigation (ViewComponent), RemoveExternalAssociation (IOpenAuthenticationService [6.17]), Info action (complex model factory — add later), Captcha/Honeypot ([7.13]).
 
-- [ ] [5.7] Public: ShoppingCartController + ShoppingCart views (cart, wishlist, mini-cart)
+- [x] [5.7] Public: ShoppingCartController + ShoppingCart views (cart, wishlist, mini-cart)
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/ShoppingCartController, Views/ShoppingCart
   - Depends on: 5.1, 4.9
+  - Done: 2026-04-10. ShoppingCartController as 4 partial class files (main, Ajax, Wishlist, Helpers) with 16 actions: Cart (GET), UpdateCart (POST), ContinueShopping (POST), StartCheckout (POST), ApplyDiscountCoupon (POST), RemoveDiscountCoupon (POST), ApplyGiftCard (POST), RemoveGiftCardCode (POST), AddProductToCart_Catalog (AJAX), AddProductToCart_Details (AJAX), ProductDetails_AttributeChange (AJAX), CheckoutAttributeChange (AJAX), UploadFileProductAttribute (AJAX), UploadFileCheckoutAttribute (AJAX), Wishlist (GET), UpdateWishlist (POST), AddItemsToCartFromWishlist (POST). 4 view models (ShoppingCartModel, WishlistModel, MiniShoppingCartModel, OrderTotalsModel). 2 Razor views (Cart.cshtml, Wishlist.cshtml). Deferred: EmailWishlist (Captcha [7.13]), EstimateShipping (plugin-dependent [2.10]), OrderSummary/OrderTotals/FlyoutShoppingCart (ViewComponents for [5.26]).
 
 - [ ] [5.8] Public: CheckoutController + Checkout views (address, shipping, payment, confirm)
   - Spec: specs/nop-web-public.md

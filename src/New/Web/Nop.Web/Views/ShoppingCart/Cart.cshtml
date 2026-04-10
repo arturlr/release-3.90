@@ -1,0 +1,144 @@
+@model Nop.Web.Models.ShoppingCart.ShoppingCartModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head><title>Shopping Cart</title></head>
+<body>
+<h1>Shopping Cart</h1>
+
+@if (Model.Warnings.Count != 0)
+{
+    <div class="message-error">
+        <ul>
+            @foreach (var warning in Model.Warnings)
+            {
+                <li>@warning</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (Model.Items.Count == 0)
+{
+    <div class="no-data">Your Shopping Cart is empty!</div>
+}
+else
+{
+    <form asp-action="UpdateCart" method="post">
+        <table class="cart">
+            <thead>
+                <tr>
+                    @if (Model.IsEditable) { <th>Remove</th> }
+                    @if (Model.ShowSku) { <th>SKU</th> }
+                    <th>Product</th>
+                    <th>Unit price</th>
+                    <th>Qty</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        @if (Model.IsEditable)
+                        {
+                            <td>
+                                @if (!item.DisableRemoval)
+                                {
+                                    <input type="checkbox" name="removefromcart" value="@item.Id" />
+                                }
+                            </td>
+                        }
+                        @if (Model.ShowSku) { <td>@item.Sku</td> }
+                        <td>
+                            <a href="@Url.Action("ProductDetails", "Product", new { productId = item.ProductId })">@item.ProductName</a>
+                            @if (!string.IsNullOrEmpty(item.AttributeInfo))
+                            {
+                                <div class="attributes">@Html.Raw(item.AttributeInfo)</div>
+                            }
+                            @if (item.Warnings.Count != 0)
+                            {
+                                <div class="message-error">
+                                    @foreach (var w in item.Warnings) { <div>@w</div> }
+                                </div>
+                            }
+                        </td>
+                        <td>@item.UnitPrice</td>
+                        <td>
+                            @if (Model.IsEditable)
+                            {
+                                <input type="text" name="itemquantity@(item.Id)" value="@item.Quantity" size="4" />
+                            }
+                            else
+                            {
+                                <span>@item.Quantity</span>
+                            }
+                        </td>
+                        <td>@item.SubTotal</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (Model.IsEditable)
+        {
+            <div class="cart-options">
+                <button type="submit" name="updatecart" value="updatecart">Update Cart</button>
+            </div>
+        }
+    </form>
+
+    @* Discount box *@
+    @if (Model.DiscountBox.Display)
+    {
+        <div class="coupon-box">
+            <form asp-action="ApplyDiscountCoupon" method="post">
+                <input type="text" name="discountcouponcode" />
+                <button type="submit">Apply coupon</button>
+            </form>
+            @foreach (var msg in Model.DiscountBox.Messages)
+            {
+                <div>@msg</div>
+            }
+        </div>
+    }
+
+    @* Gift card box *@
+    @if (Model.GiftCardBox.Display)
+    {
+        <div class="giftcard-box">
+            <form asp-action="ApplyGiftCard" method="post">
+                <input type="text" name="giftcardcouponcode" />
+                <button type="submit">Add gift card</button>
+            </form>
+            @if (!string.IsNullOrEmpty(Model.GiftCardBox.Message))
+            {
+                <div>@Model.GiftCardBox.Message</div>
+            }
+        </div>
+    }
+
+    @* Continue shopping / Checkout *@
+    <div class="cart-footer">
+        <form asp-action="ContinueShopping" method="post">
+            <button type="submit">Continue shopping</button>
+        </form>
+        @if (!Model.HideCheckoutButton)
+        {
+            <form asp-action="StartCheckout" method="post">
+                @if (Model.TermsOfServiceOnShoppingCartPage)
+                {
+                    <label>
+                        <input type="checkbox" id="termsofservice" name="termsofservice" />
+                        I agree to the terms of service
+                    </label>
+                }
+                <button type="submit">Checkout</button>
+            </form>
+        }
+    </div>
+}
+</body>
+</html>

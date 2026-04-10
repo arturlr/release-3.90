@@ -1,0 +1,108 @@
+@model Nop.Web.Models.ShoppingCart.WishlistModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head><title>Wishlist</title></head>
+<body>
+<h1>Wishlist</h1>
+
+@if (!string.IsNullOrEmpty(Model.CustomerFullname))
+{
+    <div class="wishlist-owner">Wishlist of @Model.CustomerFullname</div>
+}
+
+@if (Model.Warnings.Count != 0)
+{
+    <div class="message-error">
+        <ul>
+            @foreach (var warning in Model.Warnings)
+            {
+                <li>@warning</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (Model.Items.Count == 0)
+{
+    <div class="no-data">The wishlist is empty!</div>
+}
+else
+{
+    <form asp-action="UpdateWishlist" method="post">
+        <table class="cart wishlist">
+            <thead>
+                <tr>
+                    @if (Model.IsEditable) { <th>Remove</th> }
+                    @if (Model.DisplayAddToCart) { <th>Add to cart</th> }
+                    @if (Model.ShowSku) { <th>SKU</th> }
+                    <th>Product</th>
+                    <th>Unit price</th>
+                    <th>Qty</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        @if (Model.IsEditable)
+                        {
+                            <td><input type="checkbox" name="removefromcart" value="@item.Id" /></td>
+                        }
+                        @if (Model.DisplayAddToCart)
+                        {
+                            <td><input type="checkbox" name="addtocart" value="@item.Id" /></td>
+                        }
+                        @if (Model.ShowSku) { <td>@item.Sku</td> }
+                        <td>
+                            <a href="@Url.Action("ProductDetails", "Product", new { productId = item.ProductId })">@item.ProductName</a>
+                            @if (!string.IsNullOrEmpty(item.AttributeInfo))
+                            {
+                                <div class="attributes">@Html.Raw(item.AttributeInfo)</div>
+                            }
+                            @if (item.Warnings.Count != 0)
+                            {
+                                <div class="message-error">
+                                    @foreach (var w in item.Warnings) { <div>@w</div> }
+                                </div>
+                            }
+                        </td>
+                        <td>@item.UnitPrice</td>
+                        <td>
+                            @if (Model.IsEditable)
+                            {
+                                <input type="text" name="itemquantity@(item.Id)" value="@item.Quantity" size="4" />
+                            }
+                            else
+                            {
+                                <span>@item.Quantity</span>
+                            }
+                        </td>
+                        <td>@item.SubTotal</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="buttons">
+            @if (Model.IsEditable)
+            {
+                <button type="submit" name="updatecart" value="updatecart">Update Wishlist</button>
+            }
+            @if (Model.DisplayAddToCart)
+            {
+                <button type="submit" formaction="@Url.Action("AddItemsToCartFromWishlist")" name="addtocartbutton" value="addtocartbutton">Add to cart</button>
+            }
+        </div>
+    </form>
+
+    @if (Model.IsEditable && Model.EmailWishlistEnabled)
+    {
+        <a href="@Url.Action("EmailWishlist")">Email a friend</a>
+    }
+}
+</body>
+</html>
