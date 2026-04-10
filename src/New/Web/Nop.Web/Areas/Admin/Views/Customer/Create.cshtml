@@ -1,0 +1,153 @@
+@model Nop.Web.Areas.Admin.Models.Customers.CustomerModel
+@{ ViewData["Title"] = "Add a new customer"; }
+
+<h1>Add a new customer</h1>
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <fieldset>
+        <legend>Customer info</legend>
+        <div>
+            <label asp-for="Email">Email</label>
+            <input asp-for="Email" />
+        </div>
+        @if (Model.UsernamesEnabled)
+        {
+            <div>
+                <label asp-for="Username">Username</label>
+                <input asp-for="Username" />
+            </div>
+        }
+        <div>
+            <label asp-for="Password">Password</label>
+            <input asp-for="Password" type="password" />
+        </div>
+        <div>
+            <label asp-for="VendorId">Vendor</label>
+            <select asp-for="VendorId" asp-items="Model.AvailableVendors"></select>
+        </div>
+        <div>
+            <label asp-for="IsTaxExempt">Tax exempt</label>
+            <input asp-for="IsTaxExempt" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="Active">Active</label>
+            <input asp-for="Active" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="AdminComment">Admin comment</label>
+            <textarea asp-for="AdminComment"></textarea>
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Form fields</legend>
+        <div>
+            <label asp-for="FirstName">First name</label>
+            <input asp-for="FirstName" />
+        </div>
+        <div>
+            <label asp-for="LastName">Last name</label>
+            <input asp-for="LastName" />
+        </div>
+        @if (Model.GenderEnabled)
+        {
+            <div>
+                <label asp-for="Gender">Gender</label>
+                <select asp-for="Gender">
+                    <option value="">---</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                </select>
+            </div>
+        }
+        @if (Model.DateOfBirthEnabled)
+        {
+            <div>
+                <label asp-for="DateOfBirth">Date of birth</label>
+                <input asp-for="DateOfBirth" type="date" />
+            </div>
+        }
+        @if (Model.CompanyEnabled)
+        {
+            <div>
+                <label asp-for="Company">Company</label>
+                <input asp-for="Company" />
+            </div>
+        }
+        @if (Model.StreetAddressEnabled)
+        {
+            <div>
+                <label asp-for="StreetAddress">Street address</label>
+                <input asp-for="StreetAddress" />
+            </div>
+        }
+        @if (Model.StreetAddress2Enabled)
+        {
+            <div>
+                <label asp-for="StreetAddress2">Street address 2</label>
+                <input asp-for="StreetAddress2" />
+            </div>
+        }
+        @if (Model.ZipPostalCodeEnabled)
+        {
+            <div>
+                <label asp-for="ZipPostalCode">Zip / postal code</label>
+                <input asp-for="ZipPostalCode" />
+            </div>
+        }
+        @if (Model.CityEnabled)
+        {
+            <div>
+                <label asp-for="City">City</label>
+                <input asp-for="City" />
+            </div>
+        }
+        @if (Model.CountryEnabled)
+        {
+            <div>
+                <label asp-for="CountryId">Country</label>
+                <select asp-for="CountryId" asp-items="Model.AvailableCountries"></select>
+            </div>
+        }
+        @if (Model.StateProvinceEnabled)
+        {
+            <div>
+                <label asp-for="StateProvinceId">State / province</label>
+                <select asp-for="StateProvinceId" asp-items="Model.AvailableStates"></select>
+            </div>
+        }
+        @if (Model.PhoneEnabled)
+        {
+            <div>
+                <label asp-for="Phone">Phone</label>
+                <input asp-for="Phone" />
+            </div>
+        }
+        @if (Model.FaxEnabled)
+        {
+            <div>
+                <label asp-for="Fax">Fax</label>
+                <input asp-for="Fax" />
+            </div>
+        }
+    </fieldset>
+
+    <fieldset>
+        <legend>Customer roles</legend>
+        @foreach (var role in Model.AvailableCustomerRoles)
+        {
+            <label>
+                <input type="checkbox" name="SelectedCustomerRoleIds" value="@role.Value"
+                       @(role.Selected ? "checked" : "") />
+                @role.Text
+            </label>
+        }
+    </fieldset>
+
+    <button type="submit" name="save">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>
+
+<p><a asp-action="List">back to customer list</a></p>

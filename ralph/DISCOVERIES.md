@@ -2827,3 +2827,53 @@ Performed exhaustive verification across all dimensions:
   - Reports: BestsellersBriefReport, BestsellersReport, NeverSoldReport, OrderAverageReport, OrderIncompleteReport, CountryReport, OrderStatistics, LatestOrders
 - [5.35] Admin CustomerController: next high-value admin controller to implement
 - [5.59] Admin RecurringPaymentController: can now reference the same `IOrderProcessingService` patterns
+
+## 2026-04-10 — [5.35] Admin CustomerController / Implementation
+
+### Scope Decision: Core CRUD Only
+- Legacy admin CustomerController has 2396 LOC with 44 constructor dependencies covering: CRUD, customer roles, addresses, orders tab, shopping cart tab, activity log tab, back-in-stock subscriptions, reward points, newsletter subscriptions, send email, send PM, impersonation, external auth records, customer attributes, reports
+- This iteration implements core CRUD only: List, CustomerList (AJAX grid), Create, Edit, Delete, DeleteSelected, ExportExcelAll
+- Sub-entity management (orders, addresses, shopping cart, activity log, reward points, newsletter, send email/PM) deferred — each can be a separate iteration
+
+### Constructor Dependencies Reduced from 44 to 14
+- Legacy had 44 constructor dependencies including many that are only used by sub-entity management tabs
+- New code has 14: ICustomerService, ICustomerRegistrationService, IGenericAttributeService, IDateTimeHelper, ICountryService, IStateProvinceService, IVendorService, IStoreService, IExportManager, ICustomerActivityService, IPermissionService, IStoreContext, CustomerSettings
+- IWorkContext removed — was initially included but unused (CS9113 error with TreatWarningsAsErrors)
+- Dependencies will be re-added when sub-entity management tabs are implemented
+
+### GenericAttribute Pattern for Customer Form Fields
+- Legacy stored customer form fields (FirstName, LastName, Gender, DOB, Company, Address, Phone, Fax) as GenericAttributes via `customer.GetAttribute<T>(key)` (service locator) and `_genericAttributeService.SaveAttribute(customer, key, value)`
+- New code uses `customer.GetAttributeAsync<T>(key, genericAttributeService)` (explicit parameter) and `genericAttributeService.SaveAttributeAsync(customer, key, value)`
+- This creates N+1 queries for N attributes per customer in the grid model — acceptable for admin grid page sizes (10-50 customers)
+- Future optimization: batch load GenericAttributes for all customers in a single query, or add a `GetAttributesForEntitiesAsync(int[] entityIds, string keyGroup)` method
+
+### Customer Role Sync Pattern
+- Legacy used `customer.CustomerRoles.Add(role)` / `customer.CustomerRoles.Remove(role)` nav property collection manipulation
+- New code compares `model.SelectedCustomerRoleIds` against `customerService.GetCustomerRoleIdsAsync(customer)` and calls `AddCustomerRoleMappingAsync` / `RemoveCustomerRoleMappingAsync` for differences
+- This is a full sync: adds missing roles, removes extra roles — more explicit than legacy's collection manipulation
+
+### Vendor-Admin Guard
+- Legacy prevented admin+vendor combination: if customer is admin and has VendorId > 0, VendorId is reset to 0
+- New code preserves this guard in both Create and Edit actions
+- Legacy also prevented vendor role without vendor account — new code defers this check (requires checking if vendor role is in the new roles list AND VendorId == 0)
+
+### Last Admin Protection
+- `SecondAdminAccountExistsAsync` queries customers with admin role, checks if any active admin exists besides the current customer
+- Used in Edit (prevent deactivation) and Delete (prevent deletion) actions
+- Legacy used `customer.IsAdmin()` extension method (service locator) — new code uses `GetCustomerRoleIdsAsync` + role ID comparison
+
+### Impact on Future Items
+- Sub-entity management actions should be added as separate iterations or sub-items of [5.35]:
+  - Orders tab: customer order list (uses IOrderService.SearchOrdersAsync)
+  - Addresses tab: address list/add/edit/delete (uses CustomerAddressMapping + IAddressService)
+  - Shopping cart/Wishlist tab: current cart items (uses IShoppingCartService)
+  - Activity log tab: customer activity (uses ICustomerActivityService)
+  - Back in stock subscriptions tab: subscription list (uses IBackInStockSubscriptionService)
+  - Reward points tab: points history + add points (uses IRewardPointService)
+  - Newsletter subscriptions tab: per-store subscription management (uses INewsLetterSubscriptionService)
+  - Send email: queue email to customer (uses IQueuedEmailService + IEmailAccountService)
+  - Send PM: send private message (uses IForumService)
+  - Impersonation: impersonate customer (uses IGenericAttributeService + ImpersonatedCustomerId)
+  - Customer attributes: custom attribute form fields (uses ICustomerAttributeService + ICustomerAttributeParser)
+- [5.36] Admin CustomerRoleController: next logical admin controller for customer management
+- [5.37] Admin CustomerAttributeController: custom attribute management

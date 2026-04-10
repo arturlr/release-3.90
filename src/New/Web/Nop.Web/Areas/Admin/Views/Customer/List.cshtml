@@ -1,0 +1,181 @@
+@model Nop.Web.Areas.Admin.Models.Customers.CustomerListModel
+@{ ViewData["Title"] = "Customers"; }
+
+<h1>Customers</h1>
+
+<form asp-action="List" method="get" id="search-form">
+    <div>
+        <label asp-for="SearchEmail">Email</label>
+        <input asp-for="SearchEmail" />
+    </div>
+    @if (Model.UsernamesEnabled)
+    {
+        <div>
+            <label asp-for="SearchUsername">Username</label>
+            <input asp-for="SearchUsername" />
+        </div>
+    }
+    <div>
+        <label>First name</label>
+        <input asp-for="SearchFirstName" />
+    </div>
+    <div>
+        <label>Last name</label>
+        <input asp-for="SearchLastName" />
+    </div>
+    @if (Model.DateOfBirthEnabled)
+    {
+        <div>
+            <label>Date of birth (month)</label>
+            <input asp-for="SearchMonthOfBirth" />
+        </div>
+        <div>
+            <label>Date of birth (day)</label>
+            <input asp-for="SearchDayOfBirth" />
+        </div>
+    }
+    @if (Model.CompanyEnabled)
+    {
+        <div>
+            <label>Company</label>
+            <input asp-for="SearchCompany" />
+        </div>
+    }
+    @if (Model.PhoneEnabled)
+    {
+        <div>
+            <label>Phone</label>
+            <input asp-for="SearchPhone" />
+        </div>
+    }
+    @if (Model.ZipPostalCodeEnabled)
+    {
+        <div>
+            <label>Zip / postal code</label>
+            <input asp-for="SearchZipPostalCode" />
+        </div>
+    }
+    <div>
+        <label>IP address</label>
+        <input asp-for="SearchIpAddress" />
+    </div>
+    <div>
+        <label>Customer roles</label>
+        @foreach (var role in Model.AvailableCustomerRoles)
+        {
+            <label>
+                <input type="checkbox" name="SearchCustomerRoleIds" value="@role.Value"
+                       @(Model.SearchCustomerRoleIds.Contains(int.Parse(role.Value)) ? "checked" : "") />
+                @role.Text
+            </label>
+        }
+    </div>
+    <button type="submit" id="search-customers">Search</button>
+</form>
+
+<p>
+    <a asp-action="Create">Add new</a>
+</p>
+
+<div id="customers-grid">
+    <table>
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="select-all" /></th>
+                <th>Email</th>
+                @if (Model.UsernamesEnabled) { <th>Username</th> }
+                <th>Name</th>
+                @if (Model.CompanyEnabled) { <th>Company</th> }
+                @if (Model.PhoneEnabled) { <th>Phone</th> }
+                @if (Model.ZipPostalCodeEnabled) { <th>Zip</th> }
+                <th>Roles</th>
+                <th>Active</th>
+                <th>Created</th>
+                <th>Last activity</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="customers-tbody"></tbody>
+    </table>
+    <div id="customers-pager"></div>
+</div>
+
+<form asp-action="ExportExcelAll" method="post" id="export-form">
+    <input type="hidden" asp-for="SearchEmail" />
+    <input type="hidden" asp-for="SearchUsername" />
+    <input type="hidden" asp-for="SearchFirstName" />
+    <input type="hidden" asp-for="SearchLastName" />
+    <input type="hidden" asp-for="SearchDayOfBirth" />
+    <input type="hidden" asp-for="SearchMonthOfBirth" />
+    <input type="hidden" asp-for="SearchCompany" />
+    <input type="hidden" asp-for="SearchPhone" />
+    <input type="hidden" asp-for="SearchZipPostalCode" />
+    <input type="hidden" asp-for="SearchIpAddress" />
+    @foreach (var roleId in Model.SearchCustomerRoleIds)
+    {
+        <input type="hidden" name="SearchCustomerRoleIds" value="@roleId" />
+    }
+    <button type="submit">Export to Excel (all found)</button>
+</form>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadCustomers(1, 15);
+    });
+
+    document.getElementById('search-customers')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        loadCustomers(1, 15);
+    });
+
+    document.getElementById('select-all')?.addEventListener('change', function () {
+        document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = this.checked);
+    });
+
+    function loadCustomers(page, pageSize) {
+        const form = document.getElementById('search-form');
+        const data = new URLSearchParams(new FormData(form));
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("CustomerList", "Customer", new { area = "Admin" })', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+            },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('customers-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (c) {
+                    const tr = document.createElement('tr');
+                    let html = '<td><input type="checkbox" class="customer-checkbox" value="' + c.Id + '" /></td>'
+                        + '<td>' + (c.Email || '') + '</td>';
+                    @if (Model.UsernamesEnabled) { @: html += '<td>' + (c.Username || '') + '</td>';
+                    }
+                    html += '<td>' + (c.FullName || '') + '</td>';
+                    @if (Model.CompanyEnabled) { @: html += '<td>' + (c.Company || '') + '</td>';
+                    }
+                    @if (Model.PhoneEnabled) { @: html += '<td>' + (c.Phone || '') + '</td>';
+                    }
+                    @if (Model.ZipPostalCodeEnabled) { @: html += '<td>' + (c.ZipPostalCode || '') + '</td>';
+                    }
+                    html += '<td>' + (c.CustomerRoleNames || '') + '</td>'
+                        + '<td>' + (c.Active ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (c.CreatedOn || '') + '</td>'
+                        + '<td>' + (c.LastActivityDate || '') + '</td>'
+                        + '<td><a href="/Admin/Customer/Edit/' + c.Id + '">Edit</a></td>';
+                    tr.innerHTML = html;
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('customers-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}

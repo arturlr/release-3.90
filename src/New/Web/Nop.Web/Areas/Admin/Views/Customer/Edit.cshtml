@@ -1,0 +1,195 @@
+@model Nop.Web.Areas.Admin.Models.Customers.CustomerModel
+@{ ViewData["Title"] = $"Edit customer — {Model.Email}"; }
+
+<h1>Edit customer — @Model.Email</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <fieldset>
+        <legend>Customer info</legend>
+        <div>
+            <label asp-for="Email">Email</label>
+            <input asp-for="Email" />
+        </div>
+        @if (Model.UsernamesEnabled)
+        {
+            <div>
+                <label asp-for="Username">Username</label>
+                <input asp-for="Username" />
+            </div>
+        }
+        <div>
+            <label asp-for="VendorId">Vendor</label>
+            <select asp-for="VendorId" asp-items="Model.AvailableVendors"></select>
+        </div>
+        <div>
+            <label asp-for="IsTaxExempt">Tax exempt</label>
+            <input asp-for="IsTaxExempt" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="Active">Active</label>
+            <input asp-for="Active" type="checkbox" />
+        </div>
+        <div>
+            <label asp-for="AdminComment">Admin comment</label>
+            <textarea asp-for="AdminComment"></textarea>
+        </div>
+        @if (Model.RegisteredInStore is not null)
+        {
+            <div>
+                <label>Registered in store</label>
+                <span>@Model.RegisteredInStore</span>
+            </div>
+        }
+        @if (Model.CreatedOn.HasValue)
+        {
+            <div>
+                <label>Created on</label>
+                <span>@Model.CreatedOn.Value.ToString("g")</span>
+            </div>
+        }
+        @if (Model.LastActivityDate.HasValue)
+        {
+            <div>
+                <label>Last activity</label>
+                <span>@Model.LastActivityDate.Value.ToString("g")</span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.LastIpAddress))
+        {
+            <div>
+                <label>Last IP address</label>
+                <span>@Model.LastIpAddress</span>
+            </div>
+        }
+    </fieldset>
+
+    <fieldset>
+        <legend>Form fields</legend>
+        <div>
+            <label asp-for="FirstName">First name</label>
+            <input asp-for="FirstName" />
+        </div>
+        <div>
+            <label asp-for="LastName">Last name</label>
+            <input asp-for="LastName" />
+        </div>
+        @if (Model.GenderEnabled)
+        {
+            <div>
+                <label asp-for="Gender">Gender</label>
+                <select asp-for="Gender">
+                    <option value="">---</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                </select>
+            </div>
+        }
+        @if (Model.DateOfBirthEnabled)
+        {
+            <div>
+                <label asp-for="DateOfBirth">Date of birth</label>
+                <input asp-for="DateOfBirth" type="date" />
+            </div>
+        }
+        @if (Model.CompanyEnabled)
+        {
+            <div>
+                <label asp-for="Company">Company</label>
+                <input asp-for="Company" />
+            </div>
+        }
+        @if (Model.StreetAddressEnabled)
+        {
+            <div>
+                <label asp-for="StreetAddress">Street address</label>
+                <input asp-for="StreetAddress" />
+            </div>
+        }
+        @if (Model.StreetAddress2Enabled)
+        {
+            <div>
+                <label asp-for="StreetAddress2">Street address 2</label>
+                <input asp-for="StreetAddress2" />
+            </div>
+        }
+        @if (Model.ZipPostalCodeEnabled)
+        {
+            <div>
+                <label asp-for="ZipPostalCode">Zip / postal code</label>
+                <input asp-for="ZipPostalCode" />
+            </div>
+        }
+        @if (Model.CityEnabled)
+        {
+            <div>
+                <label asp-for="City">City</label>
+                <input asp-for="City" />
+            </div>
+        }
+        @if (Model.CountryEnabled)
+        {
+            <div>
+                <label asp-for="CountryId">Country</label>
+                <select asp-for="CountryId" asp-items="Model.AvailableCountries"></select>
+            </div>
+        }
+        @if (Model.StateProvinceEnabled)
+        {
+            <div>
+                <label asp-for="StateProvinceId">State / province</label>
+                <select asp-for="StateProvinceId" asp-items="Model.AvailableStates"></select>
+            </div>
+        }
+        @if (Model.PhoneEnabled)
+        {
+            <div>
+                <label asp-for="Phone">Phone</label>
+                <input asp-for="Phone" />
+            </div>
+        }
+        @if (Model.FaxEnabled)
+        {
+            <div>
+                <label asp-for="Fax">Fax</label>
+                <input asp-for="Fax" />
+            </div>
+        }
+    </fieldset>
+
+    <fieldset>
+        <legend>Customer roles</legend>
+        @foreach (var role in Model.AvailableCustomerRoles)
+        {
+            <label>
+                <input type="checkbox" name="SelectedCustomerRoleIds" value="@role.Value"
+                       @(role.Selected ? "checked" : "") />
+                @role.Text
+            </label>
+        }
+    </fieldset>
+
+    @* Sub-entity management tabs will be added in future iterations:
+       - Orders [5.35 sub-item]
+       - Addresses [5.35 sub-item]
+       - Shopping cart / Wishlist [5.35 sub-item]
+       - Activity log [5.35 sub-item]
+       - Back in stock subscriptions [5.35 sub-item]
+       - Reward points [5.35 sub-item]
+       - Newsletter subscriptions [5.35 sub-item]
+       - Send email [5.35 sub-item]
+       - Send private message [5.35 sub-item]
+    *@
+
+    <button type="submit" name="save">Save</button>
+    <button type="submit" name="continueEditing" value="true">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit" onclick="return confirm('Are you sure?');">Delete</button>
+</form>
+
+<p><a asp-action="List">back to customer list</a></p>
