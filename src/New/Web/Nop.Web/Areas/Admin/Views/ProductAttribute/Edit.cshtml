@@ -1,0 +1,176 @@
+@model Nop.Web.Areas.Admin.Models.Catalog.ProductAttributeModel
+@{ ViewData["Title"] = "Edit product attribute"; }
+
+<h1>Edit product attribute</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="Description">Description</label>
+        <textarea asp-for="Description" rows="4"></textarea>
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post" onsubmit="return confirm('Are you sure?');">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit">Delete</button>
+</form>
+
+<hr />
+<h2>Predefined values</h2>
+
+<div id="predefined-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Price adj.</th>
+                <th>Weight adj.</th>
+                <th>Cost</th>
+                <th>Pre-selected</th>
+                <th>Display order</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="pv-tbody"></tbody>
+    </table>
+</div>
+
+<h3>Add predefined value</h3>
+<div>
+    <label>Name</label> <input type="text" id="pv-name" />
+    <label>Price adj.</label> <input type="number" step="any" id="pv-price" value="0" />
+    <label>Weight adj.</label> <input type="number" step="any" id="pv-weight" value="0" />
+    <label>Cost</label> <input type="number" step="any" id="pv-cost" value="0" />
+    <label>Pre-selected</label> <input type="checkbox" id="pv-preselected" />
+    <label>Display order</label> <input type="number" id="pv-order" value="0" />
+    <button type="button" onclick="addPredefinedValue()">Add</button>
+</div>
+
+<hr />
+<h2>Used by products</h2>
+
+<table>
+    <thead>
+        <tr><th>Product name</th><th>Published</th></tr>
+    </thead>
+    <tbody id="ubp-tbody"></tbody>
+</table>
+<div id="ubp-pager"></div>
+
+@section Scripts {
+<script>
+    const attrId = @Model.Id;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+
+    document.addEventListener('DOMContentLoaded', function () { loadPredefinedValues(); loadUsedByProducts(); });
+
+    // --- Predefined values ---
+    function loadPredefinedValues() {
+        const data = new URLSearchParams();
+        data.append('productAttributeId', attrId);
+
+        fetch('@Url.Action("PredefinedValueList", "ProductAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('pv-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (v) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML =
+                        '<td><input type="text" value="' + (v.Name || '') + '" class="pv-name" /></td>' +
+                        '<td><input type="number" step="any" value="' + v.PriceAdjustment + '" class="pv-price" /></td>' +
+                        '<td><input type="number" step="any" value="' + v.WeightAdjustment + '" class="pv-weight" /></td>' +
+                        '<td><input type="number" step="any" value="' + v.Cost + '" class="pv-cost" /></td>' +
+                        '<td><input type="checkbox" class="pv-preselected"' + (v.IsPreSelected ? ' checked' : '') + ' /></td>' +
+                        '<td><input type="number" value="' + v.DisplayOrder + '" class="pv-order" /></td>' +
+                        '<td><button onclick="updatePredefinedValue(' + v.Id + ', this)">Update</button>' +
+                        ' <button onclick="deletePredefinedValue(' + v.Id + ')">Delete</button></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
+
+    function addPredefinedValue() {
+        const data = new URLSearchParams();
+        data.append('productAttributeId', attrId);
+        data.append('Name', document.getElementById('pv-name').value);
+        data.append('PriceAdjustment', document.getElementById('pv-price').value);
+        data.append('WeightAdjustment', document.getElementById('pv-weight').value);
+        data.append('Cost', document.getElementById('pv-cost').value);
+        data.append('IsPreSelected', document.getElementById('pv-preselected').checked);
+        data.append('DisplayOrder', document.getElementById('pv-order').value);
+
+        fetch('@Url.Action("PredefinedValueAdd", "ProductAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => { document.getElementById('pv-name').value = ''; loadPredefinedValues(); });
+    }
+
+    function updatePredefinedValue(id, btn) {
+        const row = btn.closest('tr');
+        const data = new URLSearchParams();
+        data.append('Id', id);
+        data.append('Name', row.querySelector('.pv-name').value);
+        data.append('PriceAdjustment', row.querySelector('.pv-price').value);
+        data.append('WeightAdjustment', row.querySelector('.pv-weight').value);
+        data.append('Cost', row.querySelector('.pv-cost').value);
+        data.append('IsPreSelected', row.querySelector('.pv-preselected').checked);
+        data.append('DisplayOrder', row.querySelector('.pv-order').value);
+
+        fetch('@Url.Action("PredefinedValueUpdate", "ProductAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => loadPredefinedValues());
+    }
+
+    function deletePredefinedValue(id) {
+        if (!confirm('Delete this predefined value?')) return;
+        const data = new URLSearchParams();
+        data.append('id', id);
+
+        fetch('@Url.Action("PredefinedValueDelete", "ProductAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => loadPredefinedValues());
+    }
+
+    // --- Used by products ---
+    let ubpPage = 1;
+    const ubpPageSize = 10;
+
+    function loadUsedByProducts() {
+        const data = new URLSearchParams();
+        data.append('productAttributeId', attrId);
+        data.append('Page', ubpPage);
+        data.append('PageSize', ubpPageSize);
+
+        fetch('@Url.Action("UsedByProducts", "ProductAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('ubp-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (p) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (p.ProductName || '') + '</td><td>' + (p.Published ? 'Yes' : 'No') + '</td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            const totalPages = Math.ceil((result.Total || 0) / ubpPageSize);
+            const pager = document.getElementById('ubp-pager');
+            pager.innerHTML = totalPages > 0
+                ? 'Page ' + ubpPage + ' of ' + totalPages
+                    + (ubpPage > 1 ? ' <button onclick="ubpPage--;loadUsedByProducts();">Prev</button>' : '')
+                    + (ubpPage < totalPages ? ' <button onclick="ubpPage++;loadUsedByProducts();">Next</button>' : '')
+                : '';
+        });
+    }
+</script>
+}

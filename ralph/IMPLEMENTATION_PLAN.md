@@ -655,10 +655,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.9
   - Done: 2026-04-10. ShoppingCartController with 10 dependencies via primary constructor, shared utility methods for cart/wishlist list and detail grids. 6 actions: CurrentCarts (GET), CurrentCartsList (AJAX grid of customers with carts), GetCartDetails (AJAX detail grid of cart items), CurrentWishlists (GET), CurrentWishlistsList (AJAX grid of customers with wishlists), GetWishlistDetails (AJAX detail grid of wishlist items). 2 view models (ShoppingCartModel, ShoppingCartItemModel). 2 Razor views (CurrentCarts.cshtml, CurrentWishlists.cshtml with vanilla JS AJAX grids + detail expansion). Cart items show product name, attributes, unit price (with tax), total (with tax), store, updated date. Customer email resolved via role check (Registered → email, else "Guest"). TotalItems computed as Sum(Quantity) replacing legacy GetTotalProducts extension. Legacy nav properties replaced: customer.ShoppingCartItems → IShoppingCartService.GetShoppingCartAsync, sci.Product → IProductService.GetProductByIdAsync. Follows RecurringPaymentController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. Admin order area complete: Order [5.34] ✓, GiftCard [5.58] ✓, RecurringPayment [5.59] ✓, ReturnRequest [5.60] ✓, ShoppingCart [5.61] ✓.
 
-- [ ] [5.62] Admin: ProductAttributeController + ProductAttribute views
+- [x] [5.62] Admin: ProductAttributeController + ProductAttribute views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/ProductAttributeController, Admin/Views/ProductAttribute
   - Depends on: 5.1, 4.4
+  - Done: 2026-04-10. ProductAttributeController with core CRUD (List, ProductAttributeList AJAX grid, Create, Edit, Delete), UsedByProducts AJAX grid, PredefinedValue inline AJAX grid (PredefinedValueList, PredefinedValueAdd, PredefinedValueUpdate, PredefinedValueDelete). 3 view models (ProductAttributeModel, PredefinedProductAttributeValueModel, UsedByProductModel). 3 Razor views (List, Create, Edit with predefined values grid + used-by-products grid). Legacy popup pattern for predefined values replaced with inline AJAX grid (matching PollController answer management pattern). 4 constructor dependencies (IProductAttributeService, IProductService, ICustomerActivityService, IPermissionService). Permission: ManageAttributes. Localization deferred (consistent with all other admin controllers).
 
 - [ ] [5.63] Admin: SpecificationAttributeController + SpecificationAttribute views
   - Spec: specs/nop-admin.md

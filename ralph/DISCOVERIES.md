@@ -3488,3 +3488,27 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.35] Admin CustomerController sub-entity management: Shopping Cart/Wishlist tab on customer detail page can now reference the same `IShoppingCartService.GetShoppingCartAsync` pattern
 - [5.79] Admin CommonController: abandoned cart statistics can use `ICustomerService.GetAllCustomersAsync(loadOnlyWithShoppingCart: true)` for dashboard counts
+
+## 2026-04-10 — [5.62] Admin ProductAttributeController / Implementation
+
+### Legacy Popup Pattern → Inline AJAX Grid
+- Legacy used popup windows for predefined value create/edit: `PredefinedProductAttributeValueCreatePopup` (GET+POST) and `PredefinedProductAttributeValueEditPopup` (GET+POST) with `ViewBag.RefreshPage` / `ViewBag.btnId` / `ViewBag.formId` for parent window refresh
+- New code uses inline AJAX grid with add/update/delete (matching PollController answer management pattern from [5.47] and CountryController state province pattern from [5.51])
+- Simpler: no popup views, no parent window refresh JavaScript, no `btnId`/`formId` plumbing
+- Trade-off: inline editing is less spacious than popup forms, but sufficient for predefined value fields (Name, PriceAdjustment, WeightAdjustment, Cost, IsPreSelected, DisplayOrder)
+
+### No New Service Methods Needed
+- All required methods already existed on `IProductAttributeService` (from [4.4] implementation): `GetAllProductAttributesAsync`, `GetProductAttributeByIdAsync`, `InsertProductAttributeAsync`, `UpdateProductAttributeAsync`, `DeleteProductAttributeAsync`, `GetPredefinedProductAttributeValuesAsync`, `GetPredefinedProductAttributeValueByIdAsync`, `InsertPredefinedProductAttributeValueAsync`, `UpdatePredefinedProductAttributeValueAsync`, `DeletePredefinedProductAttributeValueAsync`
+- `IProductService.GetProductsByProductAttributeIdAsync` already existed for UsedByProducts grid
+- This is the first admin controller that required zero new service methods — all infrastructure was already in place
+
+### Constructor Dependencies Reduced from 7 to 4
+- Legacy had 7 dependencies: IProductService, IProductAttributeService, ILanguageService, ILocalizedEntityService, ILocalizationService, ICustomerActivityService, IPermissionService
+- New code has 4: IProductAttributeService, IProductService, ICustomerActivityService, IPermissionService
+- ILanguageService, ILocalizedEntityService, ILocalizationService dropped — localization deferred (consistent with all other admin controllers)
+
+### Impact on Future Items
+- [5.63] Admin SpecificationAttributeController: can follow the same pattern — CRUD for spec attributes + inline AJAX grid for spec attribute options
+- [5.37] Admin CustomerAttributeController: can follow the same pattern — CRUD for customer attributes + inline AJAX grid for customer attribute values
+- [5.65] Admin CheckoutAttributeController: can follow the same pattern — CRUD for checkout attributes + inline AJAX grid for checkout attribute values
+- [5.77] Admin AddressAttributeController: can follow the same pattern — CRUD for address attributes + inline AJAX grid for address attribute values

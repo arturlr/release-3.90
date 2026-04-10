@@ -1,0 +1,50 @@
+@{ ViewData["Title"] = "Product attributes"; }
+
+<h1>Product attributes</h1>
+
+<p><a href="@Url.Action("Create")">Add new</a></p>
+
+<table>
+    <thead>
+        <tr><th>Name</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="grid-tbody"></tbody>
+</table>
+<div id="pager"></div>
+
+@section Scripts {
+<script>
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+    let currentPage = 1;
+    const pageSize = 15;
+
+    document.addEventListener('DOMContentLoaded', loadGrid);
+
+    function loadGrid() {
+        const data = new URLSearchParams();
+        data.append('Page', currentPage);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("ProductAttributeList", "ProductAttribute", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('grid-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (a) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (a.Name || '') + '</td>'
+                        + '<td><a href="@Url.Action("Edit", "ProductAttribute", new { area = "Admin" })/' + a.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            const totalPages = Math.ceil((result.Total || 0) / pageSize);
+            const pager = document.getElementById('pager');
+            pager.innerHTML = 'Page ' + currentPage + ' of ' + totalPages
+                + (currentPage > 1 ? ' <button onclick="currentPage--;loadGrid();">Prev</button>' : '')
+                + (currentPage < totalPages ? ' <button onclick="currentPage++;loadGrid();">Next</button>' : '');
+        });
+    }
+</script>
+}
