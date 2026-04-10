@@ -390,10 +390,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.2
   - Done: 2026-04-10. NewsletterController with 3 actions: NewsletterBox (sync, returns PartialView with AllowToUnsubscribe from CustomerSettings), SubscribeNewsletter (async POST AJAX, returns JSON with Success/Result), SubscriptionActivation (async GET with Guid token, activates or deletes subscription). 2 view models (NewsletterBoxModel, SubscriptionActivationModel). 2 Razor views (NewsletterBox.cshtml with vanilla JS fetch replacing jQuery AJAX, SubscriptionActivation.cshtml). No model factory — inline construction. No anti-forgery on SubscribeNewsletter (matching legacy). NewsletterBox is a regular action (ViewComponent conversion deferred to [5.26]).
 
-- [ ] [5.16] Public: ReturnRequestController + ReturnRequest views
+- [x] [5.16] Public: ReturnRequestController + ReturnRequest views
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/ReturnRequestController, Views/ReturnRequest
   - Depends on: 5.1, 4.9
+  - Done: 2026-04-10. ReturnRequestController with 4 actions: CustomerReturnRequests (list with product/download lookup), ReturnRequest (GET form with returnable items, reasons, actions), ReturnRequestSubmit (POST with per-item quantity parsing from form, return request creation, custom number generation, notifications), UploadFileReturnRequest (AJAX file upload with size validation). 2 view models (CustomerReturnRequestsModel, SubmitReturnRequestModel with nested OrderItemModel/ReturnRequestReasonModel/ReturnRequestActionModel). 2 Razor views. Vanilla JS fetch for file upload (replaces legacy jQuery fineUploader). FormValueRequired eliminated — separate ReturnRequestSubmit endpoint. Inline model construction (no model factory). Legacy `customer.ReturnRequests.Add()` nav property replaced with `IReturnRequestService.InsertReturnRequestAsync`. Localized reason/action names deferred (uses entity Name directly).
 
 - [ ] [5.17] Public: PrivateMessagesController + PrivateMessages views
   - Spec: specs/nop-web-public.md

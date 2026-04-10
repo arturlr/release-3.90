@@ -1,0 +1,116 @@
+@model Nop.Web.Models.Order.SubmitReturnRequestModel
+@{
+    Layout = null;
+}
+<div class="page return-request-page">
+    <div class="page-title">
+        <h1>Return item(s) from order #@Model.CustomOrderNumber</h1>
+    </div>
+    <div class="page-body">
+        @if (!string.IsNullOrEmpty(Model.Result))
+        {
+            <div class="result">@Model.Result</div>
+        }
+        else
+        {
+            <form asp-action="ReturnRequestSubmit" asp-route-orderId="@Model.OrderId" method="post">
+                @Html.AntiForgeryToken()
+                <div class="section">
+                    <div class="title">
+                        <strong>Select product(s) to return</strong>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="product">Product</th>
+                                <th class="unit-price">Price</th>
+                                <th class="quantity">Qty to return</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td class="product">
+                                        <a href="@Url.Action("ProductDetails", "Product", new { productId = item.ProductId })">@item.ProductName</a>
+                                        @if (!string.IsNullOrEmpty(item.AttributeInfo))
+                                        {
+                                            <div class="attributes">@Html.Raw(item.AttributeInfo)</div>
+                                        }
+                                    </td>
+                                    <td class="unit-price">@item.UnitPrice</td>
+                                    <td class="quantity">
+                                        <select name="quantity@(item.Id)">
+                                            @for (var i = 0; i <= item.Quantity; i++)
+                                            {
+                                                <option value="@i">@i</option>
+                                            }
+                                        </select>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="fieldset">
+                    <div class="title">
+                        <strong>Why are you returning this?</strong>
+                    </div>
+                    <div class="form-fields">
+                        <div class="inputs">
+                            <label asp-for="ReturnRequestReasonId">Return Reason:</label>
+                            <select asp-for="ReturnRequestReasonId"
+                                    asp-items="@(new SelectList(Model.AvailableReturnReasons, "Id", "Name"))">
+                            </select>
+                        </div>
+                        <div class="inputs">
+                            <label asp-for="ReturnRequestActionId">Return Action:</label>
+                            <select asp-for="ReturnRequestActionId"
+                                    asp-items="@(new SelectList(Model.AvailableReturnActions, "Id", "Name"))">
+                            </select>
+                        </div>
+                        @if (Model.AllowFiles)
+                        {
+                            <div class="inputs return-request-file">
+                                <label>Upload a file:</label>
+                                <input type="hidden" id="uploadedFileGuid" name="UploadedFileGuid" value="@Guid.Empty" />
+                                <input type="file" id="returnRequestFile" />
+                                <span id="uploadStatus"></span>
+                                <script>
+                                    document.getElementById('returnRequestFile').addEventListener('change', async function () {
+                                        const file = this.files[0];
+                                        if (!file) return;
+                                        const formData = new FormData();
+                                        formData.append('file', file);
+                                        try {
+                                            const response = await fetch('@Url.Action("UploadFileReturnRequest", "ReturnRequest")', {
+                                                method: 'POST',
+                                                body: formData
+                                            });
+                                            const result = await response.json();
+                                            if (result.success) {
+                                                document.getElementById('uploadedFileGuid').value = result.downloadGuid;
+                                                document.getElementById('uploadStatus').textContent = result.message || 'Uploaded';
+                                            } else {
+                                                document.getElementById('uploadStatus').textContent = result.message || 'Upload failed';
+                                            }
+                                        } catch {
+                                            document.getElementById('uploadStatus').textContent = 'Upload failed';
+                                        }
+                                    });
+                                </script>
+                            </div>
+                        }
+                        <div class="inputs">
+                            <label asp-for="Comments">Comments:</label>
+                            <textarea asp-for="Comments" class="comment"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="buttons">
+                    <input type="submit" class="button-1 submit-return-request-button" value="Submit" />
+                </div>
+            </form>
+        }
+    </div>
+</div>

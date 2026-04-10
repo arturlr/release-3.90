@@ -2463,3 +2463,30 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.26] Shared views: NewsletterBox should become a ViewComponent invoked from the shared footer layout
 - [5.57] Admin NewsLetterSubscriptionController: can now reference the same `INewsLetterSubscriptionService` patterns
+
+## 2026-04-10 — [5.16] Public ReturnRequestController / Implementation
+
+### Legacy customer.ReturnRequests Nav Property Replaced
+- Legacy `ReturnRequestSubmit` used `_workContext.CurrentCustomer.ReturnRequests.Add(rr)` + `_customerService.UpdateCustomer(customer)` — nav property collection manipulation
+- Nav properties stripped in [1.3] — new code uses `IReturnRequestService.InsertReturnRequestAsync(rr)` directly
+- Pattern consistent with `InsertBlogCommentAsync` ([5.10]), `InsertNewsCommentAsync` ([5.11]), `InsertOrderItemAsync` ([4.9c])
+
+### FineUploader → Vanilla JS Fetch
+- Legacy used jQuery FineUploader 4.2.2 plugin for file upload with complex template system
+- New code uses native `<input type="file">` + vanilla JS `fetch()` API — zero external dependencies
+- File upload response is JSON `{ success, message, downloadGuid }` — client-side JS updates hidden field with GUID
+- Legacy IE-specific `Request["qqfile"]` / `Request.InputStream` branching eliminated — ASP.NET Core `Request.Form.Files` handles all browsers uniformly
+
+### FormValueRequired Eliminated (Consistent with [5.7], [5.8], [5.9])
+- Legacy used `[HttpPost, ActionName("ReturnRequest")]` with `FormCollection` parsing for quantity values
+- New code uses separate `ReturnRequestSubmit` endpoint with `Request.Form.TryGetValue` for per-item quantity parsing
+- Quantity form field names follow legacy pattern: `quantity{orderItemId}` — preserves view compatibility
+
+### Localized Reason/Action Names Deferred
+- Legacy used `rrr.GetLocalized(x => x.Name)` for localized return request reason/action names (via service locator)
+- New code uses `reason.Name` directly — localized name resolution requires `ILocalizedEntityService` + `ILanguageService` parameters (per [2.3] discovery about service locator elimination)
+- Impact: return request records store English names only until localization parameter-passing pattern is established
+
+### Impact on Future Items
+- [5.60] Admin ReturnRequestController: can now reference the same `IReturnRequestService` patterns for admin return request management
+- [5.21] Public DownloadController: file upload download links reference `GetFileUpload` action — must implement when DownloadController is built
