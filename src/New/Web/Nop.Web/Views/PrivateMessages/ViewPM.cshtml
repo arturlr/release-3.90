@@ -1,0 +1,38 @@
+@model Nop.Web.Models.PrivateMessages.PrivateMessageModel
+@{
+    Layout = null;
+}
+<div class="page private-messages private-message-view-page">
+    <h1>View Message</h1>
+    <div class="view-message">
+        <ul class="message-head">
+            <li class="sender">
+                <label>From:</label>
+                <span>@Model.CustomerFromName</span>
+            </li>
+            <li class="recipient">
+                <label>To:</label>
+                <span>@Model.CustomerToName</span>
+            </li>
+            <li class="subject">
+                <label>Subject:</label>
+                <span>@Model.Subject</span>
+            </li>
+            <li class="date">
+                <label>Date:</label>
+                <span>@Model.CreatedOn.ToString("g")</span>
+            </li>
+        </ul>
+        <div class="message-body">
+            @Html.Raw(Model.Message)
+        </div>
+    </div>
+    <div class="buttons">
+        <a href="@Url.Action("SendPM", "PrivateMessages", new { toCustomerId = Model.FromCustomerId, replyToMessageId = Model.Id })"
+           class="button-1 reply-pm-button">Reply</a>
+        <a href="@Url.Action("DeletePM", "PrivateMessages", new { privateMessageId = Model.Id })"
+           class="button-2 delete-pm-button">Delete</a>
+        <a href="@Url.Action("Index", "PrivateMessages")"
+           class="button-2 back-pm-button">Back</a>
+    </div>
+</div>

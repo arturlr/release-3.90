@@ -396,10 +396,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.9
   - Done: 2026-04-10. ReturnRequestController with 4 actions: CustomerReturnRequests (list with product/download lookup), ReturnRequest (GET form with returnable items, reasons, actions), ReturnRequestSubmit (POST with per-item quantity parsing from form, return request creation, custom number generation, notifications), UploadFileReturnRequest (AJAX file upload with size validation). 2 view models (CustomerReturnRequestsModel, SubmitReturnRequestModel with nested OrderItemModel/ReturnRequestReasonModel/ReturnRequestActionModel). 2 Razor views. Vanilla JS fetch for file upload (replaces legacy jQuery fineUploader). FormValueRequired eliminated — separate ReturnRequestSubmit endpoint. Inline model construction (no model factory). Legacy `customer.ReturnRequests.Add()` nav property replaced with `IReturnRequestService.InsertReturnRequestAsync`. Localized reason/action names deferred (uses entity Name directly).
 
-- [ ] [5.17] Public: PrivateMessagesController + PrivateMessages views
+- [x] [5.17] Public: PrivateMessagesController + PrivateMessages views
   - Spec: specs/nop-web-public.md
   - Scope: Controllers/PrivateMessagesController, Views/PrivateMessages
   - Depends on: 5.1, 4.3
+  - Done: 2026-04-10. PrivateMessagesController with 8 actions: Index (with inlined Inbox/SentItems tabs — legacy child actions eliminated), DeleteInboxPM (POST), MarkUnread (POST), DeleteSentPM (POST), SendPM (GET+POST), ViewPM, DeletePM. 3 view models (PrivateMessageIndexModel with embedded PrivateMessageListModel for both tabs, PrivateMessageModel, SendPrivateMessageModel). 3 Razor views. FormValueRequired eliminated — separate action endpoints (same as BoardsController [5.12], ShoppingCartController [5.7]). FormCollection parsing replaced with IEnumerable<int> model binding (same as BoardsController.CustomerForumSubscriptions). Inline model construction (no model factory). CustomerName not populated in message lists (requires per-message ICustomerService lookup). Vanilla JS tab switching replaces jQuery UI tabs.
 
 - [ ] [5.18] Public: ProfileController + Profile views
   - Spec: specs/nop-web-public.md

@@ -2490,3 +2490,36 @@ Performed exhaustive verification across all dimensions:
 ### Impact on Future Items
 - [5.60] Admin ReturnRequestController: can now reference the same `IReturnRequestService` patterns for admin return request management
 - [5.21] Public DownloadController: file upload download links reference `GetFileUpload` action — must implement when DownloadController is built
+
+## 2026-04-10 — [5.17] Public PrivateMessagesController / Implementation
+
+### Legacy Child Actions Inlined into Index View
+- Legacy `Inbox` and `SentItems` were `[ChildActionOnly]` actions rendered via `@Html.Action()` in Index.cshtml
+- New code inlines both tab contents directly into Index.cshtml — the controller loads both inbox and sent messages in the `Index` action and passes them via `PrivateMessageIndexModel.InboxMessages` / `SentMessages`
+- This eliminates the need for separate partial views and child action infrastructure
+- Tab switching uses vanilla JS (show/hide divs) instead of jQuery UI tabs
+- Trade-off: both inbox and sent items are loaded on every Index request (two DB queries). Legacy loaded them lazily via child actions, but the overhead is minimal for typical PM volumes
+
+### FormCollection → IEnumerable<int> Model Binding
+- Legacy `DeleteInboxPM`, `MarkUnread`, `DeleteSentPM` parsed `FormCollection` manually: iterated all keys, checked for "on" value and "pm"/"si" prefix, extracted message ID from key name
+- New code uses `[FromForm] IEnumerable<int> inboxIds` / `sentIds` — standard ASP.NET Core model binding from checkbox values
+- View uses `<input type="checkbox" name="inboxIds" value="@item.Id" />` — cleaner, type-safe
+- Same pattern as BoardsController.CustomerForumSubscriptions ([5.12])
+- Mark-as-unread form copies checked inbox IDs via client-side JS before submit (separate form shares checkboxes with delete form)
+
+### CustomerName Not Populated in Message Lists
+- Legacy used `IPrivateMessagesModelFactory` which called `customer.FormatUserName()` (service locator) for sender/recipient names
+- New code does not populate `CustomerFromName`/`CustomerToName` in message list models — would require `ICustomerService.GetCustomerByIdAsync` per message (N+1 queries)
+- `ViewPM` also does not populate customer names — same reason
+- `SendPM` populates `CustomerToName` with `customerTo.Email` (always available, no extra query)
+- When customer display is needed, can add batch customer loading (load all unique customer IDs, then map)
+
+### FormatText — Simple HtmlEncode + Newline→BR
+- Legacy `ForumExtensions.FormatPrivateMessageText` used service locator for `ForumSettings` and `BBCodeHelper`
+- New code uses `WebUtility.HtmlEncode(text).Replace("\n", "<br />")` — same approach as BoardsController.FormatPostText ([5.12])
+- BBCode parsing deferred — would require `BBCodeHelper` with `CommonSettings` dependency
+
+### Impact on Future Items
+- [5.18] Public ProfileController: can now link to PM send page from user profiles
+- [5.46] Admin ForumController: PM management already available via `IForumService`
+- Forum subsystem is now complete: ForumService [4.3] + BoardsController [5.12] + PrivateMessagesController [5.17]
