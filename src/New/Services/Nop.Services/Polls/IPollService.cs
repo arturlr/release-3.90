@@ -27,6 +27,8 @@ public interface IPollService
 
     Task DeletePollAnswerAsync(PollAnswer pollAnswer);
 
+    Task InsertPollAnswerAsync(PollAnswer pollAnswer);
+
     Task UpdatePollAnswerAsync(PollAnswer pollAnswer);
 
     Task InsertPollVotingRecordAsync(PollVotingRecord pollVotingRecord);

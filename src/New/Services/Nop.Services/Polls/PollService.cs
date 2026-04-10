@@ -95,6 +95,13 @@ public class PollService : IPollService
         await _eventPublisher.EntityDeletedAsync(pollAnswer);
     }
 
+    public async Task InsertPollAnswerAsync(PollAnswer pollAnswer)
+    {
+        ArgumentNullException.ThrowIfNull(pollAnswer);
+        _pollAnswerRepository.Insert(pollAnswer);
+        await _eventPublisher.EntityInsertedAsync(pollAnswer);
+    }
+
     public Task<IList<PollAnswer>> GetPollAnswersByPollIdAsync(int pollId)
     {
         IList<PollAnswer> result = pollId == 0

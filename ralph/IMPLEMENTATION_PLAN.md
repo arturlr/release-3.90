@@ -565,10 +565,11 @@ Sequenced leaf-to-root, lowest risk first. Each item references its spec.
   - Depends on: 5.1, 4.3
   - Done: 2026-04-10. ForumController with forum group CRUD (List, ForumGroupList AJAX grid, CreateForumGroup, EditForumGroup, DeleteForumGroup) and forum CRUD (ForumList AJAX grid by group, CreateForum, EditForum, DeleteForum). 2 view models (ForumGroupModel, ForumModel with AvailableForumGroups dropdown). 5 Razor views (List with nested group→forum display, CreateForumGroup, EditForumGroup, CreateForum, EditForum). PrepareForumGroupDropdownAsync helper for forum group selection. Follows ManufacturerController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. No ILocalizationService dependency (consistent with simplified admin controllers). Localization deferred. Topic/post management not in scope (admin manages structure only — topics/posts managed via public BoardsController [5.12]).
 
-- [ ] [5.47] Admin: PollController + Poll views
+- [x] [5.47] Admin: PollController + Poll views
   - Spec: specs/nop-admin.md
   - Scope: Admin/Controllers/PollController, Admin/Views/Poll
   - Depends on: 5.1, 3.12
+  - Done: 2026-04-10. PollController with poll CRUD (List, PollList AJAX grid, Create, Edit, Delete) and answer management (PollAnswerList, PollAnswerAdd, PollAnswerUpdate, PollAnswerDelete). 3 view models (PollModel, PollGridModel, PollAnswerModel). 3 Razor views (List, Create, Edit with inline answer grid). Added InsertPollAnswerAsync to IPollService/PollService (replaces legacy nav property pattern poll.PollAnswers.Add()). Language dropdown via ILanguageService. Follows ForumController pattern: primary constructor, Forbid(), DataSourceResult, inline model mapping. No ILocalizationService dependency (consistent with simplified admin controllers). Localization deferred.
 
 - [ ] [5.48] Admin: TopicController + Topic views
   - Spec: specs/nop-admin.md

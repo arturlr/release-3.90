@@ -1,0 +1,48 @@
+@model Nop.Web.Areas.Admin.Models.Polls.PollModel
+@{ ViewData["Title"] = "Add a new poll"; }
+
+<h1>Add a new poll</h1>
+
+<form asp-action="Create" method="post">
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="LanguageId">Language</label>
+        <select asp-for="LanguageId" asp-items="Model.AvailableLanguages"></select>
+    </div>
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="SystemKeyword">System keyword</label>
+        <input asp-for="SystemKeyword" />
+    </div>
+    <div>
+        <label asp-for="Published">Published</label>
+        <input asp-for="Published" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="ShowOnHomePage">Show on home page</label>
+        <input asp-for="ShowOnHomePage" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="AllowGuestsToVote">Allow guests to vote</label>
+        <input asp-for="AllowGuestsToVote" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DisplayOrder">Display order</label>
+        <input asp-for="DisplayOrder" type="number" />
+    </div>
+    <div>
+        <label asp-for="StartDate">Start date</label>
+        <input asp-for="StartDate" type="datetime-local" />
+    </div>
+    <div>
+        <label asp-for="EndDate">End date</label>
+        <input asp-for="EndDate" type="datetime-local" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>

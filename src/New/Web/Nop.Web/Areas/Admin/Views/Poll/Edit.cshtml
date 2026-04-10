@@ -1,0 +1,147 @@
+@model Nop.Web.Areas.Admin.Models.Polls.PollModel
+@{ ViewData["Title"] = "Edit poll"; }
+
+<h1>Edit poll</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" name="continueEditing" value="false" id="continueEditingField" />
+
+    <div>
+        <label asp-for="LanguageId">Language</label>
+        <select asp-for="LanguageId" asp-items="Model.AvailableLanguages"></select>
+    </div>
+    <div>
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" />
+    </div>
+    <div>
+        <label asp-for="SystemKeyword">System keyword</label>
+        <input asp-for="SystemKeyword" />
+    </div>
+    <div>
+        <label asp-for="Published">Published</label>
+        <input asp-for="Published" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="ShowOnHomePage">Show on home page</label>
+        <input asp-for="ShowOnHomePage" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="AllowGuestsToVote">Allow guests to vote</label>
+        <input asp-for="AllowGuestsToVote" type="checkbox" />
+    </div>
+    <div>
+        <label asp-for="DisplayOrder">Display order</label>
+        <input asp-for="DisplayOrder" type="number" />
+    </div>
+    <div>
+        <label asp-for="StartDate">Start date</label>
+        <input asp-for="StartDate" type="datetime-local" />
+    </div>
+    <div>
+        <label asp-for="EndDate">End date</label>
+        <input asp-for="EndDate" type="datetime-local" />
+    </div>
+
+    <button type="submit">Save</button>
+    <button type="submit" onclick="document.getElementById('continueEditingField').value='true';">Save and continue editing</button>
+</form>
+
+<form asp-action="Delete" method="post" onsubmit="return confirm('Are you sure?');">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit">Delete</button>
+</form>
+
+<hr />
+<h2>Poll answers</h2>
+
+<div id="answers-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Number of votes</th>
+                <th>Display order</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="answers-tbody"></tbody>
+    </table>
+</div>
+
+<h3>Add answer</h3>
+<div>
+    <label>Name</label>
+    <input type="text" id="new-answer-name" />
+    <label>Display order</label>
+    <input type="number" id="new-answer-order" value="1" />
+    <button type="button" onclick="addAnswer()">Add</button>
+</div>
+
+@section Scripts {
+<script>
+    const pollId = @Model.Id;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token };
+
+    document.addEventListener('DOMContentLoaded', loadAnswers);
+
+    function loadAnswers() {
+        const data = new URLSearchParams();
+        data.append('pollId', pollId);
+
+        fetch('@Url.Action("PollAnswerList", "Poll", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('answers-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (a) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td><input type="text" value="' + (a.Name || '') + '" data-id="' + a.Id + '" class="answer-name" /></td>'
+                        + '<td>' + a.NumberOfVotes + '</td>'
+                        + '<td><input type="number" value="' + a.DisplayOrder + '" data-id="' + a.Id + '" class="answer-order" /></td>'
+                        + '<td><button onclick="updateAnswer(' + a.Id + ', this)">Update</button>'
+                        + ' <button onclick="deleteAnswer(' + a.Id + ')">Delete</button></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
+
+    function addAnswer() {
+        const name = document.getElementById('new-answer-name').value;
+        const order = document.getElementById('new-answer-order').value;
+        const data = new URLSearchParams();
+        data.append('pollId', pollId);
+        data.append('Name', name);
+        data.append('DisplayOrder', order);
+
+        fetch('@Url.Action("PollAnswerAdd", "Poll", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => { document.getElementById('new-answer-name').value = ''; loadAnswers(); });
+    }
+
+    function updateAnswer(id, btn) {
+        const row = btn.closest('tr');
+        const name = row.querySelector('.answer-name').value;
+        const order = row.querySelector('.answer-order').value;
+        const data = new URLSearchParams();
+        data.append('Id', id);
+        data.append('Name', name);
+        data.append('DisplayOrder', order);
+
+        fetch('@Url.Action("PollAnswerUpdate", "Poll", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => loadAnswers());
+    }
+
+    function deleteAnswer(id) {
+        if (!confirm('Delete this answer?')) return;
+        const data = new URLSearchParams();
+        data.append('id', id);
+
+        fetch('@Url.Action("PollAnswerDelete", "Poll", new { area = "Admin" })', { method: 'POST', headers: headers, body: data })
+        .then(() => loadAnswers());
+    }
+</script>
+}

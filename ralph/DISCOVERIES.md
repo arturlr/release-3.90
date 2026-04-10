@@ -3096,3 +3096,26 @@ Performed exhaustive verification across all dimensions:
 - [5.47] Admin PollController: next CMS admin controller — follows same simple CRUD pattern
 - [5.48] Admin TopicController: same pattern — topic CRUD without comments
 - Admin CMS area progress: Blog [5.44] ✓, News [5.45] ✓, Forum [5.46] ✓, Poll [5.47] pending, Topic [5.48] pending
+
+## 2026-04-10 — [5.47] Admin PollController / Implementation
+
+### InsertPollAnswerAsync Added to IPollService
+- Legacy `PollAnswerAdd` used `poll.PollAnswers.Add(new PollAnswer { ... })` + `_pollService.UpdatePoll(poll)` — nav property collection manipulation
+- Nav properties stripped in [1.3] — added `InsertPollAnswerAsync(PollAnswer)` to `IPollService`/`PollService`
+- Pattern consistent with `InsertBlogCommentAsync` ([5.10]), `InsertNewsCommentAsync` ([5.11]), `InsertOrderItemAsync` ([4.9c])
+- Legacy `PollAnswerUpdate` also used `_pollService.UpdatePoll(pollAnswer.Poll)` — new code uses `UpdatePollAnswerAsync(pollAnswer)` directly (already existed from [5.14])
+
+### Admin CMS Area Complete
+- All 5 admin CMS controllers now implemented: Blog [5.44] ✓, News [5.45] ✓, Forum [5.46] ✓, Poll [5.47] ✓, Topic [5.48] pending
+- Poll is the simplest CMS controller: no comments (unlike Blog/News), no SEO slugs (unlike Blog/News), no hierarchy (unlike Forum)
+- Only Topic [5.48] remains to complete the admin CMS area
+
+### Language Dropdown Pattern
+- Legacy used `PrepareLanguagesModel` helper to populate `IList<SelectListItem>` from `ILanguageService.GetAllLanguages(showHidden: true)`
+- New code uses `PrepareLanguageDropdownAsync` private helper — same pattern, async-first
+- Language name lookup in grid uses `ToDictionary` for O(1) lookup per poll — avoids N+1 queries
+- This pattern can be reused by any future controller needing a language dropdown (e.g., TopicController [5.48])
+
+### Impact on Future Items
+- [5.48] Admin TopicController: last remaining admin CMS controller — follows same simple CRUD pattern
+- Admin CMS area (Blog, News, Forum, Poll, Topic) will be fully complete after [5.48]

@@ -1,0 +1,64 @@
+@{ ViewData["Title"] = "Polls"; }
+
+<h1>Polls</h1>
+
+<p>
+    <a asp-action="Create">Add new</a>
+</p>
+
+<div id="polls-grid">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Language</th>
+                <th>Display order</th>
+                <th>Published</th>
+                <th>Show on home page</th>
+                <th>Start date</th>
+                <th>End date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="polls-tbody"></tbody>
+    </table>
+    <div id="polls-pager"></div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () { loadPolls(1, 15); });
+
+    function loadPolls(page, pageSize) {
+        const data = new URLSearchParams();
+        data.append('Page', page);
+        data.append('PageSize', pageSize);
+
+        fetch('@Url.Action("PollList", "Poll", new { area = "Admin" })', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(result => {
+            const tbody = document.getElementById('polls-tbody');
+            tbody.innerHTML = '';
+            if (result.Data) {
+                result.Data.forEach(function (p) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td>' + (p.Name || '') + '</td>'
+                        + '<td>' + (p.LanguageName || '') + '</td>'
+                        + '<td>' + p.DisplayOrder + '</td>'
+                        + '<td>' + (p.Published ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (p.ShowOnHomePage ? 'Yes' : 'No') + '</td>'
+                        + '<td>' + (p.StartDate || '') + '</td>'
+                        + '<td>' + (p.EndDate || '') + '</td>'
+                        + '<td><a href="/Admin/Poll/Edit/' + p.Id + '">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('polls-pager').textContent = 'Total: ' + result.Total;
+        });
+    }
+</script>
+}
