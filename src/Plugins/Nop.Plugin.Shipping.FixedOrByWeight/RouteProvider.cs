@@ -1,31 +1,29 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
 using Nop.Web.Framework.Mvc.Routes;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 
 namespace Nop.Plugin.Shipping.FixedOrByWeight
 {
     public partial class RouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
         {
-            routes.MapRoute("Plugin.Shipping.FixedOrByWeight.Configure",
+            endpointRouteBuilder.MapControllerRoute("Plugin.Shipping.FixedOrByWeight.Configure",
                  "Plugins/FixedOrByWeight/Configure",
-                 new { controller = "FixedOrByWeight", action = "Configure", },
-                 new[] { "Nop.Plugin.Shipping.FixedOrByWeight.Controllers" }
+                 new { controller = "FixedOrByWeight", action = "Configure" }
             );
 
-            routes.MapRoute("Plugin.Shipping.FixedOrByWeight.AddRateByWeighPopup",
+            endpointRouteBuilder.MapControllerRoute("Plugin.Shipping.FixedOrByWeight.AddRateByWeighPopup",
                  "Plugins/FixedOrByWeight/AddRateByWeighPopup",
-                 new { controller = "FixedOrByWeight", action = "AddRateByWeighPopup" },
-                 new[] { "Nop.Plugin.Shipping.FixedOrByWeight.Controllers" }
+                 new { controller = "FixedOrByWeight", action = "AddRateByWeighPopup" }
             );
 
-            routes.MapRoute("Plugin.Shipping.FixedOrByWeight.EditRateByWeighPopup",
+            endpointRouteBuilder.MapControllerRoute("Plugin.Shipping.FixedOrByWeight.EditRateByWeighPopup",
                  "Plugins/FixedOrByWeight/EditRateByWeighPopup",
-                 new { controller = "FixedOrByWeight", action = "EditRateByWeighPopup" },
-                 new[] { "Nop.Plugin.Shipping.FixedOrByWeight.Controllers" }
+                 new { controller = "FixedOrByWeight", action = "EditRateByWeighPopup" }
             );
         }
+
         public int Priority
         {
             get

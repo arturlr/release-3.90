@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Directory;
 using Nop.Core.Domain.Directory;
@@ -11,6 +10,8 @@ using Nop.Services.Logging;
 using Nop.Services.Security;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -99,7 +100,7 @@ namespace Nop.Admin.Controllers
         }
         
         [HttpPost]
-        public virtual ActionResult WeightAdd([Bind(Exclude="Id")] MeasureWeightModel model)
+        public virtual ActionResult WeightAdd(MeasureWeightModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -204,7 +205,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult DimensionAdd([Bind(Exclude = "Id")] MeasureDimensionModel model)
+        public virtual ActionResult DimensionAdd(MeasureDimensionModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();

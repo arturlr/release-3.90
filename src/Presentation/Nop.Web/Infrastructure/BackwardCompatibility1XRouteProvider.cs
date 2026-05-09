@@ -1,15 +1,18 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
+using Nop.Web.Framework.Localization;
 using Nop.Core.Configuration;
 using Nop.Core.Infrastructure;
 using Nop.Web.Framework.Mvc.Routes;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Infrastructure
 {
     //Routes used for backward compatibility with 1.x versions of nopCommerce
     public partial class BackwardCompatibility1XRouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IRouteBuilder routes)
         {
             var config = EngineContext.Current.Resolve<NopConfig>();
             if (!config.SupportPreviousNopcommerceVersions)

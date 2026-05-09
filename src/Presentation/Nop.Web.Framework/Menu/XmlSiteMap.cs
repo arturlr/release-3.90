@@ -1,14 +1,15 @@
-﻿//code from Telerik MVC Extensions
+//code from Telerik MVC Extensions
 
 using System;
 using System.IO;
 using System.Linq;
-using System.Web.Routing;
 using System.Xml;
 using Nop.Core;
 using Nop.Core.Infrastructure;
 using Nop.Services.Localization;
 using Nop.Services.Security;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Framework.Menu
 {

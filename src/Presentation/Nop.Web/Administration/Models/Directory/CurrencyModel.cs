@@ -1,16 +1,17 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
 using Nop.Admin.Validators.Directory;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Directory
 {
-    [Validator(typeof(CurrencyValidator))]
     public partial class CurrencyModel : BaseNopEntityModel, ILocalizedModel<CurrencyLocalizedModel>
     {
         public CurrencyModel()
@@ -21,22 +22,22 @@ namespace Nop.Admin.Models.Directory
             AvailableStores = new List<SelectListItem>();
         }
         [NopResourceDisplayName("Admin.Configuration.Currencies.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Currencies.Fields.CurrencyCode")]
-        [AllowHtml]
+
         public string CurrencyCode { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Currencies.Fields.DisplayLocale")]
-        [AllowHtml]
+
         public string DisplayLocale { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Currencies.Fields.Rate")]
         public decimal Rate { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Currencies.Fields.CustomFormatting")]
-        [AllowHtml]
+
         public string CustomFormatting { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Currencies.Fields.Published")]
@@ -71,7 +72,7 @@ namespace Nop.Admin.Models.Directory
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Currencies.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
     }
 }

@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Web.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Shipping;
 using Nop.Core.Plugins;
@@ -12,6 +11,8 @@ using Nop.Services.Localization;
 using Nop.Services.Logging;
 using Nop.Services.Shipping;
 using Nop.Services.Shipping.Tracking;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Plugin.Shipping.CanadaPost
 {

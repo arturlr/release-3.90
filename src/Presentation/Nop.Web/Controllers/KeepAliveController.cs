@@ -1,4 +1,5 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Web.Controllers
 {

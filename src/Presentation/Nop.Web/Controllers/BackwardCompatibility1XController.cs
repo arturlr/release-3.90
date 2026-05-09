@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Text.RegularExpressions;
-using System.Web.Mvc;
 using Nop.Services.Blogs;
 using Nop.Services.Catalog;
 using Nop.Services.Customers;
@@ -8,6 +7,8 @@ using Nop.Services.Forums;
 using Nop.Services.News;
 using Nop.Services.Seo;
 using Nop.Services.Topics;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Web.Controllers
 {
@@ -52,10 +53,10 @@ namespace Nop.Web.Controllers
         public virtual ActionResult GeneralRedirect()
         {
             
-            // use Request.RawUrl, for instance to parse out what was invoked
+            // use Request.Path.Value + Request.QueryString.Value, for instance to parse out what was invoked
             // this regex will extract anything between a "/" and a ".aspx"
             var regex = new Regex(@"(?<=/).+(?=\.aspx)", RegexOptions.Compiled);
-            var aspxfileName = regex.Match(Request.RawUrl).Value.ToLowerInvariant();
+            var aspxfileName = regex.Match(Request.Path.Value + Request.QueryString.Value).Value.ToLowerInvariant();
 
 
             switch (aspxfileName)
@@ -63,35 +64,35 @@ namespace Nop.Web.Controllers
                 //URL without rewriting
                 case "product":
                     {
-                        return RedirectProduct(Request.QueryString["productid"], false);
+                        return RedirectProduct(Request.Query["productid"], false);
                     }
                 case "category":
                     {
-                        return RedirectCategory(Request.QueryString["categoryid"], false);
+                        return RedirectCategory(Request.Query["categoryid"], false);
                     }
                 case "manufacturer":
                     {
-                        return RedirectManufacturer(Request.QueryString["manufacturerid"], false);
+                        return RedirectManufacturer(Request.Query["manufacturerid"], false);
                     }
                 case "producttag":
                     {
-                        return RedirectProductTag(Request.QueryString["tagid"], false);
+                        return RedirectProductTag(Request.Query["tagid"], false);
                     }
                 case "news":
                     {
-                        return RedirectNewsItem(Request.QueryString["newsid"], false);
+                        return RedirectNewsItem(Request.Query["newsid"], false);
                     }
                 case "blog":
                     {
-                        return RedirectBlogPost(Request.QueryString["blogpostid"], false);
+                        return RedirectBlogPost(Request.Query["blogpostid"], false);
                     }
                 case "topic":
                     {
-                        return RedirectTopic(Request.QueryString["topicid"], false);
+                        return RedirectTopic(Request.Query["topicid"], false);
                     }
                 case "profile":
                     {
-                        return RedirectUserProfile(Request.QueryString["UserId"]);
+                        return RedirectUserProfile(Request.Query["UserId"]);
                     }
                 case "compareproducts":
                     {

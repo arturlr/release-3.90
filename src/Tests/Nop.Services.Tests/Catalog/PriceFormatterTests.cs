@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Autofac;
+using Moq;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Data;
@@ -19,7 +20,6 @@ using Nop.Services.Localization;
 using Nop.Services.Stores;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Services.Tests.Catalog
 {
@@ -31,7 +31,7 @@ namespace Nop.Services.Tests.Catalog
         private ICurrencyService _currencyService;
         private CurrencySettings _currencySettings;
         private IWorkContext _workContext;
-        private ILocalizationService _localizationService;
+        private Mock<ILocalizationService> _localizationServiceMock;
         private TaxSettings _taxSettings;
         private IPriceFormatter _priceFormatter;
         
@@ -40,8 +40,9 @@ namespace Nop.Services.Tests.Catalog
         {
             var cacheManager = new NopNullCache();
 
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workContext.Expect(w => w.WorkingCurrency).Return(new Currency { RoundingType = RoundingType.Rounding001 });
+            var workContextMock = new Mock<IWorkContext>();
+            workContextMock.Setup(w => w.WorkingCurrency).Returns(new Currency { RoundingType = RoundingType.Rounding001 });
+            _workContext = workContextMock.Object;
 
             _currencySettings = new CurrencySettings();
             var currency1 = new Currency
@@ -67,11 +68,13 @@ namespace Nop.Services.Tests.Catalog
                 Published = true,
                 CreatedOnUtc = DateTime.UtcNow,
                 UpdatedOnUtc= DateTime.UtcNow
-            };            
-            _currencyRepo = MockRepository.GenerateMock<IRepository<Currency>>();
-            _currencyRepo.Expect(x => x.Table).Return(new List<Currency> { currency1, currency2 }.AsQueryable());
+            };
 
-            _storeMappingService = MockRepository.GenerateMock<IStoreMappingService>();
+            var currencyRepoMock = new Mock<IRepository<Currency>>();
+            currencyRepoMock.Setup(x => x.Table).Returns(new List<Currency> { currency1, currency2 }.AsQueryable());
+            _currencyRepo = currencyRepoMock.Object;
+
+            _storeMappingService = new Mock<IStoreMappingService>().Object;
 
             var pluginFinder = new PluginFinder();
             _currencyService = new CurrencyService(cacheManager, _currencyRepo, _storeMappingService,
@@ -79,19 +82,19 @@ namespace Nop.Services.Tests.Catalog
 
             _taxSettings = new TaxSettings();
 
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _localizationService.Expect(x => x.GetResource("Products.InclTaxSuffix", 1, false)).Return("{0} incl tax");
-            _localizationService.Expect(x => x.GetResource("Products.ExclTaxSuffix", 1, false)).Return("{0} excl tax");
+            _localizationServiceMock = new Mock<ILocalizationService>();
+            _localizationServiceMock.Setup(x => x.GetResource("Products.InclTaxSuffix", 1, false, "", false)).Returns("{0} incl tax");
+            _localizationServiceMock.Setup(x => x.GetResource("Products.ExclTaxSuffix", 1, false, "", false)).Returns("{0} excl tax");
             
-            _priceFormatter = new PriceFormatter(_workContext, _currencyService,_localizationService, 
+            _priceFormatter = new PriceFormatter(_workContext, _currencyService, _localizationServiceMock.Object, 
                 _taxSettings, _currencySettings);
 
-            var nopEngine = MockRepository.GenerateMock<NopEngine>();
-            var containe = MockRepository.GenerateMock<IContainer>();
-            var containerManager = MockRepository.GenerateMock<ContainerManager>(containe);
-            nopEngine.Expect(x => x.ContainerManager).Return(containerManager);
-            containerManager.Expect(x => x.Resolve<IWorkContext>()).Return(_workContext);
-            EngineContext.Replace(nopEngine);
+            var nopEngineMock = new Mock<NopEngine>();
+            var containerMock = new Mock<IContainer>();
+            var containerManagerMock = new Mock<ContainerManager>(containerMock.Object);
+            nopEngineMock.Setup(x => x.ContainerManager).Returns(containerManagerMock.Object);
+            containerManagerMock.Setup(x => x.Resolve<IWorkContext>(It.IsAny<string>(), It.IsAny<ILifetimeScope>())).Returns(_workContext);
+            EngineContext.Replace(nopEngineMock.Object);
         }
 
         [OneTimeTearDown]

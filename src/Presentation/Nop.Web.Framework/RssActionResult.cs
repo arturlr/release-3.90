@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.ServiceModel.Syndication;
-using System.Web.Mvc;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using Nop.Core;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Web.Framework
 {
@@ -25,7 +27,7 @@ namespace Nop.Web.Framework
         }
         public SyndicationFeed Feed { get; set; }
 
-        public override void ExecuteResult(ControllerContext context)
+        public override async Task ExecuteResultAsync(ActionContext context)
         {
             context.HttpContext.Response.ContentType = MimeTypes.ApplicationRssXml;
 
@@ -33,9 +35,10 @@ namespace Nop.Web.Framework
             //remove a10 namespace
             rssFormatter.SerializeExtensionsAsAtom = false;
 
-            using (var writer = XmlWriter.Create(context.HttpContext.Response.Output))
+            using (var writer = XmlWriter.Create(context.HttpContext.Response.Body, new XmlWriterSettings { Async = true }))
             {
                 rssFormatter.WriteTo(writer);
+                await writer.FlushAsync();
             }
         }
     }

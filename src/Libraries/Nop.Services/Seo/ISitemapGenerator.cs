@@ -1,5 +1,6 @@
 using System.IO;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Services.Seo
 {
@@ -15,7 +16,7 @@ namespace Nop.Services.Seo
         /// <param name="urlHelper">URL helper</param>
         /// <param name="id">Sitemap identifier</param>
         /// <returns>Sitemap.xml as string</returns>
-        string Generate(UrlHelper urlHelper, int? id);
+        string Generate(IUrlHelper urlHelper, int? id);
 
         /// <summary>
         /// This will build an xml sitemap for better index with search engines.
@@ -24,7 +25,7 @@ namespace Nop.Services.Seo
         /// <param name="urlHelper">URL helper</param>
         /// <param name="id">Sitemap identifier</param>
         /// <param name="stream">Stream of sitemap.</param>
-        void Generate(UrlHelper urlHelper, Stream stream, int? id);
+        void Generate(IUrlHelper urlHelper, Stream stream, int? id);
 
     }
 }

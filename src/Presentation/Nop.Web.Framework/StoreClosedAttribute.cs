@@ -1,13 +1,15 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain;
 using Nop.Core.Infrastructure;
 using Nop.Services.Security;
 using Nop.Services.Topics;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Framework
 {
@@ -37,20 +39,8 @@ namespace Nop.Web.Framework
             if (_ignore)
                 return;
 
-            HttpRequestBase request = filterContext.HttpContext.Request;
+            var request = filterContext.HttpContext.Request;
             if (request == null)
-                return;
-
-            string actionName = filterContext.ActionDescriptor.ActionName;
-            if (String.IsNullOrEmpty(actionName))
-                return;
-
-            string controllerName = filterContext.Controller.ToString();
-            if (String.IsNullOrEmpty(controllerName))
-                return;
-
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
                 return;
 
             if (!DataSettingsHelper.DatabaseIsInstalled())
@@ -60,8 +50,12 @@ namespace Nop.Web.Framework
             if (!storeInformationSettings.StoreClosed)
                 return;
 
+            //get controller and action names
+            var controllerName = filterContext.RouteData.Values["controller"]?.ToString() ?? "";
+            var actionName = filterContext.RouteData.Values["action"]?.ToString() ?? "";
+
             //topics accessible when a store is closed
-            if (controllerName.Equals("Nop.Web.Controllers.TopicController", StringComparison.InvariantCultureIgnoreCase) &&
+            if (controllerName.Equals("Topic", StringComparison.InvariantCultureIgnoreCase) &&
                 actionName.Equals("TopicDetails", StringComparison.InvariantCultureIgnoreCase))
             {
                 var topicService = EngineContext.Current.Resolve<ITopicService>();
@@ -80,8 +74,7 @@ namespace Nop.Web.Framework
             if (permissionService.Authorize(StandardPermissionProvider.AccessClosedStore))
                 return;
 
-            var storeClosedUrl = new UrlHelper(filterContext.RequestContext).RouteUrl("StoreClosed");
-            filterContext.Result = new RedirectResult(storeClosedUrl);
+            filterContext.Result = new RedirectToRouteResult("StoreClosed", null);
         }
     }
 }

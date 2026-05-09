@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Moq;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Data;
@@ -19,7 +20,6 @@ using Nop.Services.Security;
 using Nop.Services.Stores;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Services.Tests.Customers
 {
@@ -65,7 +65,7 @@ namespace Nop.Services.Tests.Customers
             };
 
             _encryptionService = new EncryptionService(_securitySettings);
-            _customerRepo = MockRepository.GenerateMock<IRepository<Customer>>();
+
             var customer1 = new Customer
             {
                 Id = 1,
@@ -109,9 +109,11 @@ namespace Nop.Services.Tests.Customers
                 Email = "notregistered@test.com",
                 Active = true
             };
-            _customerRepo.Expect(x => x.Table).Return(new List<Customer> { customer1, customer2, customer3, customer4, customer5 }.AsQueryable());
 
-            _customerPasswordRepo = MockRepository.GenerateMock<IRepository<CustomerPassword>>();
+            var customerRepoMock = new Mock<IRepository<Customer>>();
+            customerRepoMock.Setup(x => x.Table).Returns(new List<Customer> { customer1, customer2, customer3, customer4, customer5 }.AsQueryable());
+            _customerRepo = customerRepoMock.Object;
+
             string saltKey = _encryptionService.CreateSaltKey(5);
             string password = _encryptionService.CreatePasswordHash("password", saltKey);
             var password1 = new CustomerPassword
@@ -150,25 +152,29 @@ namespace Nop.Services.Tests.Customers
                 Password = "password",
                 CreatedOnUtc = DateTime.UtcNow
             };
-            _customerPasswordRepo.Expect(x => x.Table).Return(new[] { password1, password2, password3, password4, password5 }.AsQueryable());
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            var customerPasswordRepoMock = new Mock<IRepository<CustomerPassword>>();
+            customerPasswordRepoMock.Setup(x => x.Table).Returns(new[] { password1, password2, password3, password4, password5 }.AsQueryable());
+            _customerPasswordRepo = customerPasswordRepoMock.Object;
 
-            _storeService = MockRepository.GenerateMock<IStoreService>();
-            _customerRoleRepo = MockRepository.GenerateMock<IRepository<CustomerRole>>();
-            _genericAttributeRepo = MockRepository.GenerateMock<IRepository<GenericAttribute>>();
-            _orderRepo = MockRepository.GenerateMock<IRepository<Order>>();
-            _forumPostRepo = MockRepository.GenerateMock<IRepository<ForumPost>>();
-            _forumTopicRepo = MockRepository.GenerateMock<IRepository<ForumTopic>>();
+            var eventPublisherMock = new Mock<IEventPublisher>();
+            eventPublisherMock.Setup(x => x.Publish(It.IsAny<object>()));
+            _eventPublisher = eventPublisherMock.Object;
 
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
-            _newsLetterSubscriptionService = MockRepository.GenerateMock<INewsLetterSubscriptionService>();
-            _rewardPointService = MockRepository.GenerateMock<IRewardPointService>();
+            _storeService = new Mock<IStoreService>().Object;
+            _customerRoleRepo = new Mock<IRepository<CustomerRole>>().Object;
+            _genericAttributeRepo = new Mock<IRepository<GenericAttribute>>().Object;
+            _orderRepo = new Mock<IRepository<Order>>().Object;
+            _forumPostRepo = new Mock<IRepository<ForumPost>>().Object;
+            _forumTopicRepo = new Mock<IRepository<ForumTopic>>().Object;
 
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workflowMessageService = MockRepository.GenerateMock<IWorkflowMessageService>();
+            _genericAttributeService = new Mock<IGenericAttributeService>().Object;
+            _newsLetterSubscriptionService = new Mock<INewsLetterSubscriptionService>().Object;
+            _rewardPointService = new Mock<IRewardPointService>().Object;
+
+            _localizationService = new Mock<ILocalizationService>().Object;
+            _workContext = new Mock<IWorkContext>().Object;
+            _workflowMessageService = new Mock<IWorkflowMessageService>().Object;
 
             _customerService = new CustomerService(new NopNullCache(), _customerRepo, _customerPasswordRepo, _customerRoleRepo,
                 _genericAttributeRepo, _orderRepo, _forumPostRepo, _forumTopicRepo,
@@ -179,29 +185,6 @@ namespace Nop.Services.Tests.Customers
                 _storeService, _rewardPointService, _workContext, _genericAttributeService,
                 _workflowMessageService, _eventPublisher, _rewardPointsSettings, _customerSettings);
         }
-
-        //[Test]
-        //public void Can_register_a_customer() 
-        //{
-        //    var registrationRequest = CreateCustomerRegistrationRequest();
-        //    var result = _customerService.RegisterCustomer(registrationRequest);
-
-        //    result.Success.ShouldBeTrue();
-        //}
-
-        //[Test]
-        //public void Can_not_have_duplicate_usernames_or_emails() 
-        //{
-        //    var registrationRequest = CreateUserRegistrationRequest();
-        //    registrationRequest.Username = "a@b.com";
-        //    registrationRequest.Email = "a@b.com";
-
-        //    var userService = new UserService(_encryptionService, _userRepo, _userSettings);
-        //    var result = userService.RegisterUser(registrationRequest);
-
-        //    result.Success.ShouldBeFalse();
-        //    result.Errors.Count.ShouldEqual(1);
-        //}
 
         [Test]
         public void Ensure_only_registered_customers_can_login()
@@ -254,10 +237,6 @@ namespace Nop.Services.Tests.Customers
             request = new ChangePasswordRequest("registered@test.com", true, PasswordFormat.Hashed, "newpassword", "password");
             result = _customerRegistrationService.ChangePassword(request);
             result.Success.ShouldEqual(true);
-
-            //request = new ChangePasswordRequest("registered@test.com", true, PasswordFormat.Encrypted, "password", "newpassword");
-            //result = _customerRegistrationService.ChangePassword(request);
-            //result.Success.ShouldEqual(true);
         }
 
     }

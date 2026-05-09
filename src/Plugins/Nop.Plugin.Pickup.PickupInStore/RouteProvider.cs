@@ -1,25 +1,24 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
 using Nop.Web.Framework.Mvc.Routes;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 
 namespace Nop.Plugin.Pickup.PickupInStore
 {
     public partial class RouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
         {
-            routes.MapRoute("Plugin.Pickup.PickupInStore.Create",
+            endpointRouteBuilder.MapControllerRoute("Plugin.Pickup.PickupInStore.Create",
                  "Plugins/PickupInStore/Create",
-                 new { controller = "PickupInStore", action = "Create", },
-                 new[] { "Nop.Plugin.Pickup.PickupInStore.Controllers" }
+                 new { controller = "PickupInStore", action = "Create" }
             );
 
-            routes.MapRoute("Plugin.Pickup.PickupInStore.Edit",
+            endpointRouteBuilder.MapControllerRoute("Plugin.Pickup.PickupInStore.Edit",
                  "Plugins/PickupInStore/Edit",
-                 new { controller = "PickupInStore", action = "Edit" },
-                 new[] { "Nop.Plugin.Pickup.PickupInStore.Controllers" }
+                 new { controller = "PickupInStore", action = "Edit" }
             );
         }
+
         public int Priority
         {
             get

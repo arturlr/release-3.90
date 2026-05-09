@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Common;
@@ -26,7 +25,10 @@ using Nop.Services.Stores;
 using Nop.Web.Framework.Security.Captcha;
 using Nop.Web.Models.Common;
 using Nop.Web.Models.Customer;
-using WebGrease.Css.Extensions;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Web.Factories
 {
@@ -390,7 +392,7 @@ namespace Nop.Web.Factories
 
             //custom customer attributes
             var customAttributes = PrepareCustomCustomerAttributes(customer, overrideCustomCustomerAttributesXml);
-            customAttributes.ForEach(model.CustomerAttributes.Add);
+            customAttributes.ToList().ForEach(model.CustomerAttributes.Add);
 
             return model;
         }
@@ -493,7 +495,7 @@ namespace Nop.Web.Factories
 
             //custom customer attributes
             var customAttributes = PrepareCustomCustomerAttributes(_workContext.CurrentCustomer, overrideCustomCustomerAttributesXml);
-            customAttributes.ForEach(model.CustomerAttributes.Add);
+            customAttributes.ToList().ForEach(model.CustomerAttributes.Add);
 
             return model;
         }

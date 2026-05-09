@@ -1,9 +1,11 @@
-﻿using System;
-using System.Web;
+using System;
+using System.IO;
+using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Html;
 
 namespace Nop.Web.Framework.Localization
 {
-    public class LocalizedString : MarshalByRefObject, IHtmlString
+    public class LocalizedString : IHtmlContent
     {
         private readonly string _localized;
         private readonly string _scope;
@@ -58,6 +60,11 @@ namespace Nop.Web.Framework.Localization
         public string ToHtmlString()
         {
             return _localized;
+        }
+
+        public void WriteTo(TextWriter writer, HtmlEncoder encoder)
+        {
+            writer.Write(_localized);
         }
 
         public override int GetHashCode()

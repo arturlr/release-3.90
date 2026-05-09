@@ -1,6 +1,7 @@
-﻿using System.Web.Mvc;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Models.Catalog
 {
@@ -8,7 +9,7 @@ namespace Nop.Admin.Models.Catalog
     {
 
         [NopResourceDisplayName("Admin.Catalog.Products.Copy.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Copy.CopyImages")]

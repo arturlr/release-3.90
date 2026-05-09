@@ -1,9 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Catalog
 {
@@ -24,7 +27,7 @@ namespace Nop.Admin.Models.Catalog
         public DateTime? CreatedOnTo { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.ProductReviews.List.SearchText")]
-        [AllowHtml]
+
         public string SearchText { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.ProductReviews.List.SearchStore")]

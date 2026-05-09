@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Localization;
 using Nop.Core;
@@ -17,6 +16,12 @@ using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
 using Nop.Web.Framework.Security;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
+using Microsoft.AspNetCore.Http;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -224,7 +229,6 @@ namespace Nop.Admin.Controllers
                 return RedirectToAction("List");
 
             //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
 
             var model = language.ToModel();
             //Stores
@@ -415,7 +419,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ResourceAdd(int languageId, [Bind(Exclude = "Id")] LanguageResourceModel model)
+        public virtual ActionResult ResourceAdd(int languageId, LanguageResourceModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -498,14 +502,13 @@ namespace Nop.Admin.Controllers
                 return RedirectToAction("List");
 
             //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
 
             try
             {
-                var file = Request.Files["importxmlfile"];
-                if (file != null && file.ContentLength > 0)
+                var file = Request.Form.Files["importxmlfile"];
+                if (file != null && file.Length > 0)
                 {
-                    using (var sr = new StreamReader(file.InputStream, Encoding.UTF8))
+                    using (var sr = new StreamReader(file.OpenReadStream(), Encoding.UTF8))
                     {
                         string content = sr.ReadToEnd();
                         _localizationService.ImportResourcesFromXml(language, content);

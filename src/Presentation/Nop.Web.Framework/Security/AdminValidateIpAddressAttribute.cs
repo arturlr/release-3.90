@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Security;
 using Nop.Core.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 
 namespace Nop.Web.Framework.Security
 {
@@ -15,13 +16,10 @@ namespace Nop.Web.Framework.Security
             if (filterContext == null || filterContext.HttpContext == null)
                 return;
 
-            HttpRequestBase request = filterContext.HttpContext.Request;
+            var request = filterContext.HttpContext.Request;
             if (request == null)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
             bool ok = false;
             var ipAddresses = EngineContext.Current.Resolve<SecuritySettings>().AdminAreaAllowedIpAddresses;
             if (ipAddresses != null && ipAddresses.Any())
@@ -49,7 +47,6 @@ namespace Nop.Web.Framework.Security
                 {
                     //redirect to 'Access denied' page
                     filterContext.Result = new RedirectResult(webHelper.GetStoreLocation() + "admin/security/accessdenied");
-                    //filterContext.Result = RedirectToAction("AccessDenied", "Security");
                 }
             }
         }

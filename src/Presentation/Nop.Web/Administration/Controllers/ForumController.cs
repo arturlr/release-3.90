@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Forums;
 using Nop.Services.Forums;
@@ -9,6 +8,8 @@ using Nop.Services.Localization;
 using Nop.Services.Security;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Controllers
 {

@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Routing;
 using Nop.Core.Infrastructure;
 using Nop.Core.Plugins;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Framework.Mvc.Routes
 {
@@ -48,8 +49,8 @@ namespace Nop.Web.Framework.Mvc.Routes
         /// <summary>
         /// Register routes
         /// </summary>
-        /// <param name="routes">Routes</param>
-        public virtual void RegisterRoutes(RouteCollection routes)
+        /// <param name="endpointRouteBuilder">Endpoint route builder</param>
+        public virtual void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
         {
             var routeProviderTypes = typeFinder.FindClassesOfType<IRouteProvider>();
             var routeProviders = new List<IRouteProvider>();
@@ -64,7 +65,7 @@ namespace Nop.Web.Framework.Mvc.Routes
                 routeProviders.Add(provider);
             }
             routeProviders = routeProviders.OrderByDescending(rp => rp.Priority).ToList();
-            routeProviders.ForEach(rp => rp.RegisterRoutes(routes));
+            routeProviders.ForEach(rp => rp.RegisterRoutes(endpointRouteBuilder));
         }
     }
 }

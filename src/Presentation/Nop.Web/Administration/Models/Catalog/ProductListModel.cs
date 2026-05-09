@@ -1,7 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Catalog
 {
@@ -19,7 +22,7 @@ namespace Nop.Admin.Models.Catalog
         }
 
         [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductName")]
-        [AllowHtml]
+
         public string SearchProductName { get; set; }
         [NopResourceDisplayName("Admin.Catalog.Products.List.SearchCategory")]
         public int SearchCategoryId { get; set; }
@@ -39,7 +42,7 @@ namespace Nop.Admin.Models.Catalog
         public int SearchPublishedId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.List.GoDirectlyToSku")]
-        [AllowHtml]
+
         public string GoDirectlyToSku { get; set; }
 
         public bool IsLoggedInAsVendor { get; set; }

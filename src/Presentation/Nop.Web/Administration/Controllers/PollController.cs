@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Polls;
 using Nop.Core.Domain.Polls;
@@ -11,6 +10,10 @@ using Nop.Services.Security;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -273,7 +276,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult PollAnswerAdd(int pollId, [Bind(Exclude = "Id")] PollAnswerModel model)
+        public virtual ActionResult PollAnswerAdd(int pollId, PollAnswerModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePolls))
                 return AccessDeniedView();

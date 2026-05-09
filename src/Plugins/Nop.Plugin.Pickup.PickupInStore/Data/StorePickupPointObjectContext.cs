@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using Nop.Data;
 using Nop.Plugin.Pickup.PickupInStore.Domain;
@@ -13,11 +12,17 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
     /// </summary>
     public class StorePickupPointObjectContext : DbContext, IDbContext
     {
+        #region Fields
+
+        private readonly string _connectionString;
+
+        #endregion
+
         #region Ctor
 
-        public StorePickupPointObjectContext(string nameOrConnectionString) : base(nameOrConnectionString)
+        public StorePickupPointObjectContext(string nameOrConnectionString)
         {
-            //((IObjectContextAdapter) this).ObjectContext.ContextOptions.LazyLoadingEnabled = true;
+            _connectionString = nameOrConnectionString;
         }
 
         #endregion
@@ -29,8 +34,8 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
         /// </summary>
         public virtual bool ProxyCreationEnabled
         {
-            get { return this.Configuration.ProxyCreationEnabled; }
-            set { this.Configuration.ProxyCreationEnabled = value; }
+            get { return false; }
+            set { /* No-op in EF Core - proxy creation is not used by default */ }
         }
 
         /// <summary>
@@ -38,8 +43,8 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
         /// </summary>
         public virtual bool AutoDetectChangesEnabled
         {
-            get { return this.Configuration.AutoDetectChangesEnabled; }
-            set { this.Configuration.AutoDetectChangesEnabled = value; }
+            get { return ChangeTracker.AutoDetectChangesEnabled; }
+            set { ChangeTracker.AutoDetectChangesEnabled = value; }
         }
 
         #endregion
@@ -47,15 +52,24 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
         #region Utilities
 
         /// <summary>
-        /// Add entity to the configuration of the model for a derived context before it is locked down
+        /// Configure the DbContext options
+        /// </summary>
+        /// <param name="optionsBuilder">Options builder</param>
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlServer(_connectionString);
+            }
+        }
+
+        /// <summary>
+        /// Configure the model using EF Core ModelBuilder
         /// </summary>
         /// <param name="modelBuilder">The builder that defines the model for the context being created</param>
-        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Configurations.Add(new StorePickupPointMap());
-
-            //disable EdmMetadata generation
-            //modelBuilder.Conventions.Remove<IncludeMetadataConvention>();
+            modelBuilder.ApplyConfiguration(new StorePickupPointMap());
             base.OnModelCreating(modelBuilder);
         }
 
@@ -69,15 +83,15 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
         /// <returns>A DDL script</returns>
         public string CreateDatabaseScript()
         {
-            return ((IObjectContextAdapter)this).ObjectContext.CreateDatabaseScript();
+            return Database.GenerateCreateScript();
         }
 
         /// <summary>
-        /// Returns a System.Data.Entity.DbSet`1 instance for access to entities of the given type in the context and the underlying store
+        /// Returns a DbSet instance for access to entities of the given type in the context and the underlying store
         /// </summary>
         /// <typeparam name="TEntity">The type entity for which a set should be returned</typeparam>
         /// <returns>A set for the given entity type</returns>
-        public new IDbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
+        public new DbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
         {
             return base.Set<TEntity>();
         }
@@ -88,7 +102,7 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
         public void Install()
         {
             //create the table
-            Database.ExecuteSqlCommand(CreateDatabaseScript());
+            Database.ExecuteSqlRaw(CreateDatabaseScript());
             SaveChanges();
         }
 
@@ -147,7 +161,9 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
             if (entity == null)
                 throw new ArgumentNullException("entity");
 
-            ((IObjectContextAdapter)this).ObjectContext.Detach(entity);
+            var entry = Entry(entity);
+            if (entry != null)
+                entry.State = EntityState.Detached;
         }
 
         #endregion

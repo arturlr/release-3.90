@@ -1,5 +1,4 @@
-﻿using System;
-using System.Data.Entity.Core.Objects;
+using System;
 using Nop.Core;
 
 namespace Nop.Data
@@ -19,8 +18,16 @@ namespace Nop.Data
         /// <returns></returns>
         public static Type GetUnproxiedEntityType(this BaseEntity entity)
         {
-            var userType = ObjectContext.GetObjectType(entity.GetType());
-            return userType;
+            var entityType = entity.GetType();
+
+            // In EF Core, proxy types inherit from the entity type
+            // The base type of a proxy is the actual entity type
+            if (entityType.Namespace == "Castle.Proxies" || entityType.Assembly.IsDynamic)
+            {
+                return entityType.BaseType ?? entityType;
+            }
+
+            return entityType;
         }
     }
 }

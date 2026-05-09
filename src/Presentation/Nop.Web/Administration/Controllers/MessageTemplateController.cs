@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Messages;
 using Nop.Core.Domain.Messages;
@@ -12,6 +11,12 @@ using Nop.Services.Security;
 using Nop.Services.Stores;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
+using Microsoft.AspNetCore.Http;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -379,7 +384,6 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("TestTemplate")]
         [FormValueRequired("send-test")]
-        [ValidateInput(false)]
         public virtual ActionResult TestTemplate(TestMessageTemplateModel model, FormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageTemplates))
@@ -391,7 +395,7 @@ namespace Nop.Admin.Controllers
                 return RedirectToAction("List");
 
             var tokens = new List<Token>();
-            foreach (var formKey in form.AllKeys)
+            foreach (var formKey in form.Keys)
                 if (formKey.StartsWith("token_", StringComparison.InvariantCultureIgnoreCase))
                 {
                     var tokenKey = formKey.Substring("token_".Length).Replace("%", "");

@@ -1,14 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Web;
-using System.Web.Mvc;
-using System.Web.Optimization;
 using Nop.Core;
 using Nop.Core.Domain.Seo;
 using Nop.Services.Seo;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Web.Framework.UI
 {
@@ -65,7 +64,7 @@ namespace Nop.Web.Framework.UI
 
             //calculate hash
             var hash = "";
-            using (SHA256 sha = new SHA256Managed())
+            using (SHA256 sha = SHA256.Create())
             {
                 // string concatenation
                 var hashInput = "";
@@ -76,22 +75,14 @@ namespace Nop.Web.Framework.UI
                 }
 
                 byte[] input = sha.ComputeHash(Encoding.Unicode.GetBytes(hashInput));
-                hash = HttpServerUtility.UrlTokenEncode(input);
+                hash = Convert.ToBase64String(input).Replace("+", "-").Replace("/", "_").TrimEnd('=');
             }
             //ensure only valid chars
             hash = SeoExtensions.GetSeName(hash);
 
             var sb = new StringBuilder(prefix);
             sb.Append(hash);
-            //we used "extension" when we had "runAllManagedModulesForAllRequests" set to "true" in web.config
-            //now we disabled it. hence we should not use "extension"
-            //sb.Append(extension);
             return sb.ToString();
-        }
-
-        protected virtual IItemTransform GetCssTranform()
-        {
-            return new CssRewriteUrlTransform();
         }
 
         #endregion
@@ -226,79 +217,23 @@ namespace Nop.Web.Framework.UI
                 Part = part
             });
         }
-        public virtual string GenerateScripts(UrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null)
+        public virtual string GenerateScripts(IUrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null)
         {
             if (!_scriptParts.ContainsKey(location) || _scriptParts[location] == null)
                 return "";
 
             if (!_scriptParts.Any())
                 return "";
-            
-            if (!bundleFiles.HasValue)
+
+            // In ASP.NET Core, bundling is handled by build tools (e.g., Webpack, Gulp) or BundlerMinifier.
+            // Generate individual script tags for each registered script.
+            var result = new StringBuilder();
+            foreach (var item in _scriptParts[location].Select(x => new { x.Part, x.IsAsync }).Distinct())
             {
-                //use setting if no value is specified
-                bundleFiles = _seoSettings.EnableJsBundling && BundleTable.EnableOptimizations;
+                result.AppendFormat("<script {2}src=\"{0}\" type=\"{1}\"></script>", urlHelper.Content(item.Part), MimeTypes.TextJavascript, item.IsAsync ? "async " : "");
+                result.Append(Environment.NewLine);
             }
-            if (bundleFiles.Value)
-            {
-                var partsToBundle = _scriptParts[location]
-                    .Where(x => !x.ExcludeFromBundle)
-                    .Select(x => x.Part)
-                    .Distinct()
-                    .ToArray();
-                var partsToDontBundle = _scriptParts[location]
-                    .Where(x => x.ExcludeFromBundle)
-                    .Select(x => new  { x.Part, x.IsAsync})
-                    .Distinct()
-                    .ToArray();
-
-
-                var result = new StringBuilder();
-
-                if (partsToBundle.Length > 0)
-                {
-                    string bundleVirtualPath = GetBundleVirtualPath("~/bundles/scripts/", ".js", partsToBundle);
-                    //create bundle
-                    lock (s_lock)
-                    {
-                        var bundleFor = BundleTable.Bundles.GetBundleFor(bundleVirtualPath);
-                        if (bundleFor == null)
-                        {
-                            var bundle = new ScriptBundle(bundleVirtualPath);
-                            //bundle.Transforms.Clear();
-
-                            //"As is" ordering
-                            bundle.Orderer = new AsIsBundleOrderer();
-                            //disable file extension replacements. renders scripts which were specified by a developer
-                            bundle.EnableFileExtensionReplacements = false;
-                            bundle.Include(partsToBundle);
-                            BundleTable.Bundles.Add(bundle);
-                        }
-                    }
-
-                    //parts to bundle
-                    result.AppendLine(Scripts.Render(bundleVirtualPath).ToString());
-                }
-
-                //parts to do not bundle
-                foreach (var item in partsToDontBundle)
-                {
-                    result.AppendFormat("<script {2}src=\"{0}\" type=\"{1}\"></script>", urlHelper.Content(item.Part), MimeTypes.TextJavascript, item.IsAsync ? "async " : "");
-                    result.Append(Environment.NewLine);
-                }
-                return result.ToString();
-            }
-            else
-            {
-                //bundling is disabled
-                var result = new StringBuilder();
-                foreach (var item in _scriptParts[location].Select(x => new { x.Part, x.IsAsync}).Distinct())
-                {
-                    result.AppendFormat("<script {2}src=\"{0}\" type=\"{1}\"></script>", urlHelper.Content(item.Part), MimeTypes.TextJavascript, item.IsAsync ? "async ":"");
-                    result.Append(Environment.NewLine);
-                }
-                return result.ToString();
-            }
+            return result.ToString();
         }
 
 
@@ -330,7 +265,7 @@ namespace Nop.Web.Framework.UI
                 Part = part
             });
         }
-        public virtual string GenerateCssFiles(UrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null)
+        public virtual string GenerateCssFiles(IUrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null)
         {
             if (!_cssParts.ContainsKey(location) || _cssParts[location] == null)
                 return "";
@@ -338,77 +273,15 @@ namespace Nop.Web.Framework.UI
             if (!_cssParts.Any())
                 return "";
 
-            if (!bundleFiles.HasValue)
+            // In ASP.NET Core, bundling is handled by build tools (e.g., Webpack, Gulp) or BundlerMinifier.
+            // Generate individual link tags for each registered CSS file.
+            var result = new StringBuilder();
+            foreach (var path in _cssParts[location].Select(x => x.Part).Distinct())
             {
-                //use setting if no value is specified
-                bundleFiles = _seoSettings.EnableCssBundling && BundleTable.EnableOptimizations;
+                result.AppendFormat("<link href=\"{0}\" rel=\"stylesheet\" type=\"{1}\" />", urlHelper.Content(path), MimeTypes.TextCss);
+                result.AppendLine();
             }
-            if (bundleFiles.Value)
-            {
-                var partsToBundle = _cssParts[location]
-                    .Where(x => !x.ExcludeFromBundle)
-                    .Select(x => x.Part)
-                    .Distinct()
-                    .ToArray();
-                var partsToDontBundle = _cssParts[location]
-                    .Where(x => x.ExcludeFromBundle)
-                    .Select(x =>x.Part)
-                    .Distinct()
-                    .ToArray();
-
-
-                var result = new StringBuilder();
-
-                if (partsToBundle.Length > 0)
-                {
-                    //IMPORTANT: Do not use CSS bundling in virtual directories
-                    string bundleVirtualPath = GetBundleVirtualPath("~/bundles/styles/", ".css", partsToBundle);
-
-                    //create bundle
-                    lock (s_lock)
-                    {
-                        var bundleFor = BundleTable.Bundles.GetBundleFor(bundleVirtualPath);
-                        if (bundleFor == null)
-                        {
-                            var bundle = new StyleBundle(bundleVirtualPath);
-                            //bundle.Transforms.Clear();
-
-                            //"As is" ordering
-                            bundle.Orderer = new AsIsBundleOrderer();
-                            //disable file extension replacements. renders scripts which were specified by a developer
-                            bundle.EnableFileExtensionReplacements = false;
-                            foreach (var ptb in partsToBundle)
-                            {
-                                bundle.Include(ptb, GetCssTranform());
-                            }
-                            BundleTable.Bundles.Add(bundle);
-                        }
-                    }
-
-                    //parts to bundle
-                    result.AppendLine(Styles.Render(bundleVirtualPath).ToString());
-                }
-
-                //parts to do not bundle
-                foreach (var item in partsToDontBundle)
-                {
-                    result.AppendFormat("<link href=\"{0}\" rel=\"stylesheet\" type=\"{1}\" />", urlHelper.Content(item), MimeTypes.TextCss);
-                    result.Append(Environment.NewLine);
-                }
-
-                return result.ToString();
-            }
-            else
-            {
-                //bundling is disabled
-                var result = new StringBuilder();
-                foreach (var path in _cssParts[location].Select(x =>  x.Part).Distinct())
-                {
-                    result.AppendFormat("<link href=\"{0}\" rel=\"stylesheet\" type=\"{1}\" />", urlHelper.Content(path), MimeTypes.TextCss);
-                    result.AppendLine();
-                }
-                return result.ToString();
-            }
+            return result.ToString();
         }
 
 

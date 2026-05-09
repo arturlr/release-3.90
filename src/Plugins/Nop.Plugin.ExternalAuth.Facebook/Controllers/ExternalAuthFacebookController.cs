@@ -1,4 +1,5 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Plugins;
@@ -49,10 +50,10 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
             this._pluginFinder = pluginFinder;
             this._localizationService = localizationService;
         }
-        
-        [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure()
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public IActionResult Configure()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageExternalAuthenticationMethods))
                 return Content("Access denied");
@@ -76,9 +77,8 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
         }
 
         [HttpPost]
-        [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure(ConfigurationModel model)
+        [Authorize(Roles = "Admin")]
+        public IActionResult Configure(ConfigurationModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageExternalAuthenticationMethods))
                 return Content("Access denied");
@@ -97,9 +97,9 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
             /* We do not clear cache after each setting update.
              * This behavior can increase performance because cached settings will not be cleared 
              * and loaded from database after each update */
-            _settingService.SaveSettingOverridablePerStore(facebookExternalAuthSettings, x => x.ClientKeyIdentifier, model.ClientKeyIdentifier_OverrideForStore , storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(facebookExternalAuthSettings, x => x.ClientKeyIdentifier, model.ClientKeyIdentifier_OverrideForStore, storeScope, false);
             _settingService.SaveSettingOverridablePerStore(facebookExternalAuthSettings, x => x.ClientSecret, model.ClientSecret_OverrideForStore, storeScope, false);
-           
+
             //now clear settings cache
             _settingService.ClearCache();
 
@@ -108,14 +108,13 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
             return Configure();
         }
 
-        [ChildActionOnly]
-        public ActionResult PublicInfo()
+        public IActionResult PublicInfo()
         {
             return View("~/Plugins/ExternalAuth.Facebook/Views/PublicInfo.cshtml");
         }
 
         [NonAction]
-        private ActionResult LoginInternal(string returnUrl, bool verifyResponse)
+        private IActionResult LoginInternal(string returnUrl, bool verifyResponse)
         {
             var processor = _openAuthenticationService.LoadExternalAuthenticationMethodBySystemName("ExternalAuth.Facebook");
             if (processor == null ||
@@ -124,9 +123,6 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
                 !_pluginFinder.AuthenticateStore(processor.PluginDescriptor, _storeContext.CurrentStore.Id) ||
                 !_pluginFinder.AuthorizedForUser(processor.PluginDescriptor, _workContext.CurrentCustomer))
                 throw new NopException("Facebook module cannot be loaded");
-
-            var viewModel = new LoginModel();
-            TryUpdateModel(viewModel);
 
             var result = _oAuthProviderFacebookAuthorizer.Authorize(returnUrl, verifyResponse);
             switch (result.AuthenticationStatus)
@@ -145,7 +141,6 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
                     }
                 case OpenAuthenticationStatus.AutoRegisteredEmailValidation:
                     {
-                        //result
                         return RedirectToRoute("RegisterResult", new { resultId = (int)UserRegistrationType.EmailValidation });
                     }
                 case OpenAuthenticationStatus.AutoRegisteredAdminApproval:
@@ -161,15 +156,17 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
             }
 
             if (result.Result != null) return result.Result;
-            return HttpContext.Request.IsAuthenticated ? new RedirectResult(!string.IsNullOrEmpty(returnUrl) ? returnUrl : "~/") : new RedirectResult(Url.LogOn(returnUrl));
+            return (HttpContext.User?.Identity?.IsAuthenticated ?? false)
+                ? new RedirectResult(!string.IsNullOrEmpty(returnUrl) ? returnUrl : "~/")
+                : new RedirectResult(Url.LogOn(returnUrl));
         }
-        
-        public ActionResult Login(string returnUrl)
+
+        public IActionResult Login(string returnUrl)
         {
             return LoginInternal(returnUrl, false);
         }
 
-        public ActionResult LoginCallback(string returnUrl)
+        public IActionResult LoginCallback(string returnUrl)
         {
             return LoginInternal(returnUrl, true);
         }

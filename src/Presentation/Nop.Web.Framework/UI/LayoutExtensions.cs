@@ -1,5 +1,8 @@
-﻿using System.Web.Mvc;
 using Nop.Core.Infrastructure;
+using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Web.Framework.UI
 {
@@ -13,7 +16,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">Title part</param>
-        public static void AddTitleParts(this HtmlHelper html, string part)
+        public static void AddTitleParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder  = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AddTitleParts(part);
@@ -23,7 +26,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">Title part</param>
-        public static void AppendTitleParts(this HtmlHelper html, string part)
+        public static void AppendTitleParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder  = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AppendTitleParts(part);
@@ -35,11 +38,11 @@ namespace Nop.Web.Framework.UI
         /// <param name="addDefaultTitle">A value indicating whether to insert a default title</param>
         /// <param name="part">Title part</param>
         /// <returns>Generated string</returns>
-        public static MvcHtmlString NopTitle(this HtmlHelper html, bool addDefaultTitle = true, string part = "")
+        public static IHtmlContent NopTitle(this IHtmlHelper html, bool addDefaultTitle = true, string part = "")
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             html.AppendTitleParts(part);
-            return MvcHtmlString.Create(html.Encode(pageHeadBuilder.GenerateTitle(addDefaultTitle)));
+            return new HtmlString(System.Net.WebUtility.HtmlEncode(pageHeadBuilder.GenerateTitle(addDefaultTitle)));
         }
 
 
@@ -48,7 +51,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">Meta description part</param>
-        public static void AddMetaDescriptionParts(this HtmlHelper html, string part)
+        public static void AddMetaDescriptionParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AddMetaDescriptionParts(part);
@@ -58,7 +61,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">Meta description part</param>
-        public static void AppendMetaDescriptionParts(this HtmlHelper html, string part)
+        public static void AppendMetaDescriptionParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AppendMetaDescriptionParts(part);
@@ -69,11 +72,11 @@ namespace Nop.Web.Framework.UI
         /// <param name="html">HTML helper</param>
         /// <param name="part">Meta description part</param>
         /// <returns>Generated string</returns>
-        public static MvcHtmlString NopMetaDescription(this HtmlHelper html, string part = "")
+        public static IHtmlContent NopMetaDescription(this IHtmlHelper html, string part = "")
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             html.AppendMetaDescriptionParts(part);
-            return MvcHtmlString.Create(html.Encode(pageHeadBuilder.GenerateMetaDescription()));
+            return new HtmlString(System.Net.WebUtility.HtmlEncode(pageHeadBuilder.GenerateMetaDescription()));
         }
 
 
@@ -82,7 +85,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">Meta keyword part</param>
-        public static void AddMetaKeywordParts(this HtmlHelper html, string part)
+        public static void AddMetaKeywordParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AddMetaKeywordParts(part);
@@ -92,7 +95,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">Meta keyword part</param>
-        public static void AppendMetaKeywordParts(this HtmlHelper html, string part)
+        public static void AppendMetaKeywordParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AppendMetaKeywordParts(part);
@@ -103,11 +106,11 @@ namespace Nop.Web.Framework.UI
         /// <param name="html">HTML helper</param>
         /// <param name="part">Meta keyword part</param>
         /// <returns>Generated string</returns>
-        public static MvcHtmlString NopMetaKeywords(this HtmlHelper html, string part = "")
+        public static IHtmlContent NopMetaKeywords(this IHtmlHelper html, string part = "")
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             html.AppendMetaKeywordParts(part);
-            return MvcHtmlString.Create(html.Encode(pageHeadBuilder.GenerateMetaKeywords()));
+            return new HtmlString(System.Net.WebUtility.HtmlEncode(pageHeadBuilder.GenerateMetaKeywords()));
         }
 
 
@@ -118,7 +121,7 @@ namespace Nop.Web.Framework.UI
         /// <param name="part">Script part</param>
         /// <param name="excludeFromBundle">A value indicating whether to exclude this script from bundling</param>
         /// <param name="isAsync">A value indicating whether to add an attribute "async" or not for js files</param>
-        public static void AddScriptParts(this HtmlHelper html, string part, bool excludeFromBundle = false, bool isAsync = false)
+        public static void AddScriptParts(this IHtmlHelper html, string part, bool excludeFromBundle = false, bool isAsync = false)
         {
             AddScriptParts(html, ResourceLocation.Head, part, excludeFromBundle, isAsync);
         }
@@ -130,7 +133,7 @@ namespace Nop.Web.Framework.UI
         /// <param name="part">Script part</param>
         /// <param name="excludeFromBundle">A value indicating whether to exclude this script from bundling</param>
         /// <param name="isAsync">A value indicating whether to add an attribute "async" or not for js files</param>
-        public static void AddScriptParts(this HtmlHelper html, ResourceLocation location, string part, bool excludeFromBundle = false, bool isAsync = false)
+        public static void AddScriptParts(this IHtmlHelper html, ResourceLocation location, string part, bool excludeFromBundle = false, bool isAsync = false)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AddScriptParts(location, part, excludeFromBundle, isAsync);
@@ -142,7 +145,7 @@ namespace Nop.Web.Framework.UI
         /// <param name="part">Script part</param>
         /// <param name="excludeFromBundle">A value indicating whether to exclude this script from bundling</param>
         /// <param name="isAsync">A value indicating whether to add an attribute "async" or not for js files</param>
-        public static void AppendScriptParts(this HtmlHelper html, string part, bool excludeFromBundle = false, bool isAsync = false)
+        public static void AppendScriptParts(this IHtmlHelper html, string part, bool excludeFromBundle = false, bool isAsync = false)
         {
             AppendScriptParts(html, ResourceLocation.Head, part, excludeFromBundle, isAsync);
         }
@@ -154,7 +157,7 @@ namespace Nop.Web.Framework.UI
         /// <param name="part">Script part</param>
         /// <param name="excludeFromBundle">A value indicating whether to exclude this script from bundling</param>
         /// <param name="isAsync">A value indicating whether to add an attribute "async" or not for js files</param>
-        public static void AppendScriptParts(this HtmlHelper html, ResourceLocation location, string part, bool excludeFromBundle = false, bool isAsync = false)
+        public static void AppendScriptParts(this IHtmlHelper html, ResourceLocation location, string part, bool excludeFromBundle = false, bool isAsync = false)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AppendScriptParts(location, part, excludeFromBundle, isAsync);
@@ -167,11 +170,11 @@ namespace Nop.Web.Framework.UI
         /// <param name="location">A location of the script element</param>
         /// <param name="bundleFiles">A value indicating whether to bundle script elements</param>
         /// <returns>Generated string</returns>
-        public static MvcHtmlString NopScripts(this HtmlHelper html, UrlHelper urlHelper, 
+        public static IHtmlContent NopScripts(this IHtmlHelper html, IUrlHelper urlHelper, 
             ResourceLocation location, bool? bundleFiles = null)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
-            return MvcHtmlString.Create(pageHeadBuilder.GenerateScripts(urlHelper, location, bundleFiles));
+            return new HtmlString(pageHeadBuilder.GenerateScripts(urlHelper, location, bundleFiles));
         }
 
 
@@ -181,7 +184,7 @@ namespace Nop.Web.Framework.UI
         /// <param name="html">HTML helper</param>
         /// <param name="part">CSS part</param>
         /// <param name="excludeFromBundle">A value indicating whether to exclude this script from bundling</param>
-        public static void AddCssFileParts(this HtmlHelper html, string part, bool excludeFromBundle = false)
+        public static void AddCssFileParts(this IHtmlHelper html, string part, bool excludeFromBundle = false)
         {
             AddCssFileParts(html, ResourceLocation.Head, part, excludeFromBundle);
         }
@@ -192,7 +195,7 @@ namespace Nop.Web.Framework.UI
         /// <param name="location">A location of the script element</param>
         /// <param name="part">CSS part</param>
         /// <param name="excludeFromBundle">A value indicating whether to exclude this script from bundling</param>
-        public static void AddCssFileParts(this HtmlHelper html, ResourceLocation location, string part, bool excludeFromBundle = false)
+        public static void AddCssFileParts(this IHtmlHelper html, ResourceLocation location, string part, bool excludeFromBundle = false)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AddCssFileParts(location, part, excludeFromBundle);
@@ -203,7 +206,7 @@ namespace Nop.Web.Framework.UI
         /// <param name="html">HTML helper</param>
         /// <param name="part">CSS part</param>
         /// <param name="excludeFromBundle">A value indicating whether to exclude this script from bundling</param>
-        public static void AppendCssFileParts(this HtmlHelper html, string part, bool excludeFromBundle = false)
+        public static void AppendCssFileParts(this IHtmlHelper html, string part, bool excludeFromBundle = false)
         {
             AppendCssFileParts(html, ResourceLocation.Head, part, excludeFromBundle);
         }
@@ -214,7 +217,7 @@ namespace Nop.Web.Framework.UI
         /// <param name="location">A location of the script element</param>
         /// <param name="part">CSS part</param>
         /// <param name="excludeFromBundle">A value indicating whether to exclude this script from bundling</param>
-        public static void AppendCssFileParts(this HtmlHelper html, ResourceLocation location, string part, bool excludeFromBundle = false)
+        public static void AppendCssFileParts(this IHtmlHelper html, ResourceLocation location, string part, bool excludeFromBundle = false)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AppendCssFileParts(location, part, excludeFromBundle);
@@ -227,11 +230,11 @@ namespace Nop.Web.Framework.UI
         /// <param name="location">A location of the script element</param>
         /// <param name="bundleFiles">A value indicating whether to bundle script elements</param>
         /// <returns>Generated string</returns>
-        public static MvcHtmlString NopCssFiles(this HtmlHelper html, UrlHelper urlHelper,
+        public static IHtmlContent NopCssFiles(this IHtmlHelper html, IUrlHelper urlHelper,
             ResourceLocation location, bool? bundleFiles = null)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
-            return MvcHtmlString.Create(pageHeadBuilder.GenerateCssFiles(urlHelper, location, bundleFiles));
+            return new HtmlString(pageHeadBuilder.GenerateCssFiles(urlHelper, location, bundleFiles));
         }
 
 
@@ -240,7 +243,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">Canonical URL part</param>
-        public static void AddCanonicalUrlParts(this HtmlHelper html, string part)
+        public static void AddCanonicalUrlParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AddCanonicalUrlParts(part);
@@ -250,7 +253,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">Canonical URL part</param>
-        public static void AppendCanonicalUrlParts(this HtmlHelper html, string part)
+        public static void AppendCanonicalUrlParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AppendCanonicalUrlParts(part);
@@ -261,11 +264,11 @@ namespace Nop.Web.Framework.UI
         /// <param name="html">HTML helper</param>
         /// <param name="part">Canonical URL part</param>
         /// <returns>Generated string</returns>
-        public static MvcHtmlString NopCanonicalUrls(this HtmlHelper html, string part = "")
+        public static IHtmlContent NopCanonicalUrls(this IHtmlHelper html, string part = "")
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             html.AppendCanonicalUrlParts(part);
-            return MvcHtmlString.Create(pageHeadBuilder.GenerateCanonicalUrls());
+            return new HtmlString(pageHeadBuilder.GenerateCanonicalUrls());
         }
 
 
@@ -274,7 +277,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">The entire element. For example, <![CDATA[<meta name="msvalidate.01" content="123121231231313123123" />]]></param>
-        public static void AddHeadCustomParts(this HtmlHelper html, string part)
+        public static void AddHeadCustomParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AddHeadCustomParts(part);
@@ -284,7 +287,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">The entire element. For example, <![CDATA[<meta name="msvalidate.01" content="123121231231313123123" />]]></param>
-        public static void AppendHeadCustomParts(this HtmlHelper html, string part)
+        public static void AppendHeadCustomParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AppendHeadCustomParts(part);
@@ -294,10 +297,10 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <returns>Generated string</returns>
-        public static MvcHtmlString NopHeadCustom(this HtmlHelper html)
+        public static IHtmlContent NopHeadCustom(this IHtmlHelper html)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
-            return MvcHtmlString.Create(pageHeadBuilder.GenerateHeadCustom());
+            return new HtmlString(pageHeadBuilder.GenerateHeadCustom());
         }
 
 
@@ -306,7 +309,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">CSS class</param>
-        public static void AddPageCssClassParts(this HtmlHelper html, string part)
+        public static void AddPageCssClassParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AddPageCssClassParts(part);
@@ -316,7 +319,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="part">CSS class</param>
-        public static void AppendPageCssClassParts(this HtmlHelper html, string part)
+        public static void AppendPageCssClassParts(this IHtmlHelper html, string part)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AppendPageCssClassParts(part);
@@ -328,7 +331,7 @@ namespace Nop.Web.Framework.UI
         /// <param name="part">CSS class</param>
         /// <param name="includeClassElement">A value indicating whether to include "class" attributes</param>
         /// <returns>Generated string</returns>
-        public static MvcHtmlString NopPageCssClasses(this HtmlHelper html, string part = "", bool includeClassElement = true)
+        public static IHtmlContent NopPageCssClasses(this IHtmlHelper html, string part = "", bool includeClassElement = true)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             html.AppendPageCssClassParts(part);
@@ -338,7 +341,7 @@ namespace Nop.Web.Framework.UI
                 return null;
 
             var result = includeClassElement ? string.Format("class=\"{0}\"", classes) : classes;
-            return MvcHtmlString.Create(result);
+            return new HtmlString(result);
         }
 
 
@@ -347,7 +350,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <param name="systemName">System name</param>
-        public static void SetActiveMenuItemSystemName(this HtmlHelper html, string systemName)
+        public static void SetActiveMenuItemSystemName(this IHtmlHelper html, string systemName)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.SetActiveMenuItemSystemName(systemName);
@@ -357,7 +360,7 @@ namespace Nop.Web.Framework.UI
         /// </summary>
         /// <param name="html">HTML helper</param>
         /// <returns>System name</returns>
-        public static string GetActiveMenuItemSystemName(this HtmlHelper html)
+        public static string GetActiveMenuItemSystemName(this IHtmlHelper html)
         {
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             return pageHeadBuilder.GetActiveMenuItemSystemName();

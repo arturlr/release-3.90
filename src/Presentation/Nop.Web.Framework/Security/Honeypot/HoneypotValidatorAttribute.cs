@@ -1,19 +1,21 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
 using Nop.Core;
 using Nop.Core.Domain.Security;
 using Nop.Core.Infrastructure;
 using Nop.Services.Logging;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 
 namespace Nop.Web.Framework.Security.Honeypot
 {
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, Inherited = true, AllowMultiple = true)]
-    public class HoneypotValidatorAttribute : FilterAttribute, IAuthorizationFilter
+    public class HoneypotValidatorAttribute : ActionFilterAttribute, IAuthorizationFilter
     {
-        public void OnAuthorization(AuthorizationContext filterContext)
+        public void OnAuthorization(AuthorizationFilterContext filterContext)
         {
             if (filterContext == null)
-                throw new ArgumentNullException("filterContext");
+                throw new ArgumentNullException(nameof(filterContext));
 
             var securitySettings = EngineContext.Current.Resolve<SecuritySettings>();
             if (securitySettings.HoneypotEnabled)
@@ -26,7 +28,6 @@ namespace Nop.Web.Framework.Security.Honeypot
                     var logger = EngineContext.Current.Resolve<ILogger>();
                     logger.Warning("A bot detected. Honeypot.");
 
-                    //filterContext.Result = new HttpUnauthorizedResult();
                     var webHelper = EngineContext.Current.Resolve<IWebHelper>();
                     string url = webHelper.GetThisPageUrl(true);
                     filterContext.Result = new RedirectResult(url);

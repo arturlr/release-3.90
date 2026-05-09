@@ -1,8 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Web.Mvc;
 using Nop.Web.Framework.Mvc;
 using Nop.Web.Models.Media;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Web.Models.ShoppingCart
 {

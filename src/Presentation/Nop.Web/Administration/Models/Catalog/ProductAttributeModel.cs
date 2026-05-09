@@ -1,14 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using System.Collections.Generic;
 using Nop.Admin.Validators.Catalog;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Models.Catalog
 {
-    [Validator(typeof(ProductAttributeValidator))]
     public partial class ProductAttributeModel : BaseNopEntityModel, ILocalizedModel<ProductAttributeLocalizedModel>
     {
         public ProductAttributeModel()
@@ -17,11 +16,11 @@ namespace Nop.Admin.Models.Catalog
         }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.Fields.Description")]
-        [AllowHtml]
+
         public string Description {get;set;}
         
 
@@ -46,16 +45,15 @@ namespace Nop.Admin.Models.Catalog
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.Fields.Description")]
-        [AllowHtml]
+
         public string Description {get;set;}
     }
 
 
-    [Validator(typeof(PredefinedProductAttributeValueModelValidator))]
     public partial class PredefinedProductAttributeValueModel : BaseNopEntityModel, ILocalizedModel<PredefinedProductAttributeValueLocalizedModel>
     {
         public PredefinedProductAttributeValueModel()
@@ -66,7 +64,7 @@ namespace Nop.Admin.Models.Catalog
         public int ProductAttributeId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.PredefinedValues.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.PredefinedValues.Fields.PriceAdjustment")]
@@ -97,7 +95,7 @@ namespace Nop.Admin.Models.Catalog
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.PredefinedValues.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
     }
 }

@@ -1,9 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Blogs
 {
@@ -23,7 +26,7 @@ namespace Nop.Admin.Models.Blogs
         public DateTime? CreatedOnTo { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.Comments.List.SearchText")]
-        [AllowHtml]
+
         public string SearchText { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.Comments.List.SearchApproved")]

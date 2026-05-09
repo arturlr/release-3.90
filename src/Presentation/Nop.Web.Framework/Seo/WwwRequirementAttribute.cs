@@ -1,31 +1,25 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Seo;
 using Nop.Core.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 
 namespace Nop.Web.Framework.Seo
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
-    public class WwwRequirementAttribute : FilterAttribute, IAuthorizationFilter
+    public class WwwRequirementAttribute : ActionFilterAttribute, IAuthorizationFilter
     {
-        public virtual void OnAuthorization(AuthorizationContext filterContext)
+        public void OnAuthorization(AuthorizationFilterContext filterContext)
         {
             if (filterContext == null)
-                throw new ArgumentNullException("filterContext");
-
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
+                throw new ArgumentNullException(nameof(filterContext));
 
             // only redirect for GET requests, 
             // otherwise the browser might not propagate the verb and request body correctly.
-            if (!String.Equals(filterContext.HttpContext.Request.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
-                return;
-
-            //ignore this rule for localhost
-            if (filterContext.HttpContext.Request.IsLocal)
+            if (!String.Equals(filterContext.HttpContext.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
                 return;
 
             if (!DataSettingsHelper.DatabaseIsInstalled())

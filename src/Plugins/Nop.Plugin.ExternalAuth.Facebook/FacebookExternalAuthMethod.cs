@@ -1,4 +1,4 @@
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core.Plugins;
 using Nop.Services.Authentication.External;
 using Nop.Services.Configuration;
@@ -27,7 +27,7 @@ namespace Nop.Plugin.ExternalAuth.Facebook
         #endregion
 
         #region Methods
-        
+
         /// <summary>
         /// Gets a route for provider configuration
         /// </summary>

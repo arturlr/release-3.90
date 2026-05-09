@@ -1,11 +1,12 @@
-﻿using System;
-using System.Web;
-using System.Web.Mvc;
+using System;
 using Nop.Core;
 using Nop.Core.Domain.Affiliates;
 using Nop.Core.Infrastructure;
 using Nop.Services.Affiliates;
 using Nop.Services.Customers;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 
 namespace Nop.Web.Framework
 {
@@ -19,32 +20,28 @@ namespace Nop.Web.Framework
             if (filterContext == null || filterContext.HttpContext == null)
                 return;
 
-            HttpRequestBase request = filterContext.HttpContext.Request;
+            var request = filterContext.HttpContext.Request;
             if (request == null)
-                return;
-
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
                 return;
 
             Affiliate affiliate = null;
 
-            if (request.QueryString != null)
+            if (request.Query != null)
             {
                 //try to find by ID ("affiliateId" parameter)
-                if (request.QueryString[AFFILIATE_ID_QUERY_PARAMETER_NAME] != null)
+                if (request.Query.ContainsKey(AFFILIATE_ID_QUERY_PARAMETER_NAME))
                 {
-                    var affiliateId = Convert.ToInt32(request.QueryString[AFFILIATE_ID_QUERY_PARAMETER_NAME]);
-                    if (affiliateId > 0)
+                    var affiliateIdStr = request.Query[AFFILIATE_ID_QUERY_PARAMETER_NAME].ToString();
+                    if (int.TryParse(affiliateIdStr, out int affiliateId) && affiliateId > 0)
                     {
                         var affiliateService = EngineContext.Current.Resolve<IAffiliateService>();
                         affiliate = affiliateService.GetAffiliateById(affiliateId);
                     }
                 }
                 //try to find by friendly name ("affiliate" parameter)
-                else if (request.QueryString[AFFILIATE_FRIENDLYURLNAME_QUERY_PARAMETER_NAME] != null)
+                else if (request.Query.ContainsKey(AFFILIATE_FRIENDLYURLNAME_QUERY_PARAMETER_NAME))
                 {
-                    var friendlyUrlName = request.QueryString[AFFILIATE_FRIENDLYURLNAME_QUERY_PARAMETER_NAME];
+                    var friendlyUrlName = request.Query[AFFILIATE_FRIENDLYURLNAME_QUERY_PARAMETER_NAME].ToString();
                     if (!String.IsNullOrEmpty(friendlyUrlName))
                     {
                         var affiliateService = EngineContext.Current.Resolve<IAffiliateService>();

@@ -1,10 +1,11 @@
-﻿using System.Web.Mvc;
 using Nop.Services.Blogs;
 using Nop.Services.Catalog;
 using Nop.Services.News;
 using Nop.Services.Seo;
 using Nop.Services.Topics;
 using Nop.Services.Vendors;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Web.Controllers
 {

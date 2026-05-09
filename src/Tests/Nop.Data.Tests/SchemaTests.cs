@@ -1,4 +1,4 @@
-﻿using System.Data.Entity;
+using Microsoft.EntityFrameworkCore;
 using Nop.Tests;
 using NUnit.Framework;
 
@@ -10,8 +10,11 @@ namespace Nop.Data.Tests
         [Test]
         public void Can_generate_schema()
         {
-            Database.SetInitializer<NopObjectContext>(null);
-            var ctx = new NopObjectContext("Test");
+            var options = new DbContextOptionsBuilder<NopObjectContext>()
+                .UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=NopSchemaTest;Trusted_Connection=True;")
+                .Options;
+
+            var ctx = new NopObjectContext(options);
             string result = ctx.CreateDatabaseScript();
             result.ShouldNotBeNull();
         }

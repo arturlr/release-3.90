@@ -1,15 +1,16 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
 using Nop.Admin.Validators.Discounts;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Discounts
 {
-    [Validator(typeof(DiscountValidator))]
     public partial class DiscountModel : BaseNopEntityModel
     {
         public DiscountModel()
@@ -19,7 +20,7 @@ namespace Nop.Admin.Models.Discounts
         }
 
         [NopResourceDisplayName("Admin.Promotions.Discounts.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Promotions.Discounts.Fields.DiscountType")]
@@ -58,7 +59,7 @@ namespace Nop.Admin.Models.Discounts
         public bool RequiresCouponCode { get; set; }
 
         [NopResourceDisplayName("Admin.Promotions.Discounts.Fields.CouponCode")]
-        [AllowHtml]
+
         public string CouponCode { get; set; }
 
         [NopResourceDisplayName("Admin.Promotions.Discounts.Fields.IsCumulative")]
@@ -135,7 +136,7 @@ namespace Nop.Admin.Models.Discounts
         public partial class AddCategoryToDiscountModel : BaseNopModel
         {
             [NopResourceDisplayName("Admin.Catalog.Categories.List.SearchCategoryName")]
-            [AllowHtml]
+
             public string SearchCategoryName { get; set; }
 
             public int DiscountId { get; set; }
@@ -153,7 +154,7 @@ namespace Nop.Admin.Models.Discounts
         public partial class AddManufacturerToDiscountModel : BaseNopModel
         {
             [NopResourceDisplayName("Admin.Catalog.Manufacturers.List.SearchManufacturerName")]
-            [AllowHtml]
+
             public string SearchManufacturerName { get; set; }
 
             public int DiscountId { get; set; }
@@ -180,7 +181,7 @@ namespace Nop.Admin.Models.Discounts
             }
 
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductName")]
-            [AllowHtml]
+
             public string SearchProductName { get; set; }
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchCategory")]
             public int SearchCategoryId { get; set; }

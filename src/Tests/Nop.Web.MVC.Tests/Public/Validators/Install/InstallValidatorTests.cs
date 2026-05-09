@@ -1,9 +1,9 @@
-﻿using FluentValidation.TestHelper;
+using FluentValidation.TestHelper;
 using Nop.Web.Infrastructure.Installation;
 using Nop.Web.Models.Install;
 using Nop.Web.Validators.Install;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
 
 namespace Nop.Web.MVC.Tests.Public.Validators.Install
 {
@@ -17,8 +17,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Install
         public new void Setup()
         {
             //set up localziation service used by almost all validators
-            _ilService = MockRepository.GenerateMock<IInstallationLocalizationService>();
-            _ilService.Expect(l => l.GetResource("")).Return("Invalid").IgnoreArguments();
+            var ilServiceMock = new Mock<IInstallationLocalizationService>();
+            ilServiceMock.Setup(l => l.GetResource(It.IsAny<string>())).Returns("Invalid");
+            _ilService = ilServiceMock.Object;
 
             _validator = new InstallValidator(_ilService);
         }
@@ -28,9 +29,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Install
         {
             var model = new InstallModel();
             model.AdminEmail = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.AdminEmail, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AdminEmail);
             model.AdminEmail = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.AdminEmail, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AdminEmail);
         }
 
         [Test]
@@ -38,7 +39,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Install
         {
             var model = new InstallModel();
             model.AdminEmail = "adminexample.com";
-            _validator.ShouldHaveValidationErrorFor(x => x.AdminEmail, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AdminEmail);
         }
 
         [Test]
@@ -46,7 +47,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Install
         {
             var model = new InstallModel();
             model.AdminEmail = "admin@example.com";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.AdminEmail, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.AdminEmail);
         }
 
         [Test]
@@ -56,11 +57,11 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Install
             model.AdminPassword = null;
             //we know that password should equal confirmation password
             model.ConfirmPassword = model.AdminPassword;
-            _validator.ShouldHaveValidationErrorFor(x => x.AdminPassword, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AdminPassword);
             model.AdminPassword = "";
             //we know that password should equal confirmation password
             model.ConfirmPassword = model.AdminPassword;
-            _validator.ShouldHaveValidationErrorFor(x => x.AdminPassword, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AdminPassword);
         }
 
         [Test]
@@ -70,7 +71,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Install
             model.AdminPassword = "password";
             //we know that password should equal confirmation password
             model.ConfirmPassword = model.AdminPassword;
-            _validator.ShouldNotHaveValidationErrorFor(x => x.AdminPassword, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.AdminPassword);
         }
 
         [Test]
@@ -78,9 +79,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Install
         {
             var model = new InstallModel();
             model.ConfirmPassword = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.ConfirmPassword, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.ConfirmPassword);
             model.ConfirmPassword = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.ConfirmPassword, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.ConfirmPassword);
         }
 
         [Test]
@@ -88,7 +89,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Install
         {
             var model = new InstallModel();
             model.ConfirmPassword = "some password";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.ConfirmPassword, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.ConfirmPassword);
         }
 
         [Test]
@@ -97,7 +98,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Install
             var model = new InstallModel();
             model.AdminPassword = "some password";
             model.ConfirmPassword = "another password";
-            _validator.ShouldHaveValidationErrorFor(x => x.AdminPassword, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AdminPassword);
         }
 
         [Test]
@@ -106,7 +107,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Install
             var model = new InstallModel();
             model.AdminPassword = "some password";
             model.ConfirmPassword = "some password";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.AdminPassword, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.AdminPassword);
         }
     }
 }

@@ -1,10 +1,11 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Web;
 using Nop.Core;
 using Nop.Core.Configuration;
 using Nop.Core.Infrastructure;
+using Microsoft.AspNetCore.Http;
+
 
 namespace Nop.Services.Helpers
 {
@@ -14,7 +15,7 @@ namespace Nop.Services.Helpers
     public partial class UserAgentHelper : IUserAgentHelper
     {
         private readonly NopConfig _config;
-        private readonly HttpContextBase _httpContext;
+        private readonly HttpContext _httpContext;
         private static readonly object _locker = new object();
 
         /// <summary>
@@ -22,7 +23,7 @@ namespace Nop.Services.Helpers
         /// </summary>
         /// <param name="config">Config</param>
         /// <param name="httpContext">HTTP context</param>
-        public UserAgentHelper(NopConfig config, HttpContextBase httpContext)
+        public UserAgentHelper(NopConfig config, HttpContext httpContext)
         {
             this._config = config;
             this._httpContext = httpContext;
@@ -74,7 +75,7 @@ namespace Nop.Services.Helpers
                 if (bowscapXmlHelper == null)
                     return false;
 
-                var userAgent = _httpContext.Request.UserAgent;
+                var userAgent = _httpContext.Request.Headers["User-Agent"].ToString();
                 return bowscapXmlHelper.IsCrawler(userAgent);
             }
             catch (Exception exc)

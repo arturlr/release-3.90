@@ -1,7 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Catalog
 {
@@ -15,7 +18,7 @@ namespace Nop.Admin.Models.Catalog
         }
 
         [NopResourceDisplayName("Admin.Catalog.BulkEdit.List.SearchProductName")]
-        [AllowHtml]
+
         public string SearchProductName { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.BulkEdit.List.SearchCategory")]

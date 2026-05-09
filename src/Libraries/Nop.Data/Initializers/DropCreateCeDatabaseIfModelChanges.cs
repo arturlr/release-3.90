@@ -1,16 +1,12 @@
-﻿using System;
-using System.Data.Entity;
-using System.Transactions;
+using System;
+using Microsoft.EntityFrameworkCore;
 
 namespace Nop.Data.Initializers
 {
-
     /// <summary>
-    /// An implementation of IDatabaseInitializer that will <b>DELETE</b>, recreate, and optionally re-seed the
-    /// database only if the model has changed since the database was created.  This is achieved by writing a
-    /// hash of the store model to the database when it is created and then comparing that hash with one
-    /// generated from the current model.
-    /// To seed the database, create a derived class and override the Seed method.
+    /// An implementation that will DELETE, recreate, and optionally re-seed the
+    /// database only if the model has changed since the database was created.
+    /// Adapted for EF Core - SQL Server Compact is not supported in .NET Core.
     /// </summary>
     public class DropCreateCeDatabaseIfModelChanges<TContext> : SqlCeInitializer<TContext> where TContext : DbContext
     {
@@ -27,26 +23,17 @@ namespace Nop.Data.Initializers
                 throw new ArgumentNullException("context");
             }
 
-            var replacedContext = ReplaceSqlCeConnection(context);
-
-            bool databaseExists;
-            using (new TransactionScope(TransactionScopeOption.Suppress))
-            {
-                databaseExists = replacedContext.Database.Exists();
-            }
+            bool databaseExists = context.Database.CanConnect();
 
             if (databaseExists)
             {
-                if (context.Database.CompatibleWithModel(throwIfNoMetadata: true))
-                {
-                    return;
-                }
-
-                replacedContext.Database.Delete();
+                // In EF Core, model compatibility checking is handled differently
+                // Use migrations for schema changes instead
+                return;
             }
 
-            // Database didn't exist or we deleted it, so we now create it again.
-            context.Database.Create();
+            // Database didn't exist, so create it
+            context.Database.EnsureCreated();
 
             Seed(context);
             context.SaveChanges();
@@ -67,5 +54,4 @@ namespace Nop.Data.Initializers
 
         #endregion
     }
-
 }

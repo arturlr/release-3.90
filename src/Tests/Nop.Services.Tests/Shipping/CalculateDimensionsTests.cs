@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using Moq;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Data;
@@ -17,7 +18,6 @@ using Nop.Services.Orders;
 using Nop.Services.Shipping;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Services.Tests.Shipping
 {
@@ -47,27 +47,29 @@ namespace Nop.Services.Tests.Shipping
             _shippingSettings.UseCubeRootMethod = true;
             _shippingSettings.ConsiderAssociatedProductsDimensions = true;
 
-            _shippingMethodRepository = MockRepository.GenerateMock<IRepository<ShippingMethod>>();
-            _warehouseRepository = MockRepository.GenerateMock<IRepository<Warehouse>>();
+            _shippingMethodRepository = new Mock<IRepository<ShippingMethod>>().Object;
+            _warehouseRepository = new Mock<IRepository<Warehouse>>().Object;
             _logger = new NullLogger();
-            _productAttributeParser = MockRepository.GenerateMock<IProductAttributeParser>();
-            _checkoutAttributeParser = MockRepository.GenerateMock<ICheckoutAttributeParser>();
+            _productAttributeParser = new Mock<IProductAttributeParser>().Object;
+            _checkoutAttributeParser = new Mock<ICheckoutAttributeParser>().Object;
 
             var cacheManager = new NopNullCache();
 
             var pluginFinder = new PluginFinder();
-            _productService = MockRepository.GenerateMock<IProductService>();
+            _productService = new Mock<IProductService>().Object;
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            var eventPublisherMock = new Mock<IEventPublisher>();
+            eventPublisherMock.Setup(x => x.Publish(It.IsAny<object>()));
+            _eventPublisher = eventPublisherMock.Object;
 
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _addressService = MockRepository.GenerateMock<IAddressService>();
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
+            _localizationService = new Mock<ILocalizationService>().Object;
+            _addressService = new Mock<IAddressService>().Object;
+            _genericAttributeService = new Mock<IGenericAttributeService>().Object;
 
             _store = new Store { Id = 1 };
-            _storeContext = MockRepository.GenerateMock<IStoreContext>();
-            _storeContext.Expect(x => x.CurrentStore).Return(_store);
+            var storeContextMock = new Mock<IStoreContext>();
+            storeContextMock.Setup(x => x.CurrentStore).Returns(_store);
+            _storeContext = storeContextMock.Object;
 
             _shoppingCartSettings = new ShoppingCartSettings();
             _shippingService = new ShippingService(_shippingMethodRepository,

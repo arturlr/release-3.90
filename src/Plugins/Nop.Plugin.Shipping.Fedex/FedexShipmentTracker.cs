@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Web.Services.Protocols;
+using Nop.Plugin.Shipping.Fedex.TrackServiceReference;
 using Nop.Services.Logging;
 using Nop.Services.Shipping.Tracking;
 
@@ -98,35 +98,6 @@ namespace Nop.Plugin.Shipping.Fedex
 
                         if (trackDetail.Events != null)
                         {
-                            //Set the parent level attributes
-                            //var statusDescription = trackDetail.StatusDescription;
-                            //var tatusCode = trackDetail.StatusCode;
-                            //if (statusCode == "DL")
-                            //{
-                            //    var delivered = true;
-                            //}
-
-
-                            //if (trackDetail.SignatureProofOfDeliveryAvailable == true)
-                            //{
-                            //    trackResults.SignedForBy = trackDetail.DeliverySignatureName;
-                            //}
-
-                            //if (trackDetail.ShipmentWeight != null)
-                            //{
-                            //    var shipmentWeight = string.Format("{0} {1}", trackDetail.ShipmentWeight.Value, trackDetail.ShipmentWeight.Units);
-                            //}
-                            //else
-                            //{
-                            //    var shipmentWeight = string.Format("{0} {1}", trackDetail.PackageWeight.Value, trackDetail.PackageWeight.Units);
-                            //}
-
-                            //var shipDate = trackDetail.ShipTimestamp;
-                            //var serviceType = trackDetail.ServiceInfo;
-                            //var packageCount = int.Parse(trackDetail.PackageCount);
-                            //var destination = string.Format("{0}, {1} {2}", trackDetail.DestinationAddress.City, trackDetail.DestinationAddress.StateOrProvinceCode, trackDetail.DestinationAddress.CountryCode);
-                            //var deliveryDate = trackDetail.ActualDeliveryTimestamp;
-
                             //Set the TrackingActivity
                             foreach (TrackEvent trackevent in trackDetail.Events)
                             {
@@ -139,28 +110,17 @@ namespace Nop.Plugin.Shipping.Fedex
                                 sse.EventName = String.Format("{0} ({1})", trackevent.EventDescription, trackevent.EventType);
                                 sse.Location = trackevent.Address.City;
                                 sse.CountryCode = trackevent.Address.CountryCode;
-                                //other properties (not used yet)
-                                //trackevent.EventType;
-                                //trackevent.Address.PostalCode;
-                                //trackevent.Address.StateOrProvinceCode;
-                                //trackevent.StatusExceptionCode;
-                                //trackevent.StatusExceptionDescription;
 
                                 result.Add(sse);
                             }
                         }
                     }
                 }
-
-
-                //result.AddRange(trackResponse.Shipment.SelectMany(c => c.Package[0].Activity.Select(x => ToStatusEvent(x))).ToList());
             }
-            catch (SoapException ex)
+            catch (InvalidOperationException ex)
             {
                 var sb = new StringBuilder();
-                sb.AppendFormat("SoapException Message= {0}.", ex.Message);
-                sb.AppendFormat("SoapException Category:Code:Message= {0}.", ex.Detail.LastChild.InnerText);
-                //sb.AppendFormat("SoapException XML String for all= {0}.", ex.Detail.LastChild.OuterXml);
+                sb.AppendFormat("Service Exception Message= {0}.", ex.Message);
                 _logger.Error(string.Format("Error while getting Fedex shipment tracking info - {0}", trackingNumber), new Exception(sb.ToString()));
             }
             catch (Exception exc)

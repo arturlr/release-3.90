@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Admin.Models.Customers;
 using Nop.Admin.Models.Security;
 using Nop.Core;
@@ -10,6 +9,10 @@ using Nop.Services.Customers;
 using Nop.Services.Localization;
 using Nop.Services.Logging;
 using Nop.Services.Security;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Http;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -108,7 +111,7 @@ namespace Nop.Admin.Controllers
             foreach (var cr in customerRoles)
             {
                 string formKey = "allow_" + cr.Id;
-                var permissionRecordSystemNamesToRestrict = form[formKey] != null ? form[formKey].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>();
+                var permissionRecordSystemNamesToRestrict = form.ContainsKey(formKey) ? form[formKey].ToString().Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>();
 
                 foreach (var pr in permissionRecords)
                 {

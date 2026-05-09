@@ -1,12 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Web;
 using System.Xml;
 using Nop.Core;
 using Nop.Core.Infrastructure;
+using Microsoft.AspNetCore.Http;
+
 
 namespace Nop.Web.Infrastructure.Installation
 {
@@ -52,12 +53,12 @@ namespace Nop.Web.Infrastructure.Installation
         /// <returns>Current language</returns>
         public virtual InstallationLanguage GetCurrentLanguage()
         {
-            var httpContext = EngineContext.Current.Resolve<HttpContextBase>();
+            HttpContext httpContext = EngineContext.Current.Resolve<HttpContext>();
 
             var cookieLanguageCode = "";
             var cookie = httpContext.Request.Cookies[LanguageCookieName];
-            if (cookie != null && !String.IsNullOrEmpty(cookie.Value))
-                cookieLanguageCode = cookie.Value;
+            if (cookie != null && !String.IsNullOrEmpty(cookie))
+                cookieLanguageCode = cookie;
 
             //ensure it's available (it could be delete since the previous installation)
             var availableLanguages = GetAvailableLanguages();
@@ -68,9 +69,9 @@ namespace Nop.Web.Infrastructure.Installation
                 return language;
 
             //let's find by current browser culture
-            if (httpContext.Request.UserLanguages != null)
+            if (httpContext.Request.Headers.ContainsKey("Accept-Language"))
             {
-                var userLanguage = httpContext.Request.UserLanguages.FirstOrDefault();
+                var userLanguage = httpContext.Request.Headers["Accept-Language"].ToString().Split(",").FirstOrDefault();
                 if (!String.IsNullOrEmpty(userLanguage))
                 {
                     //right. we do "StartsWith" (not "Equals") because we have shorten codes (not full culture names)
@@ -97,14 +98,14 @@ namespace Nop.Web.Infrastructure.Installation
         /// <param name="languageCode">Language code</param>
         public virtual void SaveCurrentLanguage(string languageCode)
         {
-            var httpContext = EngineContext.Current.Resolve<HttpContextBase>();
+            HttpContext httpContext = EngineContext.Current.Resolve<HttpContext>();
 
-            var cookie = new HttpCookie(LanguageCookieName);
-            cookie.HttpOnly = true;
-            cookie.Value = languageCode;
-            cookie.Expires = DateTime.Now.AddHours(24);
-            httpContext.Response.Cookies.Remove(LanguageCookieName);
-            httpContext.Response.Cookies.Add(cookie);
+
+
+
+
+
+
         }
 
         /// <summary>

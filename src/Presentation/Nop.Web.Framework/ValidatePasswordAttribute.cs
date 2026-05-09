@@ -1,9 +1,14 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
 using Nop.Services.Customers;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace Nop.Web.Framework
 {
@@ -21,15 +26,12 @@ namespace Nop.Web.Framework
             if (filterContext == null || filterContext.HttpContext == null || filterContext.HttpContext.Request == null)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
-            var actionName = filterContext.ActionDescriptor.ActionName;
+            var controllerActionDescriptor = filterContext.ActionDescriptor as ControllerActionDescriptor;
+            var actionName = controllerActionDescriptor?.ActionName ?? string.Empty;
             if (string.IsNullOrEmpty(actionName) || actionName.Equals("ChangePassword", StringComparison.InvariantCultureIgnoreCase))
                 return;
 
-            var controllerName = filterContext.Controller.ToString();
+            var controllerName = controllerActionDescriptor?.ControllerName ?? string.Empty;
             if (string.IsNullOrEmpty(controllerName) || controllerName.Equals("Customer", StringComparison.InvariantCultureIgnoreCase))
                 return;
 
@@ -42,7 +44,9 @@ namespace Nop.Web.Framework
             //check password expiration
             if (customer.PasswordIsExpired())
             {
-                var changePasswordUrl = new UrlHelper(filterContext.RequestContext).RouteUrl("CustomerChangePassword");
+                var urlHelperFactory = filterContext.HttpContext.RequestServices.GetRequiredService<IUrlHelperFactory>();
+                var urlHelper = urlHelperFactory.GetUrlHelper(filterContext);
+                var changePasswordUrl = urlHelper.RouteUrl("CustomerChangePassword");
                 filterContext.Result = new RedirectResult(changePasswordUrl);
             }
         }

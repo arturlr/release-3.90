@@ -1,12 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
-using System.Web;
-using System.Web.Routing;
 using System.Xml;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Directory;
@@ -22,6 +23,7 @@ using Nop.Services.Localization;
 using Nop.Services.Media;
 using Nop.Services.Seo;
 using Nop.Services.Tax;
+
 
 namespace Nop.Plugin.Feed.GoogleShopping
 {
@@ -45,6 +47,7 @@ namespace Nop.Plugin.Feed.GoogleShopping
         private readonly GoogleShoppingSettings _googleShoppingSettings;
         private readonly CurrencySettings _currencySettings;
         private readonly GoogleProductObjectContext _objectContext;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         #endregion
 
@@ -65,7 +68,8 @@ namespace Nop.Plugin.Feed.GoogleShopping
             MeasureSettings measureSettings,
             GoogleShoppingSettings googleShoppingSettings,
             CurrencySettings currencySettings,
-            GoogleProductObjectContext objectContext)
+            GoogleProductObjectContext objectContext,
+            IWebHostEnvironment webHostEnvironment)
         {
             this._googleService = googleService;
             this._priceCalculationService = priceCalculationService;
@@ -83,6 +87,7 @@ namespace Nop.Plugin.Feed.GoogleShopping
             this._googleShoppingSettings = googleShoppingSettings;
             this._currencySettings = currencySettings;
             this._objectContext = objectContext;
+            this._webHostEnvironment = webHostEnvironment;
         }
 
         #endregion
@@ -107,22 +112,22 @@ namespace Nop.Plugin.Feed.GoogleShopping
             //http://www.atensoftware.com/p90.php?q=182
 
             if (isHtmlEncoded)
-                input = HttpUtility.HtmlDecode(input);
+                input = WebUtility.HtmlDecode(input);
 
             input = input.Replace("¼", "");
             input = input.Replace("½", "");
             input = input.Replace("¾", "");
             //input = input.Replace("•", "");
-            //input = input.Replace("”", "");
-            //input = input.Replace("“", "");
-            //input = input.Replace("’", "");
-            //input = input.Replace("‘", "");
+            //input = input.Replace(""", "");
+            //input = input.Replace(""", "");
+            //input = input.Replace("'", "");
+            //input = input.Replace("'", "");
             //input = input.Replace("™", "");
             //input = input.Replace("®", "");
             //input = input.Replace("°", "");
             
             if (isHtmlEncoded)
-                input = HttpUtility.HtmlEncode(input);
+                input = WebUtility.HtmlEncode(input);
 
             return input;
         }
@@ -257,7 +262,7 @@ namespace Nop.Plugin.Feed.GoogleShopping
 
 
                         //google product category [google_product_category] - Google's category of the item
-                        //the category of the product according to Google’s product taxonomy. http://www.google.com/support/merchants/bin/answer.py?answer=160081
+                        //the category of the product according to Google's product taxonomy. http://www.google.com/support/merchants/bin/answer.py?answer=160081
                         string googleProductCategory = "";
                         //var googleProduct = _googleService.GetByProductId(product.Id);
                         var googleProduct = allGoogleProducts.FirstOrDefault(x => x.ProductId == product.Id);
@@ -426,7 +431,7 @@ namespace Nop.Plugin.Feed.GoogleShopping
                         #region Apparel Products
 
                         /* Apparel includes all products that fall under 'Apparel & Accessories' (including all sub-categories)
-                         * in Google’s product taxonomy.
+                         * in Google's product taxonomy.
                         */
 
                         //gender [gender] - Gender of the item
@@ -644,7 +649,7 @@ namespace Nop.Plugin.Feed.GoogleShopping
         {
             if (store == null)
                 throw new ArgumentNullException("store");
-            string filePath = Path.Combine(HttpRuntime.AppDomainAppPath, "content\\files\\exportimport", store.Id + "-" + _googleShoppingSettings.StaticFileName);
+            string filePath = Path.Combine(_webHostEnvironment.ContentRootPath, "content", "files", "exportimport", store.Id + "-" + _googleShoppingSettings.StaticFileName);
             using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
             {
                 GenerateFeed(fs, store);

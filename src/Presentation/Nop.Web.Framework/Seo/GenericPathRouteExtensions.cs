@@ -1,58 +1,67 @@
-﻿using System;
-using System.Web.Mvc;
-using System.Web.Routing;
+using System;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Framework.Seo
 {
     public static class GenericPathRouteExtensions
     {
-        //Override for localized route
-        public static Route MapGenericPathRoute(this RouteCollection routes, string name, string url)
+        //Override for generic path route
+        public static IRouteBuilder MapGenericPathRoute(this IRouteBuilder routeBuilder, string name, string template)
         {
-            return MapGenericPathRoute(routes, name, url, null /* defaults */, (object)null /* constraints */);
+            return MapGenericPathRoute(routeBuilder, name, template, null /* defaults */, null /* constraints */);
         }
-        public static Route MapGenericPathRoute(this RouteCollection routes, string name, string url, object defaults)
+        public static IRouteBuilder MapGenericPathRoute(this IRouteBuilder routeBuilder, string name, string template, object defaults)
         {
-            return MapGenericPathRoute(routes, name, url, defaults, (object)null /* constraints */);
+            return MapGenericPathRoute(routeBuilder, name, template, defaults, null /* constraints */);
         }
-        public static Route MapGenericPathRoute(this RouteCollection routes, string name, string url, object defaults, object constraints)
+        public static IRouteBuilder MapGenericPathRoute(this IRouteBuilder routeBuilder, string name, string template, object defaults, object constraints)
         {
-            return MapGenericPathRoute(routes, name, url, defaults, constraints, null /* namespaces */);
+            return MapGenericPathRoute(routeBuilder, name, template, defaults, constraints, null /* namespaces */);
         }
-        public static Route MapGenericPathRoute(this RouteCollection routes, string name, string url, string[] namespaces)
+        public static IRouteBuilder MapGenericPathRoute(this IRouteBuilder routeBuilder, string name, string template, string[] namespaces)
         {
-            return MapGenericPathRoute(routes, name, url, null /* defaults */, null /* constraints */, namespaces);
+            return MapGenericPathRoute(routeBuilder, name, template, null /* defaults */, null /* constraints */, namespaces);
         }
-        public static Route MapGenericPathRoute(this RouteCollection routes, string name, string url, object defaults, string[] namespaces)
+        public static IRouteBuilder MapGenericPathRoute(this IRouteBuilder routeBuilder, string name, string template, object defaults, string[] namespaces)
         {
-            return MapGenericPathRoute(routes, name, url, defaults, null /* constraints */, namespaces);
+            return MapGenericPathRoute(routeBuilder, name, template, defaults, null /* constraints */, namespaces);
         }
-        public static Route MapGenericPathRoute(this RouteCollection routes, string name, string url, object defaults, object constraints, string[] namespaces)
+        public static IRouteBuilder MapGenericPathRoute(this IRouteBuilder routeBuilder, string name, string template, object defaults, object constraints, string[] namespaces)
         {
-            if (routes == null)
+            if (routeBuilder == null)
             {
-                throw new ArgumentNullException("routes");
+                throw new ArgumentNullException(nameof(routeBuilder));
             }
-            if (url == null)
+            if (template == null)
             {
-                throw new ArgumentNullException("url");
-            }
-
-            var route = new GenericPathRoute(url, new MvcRouteHandler())
-            {
-                Defaults = new RouteValueDictionary(defaults),
-                Constraints = new RouteValueDictionary(constraints),
-                DataTokens = new RouteValueDictionary()
-            };
-
-            if ((namespaces != null) && (namespaces.Length > 0))
-            {
-                route.DataTokens["Namespaces"] = namespaces;
+                throw new ArgumentNullException(nameof(template));
             }
 
-            routes.Add(name, route);
+            var defaultsDictionary = defaults != null ? new RouteValueDictionary(defaults) : new RouteValueDictionary();
+            var constraintsDictionary = constraints != null ? new RouteValueDictionary(constraints) : new RouteValueDictionary();
+            var dataTokens = new RouteValueDictionary();
 
-            return route;
+            if (namespaces != null && namespaces.Length > 0)
+            {
+                dataTokens["Namespaces"] = namespaces;
+            }
+
+            var inlineConstraintResolver = (IInlineConstraintResolver)routeBuilder.ServiceProvider.GetService(typeof(IInlineConstraintResolver));
+
+            // Create the generic path route wrapping the default handler
+            var genericPathRoute = new GenericPathRoute(routeBuilder.DefaultHandler);
+
+            routeBuilder.Routes.Add(new Route(
+                genericPathRoute,
+                name,
+                template,
+                defaultsDictionary,
+                new RouteValueDictionary(constraintsDictionary),
+                dataTokens,
+                inlineConstraintResolver));
+
+            return routeBuilder;
         }
     }
 }

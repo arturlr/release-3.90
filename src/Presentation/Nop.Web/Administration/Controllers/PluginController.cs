@@ -1,8 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Plugins;
 using Nop.Core;
@@ -28,6 +26,14 @@ using Nop.Services.Stores;
 using Nop.Services.Tax;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Routing;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
+using Microsoft.AspNetCore.Http;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -298,7 +304,6 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("List")]
         [FormValueRequired(FormValueRequirement.StartsWith, "install-plugin-link-")]
-        [ValidateInput(false)]
         public virtual ActionResult Install(FormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
@@ -308,7 +313,7 @@ namespace Nop.Admin.Controllers
             {
                 //get plugin system name
                 string systemName = null;
-                foreach (var formValue in form.AllKeys)
+                foreach (var formValue in form.Keys)
                     if (formValue.StartsWith("install-plugin-link-", StringComparison.InvariantCultureIgnoreCase))
                         systemName = formValue.Substring("install-plugin-link-".Length);
 
@@ -341,7 +346,6 @@ namespace Nop.Admin.Controllers
         }
         [HttpPost, ActionName("List")]
         [FormValueRequired(FormValueRequirement.StartsWith, "uninstall-plugin-link-")]
-        [ValidateInput(false)]
         public virtual ActionResult Uninstall(FormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
@@ -351,7 +355,7 @@ namespace Nop.Admin.Controllers
             {
                 //get plugin system name
                 string systemName = null;
-                foreach (var formValue in form.AllKeys)
+                foreach (var formValue in form.Keys)
                     if (formValue.StartsWith("uninstall-plugin-link-", StringComparison.InvariantCultureIgnoreCase))
                         systemName = formValue.Substring("uninstall-plugin-link-".Length);
 

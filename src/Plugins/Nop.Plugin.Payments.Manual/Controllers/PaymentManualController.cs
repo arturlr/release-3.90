@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Plugin.Payments.Manual.Models;
 using Nop.Plugin.Payments.Manual.Validators;
@@ -11,6 +10,9 @@ using Nop.Services.Localization;
 using Nop.Services.Payments;
 using Nop.Services.Stores;
 using Nop.Web.Framework.Controllers;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Http;
 
 namespace Nop.Plugin.Payments.Manual.Controllers
 {
@@ -33,8 +35,7 @@ namespace Nop.Plugin.Payments.Manual.Controllers
         }
         
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             //load settings for a chosen store scope
             var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
@@ -59,8 +60,7 @@ namespace Nop.Plugin.Payments.Manual.Controllers
 
         [HttpPost]
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure(ConfigurationModel model)
+        public IActionResult Configure(ConfigurationModel model)
         {
             if (!ModelState.IsValid)
                 return Configure();
@@ -90,8 +90,7 @@ namespace Nop.Plugin.Payments.Manual.Controllers
             return Configure();
         }
 
-        [ChildActionOnly]
-        public ActionResult PaymentInfo()
+        public IActionResult PaymentInfo()
         {
             var model = new PaymentInfoModel();
             
@@ -158,7 +157,7 @@ namespace Nop.Plugin.Payments.Manual.Controllers
         }
 
         [NonAction]
-        public override IList<string> ValidatePaymentForm(FormCollection form)
+        public override IList<string> ValidatePaymentForm(IFormCollection form)
         {
             var warnings = new List<string>();
 
@@ -180,7 +179,7 @@ namespace Nop.Plugin.Payments.Manual.Controllers
         }
 
         [NonAction]
-        public override ProcessPaymentRequest GetPaymentInfo(FormCollection form)
+        public override ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
         {
             var paymentInfo = new ProcessPaymentRequest();
             paymentInfo.CreditCardType = form["CreditCardType"];

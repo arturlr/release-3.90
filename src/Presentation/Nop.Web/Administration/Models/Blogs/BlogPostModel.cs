@@ -1,15 +1,16 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
 using Nop.Admin.Validators.Blogs;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Blogs
 {
-    [Validator(typeof(BlogPostValidator))]
     public partial class BlogPostModel : BaseNopEntityModel
     {
         public BlogPostModel()
@@ -25,26 +26,26 @@ namespace Nop.Admin.Models.Blogs
         public IList<SelectListItem> AvailableLanguages { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.BlogPosts.Fields.Language")]
-        [AllowHtml]
+
         public string LanguageName { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.BlogPosts.Fields.Title")]
-        [AllowHtml]
+
         public string Title { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.BlogPosts.Fields.Body")]
-        [AllowHtml]
+
         public string Body { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.BlogPosts.Fields.BodyOverview")]
-        [AllowHtml]
+
         public string BodyOverview { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.BlogPosts.Fields.AllowComments")]
         public bool AllowComments { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.BlogPosts.Fields.Tags")]
-        [AllowHtml]
+
         public string Tags { get; set; }
 
         public int ApprovedComments { get; set; }
@@ -59,19 +60,19 @@ namespace Nop.Admin.Models.Blogs
         public DateTime? EndDate { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.BlogPosts.Fields.MetaKeywords")]
-        [AllowHtml]
+
         public string MetaKeywords { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.BlogPosts.Fields.MetaDescription")]
-        [AllowHtml]
+
         public string MetaDescription { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.BlogPosts.Fields.MetaTitle")]
-        [AllowHtml]
+
         public string MetaTitle { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.BlogPosts.Fields.SeName")]
-        [AllowHtml]
+
         public string SeName { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.BlogPosts.Fields.CreatedOn")]

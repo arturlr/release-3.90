@@ -1,10 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Security.Principal;
 using System.Threading;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Configuration;
@@ -16,6 +14,12 @@ using Nop.Services.Security;
 using Nop.Web.Framework.Security;
 using Nop.Web.Infrastructure.Installation;
 using Nop.Web.Models.Install;
+using Microsoft.Data.SqlClient;
+
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Web.Controllers
 {
@@ -178,7 +182,6 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("HomePage");
 
             //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
 
 
             var model = new InstallModel
@@ -216,7 +219,6 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("HomePage");
 
             //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
 
             if (model.DatabaseConnectionString != null)
                 model.DatabaseConnectionString = model.DatabaseConnectionString.Trim();

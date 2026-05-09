@@ -1,14 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using System.Collections.Generic;
 using Nop.Admin.Validators.Shipping;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Models.Shipping
 {
-    [Validator(typeof(DeliveryDateValidator))]
     public partial class DeliveryDateModel : BaseNopEntityModel, ILocalizedModel<DeliveryDateLocalizedModel>
     {
         public DeliveryDateModel()
@@ -16,7 +15,7 @@ namespace Nop.Admin.Models.Shipping
             Locales = new List<DeliveryDateLocalizedModel>();
         }
         [NopResourceDisplayName("Admin.Configuration.Shipping.DeliveryDates.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Shipping.DeliveryDates.Fields.DisplayOrder")]
@@ -30,7 +29,7 @@ namespace Nop.Admin.Models.Shipping
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Shipping.DeliveryDates.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
     }

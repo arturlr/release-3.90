@@ -1,5 +1,7 @@
-﻿using System.Web.Mvc;
 using Nop.Core.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 
 namespace Nop.Web.Framework.Security.Captcha
 {
@@ -12,9 +14,9 @@ namespace Nop.Web.Framework.Security.Captcha
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
             bool valid = false;
-            var captchaChallengeValue = filterContext.HttpContext.Request.Form[CHALLENGE_FIELD_KEY];
-            var captchaResponseValue = filterContext.HttpContext.Request.Form[RESPONSE_FIELD_KEY];
-            var gCaptchaResponseValue = filterContext.HttpContext.Request.Form[G_RESPONSE_FIELD_KEY];
+            var captchaChallengeValue = filterContext.HttpContext.Request.Form[CHALLENGE_FIELD_KEY].ToString();
+            var captchaResponseValue = filterContext.HttpContext.Request.Form[RESPONSE_FIELD_KEY].ToString();
+            var gCaptchaResponseValue = filterContext.HttpContext.Request.Form[G_RESPONSE_FIELD_KEY].ToString();
             if ((!string.IsNullOrEmpty(captchaChallengeValue) && !string.IsNullOrEmpty(captchaResponseValue)) || !string.IsNullOrEmpty(gCaptchaResponseValue))
             {
                 var captchaSettings = EngineContext.Current.Resolve<CaptchaSettings>();
@@ -23,8 +25,8 @@ namespace Nop.Web.Framework.Security.Captcha
                     var captchaValidtor = new GReCaptchaValidator(captchaSettings.ReCaptchaVersion)
                     {
                         SecretKey = captchaSettings.ReCaptchaPrivateKey,
-                        RemoteIp = filterContext.HttpContext.Request.UserHostAddress,
-                        Response = captchaResponseValue ?? gCaptchaResponseValue,
+                        RemoteIp = filterContext.HttpContext.Connection.RemoteIpAddress?.ToString(),
+                        Response = !string.IsNullOrEmpty(captchaResponseValue) ? captchaResponseValue : gCaptchaResponseValue,
                         Challenge = captchaChallengeValue
                     };
 
@@ -34,7 +36,7 @@ namespace Nop.Web.Framework.Security.Captcha
             }
 
             //this will push the result value into a parameter in our Action  
-            filterContext.ActionParameters["captchaValid"] = valid;
+            filterContext.ActionArguments["captchaValid"] = valid;
 
             base.OnActionExecuting(filterContext);
         }

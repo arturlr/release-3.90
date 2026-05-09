@@ -1,18 +1,20 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Admin.Models.Tax
 {
     public partial class TaxProviderModel : BaseNopModel
     {
         [NopResourceDisplayName("Admin.Configuration.Tax.Providers.Fields.FriendlyName")]
-        [AllowHtml]
+
         public string FriendlyName { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Tax.Providers.Fields.SystemName")]
-        [AllowHtml]
+
         public string SystemName { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Tax.Providers.Fields.IsPrimaryTaxProvider")]

@@ -1,9 +1,10 @@
-﻿using System;
-using System.Web;
-using System.Web.Mvc;
+using System;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
 using Nop.Services.Security;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 
 namespace Nop.Web.Framework
 {
@@ -30,20 +31,8 @@ namespace Nop.Web.Framework
             if (_ignore)
                 return;
 
-            HttpRequestBase request = filterContext.HttpContext.Request;
+            var request = filterContext.HttpContext.Request;
             if (request == null)
-                return;
-
-            string actionName = filterContext.ActionDescriptor.ActionName;
-            if (String.IsNullOrEmpty(actionName))
-                return;
-
-            string controllerName = filterContext.Controller.ToString();
-            if (String.IsNullOrEmpty(controllerName))
-                return;
-
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
                 return;
 
             if (!DataSettingsHelper.DatabaseIsInstalled())
@@ -54,7 +43,7 @@ namespace Nop.Web.Framework
             if (publicStoreAllowNavigation)
                 return;
 
-            filterContext.Result = new HttpUnauthorizedResult();
+            filterContext.Result = new UnauthorizedResult();
         }
     }
 }

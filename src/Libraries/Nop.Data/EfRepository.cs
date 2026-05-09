@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Validation;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using Nop.Core.Data;
 
@@ -16,7 +15,7 @@ namespace Nop.Data
         #region Fields
 
         private readonly IDbContext _context;
-        private IDbSet<T> _entities;
+        private DbSet<T> _entities;
 
         #endregion
 
@@ -29,24 +28,6 @@ namespace Nop.Data
         public EfRepository(IDbContext context)
         {
             this._context = context;
-        }
-
-        #endregion
-
-        #region Utilities
-
-        /// <summary>
-        /// Get full error
-        /// </summary>
-        /// <param name="exc">Exception</param>
-        /// <returns>Error</returns>
-        protected string GetFullErrorText(DbEntityValidationException exc)
-        {
-            var msg = string.Empty;
-            foreach (var validationErrors in exc.EntityValidationErrors)
-                foreach (var error in validationErrors.ValidationErrors)
-                    msg += string.Format("Property: {0} Error: {1}", error.PropertyName, error.ErrorMessage) + Environment.NewLine;
-            return msg;
         }
 
         #endregion
@@ -80,9 +61,9 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
+                throw new Exception(dbEx.Message, dbEx);
             }
         }
 
@@ -102,9 +83,9 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
+                throw new Exception(dbEx.Message, dbEx);
             }
         }
 
@@ -121,9 +102,9 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
+                throw new Exception(dbEx.Message, dbEx);
             }
         }
 
@@ -140,9 +121,9 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
+                throw new Exception(dbEx.Message, dbEx);
             }
         }
 
@@ -161,9 +142,9 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
+                throw new Exception(dbEx.Message, dbEx);
             }
         }
 
@@ -183,12 +164,12 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
+                throw new Exception(dbEx.Message, dbEx);
             }
         }
-        
+
         #endregion
 
         #region Properties
@@ -218,7 +199,7 @@ namespace Nop.Data
         /// <summary>
         /// Entities
         /// </summary>
-        protected virtual IDbSet<T> Entities
+        protected virtual DbSet<T> Entities
         {
             get
             {

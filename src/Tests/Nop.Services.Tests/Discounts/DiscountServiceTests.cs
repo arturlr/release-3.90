@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Moq;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Data;
@@ -14,7 +15,6 @@ using Nop.Services.Events;
 using Nop.Services.Localization;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Services.Tests.Discounts
 {
@@ -35,7 +35,7 @@ namespace Nop.Services.Tests.Discounts
         [SetUp]
         public new void SetUp()
         {
-            _discountRepo = MockRepository.GenerateMock<IRepository<Discount>>();
+            var discountRepoMock = new Mock<IRepository<Discount>>();
             var discount1 = new Discount
             {
                 Id = 1,
@@ -61,23 +61,26 @@ namespace Nop.Services.Tests.Discounts
                 LimitationTimes = 3,
             };
 
-            _discountRepo.Expect(x => x.Table).Return(new List<Discount> { discount1, discount2 }.AsQueryable());
+            discountRepoMock.Setup(x => x.Table).Returns(new List<Discount> { discount1, discount2 }.AsQueryable());
+            _discountRepo = discountRepoMock.Object;
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            var eventPublisherMock = new Mock<IEventPublisher>();
+            eventPublisherMock.Setup(x => x.Publish(It.IsAny<object>()));
+            _eventPublisher = eventPublisherMock.Object;
 
-            _storeContext = MockRepository.GenerateMock<IStoreContext>();
+            _storeContext = new Mock<IStoreContext>().Object;
             _workContext = null;
 
             var cacheManager = new NopNullCache();
-            _discountRequirementRepo = MockRepository.GenerateMock<IRepository<DiscountRequirement>>();
-            _discountRequirementRepo.Expect(x => x.Table).Return(new List<DiscountRequirement>().AsQueryable());
+            var discountRequirementRepoMock = new Mock<IRepository<DiscountRequirement>>();
+            discountRequirementRepoMock.Setup(x => x.Table).Returns(new List<DiscountRequirement>().AsQueryable());
+            _discountRequirementRepo = discountRequirementRepoMock.Object;
 
-            _discountUsageHistoryRepo = MockRepository.GenerateMock<IRepository<DiscountUsageHistory>>();
+            _discountUsageHistoryRepo = new Mock<IRepository<DiscountUsageHistory>>().Object;
             var pluginFinder = new PluginFinder();
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _categoryService = MockRepository.GenerateMock<ICategoryService>();
+            _genericAttributeService = new Mock<IGenericAttributeService>().Object;
+            _localizationService = new Mock<ILocalizationService>().Object;
+            _categoryService = new Mock<ICategoryService>().Object;
             _discountService = new DiscountService(cacheManager, _discountRepo, _discountRequirementRepo,
                 _discountUsageHistoryRepo, _storeContext,
                 _localizationService, _categoryService, pluginFinder, _eventPublisher, _workContext);

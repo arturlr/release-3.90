@@ -1,4 +1,5 @@
-﻿using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Framework.Mvc.Routes
 {
@@ -10,7 +11,7 @@ namespace Nop.Web.Framework.Mvc.Routes
         /// <summary>
         /// Register routes
         /// </summary>
-        /// <param name="routes">Routes</param>
-        void RegisterRoutes(RouteCollection routes);
+        /// <param name="endpointRouteBuilder">Endpoint route builder</param>
+        void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder);
     }
 }

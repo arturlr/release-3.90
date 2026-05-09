@@ -1,6 +1,6 @@
-﻿
-using System.Web.Routing;
 using Nop.Services.Seo;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Framework.Seo
 {

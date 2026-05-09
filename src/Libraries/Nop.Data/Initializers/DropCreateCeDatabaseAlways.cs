@@ -1,12 +1,12 @@
-﻿using System;
-using System.Data.Entity;
+using System;
+using Microsoft.EntityFrameworkCore;
 
 namespace Nop.Data.Initializers
 {
     /// <summary>
-    /// An implementation of IDatabaseInitializer that will always recreate and optionally re-seed the
+    /// An implementation that will always recreate and optionally re-seed the
     /// database the first time that a context is used in the app domain.
-    /// To seed the database, create a derived class and override the Seed method.
+    /// Adapted for EF Core - SQL Server Compact is not supported in .NET Core.
     /// </summary>
     /// <typeparam name="TContext">The type of the context.</typeparam>
     public class DropCreateCeDatabaseAlways<TContext> : SqlCeInitializer<TContext> where TContext : DbContext
@@ -23,13 +23,12 @@ namespace Nop.Data.Initializers
             {
                 throw new ArgumentNullException("context");
             }
-            var replacedContext = ReplaceSqlCeConnection(context);
 
-            if (replacedContext.Database.Exists())
+            if (context.Database.CanConnect())
             {
-                replacedContext.Database.Delete();
+                context.Database.EnsureDeleted();
             }
-            context.Database.Create();
+            context.Database.EnsureCreated();
             Seed(context);
             context.SaveChanges();
         }

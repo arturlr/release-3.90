@@ -1,7 +1,8 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
 using Nop.Core;
 using Nop.Services.Common;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -39,7 +40,7 @@ namespace Nop.Admin.Controllers
             return Json(new
             {
                 Result = true
-            }, JsonRequestBehavior.AllowGet);
+            });
         }
 
         #endregion

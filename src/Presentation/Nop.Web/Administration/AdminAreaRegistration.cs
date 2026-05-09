@@ -1,25 +1,6 @@
-﻿using System.Web.Mvc;
-
+// This file is no longer needed in ASP.NET Core.
+// Area registration is handled via [Area("Admin")] attribute on controllers
+// and route configuration in Startup.cs.
 namespace Nop.Admin
 {
-    public class AdminAreaRegistration : AreaRegistration
-    {
-        public override string AreaName
-        {
-            get
-            {
-                return "Admin";
-            }
-        }
-
-        public override void RegisterArea(AreaRegistrationContext context)
-        {
-            context.MapRoute(
-                "Admin_default",
-                "Admin/{controller}/{action}/{id}",
-                new { controller = "Home", action = "Index", area = "Admin", id = "" },
-                new[] { "Nop.Admin.Controllers" }
-            );
-        }
-    }
 }

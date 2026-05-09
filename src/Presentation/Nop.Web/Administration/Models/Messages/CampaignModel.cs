@@ -1,15 +1,16 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
 using Nop.Admin.Validators.Messages;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Messages
 {
-    [Validator(typeof(CampaignValidator))]
     public partial class CampaignModel : BaseNopEntityModel
     {
         public CampaignModel()
@@ -20,15 +21,15 @@ namespace Nop.Admin.Models.Messages
         }
 
         [NopResourceDisplayName("Admin.Promotions.Campaigns.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Promotions.Campaigns.Fields.Subject")]
-        [AllowHtml]
+
         public string Subject { get; set; }
 
         [NopResourceDisplayName("Admin.Promotions.Campaigns.Fields.Body")]
-        [AllowHtml]
+
         public string Body { get; set; }
 
         [NopResourceDisplayName("Admin.Promotions.Campaigns.Fields.Store")]
@@ -54,7 +55,7 @@ namespace Nop.Admin.Models.Messages
         public IList<SelectListItem> AvailableEmailAccounts { get; set; }
 
         [NopResourceDisplayName("Admin.Promotions.Campaigns.Fields.TestEmail")]
-        [AllowHtml]
+
         public string TestEmail { get; set; }
     }
 }

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using Nop.Data;
 using Nop.Plugin.Shipping.FixedOrByWeight.Domain;
@@ -13,25 +12,39 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Data
     /// </summary>
     public class ShippingByWeightObjectContext : DbContext, IDbContext
     {
+        #region Fields
+
+        private readonly string _connectionString;
+
+        #endregion
+
         #region Ctor
 
         public ShippingByWeightObjectContext(string nameOrConnectionString)
-            : base(nameOrConnectionString)
         {
-            //((IObjectContextAdapter) this).ObjectContext.ContextOptions.LazyLoadingEnabled = true;
+            _connectionString = nameOrConnectionString;
         }
 
         #endregion
 
         #region Utilities
 
-        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        /// <summary>
+        /// Configure the DbContext options
+        /// </summary>
+        /// <param name="optionsBuilder">Options builder</param>
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            modelBuilder.Configurations.Add(new ShippingByWeightRecordMap());
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlServer(_connectionString);
+            }
+        }
 
-            //disable EdmMetadata generation
-            //modelBuilder.Conventions.Remove<IncludeMetadataConvention>();
-         base.OnModelCreating(modelBuilder);
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.ApplyConfiguration(new ShippingByWeightRecordMap());
+            base.OnModelCreating(modelBuilder);
         }
 
         #endregion
@@ -40,10 +53,10 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Data
 
         public string CreateDatabaseScript()
         {
-            return ((IObjectContextAdapter)this).ObjectContext.CreateDatabaseScript();
+            return Database.GenerateCreateScript();
         }
 
-        public new IDbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
+        public new DbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
         {
             return base.Set<TEntity>();
         }
@@ -55,7 +68,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Data
         {
             //create the table
             var dbScript = CreateDatabaseScript();
-            Database.ExecuteSqlCommand(dbScript);
+            Database.ExecuteSqlRaw(dbScript);
             SaveChanges();
         }
 
@@ -66,7 +79,6 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Data
         {
             //drop the table
             var tableName = this.GetTableName<ShippingByWeightRecord>();
-            //var tableName = "ShippingByWeight";
             this.DropPluginTable(tableName);
         }
 
@@ -116,7 +128,9 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Data
             if (entity == null)
                 throw new ArgumentNullException("entity");
 
-            ((IObjectContextAdapter)this).ObjectContext.Detach(entity);
+            var entry = Entry(entity);
+            if (entry != null)
+                entry.State = EntityState.Detached;
         }
 
         #endregion
@@ -128,14 +142,8 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Data
         /// </summary>
         public virtual bool ProxyCreationEnabled
         {
-            get
-            {
-                return this.Configuration.ProxyCreationEnabled;
-            }
-            set
-            {
-                this.Configuration.ProxyCreationEnabled = value;
-            }
+            get { return false; }
+            set { /* No-op in EF Core */ }
         }
 
         /// <summary>
@@ -143,14 +151,8 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Data
         /// </summary>
         public virtual bool AutoDetectChangesEnabled
         {
-            get
-            {
-                return this.Configuration.AutoDetectChangesEnabled;
-            }
-            set
-            {
-                this.Configuration.AutoDetectChangesEnabled = value;
-            }
+            get { return ChangeTracker.AutoDetectChangesEnabled; }
+            set { ChangeTracker.AutoDetectChangesEnabled = value; }
         }
 
         #endregion

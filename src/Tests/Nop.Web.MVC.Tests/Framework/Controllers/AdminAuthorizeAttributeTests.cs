@@ -1,38 +1,46 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
-using Nop.Core.Fakes;
 using Nop.Web.Framework.Controllers;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using System.Collections.Generic;
 
 namespace Nop.Web.MVC.Tests.Framework.Controllers
 {
     [TestFixture]
     public class AdminAuthorizeAttributeTests
     {
-        private AuthorizationContext GetAuthorizationContext<TController>() where TController : ControllerBase, new()
+        private AuthorizationFilterContext GetAuthorizationContext<TController>() where TController : Controller, new()
         {
-            var controllerDescriptor = new ReflectedControllerDescriptor(typeof(TController));
-            var controllerContext = new ControllerContext(new FakeHttpContext("~/"), new RouteData(), new TController());
-            return new AuthorizationContext(controllerContext, controllerDescriptor.FindAction(controllerContext, "Index"));
+            var httpContext = new DefaultHttpContext();
+            var routeData = new RouteData();
+            var actionDescriptor = new ActionDescriptor();
+            var actionContext = new ActionContext(httpContext, routeData, actionDescriptor, new ModelStateDictionary());
+            var filters = new List<IFilterMetadata>();
+            return new AuthorizationFilterContext(actionContext, filters);
         }
 
-        private AdminAuthorizeAttribute GetAdminAuthorizeAttribute(bool result)
+        private Mock<AdminAuthorizeAttribute> GetAdminAuthorizeAttributeMock(bool result)
         {
-            var attribute = MockRepository.GeneratePartialMock<AdminAuthorizeAttribute>();
-            attribute.Expect(x => x.HasAdminAccess()).Return(result);
-            return attribute;
+            var attributeMock = new Mock<AdminAuthorizeAttribute>() { CallBase = true };
+            attributeMock.Setup(x => x.HasAdminAccess()).Returns(result);
+            return attributeMock;
         }
-        private void TestActionThatShouldRequirePermission<TController>() where TController : ControllerBase, new()
+
+        private void TestActionThatShouldRequirePermission<TController>() where TController : Controller, new()
         {
             var authorizationContext = GetAuthorizationContext<TController>();
-            var attribute = GetAdminAuthorizeAttribute(false);
-            attribute.OnAuthorization(authorizationContext);
-            Assert.That(authorizationContext.Result, Is.InstanceOf<HttpUnauthorizedResult>());
+            var attributeMock = GetAdminAuthorizeAttributeMock(false);
+            attributeMock.Object.OnAuthorization(authorizationContext);
+            Assert.That(authorizationContext.Result, Is.InstanceOf<UnauthorizedResult>());
 
             var authorizationContext2 = GetAuthorizationContext<TController>();
-            var attribute2 = GetAdminAuthorizeAttribute(true);
-            attribute2.OnAuthorization(authorizationContext2);
+            var attributeMock2 = GetAdminAuthorizeAttributeMock(true);
+            attributeMock2.Object.OnAuthorization(authorizationContext2);
             Assert.That(authorizationContext2.Result, Is.Null);
         }
 
@@ -41,8 +49,8 @@ namespace Nop.Web.MVC.Tests.Framework.Controllers
         {
             var authorizationContext = GetAuthorizationContext<NormalController>();
 
-            var attribute = GetAdminAuthorizeAttribute(false);
-            attribute.OnAuthorization(authorizationContext);
+            var attributeMock = GetAdminAuthorizeAttributeMock(false);
+            attributeMock.Object.OnAuthorization(authorizationContext);
 
             Assert.That(authorizationContext.Result, Is.Null);
         }
@@ -69,7 +77,7 @@ namespace Nop.Web.MVC.Tests.Framework.Controllers
 
     public class NormalController : Controller
     {
-        public ActionResult Index()
+        public IActionResult Index()
         {
             return View();
         }
@@ -78,7 +86,7 @@ namespace Nop.Web.MVC.Tests.Framework.Controllers
     [AdminAuthorize]
     public class NormalWithAttribController : Controller
     {
-        public ActionResult Index()
+        public IActionResult Index()
         {
             return View();
         }
@@ -87,7 +95,7 @@ namespace Nop.Web.MVC.Tests.Framework.Controllers
     public class NormalWithActionAttribController : Controller
     {
         [AdminAuthorize]
-        public ActionResult Index()
+        public IActionResult Index()
         {
             return View();
         }
@@ -96,7 +104,7 @@ namespace Nop.Web.MVC.Tests.Framework.Controllers
     [AdminAuthorize]
     public class BaseWithAttribController : Controller
     {
-        public ActionResult Something()
+        public IActionResult Something()
         {
             return View();
         }
@@ -104,7 +112,7 @@ namespace Nop.Web.MVC.Tests.Framework.Controllers
 
     public class InheritedAttribController : BaseWithAttribController
     {
-        public ActionResult Index()
+        public IActionResult Index()
         {
             return View();
         }

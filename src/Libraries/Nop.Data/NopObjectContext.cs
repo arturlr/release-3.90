@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using Nop.Data.Mapping;
 
@@ -16,37 +15,50 @@ namespace Nop.Data
     /// </summary>
     public class NopObjectContext : DbContext, IDbContext
     {
+        #region Fields
+
+        private readonly string _connectionString;
+
+        #endregion
+
         #region Ctor
 
         public NopObjectContext(string nameOrConnectionString)
-            : base(nameOrConnectionString)
         {
-            //((IObjectContextAdapter) this).ObjectContext.ContextOptions.LazyLoadingEnabled = true;
+            _connectionString = nameOrConnectionString;
         }
-        
+
+        public NopObjectContext(DbContextOptions<NopObjectContext> options)
+            : base(options)
+        {
+        }
+
         #endregion
 
         #region Utilities
 
-        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured && !string.IsNullOrEmpty(_connectionString))
+            {
+                optionsBuilder.UseSqlServer(_connectionString);
+            }
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             //dynamically load all configuration
-            //System.Type configType = typeof(LanguageMap);   //any of your configuration classes here
-            //var typesToRegister = Assembly.GetAssembly(configType).GetTypes()
-
             var typesToRegister = Assembly.GetExecutingAssembly().GetTypes()
-            .Where(type => !String.IsNullOrEmpty(type.Namespace))
-            .Where(type => type.BaseType != null && type.BaseType.IsGenericType &&
-                type.BaseType.GetGenericTypeDefinition() == typeof(NopEntityTypeConfiguration<>));
+                .Where(type => !String.IsNullOrEmpty(type.Namespace))
+                .Where(type => !type.IsAbstract)
+                .Where(type => type.GetInterfaces().Any(i =>
+                    i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEntityTypeConfiguration<>)));
+
             foreach (var type in typesToRegister)
             {
                 dynamic configurationInstance = Activator.CreateInstance(type);
-                modelBuilder.Configurations.Add(configurationInstance);
+                modelBuilder.ApplyConfiguration(configurationInstance);
             }
-            //...or do it manually below. For example,
-            //modelBuilder.Configurations.Add(new LanguageMap());
-
-
 
             base.OnModelCreating(modelBuilder);
         }
@@ -83,7 +95,7 @@ namespace Nop.Data
         /// <returns>SQL to generate database</returns>
         public string CreateDatabaseScript()
         {
-            return ((IObjectContextAdapter)this).ObjectContext.CreateDatabaseScript();
+            return this.Database.GenerateCreateScript();
         }
 
         /// <summary>
@@ -91,11 +103,11 @@ namespace Nop.Data
         /// </summary>
         /// <typeparam name="TEntity">Entity type</typeparam>
         /// <returns>DbSet</returns>
-        public new IDbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
+        public new DbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
         {
             return base.Set<TEntity>();
         }
-        
+
         /// <summary>
         /// Execute stores procedure and load a list of entities at the end
         /// </summary>
@@ -125,20 +137,20 @@ namespace Nop.Data
                 }
             }
 
-            var result = this.Database.SqlQuery<TEntity>(commandText, parameters).ToList();
+            var result = this.Set<TEntity>().FromSqlRaw(commandText, parameters).ToList();
 
             //performance hack applied as described here - http://www.nopcommerce.com/boards/t/25483/fix-very-important-speed-improvement.aspx
-            bool acd = this.Configuration.AutoDetectChangesEnabled;
+            bool acd = this.ChangeTracker.AutoDetectChangesEnabled;
             try
             {
-                this.Configuration.AutoDetectChangesEnabled = false;
+                this.ChangeTracker.AutoDetectChangesEnabled = false;
 
                 for (int i = 0; i < result.Count; i++)
                     result[i] = AttachEntityToContext(result[i]);
             }
             finally
             {
-                this.Configuration.AutoDetectChangesEnabled = acd;
+                this.ChangeTracker.AutoDetectChangesEnabled = acd;
             }
 
             return result;
@@ -153,9 +165,10 @@ namespace Nop.Data
         /// <returns>Result</returns>
         public IEnumerable<TElement> SqlQuery<TElement>(string sql, params object[] parameters)
         {
-            return this.Database.SqlQuery<TElement>(sql, parameters);
+            // In EF Core, for entity types use FromSqlRaw; for non-entity types use Database.SqlQueryRaw
+            return this.Database.SqlQueryRaw<TElement>(sql, parameters);
         }
-    
+
         /// <summary>
         /// Executes the given DDL/DML command against the database.
         /// </summary>
@@ -170,19 +183,16 @@ namespace Nop.Data
             if (timeout.HasValue)
             {
                 //store previous timeout
-                previousTimeout = ((IObjectContextAdapter) this).ObjectContext.CommandTimeout;
-                ((IObjectContextAdapter) this).ObjectContext.CommandTimeout = timeout;
+                previousTimeout = this.Database.GetCommandTimeout();
+                this.Database.SetCommandTimeout(timeout);
             }
 
-            var transactionalBehavior = doNotEnsureTransaction
-                ? TransactionalBehavior.DoNotEnsureTransaction
-                : TransactionalBehavior.EnsureTransaction;
-            var result = this.Database.ExecuteSqlCommand(transactionalBehavior, sql, parameters);
+            var result = this.Database.ExecuteSqlRaw(sql, parameters);
 
             if (timeout.HasValue)
             {
                 //Set previous timeout back
-                ((IObjectContextAdapter) this).ObjectContext.CommandTimeout = previousTimeout;
+                this.Database.SetCommandTimeout(previousTimeout);
             }
 
             //return result
@@ -198,7 +208,11 @@ namespace Nop.Data
             if (entity == null)
                 throw new ArgumentNullException("entity");
 
-            ((IObjectContextAdapter)this).ObjectContext.Detach(entity);
+            var entry = this.Entry(entity);
+            if (entry != null)
+            {
+                entry.State = EntityState.Detached;
+            }
         }
 
         #endregion
@@ -212,11 +226,11 @@ namespace Nop.Data
         {
             get
             {
-                return this.Configuration.ProxyCreationEnabled;
+                return this.ChangeTracker.LazyLoadingEnabled;
             }
             set
             {
-                this.Configuration.ProxyCreationEnabled = value;
+                this.ChangeTracker.LazyLoadingEnabled = value;
             }
         }
 
@@ -227,11 +241,11 @@ namespace Nop.Data
         {
             get
             {
-                return this.Configuration.AutoDetectChangesEnabled;
+                return this.ChangeTracker.AutoDetectChangesEnabled;
             }
             set
             {
-                this.Configuration.AutoDetectChangesEnabled = value;
+                this.ChangeTracker.AutoDetectChangesEnabled = value;
             }
         }
 

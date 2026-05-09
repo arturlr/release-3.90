@@ -1,4 +1,4 @@
-﻿using FluentValidation.TestHelper;
+using FluentValidation.TestHelper;
 using Nop.Web.Models.PrivateMessages;
 using Nop.Web.Validators.PrivateMessages;
 using NUnit.Framework;
@@ -21,9 +21,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.PrivateMessages
         {
             var model = new SendPrivateMessageModel();
             model.Subject = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.Subject, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Subject);
             model.Subject = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.Subject, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Subject);
         }
 
         [Test]
@@ -31,7 +31,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.PrivateMessages
         {
             var model = new SendPrivateMessageModel();
             model.Subject = "some comment";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.Subject, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.Subject);
         }
 
         [Test]
@@ -39,9 +39,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.PrivateMessages
         {
             var model = new SendPrivateMessageModel();
             model.Message = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.Message, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Message);
             model.Message = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.Message, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Message);
         }
 
         [Test]
@@ -49,7 +49,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.PrivateMessages
         {
             var model = new SendPrivateMessageModel();
             model.Message = "some comment";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.Message, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.Message);
         }
     }
 }

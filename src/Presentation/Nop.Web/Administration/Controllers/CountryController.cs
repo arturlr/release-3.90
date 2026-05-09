@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Directory;
 using Nop.Core;
@@ -17,6 +16,12 @@ using Nop.Services.Stores;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
+using Microsoft.AspNetCore.Http;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -504,7 +509,7 @@ namespace Nop.Admin.Controllers
             return new NullJsonResult();
         }
 
-        [AcceptVerbs(HttpVerbs.Get)]
+        [HttpGet]
         public virtual ActionResult GetStatesByCountryId(string countryId,
             bool? addSelectStateItem, bool? addAsterisk)
         {
@@ -556,7 +561,7 @@ namespace Nop.Admin.Controllers
                     }
                 }
             }
-            return Json(result, JsonRequestBehavior.AllowGet);
+            return Json(result);
         }
 
         #endregion
@@ -584,10 +589,10 @@ namespace Nop.Admin.Controllers
 
             try
             {
-                var file = Request.Files["importcsvfile"];
-                if (file != null && file.ContentLength > 0)
+                var file = Request.Form.Files["importcsvfile"];
+                if (file != null && file.Length > 0)
                 {
-                    int count = _importManager.ImportStatesFromTxt(file.InputStream);
+                    int count = _importManager.ImportStatesFromTxt(file.OpenReadStream());
                     SuccessNotification(String.Format(_localizationService.GetResource("Admin.Configuration.Countries.ImportSuccess"), count));
                     return RedirectToAction("List");
                 }

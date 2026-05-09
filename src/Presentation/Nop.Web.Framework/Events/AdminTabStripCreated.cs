@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Web.Framework.Events
 {
@@ -8,15 +10,15 @@ namespace Nop.Web.Framework.Events
     /// </summary>
     public class AdminTabStripCreated
     {
-        public AdminTabStripCreated(HtmlHelper helper, string tabStripName)
+        public AdminTabStripCreated(IHtmlHelper helper, string tabStripName)
         {
             this.Helper = helper;
             this.TabStripName = tabStripName;
-            this.BlocksToRender = new List<MvcHtmlString>();
+            this.BlocksToRender = new List<HtmlString>();
         }
 
-        public HtmlHelper Helper { get; private set; }
+        public IHtmlHelper Helper { get; private set; }
         public string TabStripName { get; private set; }
-        public IList<MvcHtmlString> BlocksToRender { get; set; }
+        public IList<HtmlString> BlocksToRender { get; set; }
     }
 }

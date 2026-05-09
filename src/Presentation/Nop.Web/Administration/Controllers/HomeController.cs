@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using System.ServiceModel.Syndication;
-using System.Web.Mvc;
 using System.Xml;
 using Nop.Admin.Infrastructure.Cache;
 using Nop.Admin.Models.Home;
@@ -16,6 +15,8 @@ using Nop.Services.Configuration;
 using Nop.Services.Customers;
 using Nop.Services.Orders;
 using Nop.Services.Security;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -71,14 +72,39 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
+        /* Added by CTA: This attribute is not available anymore. An alternative is using ViewComponents:
+Sample:
+
+public class SampleViewComponent : ViewComponent
+    {
+        private readonly InjectedService _injectedService;
+
+        public SampleViewComponent (InjectedService injectedService)
+        {
+            _injectedService = injectedService;
+        }
+
+
+       public IViewComponentResult Invoke(int parameter)
+        {
+            var object = _injectedService.SampleFunction(parameter);
+        // No name is specified, returns the view SampleView (same name as component)
+            return View(object);
+        }
+    }
+
+Then use this to call the view component from any view:
+
+    @await Component.InvokeAsync("SampleView", new { parameter = ""})
+
+https://docs.microsoft.com/en-us/aspnet/core/mvc/views/view-components?view=aspnetcore-3.1 */
         public virtual ActionResult NopCommerceNews()
         {
             try
             {
                 string feedUrl = string.Format("http://www.nopCommerce.com/NewsRSS.aspx?Version={0}&Localhost={1}&HideAdvertisements={2}&StoreURL={3}",
                     NopVersion.CurrentVersion, 
-                    Request.Url.IsLoopback,
+                    (Request.Host.Host == "localhost" || Request.Host.Host == "127.0.0.1"),
                     _adminAreaSettings.HideAdvertisementsOnAdminArea,
                     _storeContext.CurrentStore.Url)
                     .ToLowerInvariant();
@@ -144,7 +170,32 @@ namespace Nop.Admin.Controllers
             return Content("Setting changed");
         }
 
-        [ChildActionOnly]
+        /* Added by CTA: This attribute is not available anymore. An alternative is using ViewComponents:
+Sample:
+
+public class SampleViewComponent : ViewComponent
+    {
+        private readonly InjectedService _injectedService;
+
+        public SampleViewComponent (InjectedService injectedService)
+        {
+            _injectedService = injectedService;
+        }
+
+
+       public IViewComponentResult Invoke(int parameter)
+        {
+            var object = _injectedService.SampleFunction(parameter);
+        // No name is specified, returns the view SampleView (same name as component)
+            return View(object);
+        }
+    }
+
+Then use this to call the view component from any view:
+
+    @await Component.InvokeAsync("SampleView", new { parameter = ""})
+
+https://docs.microsoft.com/en-us/aspnet/core/mvc/views/view-components?view=aspnetcore-3.1 */
         public virtual ActionResult CommonStatistics()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCustomers) ||

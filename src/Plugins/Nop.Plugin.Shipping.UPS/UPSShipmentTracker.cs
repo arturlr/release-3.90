@@ -1,4 +1,4 @@
-﻿//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Contributor(s): oskar.kjellin 
 //------------------------------------------------------------------------------
 
@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Web.Services.Protocols;
 using Nop.Plugin.Shipping.UPS.track;
 using Nop.Services.Localization;
 using Nop.Services.Logging;
@@ -85,16 +84,13 @@ namespace Nop.Plugin.Shipping.UPS
                 request.RequestOption = requestOption;
                 tr.Request = request;
                 tr.InquiryNumber = trackingNumber;
-                System.Net.ServicePointManager.ServerCertificateValidationCallback += delegate { return true; };
                 var trackResponse = track.ProcessTrack(tr);
                 result.AddRange(trackResponse.Shipment.SelectMany(c => c.Package[0].Activity.Select(ToStatusEvent)).ToList());
             }
-            catch (SoapException ex)
+            catch (InvalidOperationException ex)
             {
                 var sb = new StringBuilder();
-                sb.AppendFormat("SoapException Message= {0}.", ex.Message);
-                sb.AppendFormat("SoapException Category:Code:Message= {0}.", ex.Detail.LastChild.InnerText);
-                //sb.AppendFormat("SoapException XML String for all= {0}.", ex.Detail.LastChild.OuterXml);
+                sb.AppendFormat("SOAP Fault Message= {0}.", ex.Message);
                 _logger.Error(string.Format("Error while getting UPS shipment tracking info - {0}", trackingNumber), new Exception(sb.ToString()));
             }
             catch (Exception exc)

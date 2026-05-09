@@ -1,57 +1,56 @@
-﻿using System.Collections;
-using System.Collections.Specialized;
-using System.Web;
-using System.Web.SessionState;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace Nop.Core.Fakes
 {
-    public class FakeHttpSessionState : HttpSessionStateBase
+    /// <summary>
+    /// Fake HTTP session state for use in scenarios where a real session is not available.
+    /// </summary>
+    public class FakeHttpSessionState
     {
-        private readonly SessionStateItemCollection _sessionItems;
+        private readonly Dictionary<string, object> _sessionItems;
 
-        public FakeHttpSessionState(SessionStateItemCollection sessionItems)
+        public FakeHttpSessionState(Dictionary<string, object> sessionItems)
         {
-            _sessionItems = sessionItems;
+            _sessionItems = sessionItems ?? new Dictionary<string, object>();
         }
 
-        public override int Count
+        public virtual int Count
         {
             get { return _sessionItems.Count; }
         }
 
-        public override NameObjectCollectionBase.KeysCollection Keys
+        public virtual ICollection Keys
         {
             get { return _sessionItems.Keys; }
         }
 
-        public override object this[string name]
+        public virtual object this[string name]
         {
-            get { return _sessionItems[name]; }
+            get
+            {
+                _sessionItems.TryGetValue(name, out var value);
+                return value;
+            }
             set { _sessionItems[name] = value; }
         }
 
         public bool Exists(string key)
         {
-            return _sessionItems[key] != null;
+            return _sessionItems.ContainsKey(key);
         }
 
-        public override object this[int index]
-        {
-            get { return _sessionItems[index]; }
-            set { _sessionItems[index] = value; }
-        }
-
-        public override void Add(string name, object value)
+        public virtual void Add(string name, object value)
         {
             _sessionItems[name] = value;
         }
 
-        public override IEnumerator GetEnumerator()
+        public virtual IEnumerator GetEnumerator()
         {
             return _sessionItems.GetEnumerator();
         }
 
-        public override void Remove(string name)
+        public virtual void Remove(string name)
         {
             _sessionItems.Remove(name);
         }

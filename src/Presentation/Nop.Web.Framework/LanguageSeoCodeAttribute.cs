@@ -1,13 +1,14 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Infrastructure;
 using Nop.Services.Localization;
 using Nop.Web.Framework.Localization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 
 namespace Nop.Web.Framework
 {
@@ -21,16 +22,12 @@ namespace Nop.Web.Framework
             if (filterContext == null || filterContext.HttpContext == null)
                 return;
 
-            HttpRequestBase request = filterContext.HttpContext.Request;
+            var request = filterContext.HttpContext.Request;
             if (request == null)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
             //only GET requests
-            if (!String.Equals(request.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
+            if (!String.Equals(request.Method, "GET", StringComparison.OrdinalIgnoreCase))
                 return;
 
             if (!DataSettingsHelper.DatabaseIsInstalled())
@@ -39,15 +36,13 @@ namespace Nop.Web.Framework
             var localizationSettings = EngineContext.Current.Resolve<LocalizationSettings>();
             if (!localizationSettings.SeoFriendlyUrlsForLanguagesEnabled)
                 return;
-            
-            //ensure that this route is registered and localizable (LocalizedRoute in RouteProvider.cs)
-            if (filterContext.RouteData == null || filterContext.RouteData.Route == null || !(filterContext.RouteData.Route is LocalizedRoute))
-                return;
-
 
             //process current URL
-            var pageUrl = request.RawUrl;
-            string applicationPath = request.ApplicationPath;
+            var pageUrl = request.Path.ToString() + request.QueryString.ToString();
+            string applicationPath = request.PathBase.ToString();
+            if (string.IsNullOrEmpty(applicationPath))
+                applicationPath = "/";
+
             if (pageUrl.IsLocalizedUrl(applicationPath, true))
             {
                 //already localized URL

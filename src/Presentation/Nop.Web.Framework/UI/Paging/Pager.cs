@@ -4,19 +4,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Web;
-using System.Web.Mvc;
-using System.Web.Routing;
 using Nop.Core;
 using Nop.Core.Infrastructure;
 using Nop.Services.Localization;
+using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
+
 
 namespace Nop.Web.Framework.UI.Paging
 {
 	/// <summary>
     /// Renders a pager component from an IPageableModel datasource.
 	/// </summary>
-	public partial class Pager : IHtmlString
+	public partial class Pager : IHtmlContent
 	{
         protected readonly IPageableModel model;
         protected readonly ViewContext viewContext;
@@ -113,6 +116,12 @@ namespace Nop.Web.Framework.UI.Paging
         {
             return ToHtmlString();
         }
+
+        public void WriteTo(System.IO.TextWriter writer, System.Text.Encodings.Web.HtmlEncoder encoder)
+        {
+            writer.Write(ToHtmlString());
+        }
+
 		public virtual string ToHtmlString()
 		{
             if (model.TotalItems == 0) 
@@ -225,46 +234,46 @@ namespace Nop.Web.Framework.UI.Paging
         }
 		protected virtual string CreatePageLink(int pageNumber, string text, string cssClass)
 		{
-            var liBuilder = new TagBuilder("li");
+            var sb = new StringBuilder();
+            sb.Append("<li");
             if (!String.IsNullOrWhiteSpace(cssClass))
-                liBuilder.AddCssClass(cssClass);
-
-			var aBuilder = new TagBuilder("a");
-            aBuilder.SetInnerText(text);
-            aBuilder.MergeAttribute("href", urlBuilder(pageNumber));
-
-            liBuilder.InnerHtml += aBuilder;
-
-            return liBuilder.ToString(TagRenderMode.Normal);
+                sb.AppendFormat(" class=\"{0}\"", cssClass);
+            sb.Append(">");
+            sb.AppendFormat("<a href=\"{0}\">{1}</a>", urlBuilder(pageNumber), text);
+            sb.Append("</li>");
+            return sb.ToString();
 		}
         protected virtual string CreateDefaultUrl(int pageNumber)
 		{
 			var routeValues = new RouteValueDictionary();
 
+            var request = viewContext.HttpContext.Request;
             var parametersWithEmptyValues = new List<string>();
-			foreach (var key in viewContext.RequestContext.HttpContext.Request.QueryString.AllKeys.Where(key => key != null))
-			{
-                var value = viewContext.RequestContext.HttpContext.Request.QueryString[key];
-                if (renderEmptyParameters && String.IsNullOrEmpty(value))
-			    {
-                    //we store query string parameters with empty values separately
-                    //we need to do it because they are not properly processed in the UrlHelper.GenerateUrl method (dropped for some reasons)
-                    parametersWithEmptyValues.Add(key);
-			    }
-			    else
+            
+            if (request.Query != null)
+            {
+                foreach (var key in request.Query.Keys.Where(key => key != null))
                 {
-                    if (booleanParameterNames.Contains(key, StringComparer.InvariantCultureIgnoreCase))
+                    var value = request.Query[key].ToString();
+                    if (renderEmptyParameters && String.IsNullOrEmpty(value))
                     {
-                        //little hack here due to ugly MVC implementation
-                        //find more info here: http://www.mindstorminteractive.com/topics/jquery-fix-asp-net-mvc-checkbox-truefalse-value/
-                        if (!String.IsNullOrEmpty(value) && value.Equals("true,false", StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            value = "true";
-                        }
+                        //we store query string parameters with empty values separately
+                        parametersWithEmptyValues.Add(key);
                     }
-                    routeValues[key] = value;
-			    }
-			}
+                    else
+                    {
+                        if (booleanParameterNames.Contains(key, StringComparer.InvariantCultureIgnoreCase))
+                        {
+                            //little hack here due to ugly MVC implementation
+                            if (!String.IsNullOrEmpty(value) && value.Equals("true,false", StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                value = "true";
+                            }
+                        }
+                        routeValues[key] = value;
+                    }
+                }
+            }
 
             if (pageNumber > 1)
             {
@@ -279,10 +288,18 @@ namespace Nop.Web.Framework.UI.Paging
                 }
             }
 
-			var url = UrlHelper.GenerateUrl(null, null, null, routeValues, RouteTable.Routes, viewContext.RequestContext, true);
+            // Build URL from current path + query string parameters
+            var path = request.Path.ToString();
+            var queryString = new QueryBuilder();
+            foreach (var rv in routeValues)
+            {
+                queryString.Add(rv.Key, rv.Value?.ToString() ?? "");
+            }
+
+            var url = path + queryString.ToString();
+
             if (renderEmptyParameters && parametersWithEmptyValues.Any())
             {
-                //we add such parameters manually because UrlHelper.GenerateUrl() ignores them
                 var webHelper = EngineContext.Current.Resolve<IWebHelper>();
                 foreach (var key in parametersWithEmptyValues)
                 {

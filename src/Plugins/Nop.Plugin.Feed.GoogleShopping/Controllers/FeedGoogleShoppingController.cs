@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Domain.Stores;
 using Nop.Core.Plugins;
@@ -37,6 +38,7 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
         private readonly GoogleShoppingSettings _googleShoppingSettings;
         private readonly ISettingService _settingService;
         private readonly IPermissionService _permissionService;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         public FeedGoogleShoppingController(IGoogleService googleService,
             IProductService productService,
@@ -48,7 +50,8 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
             IStoreService storeService,
             GoogleShoppingSettings googleShoppingSettings,
             ISettingService settingService,
-            IPermissionService permissionService)
+            IPermissionService permissionService,
+            IWebHostEnvironment webHostEnvironment)
         {
             this._googleService = googleService;
             this._productService = productService;
@@ -61,9 +64,9 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
             this._googleShoppingSettings = googleShoppingSettings;
             this._settingService = settingService;
             this._permissionService = permissionService;
+            this._webHostEnvironment = webHostEnvironment;
         }
 
-        [ChildActionOnly]
         public ActionResult Configure()
         {
             var model = new FeedGoogleShoppingModel();
@@ -89,7 +92,7 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
             //file paths
             foreach (var store in _storeService.GetAllStores())
             {
-                var localFilePath = System.IO.Path.Combine(HttpRuntime.AppDomainAppPath, "content\\files\\exportimport", store.Id + "-" + _googleShoppingSettings.StaticFileName);
+                var localFilePath = System.IO.Path.Combine(_webHostEnvironment.ContentRootPath, "content", "files", "exportimport", store.Id + "-" + _googleShoppingSettings.StaticFileName);
                 if (System.IO.File.Exists(localFilePath))
                     model.GeneratedFiles.Add(new FeedGoogleShoppingModel.GeneratedFileModel
                     {
@@ -102,7 +105,6 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
         }
 
         [HttpPost]
-        [ChildActionOnly]
         [FormValueRequired("save")]
         public ActionResult Configure(FeedGoogleShoppingModel model)
         {
@@ -128,7 +130,6 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
         }
 
         [HttpPost, ActionName("Configure")]
-        [ChildActionOnly]
         [FormValueRequired("generate")]
         public ActionResult GenerateFeed(FeedGoogleShoppingModel model)
         {

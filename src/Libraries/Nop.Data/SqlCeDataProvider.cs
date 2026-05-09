@@ -1,12 +1,15 @@
-﻿using System.Data.Common;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using System.Data.SqlClient;
+using System.Data.Common;
 using Nop.Core.Data;
-using Nop.Data.Initializers;
+using Microsoft.Data.SqlClient;
+
 
 namespace Nop.Data
 {
+    /// <summary>
+    /// SQL Server Compact data provider - deprecated, redirects to SQL Server.
+    /// SQL Server Compact is not supported in .NET Core. This class is retained for interface 
+    /// compatibility but uses SQL Server instead.
+    /// </summary>
     public class SqlCeDataProvider : IDataProvider
     {
         /// <summary>
@@ -14,10 +17,8 @@ namespace Nop.Data
         /// </summary>
         public virtual void InitConnectionFactory()
         {
-            var connectionFactory = new SqlCeConnectionFactory("System.Data.SqlServerCe.4.0");
-            //TODO fix compilation warning (below)
-            #pragma warning disable 0618
-            Database.DefaultConnectionFactory = connectionFactory;
+            // SQL Server Compact is not supported in .NET Core
+            // Connection is configured via DbContextOptions in EF Core
         }
 
         /// <summary>
@@ -34,8 +35,8 @@ namespace Nop.Data
         /// </summary>
         public virtual void SetDatabaseInitializer()
         {
-            var initializer = new CreateCeDatabaseIfNotExists<NopObjectContext>();
-            Database.SetInitializer(initializer);
+            // In EF Core, database initialization is handled via migrations or EnsureCreated
+            // SQL Server Compact is not supported in .NET Core
         }
 
         /// <summary>

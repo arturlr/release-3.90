@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Vendors;
 using Nop.Core.Domain.Directory;
@@ -19,6 +18,10 @@ using Nop.Services.Vendors;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -471,7 +474,6 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        [ValidateInput(false)]
         public virtual ActionResult VendorNoteAdd(int vendorId, string message)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageVendors))
@@ -479,7 +481,7 @@ namespace Nop.Admin.Controllers
 
             var vendor = _vendorService.GetVendorById(vendorId);
             if (vendor == null)
-                return Json(new { Result = false }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = false });
 
             var vendorNote = new VendorNote
             {
@@ -489,7 +491,7 @@ namespace Nop.Admin.Controllers
             vendor.VendorNotes.Add(vendorNote);
             _vendorService.UpdateVendor(vendor);
 
-            return Json(new { Result = true }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = true });
         }
 
         [HttpPost]

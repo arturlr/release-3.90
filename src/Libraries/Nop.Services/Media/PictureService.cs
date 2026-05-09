@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using ImageResizer;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Catalog;
@@ -143,8 +146,6 @@ namespace Nop.Services.Media
         {
             if (mimeType == null)
                 return null;
-
-            //also see System.Web.MimeMapping for more mime types
 
             string[] parts = mimeType.Split('/');
             string lastPart = parts[parts.Length - 1];
@@ -330,6 +331,42 @@ namespace Nop.Services.Media
             File.WriteAllBytes(thumbFilePath, binary);
         }
 
+        /// <summary>
+        /// Gets the image encoder for the specified mime type
+        /// </summary>
+        /// <param name="mimeType">MIME type</param>
+        /// <param name="quality">Image quality (for JPEG)</param>
+        /// <returns>Image encoder</returns>
+        protected virtual IImageEncoder GetImageEncoder(string mimeType, int quality)
+        {
+            if (mimeType != null && mimeType.Contains("png", StringComparison.OrdinalIgnoreCase))
+                return new PngEncoder();
+            return new JpegEncoder { Quality = quality };
+        }
+
+        /// <summary>
+        /// Resizes an image to the specified dimensions using ImageSharp
+        /// </summary>
+        /// <param name="pictureBinary">Source image binary</param>
+        /// <param name="newWidth">Target width</param>
+        /// <param name="newHeight">Target height</param>
+        /// <param name="quality">Image quality</param>
+        /// <param name="mimeType">MIME type for encoder selection</param>
+        /// <returns>Resized image binary</returns>
+        protected virtual byte[] ResizeImage(byte[] pictureBinary, int newWidth, int newHeight, int quality, string mimeType = null)
+        {
+            using (var image = Image.Load(pictureBinary))
+            {
+                image.Mutate(x => x.Resize(newWidth, newHeight));
+                using (var destStream = new MemoryStream())
+                {
+                    var encoder = GetImageEncoder(mimeType, quality);
+                    image.Save(destStream, encoder);
+                    return destStream.ToArray();
+                }
+            }
+        }
+
         #endregion
 
         #region Getting picture local path/URL methods
@@ -401,21 +438,12 @@ namespace Nop.Services.Media
                 var thumbFilePath = GetThumbLocalPath(thumbFileName);
                 if (!GeneratedThumbExists(thumbFilePath, thumbFileName))
                 {
-                    using (var b = new Bitmap(filePath))
+                    var fileBytes = File.ReadAllBytes(filePath);
+                    using (var image = Image.Load(fileBytes))
                     {
-                        using (var destStream = new MemoryStream())
-                        {
-                            var newSize = CalculateDimensions(b.Size, targetSize);
-                            ImageBuilder.Current.Build(b, destStream, new ResizeSettings
-                            {
-                                Width = newSize.Width,
-                                Height = newSize.Height,
-                                Scale = ScaleMode.Both,
-                                Quality = _mediaSettings.DefaultImageQuality
-                            });
-                            var destBinary = destStream.ToArray();
-                            SaveThumb(thumbFilePath, thumbFileName, "", destBinary);
-                        }
+                        var newSize = CalculateDimensions(new Size(image.Width, image.Height), targetSize);
+                        var destBinary = ResizeImage(fileBytes, newSize.Width, newSize.Height, _mediaSettings.DefaultImageQuality);
+                        SaveThumb(thumbFilePath, thumbFileName, "", destBinary);
                     }
                 }
                 var url = GetThumbUrl(thumbFileName, storeLocation);
@@ -519,39 +547,20 @@ namespace Nop.Services.Media
                         //resizing required
                         if (targetSize != 0)
                         {
-                            using (var stream = new MemoryStream(pictureBinary))
+                            try
                             {
-                                Bitmap b = null;
-                                try
+                                using (var image = Image.Load(pictureBinary))
                                 {
-                                    //try-catch to ensure that picture binary is really OK. Otherwise, we can get "Parameter is not valid" exception if binary is corrupted for some reasons
-                                    b = new Bitmap(stream);
+                                    var newSize = CalculateDimensions(new Size(image.Width, image.Height), targetSize);
+                                    pictureBinaryResized = ResizeImage(pictureBinary, newSize.Width, newSize.Height, _mediaSettings.DefaultImageQuality, picture.MimeType);
                                 }
-                                catch (ArgumentException exc)
-                                {
-                                    _logger.Error(string.Format("Error generating picture thumb. ID={0}", picture.Id),
-                                        exc);
-                                }
-
-                                if (b == null)
-                                {
-                                    //bitmap could not be loaded for some reasons
-                                    return url;
-                                }
-
-                                using (var destStream = new MemoryStream())
-                                {
-                                    var newSize = CalculateDimensions(b.Size, targetSize);
-                                    ImageBuilder.Current.Build(b, destStream, new ResizeSettings
-                                    {
-                                        Width = newSize.Width,
-                                        Height = newSize.Height,
-                                        Scale = ScaleMode.Both,
-                                        Quality = _mediaSettings.DefaultImageQuality
-                                    });
-                                    pictureBinaryResized = destStream.ToArray();
-                                    b.Dispose();
-                                }
+                            }
+                            catch (Exception exc)
+                            {
+                                _logger.Error(string.Format("Error generating picture thumb. ID={0}", picture.Id),
+                                    exc);
+                                //image could not be loaded for some reasons
+                                return url;
                             }
                         }
                         else
@@ -796,15 +805,28 @@ namespace Nop.Services.Media
         /// <returns>Picture binary or throws an exception</returns>
         public virtual byte[] ValidatePicture(byte[] pictureBinary, string mimeType)
         {
-            using (var destStream = new MemoryStream())
+            using (var image = Image.Load(pictureBinary))
             {
-                ImageBuilder.Current.Build(pictureBinary, destStream, new ResizeSettings
+                var maxSize = _mediaSettings.MaximumImageSize;
+                if (image.Width > maxSize || image.Height > maxSize)
                 {
-                    MaxWidth = _mediaSettings.MaximumImageSize,
-                    MaxHeight = _mediaSettings.MaximumImageSize,
-                    Quality = _mediaSettings.DefaultImageQuality
-                });
-                return destStream.ToArray();
+                    // Calculate new dimensions maintaining aspect ratio
+                    var ratioX = (double)maxSize / image.Width;
+                    var ratioY = (double)maxSize / image.Height;
+                    var ratio = Math.Min(ratioX, ratioY);
+
+                    var newWidth = (int)Math.Round(image.Width * ratio);
+                    var newHeight = (int)Math.Round(image.Height * ratio);
+
+                    image.Mutate(x => x.Resize(newWidth, newHeight));
+                }
+
+                using (var destStream = new MemoryStream())
+                {
+                    var encoder = GetImageEncoder(mimeType, _mediaSettings.DefaultImageQuality);
+                    image.Save(destStream, encoder);
+                    return destStream.ToArray();
+                }
             }
         }
 
@@ -887,16 +909,6 @@ namespace Nop.Services.Media
                         {
                             var pictureBinary = LoadPictureBinary(picture, !value);
 
-                            //we used the code below before. but it's too slow
-                            //let's do it manually (uncommented code) - copy some logic from "UpdatePicture" method
-                            /*just update a picture (all required logic is in "UpdatePicture" method)
-                            we do not validate picture binary here to ensure that no exception ("Parameter is not valid") will be thrown when "moving" pictures
-                            UpdatePicture(picture.Id,
-                                          pictureBinary,
-                                          picture.MimeType,
-                                          picture.SeoFilename,
-                                          true,
-                                          false);*/
                             if (value)
                                 //delete from file system. now it's in the database
                                 DeletePictureOnFileSystem(picture);
@@ -906,8 +918,6 @@ namespace Nop.Services.Media
                             //update appropriate properties
                             picture.PictureBinary = value ? pictureBinary : new byte[0];
                             picture.IsNew = true;
-                            //raise event?
-                            //_eventPublisher.EntityUpdated(picture);
                         }
                         //save all at once
                         _pictureRepository.Update(pictures);

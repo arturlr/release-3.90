@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Web.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Customers;
@@ -22,6 +21,8 @@ using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Nop.Services.Tax;
 using PayPal.Api;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Plugin.Payments.PayPalDirect
 {

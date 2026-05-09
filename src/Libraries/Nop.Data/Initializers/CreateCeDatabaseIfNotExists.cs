@@ -1,13 +1,12 @@
-﻿using System;
-using System.Data.Entity;
-using System.Transactions;
+using System;
+using Microsoft.EntityFrameworkCore;
 
 namespace Nop.Data.Initializers
 {
     /// <summary>
-    /// An implementation of IDatabaseInitializer that will recreate and optionally re-seed the
+    /// An implementation that will recreate and optionally re-seed the
     /// database only if the database does not exist.
-    /// To seed the database, create a derived class and override the Seed method.
+    /// Adapted for EF Core - SQL Server Compact is not supported in .NET Core.
     /// </summary>
     /// <typeparam name="TContext">The type of the context.</typeparam>
     public class CreateCeDatabaseIfNotExists<TContext> : SqlCeInitializer<TContext> where TContext : DbContext
@@ -20,27 +19,17 @@ namespace Nop.Data.Initializers
             {
                 throw new ArgumentNullException("context");
             }
-            var replacedContext = ReplaceSqlCeConnection(context);
 
-            bool databaseExists;
-            using (new TransactionScope(TransactionScopeOption.Suppress))
-            {
-                databaseExists = replacedContext.Database.Exists();
-            }
+            bool databaseExists = context.Database.CanConnect();
 
             if (databaseExists)
             {
-                // If there is no metadata either in the model or in the databaase, then
-                // we assume that the database matches the model because the common cases for
-                // these scenarios are database/model first and/or an existing database.
-                if (!context.Database.CompatibleWithModel(throwIfNoMetadata: false))
-                {
-                    throw new InvalidOperationException(string.Format("The model backing the '{0}' context has changed since the database was created. Either manually delete/update the database, or call Database.SetInitializer with an IDatabaseInitializer instance. For example, the DropCreateDatabaseIfModelChanges strategy will automatically delete and recreate the database, and optionally seed it with new data.", context.GetType().Name));
-                }
+                // Database exists - assume it's compatible
+                return;
             }
             else
             {
-                context.Database.Create();
+                context.Database.EnsureCreated();
                 Seed(context);
                 context.SaveChanges();
             }
@@ -61,6 +50,4 @@ namespace Nop.Data.Initializers
 
         #endregion
     }
-
-
 }

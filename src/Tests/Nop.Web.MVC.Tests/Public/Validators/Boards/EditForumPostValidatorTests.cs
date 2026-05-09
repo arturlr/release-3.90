@@ -1,4 +1,4 @@
-﻿using FluentValidation.TestHelper;
+using FluentValidation.TestHelper;
 using Nop.Web.Models.Boards;
 using Nop.Web.Validators.Boards;
 using NUnit.Framework;
@@ -21,9 +21,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Boards
         {
             var model = new EditForumPostModel();
             model.Text = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.Text, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Text);
             model.Text = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.Text, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Text);
         }
 
         [Test]
@@ -31,7 +31,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Boards
         {
             var model = new EditForumPostModel();
             model.Text = "some comment";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.Text, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.Text);
         }
     }
 }

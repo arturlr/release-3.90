@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
-using System.Web.Routing;
+using System.Collections.Generic;
 using Nop.Core;
 using Nop.Services.Authentication.External;
 using Nop.Web.Models.Customer;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Factories
 {

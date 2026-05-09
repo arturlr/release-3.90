@@ -1,16 +1,17 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Web;
-using System.Web.Mvc;
-using System.Web.WebPages;
+using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+
 
 namespace Nop.Web.Framework.UI
 {
     public static class DataListExtensions
     {
-        public static IHtmlString DataList<T>(this HtmlHelper helper, IEnumerable<T> items, int columns,
-            Func<T, HelperResult> template) 
+        public static IHtmlContent DataList<T>(this IHtmlHelper helper, IEnumerable<T> items, int columns,
+            Func<T, IHtmlContent> template) 
             where T : class
         {
             if (items == null)
@@ -28,8 +29,12 @@ namespace Nop.Web.Framework.UI
 
                 sb.Append("<td");
                 sb.Append(">");
-                
-                sb.Append(template(item).ToHtmlString());
+
+                using (var writer = new System.IO.StringWriter())
+                {
+                    template(item).WriteTo(writer, System.Text.Encodings.Web.HtmlEncoder.Default);
+                    sb.Append(writer.ToString());
+                }
                 sb.Append("</td>");
 
                 cellIndex++;

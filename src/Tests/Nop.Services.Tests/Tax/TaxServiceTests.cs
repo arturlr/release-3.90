@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Linq;
+using Moq;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Common;
@@ -14,7 +15,6 @@ using Nop.Services.Logging;
 using Nop.Services.Tax;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Services.Tests.Tax
 {
@@ -44,19 +44,21 @@ namespace Nop.Services.Tests.Tax
             _workContext = null;
             _storeContext = null;
 
-            _addressService = MockRepository.GenerateMock<IAddressService>();
+            var addressServiceMock = new Mock<IAddressService>();
             //default tax address
-            _addressService.Expect(x => x.GetAddressById(_taxSettings.DefaultTaxAddressId)).Return(new Address { Id = _taxSettings.DefaultTaxAddressId });
+            addressServiceMock.Setup(x => x.GetAddressById(_taxSettings.DefaultTaxAddressId)).Returns(new Address { Id = _taxSettings.DefaultTaxAddressId });
+            _addressService = addressServiceMock.Object;
 
             var pluginFinder = new PluginFinder();
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            var eventPublisherMock = new Mock<IEventPublisher>();
+            eventPublisherMock.Setup(x => x.Publish(It.IsAny<object>()));
+            _eventPublisher = eventPublisherMock.Object;
 
-            _geoLookupService = MockRepository.GenerateMock<IGeoLookupService>();
-            _countryService = MockRepository.GenerateMock<ICountryService>();
-            _stateProvinceService = MockRepository.GenerateMock<IStateProvinceService>();
-            _logger = MockRepository.GenerateMock<ILogger>();
+            _geoLookupService = new Mock<IGeoLookupService>().Object;
+            _countryService = new Mock<ICountryService>().Object;
+            _stateProvinceService = new Mock<IStateProvinceService>().Object;
+            _logger = new Mock<ILogger>().Object;
             _customerSettings = new CustomerSettings();
             _shippingSettings = new ShippingSettings();
             _addressSettings = new AddressSettings();

@@ -1,4 +1,4 @@
-﻿//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Contributor(s): mb 10/20/2010, New York 02/08/2014
 //------------------------------------------------------------------------------
 
@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Web.Routing;
 using System.Xml;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
@@ -24,6 +23,8 @@ using Nop.Services.Logging;
 using Nop.Services.Orders;
 using Nop.Services.Shipping;
 using Nop.Services.Shipping.Tracking;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Plugin.Shipping.UPS
 {

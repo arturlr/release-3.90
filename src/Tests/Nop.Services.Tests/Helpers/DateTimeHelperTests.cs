@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Moq;
 using Nop.Core;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
@@ -10,7 +11,6 @@ using Nop.Services.Configuration;
 using Nop.Services.Helpers;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Services.Tests.Helpers
 {
@@ -19,7 +19,7 @@ namespace Nop.Services.Tests.Helpers
     {
         private IWorkContext _workContext;
         private IStoreContext _storeContext;
-        private IGenericAttributeService _genericAttributeService;
+        private Mock<IGenericAttributeService> _genericAttributeServiceMock;
         private ISettingService _settingService;
         private DateTimeSettings _dateTimeSettings;
         private IDateTimeHelper _dateTimeHelper;
@@ -28,14 +28,15 @@ namespace Nop.Services.Tests.Helpers
         [SetUp]
         public new void SetUp()
         {
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
-            _settingService = MockRepository.GenerateMock<ISettingService>();
+            _genericAttributeServiceMock = new Mock<IGenericAttributeService>();
+            _settingService = new Mock<ISettingService>().Object;
 
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
+            _workContext = new Mock<IWorkContext>().Object;
 
             _store = new Store { Id = 1 };
-            _storeContext = MockRepository.GenerateMock<IStoreContext>();
-            _storeContext.Expect(x => x.CurrentStore).Return(_store);
+            var storeContextMock = new Mock<IStoreContext>();
+            storeContextMock.Setup(x => x.CurrentStore).Returns(_store);
+            _storeContext = storeContextMock.Object;
 
             _dateTimeSettings = new DateTimeSettings
             {
@@ -43,7 +44,7 @@ namespace Nop.Services.Tests.Helpers
                 DefaultStoreTimeZoneId = ""
             };
 
-            _dateTimeHelper = new DateTimeHelper(_workContext, _genericAttributeService,
+            _dateTimeHelper = new DateTimeHelper(_workContext, _genericAttributeServiceMock.Object,
                 _settingService, _dateTimeSettings);
         }
 
@@ -74,8 +75,8 @@ namespace Nop.Services.Tests.Helpers
                 Id = 10,
             };
 
-            _genericAttributeService.Expect(x => x.GetAttributesForEntity(customer.Id, "Customer"))
-                .Return(new List<GenericAttribute>
+            _genericAttributeServiceMock.Setup(x => x.GetAttributesForEntity(customer.Id, "Customer"))
+                .Returns(new List<GenericAttribute>
                             {
                                 new GenericAttribute
                                     {
@@ -102,8 +103,8 @@ namespace Nop.Services.Tests.Helpers
                 Id = 10,
             };
 
-            _genericAttributeService.Expect(x => x.GetAttributesForEntity(customer.Id, "Customer"))
-                .Return(new List<GenericAttribute>
+            _genericAttributeServiceMock.Setup(x => x.GetAttributesForEntity(customer.Id, "Customer"))
+                .Returns(new List<GenericAttribute>
                             {
                                 new GenericAttribute
                                     {

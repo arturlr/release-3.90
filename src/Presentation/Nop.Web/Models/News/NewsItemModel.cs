@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using FluentValidation.Attributes;
 using Nop.Web.Framework.Mvc;
 using Nop.Web.Validators.News;
 
 namespace Nop.Web.Models.News
 {
-    [Validator(typeof(NewsItemValidator))]
     public partial class NewsItemModel : BaseNopEntityModel
     {
         public NewsItemModel()

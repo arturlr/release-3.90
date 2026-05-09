@@ -1,10 +1,8 @@
-﻿using System;
+using Nop.Web.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
-using System.Web.Routing;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Catalog;
@@ -33,6 +31,14 @@ using Nop.Web.Infrastructure.Cache;
 using Nop.Web.Models.Common;
 using Nop.Web.Models.Media;
 using Nop.Web.Models.ShoppingCart;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Routing;
+
+using Microsoft.AspNetCore.Http;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Web.Factories
 {
@@ -70,7 +76,7 @@ namespace Nop.Web.Factories
         private readonly ICacheManager _cacheManager;
         private readonly IWebHelper _webHelper;
         private readonly IGenericAttributeService _genericAttributeService;
-        private readonly HttpContextBase _httpContext;
+        private readonly HttpContext _httpContext;
 
         private readonly MediaSettings _mediaSettings;
         private readonly ShoppingCartSettings _shoppingCartSettings;
@@ -113,7 +119,7 @@ namespace Nop.Web.Factories
             ICacheManager cacheManager,
             IWebHelper webHelper, 
             IGenericAttributeService genericAttributeService,
-            HttpContextBase httpContext,
+            HttpContext httpContext,
             MediaSettings mediaSettings,
             ShoppingCartSettings shoppingCartSettings,
             CatalogSettings catalogSettings, 
@@ -727,7 +733,7 @@ namespace Nop.Web.Factories
                 : "";
 
             //custom values
-            var processPaymentRequest = _httpContext.Session["OrderPaymentInfo"] as ProcessPaymentRequest;
+            var processPaymentRequest = _httpContext.Session.Get<ProcessPaymentRequest>("OrderPaymentInfo");
             if (processPaymentRequest != null)
             {
                 model.CustomValues = processPaymentRequest.CustomValues;

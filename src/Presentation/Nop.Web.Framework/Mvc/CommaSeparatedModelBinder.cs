@@ -1,26 +1,33 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Web.Mvc;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+
 
 namespace Nop.Web.Framework.Mvc
 {
-    public class CommaSeparatedModelBinder : DefaultModelBinder
+    public class CommaSeparatedModelBinder : IModelBinder
     {
         private static readonly MethodInfo ToArrayMethod = typeof(Enumerable).GetMethod("ToArray");
 
-        public override object BindModel(ControllerContext controllerContext, ModelBindingContext bindingContext)
+        public Task BindModelAsync(ModelBindingContext bindingContext)
         {
-            return BindCsv(bindingContext.ModelType, bindingContext.ModelName, bindingContext)
-                    ?? base.BindModel(controllerContext, bindingContext);
-        }
+            if (bindingContext == null)
+                throw new ArgumentNullException(nameof(bindingContext));
 
-        protected override object GetPropertyValue(ControllerContext controllerContext, ModelBindingContext bindingContext, System.ComponentModel.PropertyDescriptor propertyDescriptor, IModelBinder propertyBinder)
-        {
-            return BindCsv(propertyDescriptor.PropertyType, propertyDescriptor.Name, bindingContext)
-                    ?? base.GetPropertyValue(controllerContext, bindingContext, propertyDescriptor, propertyBinder);
+            var modelName = bindingContext.ModelName;
+            var type = bindingContext.ModelType;
+
+            var result = BindCsv(type, modelName, bindingContext);
+            if (result != null)
+            {
+                bindingContext.Result = ModelBindingResult.Success(result);
+            }
+
+            return Task.CompletedTask;
         }
 
         private object BindCsv(Type type, string name, ModelBindingContext bindingContext)
@@ -29,7 +36,7 @@ namespace Nop.Web.Framework.Mvc
             {
                 var actualValue = bindingContext.ValueProvider.GetValue(name);
 
-                if (actualValue != null)
+                if (actualValue != ValueProviderResult.None)
                 {
                     var valueType = type.GetElementType() ?? type.GetGenericArguments().FirstOrDefault();
 
@@ -37,7 +44,7 @@ namespace Nop.Web.Framework.Mvc
                     {
                         var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(valueType));
 
-                        foreach (var splitValue in actualValue.AttemptedValue.Split(new[] { ',' }))
+                        foreach (var splitValue in actualValue.FirstValue.Split(new[] { ',' }))
                         {
                             if (!String.IsNullOrWhiteSpace(splitValue))
                                 list.Add(Convert.ChangeType(splitValue, valueType));

@@ -1,18 +1,20 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Admin.Models.Cms
 {
     public partial class WidgetModel : BaseNopModel
     {
         [NopResourceDisplayName("Admin.ContentManagement.Widgets.Fields.FriendlyName")]
-        [AllowHtml]
+
         public string FriendlyName { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Widgets.Fields.SystemName")]
-        [AllowHtml]
+
         public string SystemName { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Widgets.Fields.DisplayOrder")]

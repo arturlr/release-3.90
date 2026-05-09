@@ -1,14 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using System.Collections.Generic;
 using Nop.Admin.Validators.Common;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Models.Common
 {
-    [Validator(typeof(AddressAttributeValueValidator))]
     public partial class AddressAttributeValueModel : BaseNopEntityModel, ILocalizedModel<AddressAttributeValueLocalizedModel>
     {
         public AddressAttributeValueModel()
@@ -19,7 +18,7 @@ namespace Nop.Admin.Models.Common
         public int AddressAttributeId { get; set; }
 
         [NopResourceDisplayName("Admin.Address.AddressAttributes.Values.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Address.AddressAttributes.Values.Fields.IsPreSelected")]
@@ -37,7 +36,7 @@ namespace Nop.Admin.Models.Common
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Address.AddressAttributes.Values.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
     }
 }

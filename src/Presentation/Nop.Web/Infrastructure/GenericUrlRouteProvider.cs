@@ -1,13 +1,14 @@
-﻿using System.Web.Routing;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc.Routes;
 using Nop.Web.Framework.Seo;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Infrastructure
 {
     public partial class GenericUrlRouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IRouteBuilder routes)
         {
             //generic URLs
             routes.MapGenericPathRoute("GenericUrl",

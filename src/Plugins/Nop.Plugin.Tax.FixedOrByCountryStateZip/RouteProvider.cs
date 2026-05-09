@@ -1,17 +1,17 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Nop.Web.Framework.Mvc.Routes;
 
 namespace Nop.Plugin.Tax.FixedOrByCountryStateZip
 {
     public partial class RouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
         {
-            routes.MapRoute("Plugin.Tax.FixedOrByCountryStateZip.AddRateByCountryStateZip",
-                 "Plugins/FixedOrByCountryStateZip/AddRateByCountryStateZip",
-                 new { controller = "FixedOrByCountryStateZip", action = "AddRateByCountryStateZip" },
-                 new[] { "Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers" }
+            endpointRouteBuilder.MapControllerRoute(
+                name: "Plugin.Tax.FixedOrByCountryStateZip.AddRateByCountryStateZip",
+                pattern: "Plugins/FixedOrByCountryStateZip/AddRateByCountryStateZip",
+                defaults: new { controller = "FixedOrByCountryStateZip", action = "AddRateByCountryStateZip" }
             );
         }
 

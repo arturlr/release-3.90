@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using System.IO;
-using System.Web.Routing;
 using Nop.Core;
 using Nop.Core.Plugins;
 using Nop.Services.Cms;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Services.Media;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Plugin.Widgets.NivoSlider
 {

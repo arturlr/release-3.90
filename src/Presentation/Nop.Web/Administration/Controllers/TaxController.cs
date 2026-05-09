@@ -1,7 +1,5 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Tax;
 using Nop.Core.Domain.Tax;
@@ -10,6 +8,10 @@ using Nop.Services.Security;
 using Nop.Services.Tax;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -161,7 +163,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult CategoryAdd([Bind(Exclude = "Id")] TaxCategoryModel model)
+        public virtual ActionResult CategoryAdd(TaxCategoryModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return AccessDeniedView();

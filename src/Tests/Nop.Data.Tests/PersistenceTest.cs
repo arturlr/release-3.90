@@ -1,5 +1,4 @@
-﻿using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using NUnit.Framework;
 
@@ -9,24 +8,22 @@ namespace Nop.Data.Tests
     public abstract class PersistenceTest
     {
         protected NopObjectContext context;
+        private string _databaseName;
 
         [SetUp]
         public virtual void SetUp()
         {
-            //TODO fix compilation warning (below)
-            #pragma warning disable 0618
-            Database.DefaultConnectionFactory = new SqlCeConnectionFactory("System.Data.SqlServerCe.4.0");
-            context = new NopObjectContext(GetTestDbName());
-            context.Database.Delete();
-            context.Database.Create();
+            _databaseName = "NopDataTests_" + System.Guid.NewGuid().ToString("N");
+
+            var options = new DbContextOptionsBuilder<NopObjectContext>()
+                .UseInMemoryDatabase(databaseName: _databaseName)
+                .Options;
+
+            context = new NopObjectContext(options);
+            context.Database.EnsureDeleted();
+            context.Database.EnsureCreated();
         }
 
-        protected string GetTestDbName()
-        {
-            var testDbName = "Data Source=" + System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + @"\\Nop.Data.Tests.Db.sdf;Persist Security Info=False";
-            return testDbName;
-        }        
-        
         /// <summary>
         /// Persistance test helper
         /// </summary>
@@ -43,7 +40,10 @@ namespace Nop.Data.Tests
             if (disposeContext)
             {
                 context.Dispose();
-                context = new NopObjectContext(GetTestDbName());
+                var options = new DbContextOptionsBuilder<NopObjectContext>()
+                    .UseInMemoryDatabase(databaseName: _databaseName)
+                    .Options;
+                context = new NopObjectContext(options);
             }
 
             var fromDb = context.Set<T>().Find(id);

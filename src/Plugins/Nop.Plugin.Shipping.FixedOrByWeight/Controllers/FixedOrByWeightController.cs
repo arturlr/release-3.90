@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
 using Nop.Plugin.Shipping.FixedOrByWeight.Domain;
@@ -18,6 +17,10 @@ using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
 using Nop.Web.Framework.Security;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
 {
@@ -67,18 +70,12 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
             this._measureSettings = measureSettings;
         }
 
-        protected override void Initialize(System.Web.Routing.RequestContext requestContext)
+        public ActionResult Configure()
         {
             //little hack here
             //always set culture to 'en-US' (Telerik has a bug related to editing decimal values in other cultures). Like currently it's done for admin area in Global.asax.cs
             CommonHelper.SetTelerikCulture();
 
-            base.Initialize(requestContext);
-        }
-
-        [ChildActionOnly]
-        public ActionResult Configure()
-        {
             var model = new ConfigurationModel
             {
                 LimitMethodsToCreated = _fixedOrByWeightSettings.LimitMethodsToCreated,
@@ -114,7 +111,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
             return Json(new
             {
                 Result = true
-            }, JsonRequestBehavior.AllowGet);
+            });
         }
 
         #region Fixed rate
@@ -242,7 +239,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
         public ActionResult AddRateByWeighPopup()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = Request.Path.ToString() + Request.QueryString });
 
             var model = new ShippingByWeightModel
             {
@@ -283,7 +280,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
         public ActionResult AddRateByWeighPopup(string btnId, string formId, ShippingByWeightModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = Request.Path.ToString() + Request.QueryString });
 
             var sbw = new ShippingByWeightRecord
             {
@@ -312,7 +309,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
         public ActionResult EditRateByWeighPopup(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = Request.Path.ToString() + Request.QueryString });
 
             var sbw = _shippingByWeightService.GetById(id);
             if (sbw == null)
@@ -377,7 +374,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
         public ActionResult EditRateByWeighPopup(string btnId, string formId, ShippingByWeightModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = Request.Path.ToString() + Request.QueryString });
 
             var sbw = _shippingByWeightService.GetById(model.Id);
             if (sbw == null)

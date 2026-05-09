@@ -1,10 +1,10 @@
-﻿using FluentValidation.TestHelper;
+using FluentValidation.TestHelper;
 using Nop.Core.Domain.Customers;
 using Nop.Services.Directory;
 using Nop.Web.Models.Customer;
 using Nop.Web.Validators.Customer;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
 
 namespace Nop.Web.MVC.Tests.Public.Validators.Customer
 {
@@ -19,7 +19,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         public new void Setup()
         {
             _customerSettings = new CustomerSettings();
-            _stateProvinceService = MockRepository.GenerateMock<IStateProvinceService>();
+            _stateProvinceService = new Mock<IStateProvinceService>().Object;
             _validator = new RegisterValidator(_localizationService, _stateProvinceService, _customerSettings);
         }
         
@@ -28,9 +28,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         {
             var model = new RegisterModel();
             model.Email = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.Email, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Email);
             model.Email = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.Email, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Email);
         }
 
         [Test]
@@ -38,7 +38,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         {
             var model = new RegisterModel();
             model.Email = "adminexample.com";
-            _validator.ShouldHaveValidationErrorFor(x => x.Email, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Email);
         }
 
         [Test]
@@ -46,7 +46,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         {
             var model = new RegisterModel();
             model.Email = "admin@example.com";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.Email, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.Email);
         }
 
         [Test]
@@ -54,9 +54,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         {
             var model = new RegisterModel();
             model.FirstName = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.FirstName, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.FirstName);
             model.FirstName = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.FirstName, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.FirstName);
         }
 
         [Test]
@@ -64,7 +64,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         {
             var model = new RegisterModel();
             model.FirstName = "John";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.FirstName, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.FirstName);
         }
 
         [Test]
@@ -72,9 +72,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         {
             var model = new RegisterModel();
             model.LastName = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.LastName, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.LastName);
             model.LastName = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.LastName, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.LastName);
         }
 
         [Test]
@@ -82,7 +82,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         {
             var model = new RegisterModel();
             model.LastName = "Smith";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.LastName, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.LastName);
         }
 
         [Test]
@@ -92,11 +92,11 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
             model.Password = null;
             //we know that password should equal confirmation password
             model.ConfirmPassword = model.Password;
-            _validator.ShouldHaveValidationErrorFor(x => x.Password, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Password);
             model.Password = "";
             //we know that password should equal confirmation password
             model.ConfirmPassword = model.Password;
-            _validator.ShouldHaveValidationErrorFor(x => x.Password, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Password);
         }
 
         [Test]
@@ -106,7 +106,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
             model.Password = "password";
             //we know that password should equal confirmation password
             model.ConfirmPassword = model.Password;
-            _validator.ShouldNotHaveValidationErrorFor(x => x.Password, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.Password);
         }
 
         [Test]
@@ -114,9 +114,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         {
             var model = new RegisterModel();
             model.ConfirmPassword = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.ConfirmPassword, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.ConfirmPassword);
             model.ConfirmPassword = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.ConfirmPassword, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.ConfirmPassword);
         }
 
         [Test]
@@ -126,7 +126,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
             model.ConfirmPassword = "some password";
             //we know that new password should equal confirmation password
             model.Password = model.ConfirmPassword;
-            _validator.ShouldNotHaveValidationErrorFor(x => x.ConfirmPassword, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.ConfirmPassword);
         }
 
         [Test]
@@ -135,7 +135,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
             var model = new RegisterModel();
             model.Password = "some password";
             model.ConfirmPassword = "another password";
-            _validator.ShouldHaveValidationErrorFor(x => x.ConfirmPassword, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.ConfirmPassword);
         }
 
         [Test]
@@ -144,7 +144,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
             var model = new RegisterModel();
             model.Password = "some password";
             model.ConfirmPassword = "some password";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.Password, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.Password);
         }
 
         [Test]
@@ -157,11 +157,11 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
             model.Password = "1234";
             //we know that password should equal confirmation password
             model.ConfirmPassword = model.Password;
-            _validator.ShouldHaveValidationErrorFor(x => x.Password, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Password);
             model.Password = "12345";
             //we know that password should equal confirmation password
             model.ConfirmPassword = model.Password;
-            _validator.ShouldNotHaveValidationErrorFor(x => x.Password, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.Password);
         }
     }
 }

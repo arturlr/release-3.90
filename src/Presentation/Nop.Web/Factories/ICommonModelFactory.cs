@@ -1,6 +1,7 @@
-﻿using System.Web.Mvc;
 using Nop.Core.Domain.Vendors;
 using Nop.Web.Models.Common;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Web.Factories
 {
@@ -87,7 +88,7 @@ namespace Nop.Web.Factories
         /// <param name="url">URL helper</param>
         /// <param name="id">Sitemap identifier; pass null to load the first sitemap or sitemap index file</param>
         /// <returns>Sitemap as string in XML format</returns>
-        string PrepareSitemapXml(UrlHelper url, int? id);
+        string PrepareSitemapXml(Microsoft.AspNetCore.Mvc.IUrlHelper url, int? id);
 
         /// <summary>
         /// Prepare the store theme selector model

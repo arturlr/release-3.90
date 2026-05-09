@@ -4,8 +4,8 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
-using System.Web;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Orders;
@@ -20,6 +20,7 @@ using Nop.Services.Localization;
 using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Nop.Services.Tax;
+
 
 namespace Nop.Plugin.Payments.PayPalStandard
 {
@@ -40,7 +41,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
         #region Fields
 
         private readonly CurrencySettings _currencySettings;
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ICheckoutAttributeParser _checkoutAttributeParser;
         private readonly ICurrencyService _currencyService;
         private readonly IGenericAttributeService _genericAttributeService;
@@ -56,7 +57,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
         #region Ctor
 
         public PayPalStandardPaymentProcessor(CurrencySettings currencySettings,
-            HttpContextBase httpContext,
+            IHttpContextAccessor httpContextAccessor,
             ICheckoutAttributeParser checkoutAttributeParser,
             ICurrencyService currencyService,
             IGenericAttributeService genericAttributeService,
@@ -68,7 +69,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             PayPalStandardPaymentSettings paypalStandardPaymentSettings)
         {
             this._currencySettings = currencySettings;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._checkoutAttributeParser = checkoutAttributeParser;
             this._currencyService = currencyService;
             this._genericAttributeService = genericAttributeService;
@@ -117,7 +118,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             req.Method = WebRequestMethods.Http.Post;
             req.ContentType = MimeTypes.ApplicationXWwwFormUrlencoded;
             //now PayPal requires user-agent. otherwise, we can get 403 error
-            req.UserAgent = HttpContext.Current.Request.UserAgent;
+            req.UserAgent = _httpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString();
 
             string formContent = string.Format("cmd=_notify-synch&at={0}&tx={1}", _paypalStandardPaymentSettings.PdtToken, tx);
             req.ContentLength = formContent.Length;
@@ -126,7 +127,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
                 sw.Write(formContent);
 
             using (var sr = new StreamReader(req.GetResponse().GetResponseStream()))
-                response = HttpUtility.UrlDecode(sr.ReadToEnd());
+                response = WebUtility.UrlDecode(sr.ReadToEnd());
 
             values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             bool firstLine = true, success = false;
@@ -161,7 +162,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             req.Method = WebRequestMethods.Http.Post;
             req.ContentType = MimeTypes.ApplicationXWwwFormUrlencoded;
             //now PayPal requires user-agent. otherwise, we can get 403 error
-            req.UserAgent = HttpContext.Current.Request.UserAgent;
+            req.UserAgent = _httpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString();
 
             var formContent = string.Format("cmd=_notify-validate&{0}", formString);
             req.ContentLength = formContent.Length;
@@ -174,7 +175,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             string response;
             using (var sr = new StreamReader(req.GetResponse().GetResponseStream()))
             {
-                response = HttpUtility.UrlDecode(sr.ReadToEnd());
+                response = WebUtility.UrlDecode(sr.ReadToEnd());
             }
             bool success = response.Trim().Equals("VERIFIED", StringComparison.OrdinalIgnoreCase);
 
@@ -202,7 +203,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             var cmd = passProductNamesAndTotals
                 ? "_cart"
                 : "_xclick";
-            builder.AppendFormat("?cmd={0}&business={1}", cmd, HttpUtility.UrlEncode(_paypalStandardPaymentSettings.BusinessEmail));
+            builder.AppendFormat("?cmd={0}&business={1}", cmd, WebUtility.UrlEncode(_paypalStandardPaymentSettings.BusinessEmail));
             if (passProductNamesAndTotals)
             {
                 builder.AppendFormat("&upload=1");
@@ -218,7 +219,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
                     var priceExclTax = item.PriceExclTax;
                     //round
                     var unitPriceExclTaxRounded = Math.Round(unitPriceExclTax, 2);
-                    builder.AppendFormat("&item_name_" + x + "={0}", HttpUtility.UrlEncode(item.Product.Name));
+                    builder.AppendFormat("&item_name_" + x + "={0}", WebUtility.UrlEncode(item.Product.Name));
                     builder.AppendFormat("&amount_" + x + "={0}", unitPriceExclTaxRounded.ToString("0.00", CultureInfo.InvariantCulture));
                     builder.AppendFormat("&quantity_" + x + "={0}", item.Quantity);
                     x++;
@@ -239,7 +240,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
                         if (attribute != null)
                         {
                             var attName = attribute.Name; //set the name
-                            builder.AppendFormat("&item_name_" + x + "={0}", HttpUtility.UrlEncode(attName)); //name
+                            builder.AppendFormat("&item_name_" + x + "={0}", WebUtility.UrlEncode(attName)); //name
                             builder.AppendFormat("&amount_" + x + "={0}", attPriceRounded.ToString("0.00", CultureInfo.InvariantCulture)); //amount
                             builder.AppendFormat("&quantity_" + x + "={0}", 1); //quantity
                             x++;
@@ -285,7 +286,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
                     //builder.AppendFormat("&tax_1={0}", orderTax.ToString("0.00", CultureInfo.InvariantCulture));
 
                     //add tax as item
-                    builder.AppendFormat("&item_name_" + x + "={0}", HttpUtility.UrlEncode("Sales Tax")); //name
+                    builder.AppendFormat("&item_name_" + x + "={0}", WebUtility.UrlEncode("Sales Tax")); //name
                     builder.AppendFormat("&amount_" + x + "={0}", orderTaxRounded.ToString("0.00", CultureInfo.InvariantCulture)); //amount
                     builder.AppendFormat("&quantity_" + x + "={0}", 1); //quantity
 
@@ -323,7 +324,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             builder.AppendFormat("&custom={0}", postProcessPaymentRequest.Order.OrderGuid);
             builder.AppendFormat("&charset={0}", "utf-8");
             builder.AppendFormat("&bn={0}", BN_CODE);
-            builder.Append(string.Format("&no_note=1&currency_code={0}", HttpUtility.UrlEncode(_currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode)));
+            builder.Append(string.Format("&no_note=1&currency_code={0}", WebUtility.UrlEncode(_currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode)));
             builder.AppendFormat("&invoice={0}", postProcessPaymentRequest.Order.Id);
             builder.AppendFormat("&rm=2", new object[0]);
             if (postProcessPaymentRequest.Order.ShippingStatus != ShippingStatus.ShippingNotRequired)
@@ -333,7 +334,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
 
             string returnUrl = _webHelper.GetStoreLocation(false) + "Plugins/PaymentPayPalStandard/PDTHandler";
             string cancelReturnUrl = _webHelper.GetStoreLocation(false) + "Plugins/PaymentPayPalStandard/CancelOrder";
-            builder.AppendFormat("&return={0}&cancel_return={1}", HttpUtility.UrlEncode(returnUrl), HttpUtility.UrlEncode(cancelReturnUrl));
+            builder.AppendFormat("&return={0}&cancel_return={1}", WebUtility.UrlEncode(returnUrl), WebUtility.UrlEncode(cancelReturnUrl));
 
             //Instant Payment Notification (server to server message)
             if (_paypalStandardPaymentSettings.EnableIpn)
@@ -348,32 +349,21 @@ namespace Nop.Plugin.Payments.PayPalStandard
 
             //address
             builder.AppendFormat("&address_override={0}", _paypalStandardPaymentSettings.AddressOverride ? "1" : "0");
-            builder.AppendFormat("&first_name={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.FirstName));
-            builder.AppendFormat("&last_name={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.LastName));
-            builder.AppendFormat("&address1={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Address1));
-            builder.AppendFormat("&address2={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Address2));
-            builder.AppendFormat("&city={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.City));
-            //if (!String.IsNullOrEmpty(postProcessPaymentRequest.Order.BillingAddress.PhoneNumber))
-            //{
-            //    //strip out all non-digit characters from phone number;
-            //    string billingPhoneNumber = System.Text.RegularExpressions.Regex.Replace(postProcessPaymentRequest.Order.BillingAddress.PhoneNumber, @"\D", string.Empty);
-            //    if (billingPhoneNumber.Length >= 10)
-            //    {
-            //        builder.AppendFormat("&night_phone_a={0}", HttpUtility.UrlEncode(billingPhoneNumber.Substring(0, 3)));
-            //        builder.AppendFormat("&night_phone_b={0}", HttpUtility.UrlEncode(billingPhoneNumber.Substring(3, 3)));
-            //        builder.AppendFormat("&night_phone_c={0}", HttpUtility.UrlEncode(billingPhoneNumber.Substring(6, 4)));
-            //    }
-            //}
+            builder.AppendFormat("&first_name={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.FirstName));
+            builder.AppendFormat("&last_name={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.LastName));
+            builder.AppendFormat("&address1={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Address1));
+            builder.AppendFormat("&address2={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Address2));
+            builder.AppendFormat("&city={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.City));
             if (postProcessPaymentRequest.Order.BillingAddress.StateProvince != null)
-                builder.AppendFormat("&state={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.StateProvince.Abbreviation));
+                builder.AppendFormat("&state={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.StateProvince.Abbreviation));
             else
                 builder.AppendFormat("&state={0}", "");
             if (postProcessPaymentRequest.Order.BillingAddress.Country != null)
-                builder.AppendFormat("&country={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Country.TwoLetterIsoCode));
+                builder.AppendFormat("&country={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Country.TwoLetterIsoCode));
             else
                 builder.AppendFormat("&country={0}", "");
-            builder.AppendFormat("&zip={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.ZipPostalCode));
-            builder.AppendFormat("&email={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Email));
+            builder.AppendFormat("&zip={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.ZipPostalCode));
+            builder.AppendFormat("&email={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Email));
 
             return builder.ToString();
         }
@@ -407,7 +397,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             if (urlToRedirect.Length > 2048)
                 urlToRedirect = GenerationRedirectionUrl(postProcessPaymentRequest, false);
 
-            _httpContext.Response.Redirect(urlToRedirect);
+            _httpContextAccessor.HttpContext?.Response.Redirect(urlToRedirect);
         }
 
         /// <summary>

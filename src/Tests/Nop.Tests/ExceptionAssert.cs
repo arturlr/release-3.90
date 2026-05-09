@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using NUnit.Framework;
 
@@ -24,7 +24,7 @@ namespace Nop.Tests
             }
             catch (Exception ex)
             {
-                Assert.AreEqual(exceptionType, ex.GetType());
+                Assert.That(ex.GetType(), Is.EqualTo(exceptionType));
                 return ex;
             }
             Assert.Fail("Expected exception '" + exceptionType.FullName + "' wasn't thrown.");
@@ -82,21 +82,6 @@ namespace Nop.Tests
     [TestFixture]
     public class ExceptionAssertTests
     {
-        //[Test, ExpectedException(typeof(MbUnit.Core.Exceptions.AssertionException))]
-        //public void FailsOnExceptionNotTrown()
-        //{
-        //    ExceptionAssert.Throws(typeof(ArgumentException), delegate { });
-        //}
-        //[Test, ExpectedException(typeof(MbUnit.Core.Exceptions.AssertionException))]
-        //public void FailsOnWrongTypeOfException()
-        //{
-        //    ExceptionAssert.Throws(
-        //        typeof(ArgumentException),
-        //        delegate
-        //            {
-        //                throw new Exception("rebuke me");
-        //            });
-        //}
         [Test]
         public void PassesOnExceptionTrown()
         {
@@ -116,23 +101,9 @@ namespace Nop.Tests
                 {
                     throw new ArgumentException("return me");
                 });
-            Assert.AreEqual("return me", ex.Message);
+            Assert.That(ex.Message, Is.EqualTo("return me"));
         }
 
-        //[Test, ExpectedException(typeof(MbUnit.Core.Exceptions.AssertionException))]
-        //public void FailsOnExceptionNotTrown_generic()
-        //{
-        //    ExceptionAssert.Throws<ArgumentException>(delegate { });
-        //}
-        //[Test, ExpectedException(typeof(MbUnit.Core.Exceptions.AssertionException))]
-        //public void FailsOnWrongTypeOfException_generic()
-        //{
-        //    ExceptionAssert.Throws<ArgumentException>(
-        //        delegate
-        //            {
-        //                throw new Exception("rebuke me");
-        //            });
-        //}
         [Test]
         public void PassesOnExceptionTrown_generic()
         {
@@ -150,7 +121,7 @@ namespace Nop.Tests
                 {
                     throw new ArgumentException("return me");
                 });
-            Assert.AreEqual("return me", ex.Message);
+            Assert.That(ex.Message, Is.EqualTo("return me"));
         }
     }
 }

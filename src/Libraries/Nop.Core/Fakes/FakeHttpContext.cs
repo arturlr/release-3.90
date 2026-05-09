@@ -1,25 +1,22 @@
-﻿using System;
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Security.Principal;
-using System.Web;
-using System.Web.SessionState;
 
 namespace Nop.Core.Fakes
 {
-    public class FakeHttpContext : HttpContextBase
+    /// <summary>
+    /// Fake HTTP context for use in scenarios where a real HttpContext is not available
+    /// (e.g., scheduled tasks, unit tests).
+    /// </summary>
+    public class FakeHttpContext
     {
-        private readonly HttpCookieCollection _cookies;
-        private readonly NameValueCollection _formParams;
-        private IPrincipal _principal;
-        private readonly NameValueCollection _queryStringParams;
-        private readonly string _relativeUrl;
-        private readonly string _method;
-        private readonly SessionStateItemCollection _sessionItems;
-        private readonly NameValueCollection _serverVariables;
-        private HttpResponseBase _response;
-        private HttpRequestBase _request;
         private readonly IDictionary _items;
+        private IPrincipal _principal;
+        private FakeHttpRequest _request;
+        private FakeHttpResponse _response;
+        private FakeHttpSessionState _session;
 
         public static FakeHttpContext Root()
         {
@@ -32,85 +29,69 @@ namespace Nop.Core.Fakes
         }
 
         public FakeHttpContext(string relativeUrl)
-            : this(relativeUrl, null, null, null, null, null, null)
+            : this(relativeUrl, null, null, null, null, null, null, null)
         {
         }
 
         public FakeHttpContext(string relativeUrl,
             IPrincipal principal, NameValueCollection formParams,
-            NameValueCollection queryStringParams, HttpCookieCollection cookies,
-            SessionStateItemCollection sessionItems, NameValueCollection serverVariables)
+            NameValueCollection queryStringParams, NameValueCollection cookies,
+            Dictionary<string, object> sessionItems, NameValueCollection serverVariables)
             : this(relativeUrl, null, principal, formParams, queryStringParams, cookies, sessionItems, serverVariables)
         {
         }
 
         public FakeHttpContext(string relativeUrl, string method,
             IPrincipal principal, NameValueCollection formParams,
-            NameValueCollection queryStringParams, HttpCookieCollection cookies,
-            SessionStateItemCollection sessionItems, NameValueCollection serverVariables)
+            NameValueCollection queryStringParams, NameValueCollection cookies,
+            Dictionary<string, object> sessionItems, NameValueCollection serverVariables)
         {
-            _relativeUrl = relativeUrl;
-            _method = method;
             _principal = principal;
-            _formParams = formParams;
-            _queryStringParams = queryStringParams;
-            _cookies = cookies;
-            _sessionItems = sessionItems;
-            _serverVariables = serverVariables;
-
+            _request = new FakeHttpRequest(relativeUrl, method, formParams, queryStringParams, cookies, serverVariables);
+            _response = new FakeHttpResponse();
+            _session = new FakeHttpSessionState(sessionItems);
             _items = new Hashtable();
         }
 
-        public override HttpRequestBase Request
+        public virtual FakeHttpRequest Request
         {
-            get
-            {
-                return _request ??
-                       new FakeHttpRequest(_relativeUrl, _method, _formParams, _queryStringParams, _cookies, _serverVariables);
-            }
+            get { return _request; }
         }
 
-        public void SetRequest(HttpRequestBase request)
+        public void SetRequest(FakeHttpRequest request)
         {
             _request = request;
         }
 
-        public override HttpResponseBase Response
+        public virtual FakeHttpResponse Response
         {
-            get
-            {
-                return _response ?? new FakeHttpResponse();
-            }
+            get { return _response; }
         }
 
-        public void SetResponse(HttpResponseBase response)
+        public void SetResponse(FakeHttpResponse response)
         {
             _response = response;
         }
 
-        public override IPrincipal User
+        public virtual IPrincipal User
         {
             get { return _principal; }
             set { _principal = value; }
         }
 
-        public override HttpSessionStateBase Session
+        public virtual FakeHttpSessionState Session
         {
-            get { return new FakeHttpSessionState(_sessionItems); }
+            get { return _session; }
         }
 
-        public override IDictionary Items
+        public virtual IDictionary Items
         {
-            get
-            {
-                return _items;
-            }
+            get { return _items; }
         }
 
+        public virtual bool SkipAuthorization { get; set; }
 
-        public override bool SkipAuthorization { get; set; }
-
-        public override object GetService(Type serviceType)
+        public virtual object GetService(Type serviceType)
         {
             return null;
         }

@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+
 
 namespace Nop.Web.Framework.Mvc
 {
@@ -15,7 +17,7 @@ namespace Nop.Web.Framework.Mvc
             PostInitialize();
         }
 
-        public virtual void BindModel(ControllerContext controllerContext, ModelBindingContext bindingContext)
+        public virtual void BindModel(ModelBindingContext bindingContext)
         {
         }
 

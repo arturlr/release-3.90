@@ -1,130 +1,78 @@
-﻿using System.Web;
-using System.Web.Routing;
+using System.Threading.Tasks;
 using Nop.Core.Data;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Infrastructure;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Framework.Localization
 {
     /// <summary>
-    /// Provides properties and methods for defining a localized route, and for getting information about the localized route.
+    /// Provides properties and methods for defining a localized route.
+    /// In ASP.NET Core, this is implemented as an IRouter for compatibility.
     /// </summary>
-    public class LocalizedRoute : Route
+    public class LocalizedRoute : IRouter
     {
         #region Fields
 
         private bool? _seoFriendlyUrlsForLanguagesEnabled;
+        private readonly IRouter _target;
 
         #endregion
 
         #region Constructors
 
-        /// <summary>
-        /// Initializes a new instance of the System.Web.Routing.Route class, using the specified URL pattern and handler class.
-        /// </summary>
-        /// <param name="url">The URL pattern for the route.</param>
-        /// <param name="routeHandler">The object that processes requests for the route.</param>
-        public LocalizedRoute(string url, IRouteHandler routeHandler)
-            : base(url, routeHandler)
+        public LocalizedRoute(IRouter target)
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the System.Web.Routing.Route class, using the specified URL pattern, handler class and default parameter values.
-        /// </summary>
-        /// <param name="url">The URL pattern for the route.</param>
-        /// <param name="defaults">The values to use if the URL does not contain all the parameters.</param>
-        /// <param name="routeHandler">The object that processes requests for the route.</param>
-        public LocalizedRoute(string url, RouteValueDictionary defaults, IRouteHandler routeHandler)
-            : base(url, defaults, routeHandler)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the System.Web.Routing.Route class, using the specified URL pattern, handler class, default parameter values and constraints.
-        /// </summary>
-        /// <param name="url">The URL pattern for the route.</param>
-        /// <param name="defaults">The values to use if the URL does not contain all the parameters.</param>
-        /// <param name="constraints">A regular expression that specifies valid values for a URL parameter.</param>
-        /// <param name="routeHandler">The object that processes requests for the route.</param>
-        public LocalizedRoute(string url, RouteValueDictionary defaults, RouteValueDictionary constraints, IRouteHandler routeHandler)
-            : base(url, defaults, constraints, routeHandler)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the System.Web.Routing.Route class, using the specified URL pattern, handler class, default parameter values, 
-        /// constraints,and custom values.
-        /// </summary>
-        /// <param name="url">The URL pattern for the route.</param>
-        /// <param name="defaults">The values to use if the URL does not contain all the parameters.</param>
-        /// <param name="constraints">A regular expression that specifies valid values for a URL parameter.</param>
-        /// <param name="dataTokens">Custom values that are passed to the route handler, but which are not used to determine whether the route matches a specific URL pattern. The route handler might need these values to process the request.</param>
-        /// <param name="routeHandler">The object that processes requests for the route.</param>
-        public LocalizedRoute(string url, RouteValueDictionary defaults, RouteValueDictionary constraints, RouteValueDictionary dataTokens, IRouteHandler routeHandler)
-            : base(url, defaults, constraints, dataTokens, routeHandler)
-        {
+            _target = target;
         }
 
         #endregion
 
         #region Methods
 
-        /// <summary>
-        /// Returns information about the requested route.
-        /// </summary>
-        /// <param name="httpContext">An object that encapsulates information about the HTTP request.</param>
-        /// <returns>
-        /// An object that contains the values from the route definition.
-        /// </returns>
-        public override RouteData GetRouteData(HttpContextBase httpContext)
+        public virtual async Task RouteAsync(RouteContext context)
         {
             if (DataSettingsHelper.DatabaseIsInstalled() && this.SeoFriendlyUrlsForLanguagesEnabled)
             {
-                string virtualPath = httpContext.Request.AppRelativeCurrentExecutionFilePath;
-                string applicationPath = httpContext.Request.ApplicationPath;
-                if (virtualPath.IsLocalizedUrl(applicationPath, false))
-                {
-                    //In ASP.NET Development Server, an URL like "http://localhost/Blog.aspx/Categories/BabyFrog" will return 
-                    //"~/Blog.aspx/Categories/BabyFrog" as AppRelativeCurrentExecutionFilePath.
-                    //However, in II6, the AppRelativeCurrentExecutionFilePath is "~/Blog.aspx"
-                    //It seems that IIS6 think we're process Blog.aspx page.
-                    //So, I'll use RawUrl to re-create an AppRelativeCurrentExecutionFilePath like ASP.NET Development Server.
+                var request = context.HttpContext.Request;
+                var path = request.Path.Value;
+                var applicationPath = request.PathBase.Value;
+                if (string.IsNullOrEmpty(applicationPath))
+                    applicationPath = "/";
 
-                    //Question: should we do path rewriting right here?
-                    string rawUrl = httpContext.Request.RawUrl;
-                    var newVirtualPath = rawUrl.RemoveLanguageSeoCodeFromRawUrl(applicationPath);
-                    if (string.IsNullOrEmpty(newVirtualPath))
-                        newVirtualPath = "/";
-                    newVirtualPath = newVirtualPath.RemoveApplicationPathFromRawUrl(applicationPath);
-                    newVirtualPath = "~" + newVirtualPath;
-                    httpContext.RewritePath(newVirtualPath, true);
+                if (path.IsLocalizedUrl(applicationPath, false))
+                {
+                    // Remove language SEO code from the path for routing
+                    var newPath = path.RemoveLanguageSeoCodeFromRawUrl(applicationPath);
+                    if (string.IsNullOrEmpty(newPath))
+                        newPath = "/";
+                    
+                    // Update the path for downstream routing
+                    request.Path = newPath;
                 }
             }
-            RouteData data = base.GetRouteData(httpContext);
-            return data;
+
+            await _target.RouteAsync(context);
         }
 
-        /// <summary>
-        /// Returns information about the URL that is associated with the route.
-        /// </summary>
-        /// <param name="requestContext">An object that encapsulates information about the requested route.</param>
-        /// <param name="values">An object that contains the parameters for a route.</param>
-        /// <returns>
-        /// An object that contains information about the URL that is associated with the route.
-        /// </returns>
-        public override VirtualPathData GetVirtualPath(RequestContext requestContext, RouteValueDictionary values)
+        public virtual VirtualPathData GetVirtualPath(VirtualPathContext context)
         {
-            VirtualPathData data = base.GetVirtualPath(requestContext, values);
+            var data = _target.GetVirtualPath(context);
 
             if (data != null && DataSettingsHelper.DatabaseIsInstalled() && this.SeoFriendlyUrlsForLanguagesEnabled)
             {
-                string rawUrl = requestContext.HttpContext.Request.RawUrl;
-                string applicationPath = requestContext.HttpContext.Request.ApplicationPath;
-                if (rawUrl.IsLocalizedUrl(applicationPath, true))
+                var request = context.HttpContext.Request;
+                var path = request.Path.Value;
+                var applicationPath = request.PathBase.Value;
+                if (string.IsNullOrEmpty(applicationPath))
+                    applicationPath = "/";
+
+                if (path.IsLocalizedUrl(applicationPath, true))
                 {
-                    data.VirtualPath = string.Concat(rawUrl.GetLanguageSeoCodeFromUrl(applicationPath, true), "/",
-                        data.VirtualPath);
+                    var seoCode = path.GetLanguageSeoCodeFromUrl(applicationPath, true);
+                    data.VirtualPath = string.Concat(seoCode, "/", data.VirtualPath);
                 }
             }
             return data;

@@ -1,20 +1,19 @@
-﻿using System.Web.Mvc;
-using FluentValidation.Attributes;
 using Nop.Admin.Validators.Directory;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Models.Directory
 {
-    [Validator(typeof(MeasureDimensionValidator))]
     public partial class MeasureDimensionModel : BaseNopEntityModel
     {
         [NopResourceDisplayName("Admin.Configuration.Shipping.Measures.Dimensions.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Shipping.Measures.Dimensions.Fields.SystemKeyword")]
-        [AllowHtml]
+
         public string SystemKeyword { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Shipping.Measures.Dimensions.Fields.Ratio")]

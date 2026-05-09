@@ -1,5 +1,4 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Customers;
@@ -8,6 +7,10 @@ using Nop.Services.Localization;
 using Nop.Services.Seo;
 using Nop.Web.Models.Catalog;
 using Nop.Web.Models.Common;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Http;
+
 
 namespace Nop.Web.Controllers
 {
@@ -191,7 +194,7 @@ namespace Nop.Web.Controllers
         [HttpPost, ActionName("CustomerSubscriptions")]
         public virtual ActionResult CustomerSubscriptionsPOST(FormCollection formCollection)
         {
-            foreach (var key in formCollection.AllKeys)
+            foreach (var key in formCollection.Keys)
             {
                 var value = formCollection[key];
 

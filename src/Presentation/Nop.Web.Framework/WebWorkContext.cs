@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Directory;
@@ -17,6 +16,9 @@ using Nop.Services.Localization;
 using Nop.Services.Stores;
 using Nop.Services.Vendors;
 using Nop.Web.Framework.Localization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Net.Http.Headers;
+
 
 namespace Nop.Web.Framework
 {
@@ -33,7 +35,7 @@ namespace Nop.Web.Framework
 
         #region Fields
 
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ICustomerService _customerService;
         private readonly IVendorService _vendorService;
         private readonly IStoreContext _storeContext;
@@ -58,7 +60,7 @@ namespace Nop.Web.Framework
 
         #region Ctor
 
-        public WebWorkContext(HttpContextBase httpContext,
+        public WebWorkContext(IHttpContextAccessor httpContextAccessor,
             ICustomerService customerService,
             IVendorService vendorService,
             IStoreContext storeContext,
@@ -72,7 +74,7 @@ namespace Nop.Web.Framework
             IUserAgentHelper userAgentHelper,
             IStoreMappingService storeMappingService)
         {
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._customerService = customerService;
             this._vendorService = vendorService;
             this._storeContext = storeContext;
@@ -91,43 +93,48 @@ namespace Nop.Web.Framework
 
         #region Utilities
 
-        protected virtual HttpCookie GetCustomerCookie()
+        protected virtual string GetCustomerCookieValue()
         {
-            if (_httpContext == null || _httpContext.Request == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null || httpContext.Request == null)
                 return null;
 
-            return _httpContext.Request.Cookies[CustomerCookieName];
+            if (httpContext.Request.Cookies.TryGetValue(CustomerCookieName, out string cookieValue))
+                return cookieValue;
+
+            return null;
         }
 
         protected virtual void SetCustomerCookie(Guid customerGuid)
         {
-            if (_httpContext != null && _httpContext.Response != null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext != null && httpContext.Response != null)
             {
-                var cookie = new HttpCookie(CustomerCookieName);
-                cookie.HttpOnly = true;
-                cookie.Value = customerGuid.ToString();
                 if (customerGuid == Guid.Empty)
                 {
-                    cookie.Expires = DateTime.Now.AddMonths(-1);
+                    httpContext.Response.Cookies.Delete(CustomerCookieName);
                 }
                 else
                 {
-                    int cookieExpires = 24*365; //TODO make configurable
-                    cookie.Expires = DateTime.Now.AddHours(cookieExpires);
+                    int cookieExpires = 24 * 365; //TODO make configurable
+                    var options = new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Expires = DateTime.Now.AddHours(cookieExpires)
+                    };
+                    httpContext.Response.Cookies.Append(CustomerCookieName, customerGuid.ToString(), options);
                 }
-
-                _httpContext.Response.Cookies.Remove(CustomerCookieName);
-                _httpContext.Response.Cookies.Add(cookie);
             }
         }
 
         protected virtual Language GetLanguageFromUrl()
         {
-            if (_httpContext == null || _httpContext.Request == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null || httpContext.Request == null)
                 return null;
 
-            string virtualPath = _httpContext.Request.AppRelativeCurrentExecutionFilePath;
-            string applicationPath = _httpContext.Request.ApplicationPath;
+            string virtualPath = httpContext.Request.Path.Value;
+            string applicationPath = httpContext.Request.PathBase.Value ?? "/";
             if (!virtualPath.IsLocalizedUrl(applicationPath, false))
                 return null;
 
@@ -148,12 +155,16 @@ namespace Nop.Web.Framework
 
         protected virtual Language GetLanguageFromBrowserSettings()
         {
-            if (_httpContext == null ||
-                _httpContext.Request == null ||
-                _httpContext.Request.UserLanguages == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null || httpContext.Request == null)
                 return null;
 
-            var userLanguage = _httpContext.Request.UserLanguages.FirstOrDefault();
+            var acceptLanguageHeader = httpContext.Request.GetTypedHeaders().AcceptLanguage;
+            if (acceptLanguageHeader == null || !acceptLanguageHeader.Any())
+                return null;
+
+            var userLanguage = acceptLanguageHeader.OrderByDescending(l => l.Quality ?? 1.0)
+                .FirstOrDefault()?.Value.ToString();
             if (String.IsNullOrEmpty(userLanguage))
                 return null;
 
@@ -183,7 +194,8 @@ namespace Nop.Web.Framework
                     return _cachedCustomer;
 
                 Customer customer = null;
-                if (_httpContext == null || _httpContext is FakeHttpContext)
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (httpContext == null || httpContext is FakeHttpContext)
                 {
                     //check whether request is made by a background task
                     //in this case return built-in customer record for background task
@@ -226,11 +238,11 @@ namespace Nop.Web.Framework
                 //load guest customer
                 if (customer == null || customer.Deleted || !customer.Active || customer.RequireReLogin)
                 {
-                    var customerCookie = GetCustomerCookie();
-                    if (customerCookie != null && !String.IsNullOrEmpty(customerCookie.Value))
+                    var customerCookieValue = GetCustomerCookieValue();
+                    if (!String.IsNullOrEmpty(customerCookieValue))
                     {
                         Guid customerGuid;
-                        if (Guid.TryParse(customerCookie.Value, out customerGuid))
+                        if (Guid.TryParse(customerCookieValue, out customerGuid))
                         {
                             var customerByCookie = _customerService.GetCustomerByGuid(customerGuid);
                             if (customerByCookie != null &&

@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Services.Security;
 using Nop.Web.Framework.Security;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -38,10 +39,10 @@ namespace Nop.Admin.Controllers
                 return View();
             }
 
-            if (Request.Files.Count == 0)
+            if (Request.Form.Files.Count == 0)
                 throw new Exception("No file uploaded");
 
-            var uploadFile = Request.Files[0];
+            var uploadFile = Request.Form.Files[0];
             if (uploadFile == null)
             {
                 ViewData["resultCode"] = "failed";
@@ -68,7 +69,7 @@ namespace Nop.Admin.Controllers
                 return View();
             }
 
-            uploadFile.SaveAs(filePath);
+            using (var stream = new System.IO.FileStream(filePath, System.IO.FileMode.Create)) { uploadFile.CopyTo(stream); }
 
             ViewData["resultCode"] = "success";
             ViewData["result"] = "success";

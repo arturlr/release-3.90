@@ -1,10 +1,11 @@
-﻿using System;
+using Microsoft.AspNetCore.Http;
+using System;
 using System.IO;
-using System.Web;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Services.Media;
 using Nop.Web.Framework.Security;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -30,21 +31,21 @@ namespace Nop.Admin.Controllers
             Stream stream = null;
             var fileName = "";
             var contentType = "";
-            if (String.IsNullOrEmpty(Request["qqfile"]))
+            if (String.IsNullOrEmpty(Request.Query["qqfile"]))
             {
                 // IE
-                HttpPostedFileBase httpPostedFile = Request.Files[0];
+                IFormFile httpPostedFile = Request.Form.Files[0];
                 if (httpPostedFile == null)
                     throw new ArgumentException("No file uploaded");
-                stream = httpPostedFile.InputStream;
+                stream = httpPostedFile.OpenReadStream();
                 fileName = Path.GetFileName(httpPostedFile.FileName);
                 contentType = httpPostedFile.ContentType;
             }
             else
             {
                 //Webkit, Mozilla
-                stream = Request.InputStream;
-                fileName = Request["qqfile"];
+                stream = Request.Body;
+                fileName = Request.Query["qqfile"];
             }
 
             var fileBinary = new byte[stream.Length];

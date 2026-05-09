@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using NUnit.Framework;
 
 namespace Nop.Tests
@@ -8,19 +8,19 @@ namespace Nop.Tests
         public static void AreEqual(object expected, object instance)
         {
             if (expected == null)
-                Assert.IsNull(instance);
+                Assert.That(instance, NUnit.Framework.Is.Null);
             else
-                Assert.IsNotNull(instance, "Instance was null");
-            Assert.AreEqual(expected.GetType(), instance.GetType(), "Expected: " + expected.GetType() + ", was: " + instance.GetType() + " was not of type " + instance.GetType());
+                Assert.That(instance, NUnit.Framework.Is.Not.Null, "Instance was null");
+            Assert.That(instance.GetType(), NUnit.Framework.Is.EqualTo(expected.GetType()), "Expected: " + expected.GetType() + ", was: " + instance.GetType() + " was not of type " + instance.GetType());
         }
 
         public static void AreEqual(Type expected, object instance)
         {
             if (expected == null)
-                Assert.IsNull(instance);
+                Assert.That(instance, NUnit.Framework.Is.Null);
             else
-                Assert.IsNotNull(instance, "Instance was null");
-            Assert.AreEqual(expected, instance.GetType(), "Expected: " + expected + ", was: " + instance.GetType() + " was not of type " + instance.GetType());
+                Assert.That(instance, NUnit.Framework.Is.Not.Null, "Instance was null");
+            Assert.That(instance.GetType(), NUnit.Framework.Is.EqualTo(expected), "Expected: " + expected + ", was: " + instance.GetType() + " was not of type " + instance.GetType());
         }
 
         public static void Equals<T>(object instance)
@@ -30,7 +30,7 @@ namespace Nop.Tests
 
         public static void Is<T>(object instance)
         {
-            Assert.IsTrue(instance is T, "Instance " + instance + " was not of type " + typeof(T));
+            Assert.That(instance, NUnit.Framework.Is.InstanceOf<T>(), "Instance " + instance + " was not of type " + typeof(T));
         }
     }
 }

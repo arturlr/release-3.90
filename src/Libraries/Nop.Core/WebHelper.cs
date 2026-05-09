@@ -17,7 +17,7 @@ namespace Nop.Core
     {
         #region Fields 
 
-        private readonly HttpContextBase _httpContext;
+        private readonly HttpContext _httpContext;
         private readonly string[] _staticFileExtensions;
 
         #endregion
@@ -28,7 +28,7 @@ namespace Nop.Core
         /// Ctor
         /// </summary>
         /// <param name="httpContext">HTTP context</param>
-        public WebHelper(HttpContextBase httpContext)
+        public WebHelper(HttpContext httpContext)
         {
             this._httpContext = httpContext;
             this._staticFileExtensions = new[] { ".axd", ".ashx", ".bmp", ".css", ".gif", ".htm", ".html", ".ico", ".jpeg", ".jpg", ".js", ".png", ".rar", ".zip" };
@@ -38,7 +38,7 @@ namespace Nop.Core
 
         #region Utilities
 
-        protected virtual Boolean IsRequestAvailable(HttpContextBase httpContext)
+        protected virtual Boolean IsRequestAvailable(HttpContext httpContext)
         {
             if (httpContext == null)
                 return false;
@@ -48,7 +48,7 @@ namespace Nop.Core
                 if (httpContext.Request == null)
                     return false;
             }
-            catch (HttpException)
+            catch (Exception)
             {
                 return false;
             }
@@ -59,8 +59,7 @@ namespace Nop.Core
         {
             try
             {
-                // In medium trust, "UnloadAppDomain" is not supported. Touch web.config
-                // to force an AppDomain restart.
+                // Touch web.config to force an application restart.
                 File.SetLastWriteTimeUtc(CommonHelper.MapPath("~/web.config"), DateTime.UtcNow);
                 return true;
             }
@@ -361,8 +360,6 @@ namespace Nop.Core
         /// <returns>Store location</returns>
         public virtual string GetStoreLocation(bool useSsl)
         {
-            //return HostingEnvironment.ApplicationVirtualPath;
-
             string result = GetStoreHost(useSsl);
             if (result.EndsWith("/"))
                 result = result.Substring(0, result.Length - 1);
@@ -451,11 +448,6 @@ namespace Nop.Core
                             {
                                 if (!dictionary.ContainsKey(strArray[0]))
                                 {
-                                    //do not add value if it already exists
-                                    //two the same query parameters? theoretically it's not possible.
-                                    //but MVC has some ugly implementation for checkboxes and we can have two values
-                                    //find more info here: http://www.mindstorminteractive.com/topics/jquery-fix-asp-net-mvc-checkbox-truefalse-value/
-                                    //we do this validation just to ensure that the first one is not overridden
                                     dictionary[strArray[0]] = strArray[1];
                                 }
                             }
@@ -598,33 +590,12 @@ namespace Nop.Core
         /// <param name="redirectUrl">Redirect URL; empty string if you want to redirect to the current page URL</param>
         public virtual void RestartAppDomain(bool makeRedirect = false, string redirectUrl = "")
         {
-            if (CommonHelper.GetTrustLevel() > AspNetHostingPermissionLevel.Medium)
+            //In .NET Core+, HttpRuntime.UnloadAppDomain() is not available.
+            //Touch web.config to trigger an application restart.
+            bool success = TryWriteWebConfig();
+            if (!success)
             {
-                //full trust
-                HttpRuntime.UnloadAppDomain();
-
                 TryWriteGlobalAsax();
-            }
-            else
-            {
-                //medium trust
-                bool success = TryWriteWebConfig();
-                if (!success)
-                {
-                    throw new NopException("nopCommerce needs to be restarted due to a configuration change, but was unable to do so." + Environment.NewLine +
-                        "To prevent this issue in the future, a change to the web server configuration is required:" + Environment.NewLine +
-                        "- run the application in a full trust environment, or" + Environment.NewLine +
-                        "- give the application write access to the 'web.config' file.");
-                }
-                success = TryWriteGlobalAsax();
-
-                if (!success)
-                {
-                    throw new NopException("nopCommerce needs to be restarted due to a configuration change, but was unable to do so." + Environment.NewLine +
-                        "To prevent this issue in the future, a change to the web server configuration is required:" + Environment.NewLine +
-                        "- run the application in a full trust environment, or" + Environment.NewLine +
-                        "- give the application write access to the 'Global.asax' file.");
-                }
             }
 
             // If setting up extensions/modules requires an AppDomain restart, it's very unlikely the

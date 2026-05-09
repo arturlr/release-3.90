@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Moq;
 using Nop.Core.Caching;
 using Nop.Core.Data;
 using Nop.Core.Domain.Directory;
@@ -10,7 +11,6 @@ using Nop.Services.Events;
 using Nop.Services.Stores;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Services.Tests.Directory
 {
@@ -70,13 +70,15 @@ namespace Nop.Services.Tests.Directory
                 UpdatedOnUtc = DateTime.UtcNow,
                 RoundingType = RoundingType.Rounding001
             };
-            _currencyRepository = MockRepository.GenerateMock<IRepository<Currency>>();
-            _currencyRepository.Expect(x => x.Table).Return(new List<Currency> { currencyUSD, currencyEUR, currencyRUR }.AsQueryable());
-            _currencyRepository.Expect(x => x.GetById(currencyUSD.Id)).Return(currencyUSD);
-            _currencyRepository.Expect(x => x.GetById(currencyEUR.Id)).Return(currencyEUR);
-            _currencyRepository.Expect(x => x.GetById(currencyRUR.Id)).Return(currencyRUR);
 
-            _storeMappingService = MockRepository.GenerateMock<IStoreMappingService>();
+            var currencyRepoMock = new Mock<IRepository<Currency>>();
+            currencyRepoMock.Setup(x => x.Table).Returns(new List<Currency> { currencyUSD, currencyEUR, currencyRUR }.AsQueryable());
+            currencyRepoMock.Setup(x => x.GetById(currencyUSD.Id)).Returns(currencyUSD);
+            currencyRepoMock.Setup(x => x.GetById(currencyEUR.Id)).Returns(currencyEUR);
+            currencyRepoMock.Setup(x => x.GetById(currencyRUR.Id)).Returns(currencyRUR);
+            _currencyRepository = currencyRepoMock.Object;
+
+            _storeMappingService = new Mock<IStoreMappingService>().Object;
 
             var cacheManager = new NopNullCache();
             
@@ -84,8 +86,9 @@ namespace Nop.Services.Tests.Directory
             _currencySettings.PrimaryStoreCurrencyId = currencyUSD.Id;
             _currencySettings.PrimaryExchangeRateCurrencyId = currencyEUR.Id;
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            var eventPublisherMock = new Mock<IEventPublisher>();
+            eventPublisherMock.Setup(x => x.Publish(It.IsAny<object>()));
+            _eventPublisher = eventPublisherMock.Object;
             
             var pluginFinder = new PluginFinder();
             _currencyService = new CurrencyService(cacheManager,

@@ -1,13 +1,14 @@
-﻿using System;
+using System;
 using System.Collections.Specialized;
-using System.Web;
-using System.Web.Mvc;
 
 namespace Nop.Core.Fakes
 {
-    public class FakeHttpRequest : HttpRequestBase
+    /// <summary>
+    /// Fake HTTP request for use in scenarios where a real HttpRequest is not available.
+    /// </summary>
+    public class FakeHttpRequest
     {
-        private readonly HttpCookieCollection _cookies;
+        private readonly NameValueCollection _cookies;
         private readonly NameValueCollection _formParams;
         private readonly NameValueCollection _queryStringParams;
         private readonly NameValueCollection _headers;
@@ -19,30 +20,20 @@ namespace Nop.Core.Fakes
 
         public FakeHttpRequest(string relativeUrl, string method,
             NameValueCollection formParams, NameValueCollection queryStringParams,
-            HttpCookieCollection cookies, NameValueCollection serverVariables)
+            NameValueCollection cookies, NameValueCollection serverVariables)
         {
             _httpMethod = method;
             _relativeUrl = relativeUrl;
-            _formParams = formParams;
-            _queryStringParams = queryStringParams;
-            _cookies = cookies;
-            _serverVariables = serverVariables;
-            //ensure collections are not null
-            if (_formParams == null)
-                _formParams = new NameValueCollection();
-            if (_queryStringParams == null)
-                _queryStringParams = new NameValueCollection();
-            if (_cookies == null)
-                _cookies = new HttpCookieCollection();
-            if (_serverVariables == null)
-                _serverVariables = new NameValueCollection();
-            if (_headers == null)
-                _headers = new NameValueCollection();
+            _formParams = formParams ?? new NameValueCollection();
+            _queryStringParams = queryStringParams ?? new NameValueCollection();
+            _cookies = cookies ?? new NameValueCollection();
+            _serverVariables = serverVariables ?? new NameValueCollection();
+            _headers = new NameValueCollection();
         }
 
         public FakeHttpRequest(string relativeUrl, string method, Uri url, Uri urlReferrer,
             NameValueCollection formParams, NameValueCollection queryStringParams,
-            HttpCookieCollection cookies, NameValueCollection serverVariables)
+            NameValueCollection cookies, NameValueCollection serverVariables)
             : this(relativeUrl, method, formParams, queryStringParams, cookies, serverVariables)
         {
             _url = url;
@@ -50,65 +41,56 @@ namespace Nop.Core.Fakes
         }
 
         public FakeHttpRequest(string relativeUrl, Uri url, Uri urlReferrer)
-            : this(relativeUrl, HttpVerbs.Get.ToString("g"), url, urlReferrer, null, null, null, null)
+            : this(relativeUrl, "GET", url, urlReferrer, null, null, null, null)
         {
         }
 
-        public override NameValueCollection ServerVariables
+        public virtual NameValueCollection ServerVariables
         {
-            get
-            {
-                return _serverVariables;
-            }
+            get { return _serverVariables; }
         }
 
-        public override NameValueCollection Form
+        public virtual NameValueCollection Form
         {
             get { return _formParams; }
         }
 
-        public override NameValueCollection QueryString
+        public virtual NameValueCollection QueryString
         {
             get { return _queryStringParams; }
         }
 
-        public override NameValueCollection Headers
+        public virtual NameValueCollection Headers
         {
             get { return _headers; }
         }
 
-        public override HttpCookieCollection Cookies
+        public virtual NameValueCollection Cookies
         {
             get { return _cookies; }
         }
 
-        public override string AppRelativeCurrentExecutionFilePath
+        public virtual string AppRelativeCurrentExecutionFilePath
         {
             get { return _relativeUrl; }
         }
 
-        public override Uri Url
+        public virtual Uri Url
         {
-            get
-            {
-                return _url;
-            }
+            get { return _url; }
         }
 
-        public override Uri UrlReferrer
+        public virtual Uri UrlReferrer
         {
-            get
-            {
-                return _urlReferrer;
-            }
+            get { return _urlReferrer; }
         }
 
-        public override string PathInfo
+        public virtual string PathInfo
         {
             get { return ""; }
         }
 
-        public override string ApplicationPath
+        public virtual string ApplicationPath
         {
             get
             {
@@ -120,40 +102,39 @@ namespace Nop.Core.Fakes
             }
         }
 
-        public override string HttpMethod
+        public virtual string HttpMethod
         {
-            get
-            {
-                return _httpMethod;
-            }
+            get { return _httpMethod; }
         }
 
-        public override string UserHostAddress
+        public virtual string UserHostAddress
         {
             get { return null; }
         }
 
-        public override string RawUrl
+        public virtual string RawUrl
         {
             get { return null; }
         }
 
-        public override bool IsSecureConnection
+        public virtual bool IsSecureConnection
         {
             get { return false; }
         }
 
-        public override bool IsAuthenticated
+        public virtual bool IsAuthenticated
         {
-            get
-            {
-                return false;
-            }
+            get { return false; }
         }
 
-        public override string[] UserLanguages
+        public virtual string[] UserLanguages
         {
             get { return null; }
+        }
+
+        public virtual string Path
+        {
+            get { return _relativeUrl; }
         }
     }
 }

@@ -1,13 +1,12 @@
-﻿using System;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using System;
 using Nop.Admin.Validators.Catalog;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Admin.Models.Catalog
 {
-    [Validator(typeof(ProductReviewValidator))]
     public partial class ProductReviewModel : BaseNopEntityModel
     {
         [NopResourceDisplayName("Admin.Catalog.ProductReviews.Fields.Store")]
@@ -22,15 +21,15 @@ namespace Nop.Admin.Models.Catalog
         [NopResourceDisplayName("Admin.Catalog.ProductReviews.Fields.Customer")]
         public string CustomerInfo { get; set; }
 
-        [AllowHtml]
+
         [NopResourceDisplayName("Admin.Catalog.ProductReviews.Fields.Title")]
         public string Title { get; set; }
 
-        [AllowHtml]
+
         [NopResourceDisplayName("Admin.Catalog.ProductReviews.Fields.ReviewText")]
         public string ReviewText { get; set; }
 
-        [AllowHtml]
+
         [NopResourceDisplayName("Admin.Catalog.ProductReviews.Fields.ReplyText")]
         public string ReplyText { get; set; }
 

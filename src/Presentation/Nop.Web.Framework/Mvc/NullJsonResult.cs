@@ -1,29 +1,30 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Nop.Core;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Web.Framework.Mvc
 {
     public class NullJsonResult : JsonResult
     {
-        public override void ExecuteResult(ControllerContext context)
+        public NullJsonResult() : base(null)
+        {
+            ContentType = MimeTypes.ApplicationJson;
+        }
+
+        public override async Task ExecuteResultAsync(ActionContext context)
         {
             if (context == null)
-                throw new ArgumentNullException("context");
-
-            //we do it as described here - http://stackoverflow.com/questions/15939944/jquery-post-json-fails-when-returning-null-from-asp-net-mvc
+                throw new ArgumentNullException(nameof(context));
 
             var response = context.HttpContext.Response;
             response.ContentType = !String.IsNullOrEmpty(ContentType) ? ContentType : MimeTypes.ApplicationJson;
-            if (ContentEncoding != null)
-                response.ContentEncoding = ContentEncoding;
 
-            this.Data = null;
-
-            //If you need special handling, you can call another form of SerializeObject below
-            var serializedObject = JsonConvert.SerializeObject(Data, Formatting.Indented);
-            response.Write(serializedObject);
+            var serializedObject = JsonConvert.SerializeObject(null, Formatting.Indented);
+            await response.WriteAsync(serializedObject);
         }
     }
 }

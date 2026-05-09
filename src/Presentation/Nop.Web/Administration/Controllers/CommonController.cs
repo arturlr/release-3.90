@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
@@ -6,9 +6,6 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
-using System.Web;
-using System.Web.Configuration;
-using System.Web.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Common;
 using Nop.Core;
@@ -32,6 +29,10 @@ using Nop.Services.Stores;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Security;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Http;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -59,7 +60,7 @@ namespace Nop.Admin.Controllers
         private readonly ISettingService _settingService;
         private readonly IStoreService _storeService;
         private readonly CatalogSettings _catalogSettings;
-        private readonly HttpContextBase _httpContext;
+        private readonly HttpContext _httpContext;
         private readonly IMaintenanceService _maintenanceService;
 
         #endregion
@@ -86,7 +87,7 @@ namespace Nop.Admin.Controllers
             ISettingService settingService,
             IStoreService storeService,
             CatalogSettings catalogSettings,
-            HttpContextBase httpContext,
+            HttpContext httpContext,
             IMaintenanceService maintenanceService)
         {
             this._paymentService = paymentService;
@@ -190,19 +191,19 @@ namespace Nop.Admin.Controllers
             model.UtcTime = DateTime.UtcNow;
             model.CurrentUserTime = _dateTimeHelper.ConvertToUserTime(DateTime.Now);
             model.HttpHost = _webHelper.ServerVariables("HTTP_HOST");
-            foreach (var key in _httpContext.Request.ServerVariables.AllKeys)
+            foreach (var key in _httpContext.Request.Headers.Keys)
             {
                 if (key.StartsWith("ALL_")) continue;
 
                 model.ServerVariables.Add(new SystemInfoModel.ServerVariableModel
                 {
                     Name = key,
-                    Value = _httpContext.Request.ServerVariables[key]
+                    Value = _httpContext.Request.Headers[key].ToString()
                 });
             }
             //Environment.GetEnvironmentVariable("USERNAME");
 
-            var trustLevel = CommonHelper.GetTrustLevel();
+            var trustLevel = "Full";
 
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -214,7 +215,7 @@ namespace Nop.Admin.Controllers
                 //ensure no exception is thrown
                 try
                 {
-                    var canGetLocation = trustLevel >= AspNetHostingPermissionLevel.High && !assembly.IsDynamic;
+                    var canGetLocation = !assembly.IsDynamic;
                     loadedAssembly.Location = canGetLocation ? assembly.Location : null;
                     loadedAssembly.IsDebug = IsDebugAssembly(assembly);
                     loadedAssembly.BuildDate = canGetLocation ? (DateTime?)GetBuildDate(assembly, TimeZoneInfo.Local) : null;
@@ -455,10 +456,11 @@ namespace Nop.Admin.Controllers
             //machine key
             try
             {
-                var machineKeySection = ConfigurationManager.GetSection("system.web/machineKey") as MachineKeySection;
-                var machineKeySpecified = machineKeySection != null &&
-                    !String.IsNullOrEmpty(machineKeySection.DecryptionKey) &&
-                    !machineKeySection.DecryptionKey.StartsWith("AutoGenerate", StringComparison.InvariantCultureIgnoreCase);
+                // MachineKey is not applicable in ASP.NET Core (uses Data Protection)
+
+
+                var machineKeySpecified = true;
+
 
                 if (!machineKeySpecified)
                 {
@@ -543,7 +545,7 @@ namespace Nop.Admin.Controllers
 
 
             model.DeleteExportedFiles.NumberOfDeletedFiles = 0;
-            string path = Path.Combine(this.Request.PhysicalApplicationPath, "content\\files\\exportimport");
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "content\\files\\exportimport");
             foreach (var fullPath in Directory.GetFiles(path))
             {
                 try
@@ -646,7 +648,32 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
+        /* Added by CTA: This attribute is not available anymore. An alternative is using ViewComponents:
+Sample:
+
+public class SampleViewComponent : ViewComponent
+    {
+        private readonly InjectedService _injectedService;
+
+        public SampleViewComponent (InjectedService injectedService)
+        {
+            _injectedService = injectedService;
+        }
+
+
+       public IViewComponentResult Invoke(int parameter)
+        {
+            var object = _injectedService.SampleFunction(parameter);
+        // No name is specified, returns the view SampleView (same name as component)
+            return View(object);
+        }
+    }
+
+Then use this to call the view component from any view:
+
+    @await Component.InvokeAsync("SampleView", new { parameter = ""})
+
+https://docs.microsoft.com/en-us/aspnet/core/mvc/views/view-components?view=aspnetcore-3.1 */
         public virtual ActionResult LanguageSelector()
         {
             var model = new LanguageSelectorModel();
@@ -802,7 +829,32 @@ namespace Nop.Admin.Controllers
         }
 
 
-        [ChildActionOnly]
+        /* Added by CTA: This attribute is not available anymore. An alternative is using ViewComponents:
+Sample:
+
+public class SampleViewComponent : ViewComponent
+    {
+        private readonly InjectedService _injectedService;
+
+        public SampleViewComponent (InjectedService injectedService)
+        {
+            _injectedService = injectedService;
+        }
+
+
+       public IViewComponentResult Invoke(int parameter)
+        {
+            var object = _injectedService.SampleFunction(parameter);
+        // No name is specified, returns the view SampleView (same name as component)
+            return View(object);
+        }
+    }
+
+Then use this to call the view component from any view:
+
+    @await Component.InvokeAsync("SampleView", new { parameter = ""})
+
+https://docs.microsoft.com/en-us/aspnet/core/mvc/views/view-components?view=aspnetcore-3.1 */
         public virtual ActionResult PopularSearchTermsReport()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
@@ -831,7 +883,32 @@ namespace Nop.Admin.Controllers
 
 
         //action displaying notification (warning) to a store owner that "limit per store" feature is ignored
-        [ChildActionOnly]
+        /* Added by CTA: This attribute is not available anymore. An alternative is using ViewComponents:
+Sample:
+
+public class SampleViewComponent : ViewComponent
+    {
+        private readonly InjectedService _injectedService;
+
+        public SampleViewComponent (InjectedService injectedService)
+        {
+            _injectedService = injectedService;
+        }
+
+
+       public IViewComponentResult Invoke(int parameter)
+        {
+            var object = _injectedService.SampleFunction(parameter);
+        // No name is specified, returns the view SampleView (same name as component)
+            return View(object);
+        }
+    }
+
+Then use this to call the view component from any view:
+
+    @await Component.InvokeAsync("SampleView", new { parameter = ""})
+
+https://docs.microsoft.com/en-us/aspnet/core/mvc/views/view-components?view=aspnetcore-3.1 */
         public virtual ActionResult MultistoreDisabledWarning()
         {
             //default setting
@@ -857,7 +934,32 @@ namespace Nop.Admin.Controllers
             return PartialView();
         }
         //action displaying notification (warning) to a store owner that "ACL rules" feature is ignored
-        [ChildActionOnly]
+        /* Added by CTA: This attribute is not available anymore. An alternative is using ViewComponents:
+Sample:
+
+public class SampleViewComponent : ViewComponent
+    {
+        private readonly InjectedService _injectedService;
+
+        public SampleViewComponent (InjectedService injectedService)
+        {
+            _injectedService = injectedService;
+        }
+
+
+       public IViewComponentResult Invoke(int parameter)
+        {
+            var object = _injectedService.SampleFunction(parameter);
+        // No name is specified, returns the view SampleView (same name as component)
+            return View(object);
+        }
+    }
+
+Then use this to call the view component from any view:
+
+    @await Component.InvokeAsync("SampleView", new { parameter = ""})
+
+https://docs.microsoft.com/en-us/aspnet/core/mvc/views/view-components?view=aspnetcore-3.1 */
         public virtual ActionResult AclDisabledWarning()
         {
             //default setting
@@ -884,20 +986,19 @@ namespace Nop.Admin.Controllers
         }
 
         //action displaying notification (warning) to a store owner that entered SE URL already exists
-        [ValidateInput(false)]
         public virtual ActionResult UrlReservedWarning(string entityId, string entityName, string seName)
         {
             if (string.IsNullOrEmpty(seName))
-                return Json(new { Result = string.Empty }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = string.Empty });
 
             int parsedEntityId;
             int.TryParse(entityId, out parsedEntityId);
             var validatedSeName = SeoExtensions.ValidateSeName(parsedEntityId, entityName, seName, null, false);
 
             if (seName.Equals(validatedSeName, StringComparison.InvariantCultureIgnoreCase))
-                return Json(new { Result = string.Empty }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = string.Empty });
 
-            return Json(new { Result = string.Format(_localizationService.GetResource("Admin.System.Warnings.URL.Reserved"), validatedSeName) }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = string.Format(_localizationService.GetResource("Admin.System.Warnings.URL.Reserved"), validatedSeName) });
         }
 
         #endregion

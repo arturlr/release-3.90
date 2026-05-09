@@ -1,7 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Plugin.Pickup.PickupInStore.Models
 {
@@ -50,15 +53,12 @@ namespace Nop.Plugin.Pickup.PickupInStore.Models
         public IList<SelectListItem> AvailableStates { get; set; }
 
         [NopResourceDisplayName("Admin.Address.Fields.City")]
-        [AllowHtml]
         public string City { get; set; }
 
         [NopResourceDisplayName("Admin.Address.Fields.Address1")]
-        [AllowHtml]
         public string Address1 { get; set; }
 
         [NopResourceDisplayName("Admin.Address.Fields.ZipPostalCode")]
-        [AllowHtml]
         public string ZipPostalCode { get; set; }
     }
 }

@@ -18,10 +18,23 @@ using System.Reflection;
 using Autofac;
 using System.IO;
 using System.Collections.Generic;
-using Nop.Core.Tasks;
+using Nop.Core.Infrastructure.DependencyManagement;
 
 namespace Nop.Core.Infrastructure
 {
+    /// <summary>
+    /// Event args for container building events.
+    /// </summary>
+    public class ContainerBuilderEventArgs : EventArgs
+    {
+        public ContainerBuilderEventArgs(ContainerBuilder builder)
+        {
+            Builder = builder;
+        }
+
+        public ContainerBuilder Builder { get; }
+    }
+
     [Obsolete("This work is performed in NopEngine", true)]
     public class NopStarter
     {
@@ -39,11 +52,11 @@ namespace Nop.Core.Infrastructure
                 var builder = new ContainerBuilder();
 
                 //type finder
-                var typeFinder = new TypeFinder();
-                builder.Register(c => typeFinder);
+                var typeFinder = new WebAppTypeFinder();
+                builder.Register(c => typeFinder).As<ITypeFinder>();
                 
-                //find IDependencyRegistar implementations
-                var drTypes = typeFinder.FindClassesOfType<IDependencyRegistar>();
+                //find IDependencyRegistrar implementations
+                var drTypes = typeFinder.FindClassesOfType<IDependencyRegistrar>();
                 foreach (var t in drTypes)
                 {
                     dynamic dependencyRegistar = Activator.CreateInstance(t);

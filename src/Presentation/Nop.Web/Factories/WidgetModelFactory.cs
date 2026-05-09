@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
-using System.Web.Routing;
+using System.Collections.Generic;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Services.Cms;
 using Nop.Web.Framework.Themes;
 using Nop.Web.Infrastructure.Cache;
 using Nop.Web.Models.Cms;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Factories
 {

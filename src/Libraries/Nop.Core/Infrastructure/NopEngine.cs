@@ -1,13 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
 using Autofac;
-using Autofac.Integration.Mvc;
 using AutoMapper;
 using Nop.Core.Configuration;
 using Nop.Core.Infrastructure.DependencyManagement;
 using Nop.Core.Infrastructure.Mapper;
+
 
 namespace Nop.Core.Infrastructure
 {
@@ -66,9 +65,6 @@ namespace Nop.Core.Infrastructure
 
             var container = builder.Build();
             this._containerManager = new ContainerManager(container);
-
-            //set dependency resolver
-            DependencyResolver.SetResolver(new AutofacDependencyResolver(container));
         }
 
         /// <summary>

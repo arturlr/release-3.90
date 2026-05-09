@@ -1,8 +1,8 @@
-﻿using System.Linq;
-using System.Web.Mvc;
-using System.Web.UI;
+using System.Linq;
+using System.Text;
 using Nop.Core;
 using Nop.Core.Infrastructure;
+
 
 namespace Nop.Web.Framework.Security.Captcha
 {
@@ -24,42 +24,32 @@ namespace Nop.Web.Framework.Security.Captcha
             _version = version;
         }
 
-        public void RenderControl(HtmlTextWriter writer)
+        public void RenderControl(StringBuilder writer)
         {
             SetTheme();
 
             if (_version == ReCaptchaVersion.Version1)
             {
-                var scriptCaptchaOptionsTag = new TagBuilder("script");
-                scriptCaptchaOptionsTag.Attributes.Add("type", MimeTypes.TextJavascript);
-                scriptCaptchaOptionsTag.InnerHtml =
-                    string.Format("var RecaptchaOptions = {{ theme: '{0}', tabindex: 0 }}; ", Theme);
-                writer.Write(scriptCaptchaOptionsTag.ToString(TagRenderMode.Normal));
+                writer.AppendFormat("<script type=\"{0}\">", MimeTypes.TextJavascript);
+                writer.AppendFormat("var RecaptchaOptions = {{ theme: '{0}', tabindex: 0 }}; ", Theme);
+                writer.Append("</script>");
 
                 var webHelper = EngineContext.Current.Resolve<IWebHelper>();
-                var scriptLoadApiTag = new TagBuilder("script");
                 var scriptSrc = webHelper.IsCurrentConnectionSecured() ? 
                     string.Format(RECAPTCHA_API_URL_HTTPS_VERSION1, PublicKey) :
                     string.Format(RECAPTCHA_API_URL_HTTP_VERSION1, PublicKey);
-                scriptLoadApiTag.Attributes.Add("src", scriptSrc);
-                writer.Write(scriptLoadApiTag.ToString(TagRenderMode.Normal));
+                writer.AppendFormat("<script src=\"{0}\"></script>", scriptSrc);
             }
             else if (_version == ReCaptchaVersion.Version2)
             {
-                var scriptCallbackTag = new TagBuilder("script");
-                scriptCallbackTag.Attributes.Add("type", MimeTypes.TextJavascript);
-                scriptCallbackTag.InnerHtml = string.Format("var onloadCallback = function() {{grecaptcha.render('{0}', {{'sitekey' : '{1}', 'theme' : '{2}' }});}};", Id, PublicKey, Theme);
-                writer.Write(scriptCallbackTag.ToString(TagRenderMode.Normal));
+                writer.AppendFormat("<script type=\"{0}\">", MimeTypes.TextJavascript);
+                writer.AppendFormat("var onloadCallback = function() {{grecaptcha.render('{0}', {{'sitekey' : '{1}', 'theme' : '{2}' }});}};", Id, PublicKey, Theme);
+                writer.Append("</script>");
 
-                var captchaTag = new TagBuilder("div");
-                captchaTag.Attributes.Add("id", Id);
-                writer.Write(captchaTag.ToString(TagRenderMode.Normal));
+                writer.AppendFormat("<div id=\"{0}\"></div>", Id);
 
-                var scriptLoadApiTag = new TagBuilder("script");
-                scriptLoadApiTag.Attributes.Add("src", RECAPTCHA_API_URL_VERSION2 + (string.IsNullOrEmpty(Language) ? "" : string.Format("&hl={0}", Language)));
-                scriptLoadApiTag.Attributes.Add("async", null);
-                scriptLoadApiTag.Attributes.Add("defer", null);
-                writer.Write(scriptLoadApiTag.ToString(TagRenderMode.Normal));
+                var src = RECAPTCHA_API_URL_VERSION2 + (string.IsNullOrEmpty(Language) ? "" : string.Format("&hl={0}", Language));
+                writer.AppendFormat("<script src=\"{0}\" async defer></script>", src);
             }
         }
 

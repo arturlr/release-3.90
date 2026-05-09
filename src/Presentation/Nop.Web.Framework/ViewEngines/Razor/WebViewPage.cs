@@ -1,19 +1,20 @@
-﻿using System.IO;
-using System.Web.Mvc;
+using System.IO;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
 using Nop.Services.Localization;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Themes;
+using Microsoft.AspNetCore.Mvc.Razor;
+
 
 namespace Nop.Web.Framework.ViewEngines.Razor
 {
     /// <summary>
-    /// Web view page
+    /// Web view page - ASP.NET Core Razor page base class
     /// </summary>
     /// <typeparam name="TModel">Model</typeparam>
-    public abstract class WebViewPage<TModel> : System.Web.Mvc.WebViewPage<TModel>
+    public abstract class WebViewPage<TModel> : RazorPage<TModel>
     {
         private ILocalizationService _localizationService;
         private Localizer _localizer;
@@ -27,13 +28,10 @@ namespace Nop.Web.Framework.ViewEngines.Razor
             {
                 if (_localizer == null)
                 {
-                    //null localizer
-                    //_localizer = (format, args) => new LocalizedString((args == null || args.Length == 0) ? format : string.Format(format, args));
-
                     //default localizer
                     _localizer = (format, args) =>
                                      {
-                                         var resFormat = _localizationService.GetResource(format);
+                                         var resFormat = _localizationService?.GetResource(format);
                                          if (string.IsNullOrEmpty(resFormat))
                                          {
                                              return new LocalizedString(format);
@@ -47,39 +45,29 @@ namespace Nop.Web.Framework.ViewEngines.Razor
                 return _localizer;
             }
         }
-        public override void InitHelpers()
-        {
-            base.InitHelpers();
 
+        public override void BeginContext(int position, int length, bool isLiteral)
+        {
+            // no-op - for compatibility
+        }
+
+        public override void EndContext()
+        {
+            // no-op - for compatibility
+        }
+
+        public override void EnsureRenderedBodyOrSections()
+        {
+            // no-op - for compatibility
+        }
+
+        public override async System.Threading.Tasks.Task ExecuteAsync()
+        {
             if (DataSettingsHelper.DatabaseIsInstalled())
             {
                 _localizationService = EngineContext.Current.Resolve<ILocalizationService>();
             }
-        }
-
-        public override string Layout
-        {
-            get
-            {
-                var layout = base.Layout;
-
-                if (!string.IsNullOrEmpty(layout))
-                {
-                    var filename = Path.GetFileNameWithoutExtension(layout);
-                    ViewEngineResult viewResult = System.Web.Mvc.ViewEngines.Engines.FindView(ViewContext.Controller.ControllerContext, filename, "");
-
-                    if (viewResult.View != null && viewResult.View is RazorView)
-                    {
-                        layout = (viewResult.View as RazorView).ViewPath;
-                    }
-                }
-
-                return layout;
-            }
-            set
-            {
-                base.Layout = value;
-            }
+            await System.Threading.Tasks.Task.CompletedTask;
         }
 
         /// <summary>

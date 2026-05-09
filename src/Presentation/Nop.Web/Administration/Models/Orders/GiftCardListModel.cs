@@ -1,7 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Orders
 {
@@ -13,11 +16,11 @@ namespace Nop.Admin.Models.Orders
         }
 
         [NopResourceDisplayName("Admin.GiftCards.List.CouponCode")]
-        [AllowHtml]
+
         public string CouponCode { get; set; }
 
         [NopResourceDisplayName("Admin.GiftCards.List.RecipientName")]
-        [AllowHtml]
+
         public string RecipientName { get; set; }
 
         [NopResourceDisplayName("Admin.GiftCards.List.Activated")]

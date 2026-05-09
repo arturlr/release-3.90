@@ -1,15 +1,16 @@
-﻿using System;
+using System;
 using System.Text;
-using System.Web.Mvc;
-using System.Web.Mvc.Html;
 using Nop.Core.Domain.Security;
 using Nop.Core.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Html;
+
 
 namespace Nop.Web.Framework.Security.Honeypot
 {
     public static class HtmlExtensions
     {
-        public static MvcHtmlString GenerateHoneypotInput(this HtmlHelper helper)
+        public static IHtmlContent GenerateHoneypotInput(this IHtmlHelper helper)
         {
             var sb = new StringBuilder();
 
@@ -18,16 +19,16 @@ namespace Nop.Web.Framework.Security.Honeypot
 
             var securitySettings = EngineContext.Current.Resolve<SecuritySettings>();
             var hpInput = helper.TextBox(securitySettings.HoneypotInputName);
-            sb.Append(hpInput.ToString());
+            using (var writer = new System.IO.StringWriter())
+            {
+                hpInput.WriteTo(writer, System.Text.Encodings.Web.HtmlEncoder.Default);
+                sb.Append(writer.ToString());
+            }
 
             sb.Append(Environment.NewLine);
             sb.Append("</div>");
 
-            return MvcHtmlString.Create(sb.ToString());
-
-            //var hpInput = helper.TextBox(securitySettings.HoneypotInputName, "", new { @class = "hp" });
-            //var hpInput = helper.Hidden(securitySettings.HoneypotInputName);
-            //return hpInput;
+            return new HtmlString(sb.ToString());
         }
     }
 }

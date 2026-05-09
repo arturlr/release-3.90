@@ -1,15 +1,16 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
 using Nop.Admin.Validators.Plugins;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Plugins
 {
-    [Validator(typeof(PluginValidator))]
     public partial class PluginModel : BaseNopModel, ILocalizedModel<PluginLocalizedModel>
     {
         public PluginModel()
@@ -22,23 +23,23 @@ namespace Nop.Admin.Models.Plugins
             AvailableCustomerRoles = new List<SelectListItem>();
         }
         [NopResourceDisplayName("Admin.Configuration.Plugins.Fields.Group")]
-        [AllowHtml]
+
         public string Group { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Plugins.Fields.FriendlyName")]
-        [AllowHtml]
+
         public string FriendlyName { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Plugins.Fields.SystemName")]
-        [AllowHtml]
+
         public string SystemName { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Plugins.Fields.Version")]
-        [AllowHtml]
+
         public string Version { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Plugins.Fields.Author")]
-        [AllowHtml]
+
         public string Author { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Plugins.Fields.DisplayOrder")]
@@ -50,7 +51,7 @@ namespace Nop.Admin.Models.Plugins
         [NopResourceDisplayName("Admin.Configuration.Plugins.Fields.Installed")]
         public bool Installed { get; set; }
         
-        [AllowHtml]
+
         public string Description { get; set; }
 
         public bool CanChangeEnabled { get; set; }
@@ -79,7 +80,7 @@ namespace Nop.Admin.Models.Plugins
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Plugins.Fields.FriendlyName")]
-        [AllowHtml]
+
         public string FriendlyName { get; set; }
     }
 }

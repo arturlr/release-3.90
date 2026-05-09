@@ -1,5 +1,3 @@
-﻿using System.Web.Routing;
-using Nop.Web.Infrastructure;
 using NUnit.Framework;
 
 namespace Nop.Web.MVC.Tests.Public.Infrastructure
@@ -10,17 +8,15 @@ namespace Nop.Web.MVC.Tests.Public.Infrastructure
         [SetUp]
         public void Setup()
         {
-            //var typeFinder = new WebAppTypeFinder();
-            //var routePublisher = new RoutePublisher(typeFinder);
-            //routePublisher.RegisterRoutes(RouteTable.Routes);
-
-            new RouteProvider().RegisterRoutes(RouteTable.Routes);
+            //TODO: Routing tests need to be rewritten for ASP.NET Core endpoint routing.
+            //The old System.Web.Routing.RouteTable is not available in ASP.NET Core.
+            //These tests should use Microsoft.AspNetCore.TestHost or 
+            //Microsoft.AspNetCore.Routing testing utilities.
         }
 
         [TearDown]
         public void TearDown()
         {
-            RouteTable.Routes.Clear();
         }
     }
 }

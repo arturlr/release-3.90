@@ -1,12 +1,13 @@
-﻿using System;
+using System;
 using System.Text;
-using System.Web.Mvc;
 using Nop.Plugin.Shipping.Fedex.Domain;
 using Nop.Plugin.Shipping.Fedex.Models;
 using Nop.Services;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Web.Framework.Controllers;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Plugin.Shipping.Fedex.Controllers
 {
@@ -26,8 +27,7 @@ namespace Nop.Plugin.Shipping.Fedex.Controllers
             this._localizationService = localizationService;
         }
 
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             var model = new FedexShippingModel();
             model.Url = _fedexSettings.Url;
@@ -67,8 +67,7 @@ namespace Nop.Plugin.Shipping.Fedex.Controllers
         }
 
         [HttpPost]
-        [ChildActionOnly]
-        public ActionResult Configure(FedexShippingModel model)
+        public IActionResult Configure(FedexShippingModel model)
         {
             if (!ModelState.IsValid)
             {

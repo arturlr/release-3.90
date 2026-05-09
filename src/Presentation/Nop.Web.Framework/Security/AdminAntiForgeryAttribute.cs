@@ -1,13 +1,17 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
 using Nop.Core.Data;
 using Nop.Core.Domain.Security;
 using Nop.Core.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace Nop.Web.Framework.Security
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
-    public class AdminAntiForgeryAttribute : FilterAttribute, IAuthorizationFilter
+    public class AdminAntiForgeryAttribute : ActionFilterAttribute
     {
         private readonly bool _ignore;
 
@@ -19,20 +23,17 @@ namespace Nop.Web.Framework.Security
         {
             this._ignore = ignore;
         }
-        public virtual void OnAuthorization(AuthorizationContext filterContext)
+
+        public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
             if (filterContext == null)
-                throw new ArgumentNullException("filterContext");
+                throw new ArgumentNullException(nameof(filterContext));
 
             if (_ignore)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
             //only POST requests
-            if (!String.Equals(filterContext.HttpContext.Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
+            if (!String.Equals(filterContext.HttpContext.Request.Method, "POST", StringComparison.OrdinalIgnoreCase))
                 return;
 
             if (!DataSettingsHelper.DatabaseIsInstalled())
@@ -41,8 +42,8 @@ namespace Nop.Web.Framework.Security
             if (!securitySettings.EnableXsrfProtectionForAdminArea)
                 return;
             
-            var validator = new ValidateAntiForgeryTokenAttribute();
-            validator.OnAuthorization(filterContext);
+            var antiforgery = filterContext.HttpContext.RequestServices.GetRequiredService<IAntiforgery>();
+            antiforgery.ValidateRequestAsync(filterContext.HttpContext).GetAwaiter().GetResult();
         }
     }
 }

@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Helpers;
 using Nop.Admin.Models.Catalog;
@@ -24,6 +23,10 @@ using Nop.Services.Vendors;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Controllers
 {
@@ -597,10 +600,10 @@ namespace Nop.Admin.Controllers
 
             try
             {
-                var file = Request.Files["importexcelfile"];
-                if (file != null && file.ContentLength > 0)
+                var file = Request.Form.Files["importexcelfile"];
+                if (file != null && file.Length > 0)
                 {
-                    _importManager.ImportManufacturersFromXlsx(file.InputStream);
+                    _importManager.ImportManufacturersFromXlsx(file.OpenReadStream());
                 }
                 else
                 {

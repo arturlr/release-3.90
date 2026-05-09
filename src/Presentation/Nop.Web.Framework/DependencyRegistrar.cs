@@ -2,11 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Web;
 using Autofac;
 using Autofac.Builder;
 using Autofac.Core;
-using Autofac.Integration.Mvc;
+using Autofac.Extensions.DependencyInjection;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Configuration;
@@ -53,6 +52,8 @@ using Nop.Services.Vendors;
 using Nop.Web.Framework.Mvc.Routes;
 using Nop.Web.Framework.Themes;
 using Nop.Web.Framework.UI;
+using Microsoft.AspNetCore.Http;
+
 
 namespace Nop.Web.Framework
 {
@@ -70,24 +71,8 @@ namespace Nop.Web.Framework
         public virtual void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
             //HTTP context and other related stuff
-            builder.Register(c => 
-                //register FakeHttpContext when HttpContext is not available
-                HttpContext.Current != null ?
-                (new HttpContextWrapper(HttpContext.Current) as HttpContextBase) :
-                (new FakeHttpContext("~/") as HttpContextBase))
-                .As<HttpContextBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Request)
-                .As<HttpRequestBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Response)
-                .As<HttpResponseBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Server)
-                .As<HttpServerUtilityBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Session)
-                .As<HttpSessionStateBase>()
+            builder.Register(c => c.Resolve<IHttpContextAccessor>())
+                .As<IHttpContextAccessor>()
                 .InstancePerLifetimeScope();
 
             //web helper
@@ -96,8 +81,7 @@ namespace Nop.Web.Framework
             builder.RegisterType<UserAgentHelper>().As<IUserAgentHelper>().InstancePerLifetimeScope();
 
             
-            //controllers
-            builder.RegisterControllers(typeFinder.GetAssemblies().ToArray());
+            //controllers are registered via ASP.NET Core DI (AddControllers)
 
             //data layer
             var dataSettingsManager = new DataSettingsManager();
@@ -379,7 +363,7 @@ namespace Nop.Web.Framework
 
         public IEnumerable<IComponentRegistration> RegistrationsFor(
                 Service service,
-                Func<Service, IEnumerable<IComponentRegistration>> registrations)
+                Func<Service, IEnumerable<ServiceRegistration>> registrations)
         {
             var ts = service as TypedService;
             if (ts != null && typeof(ISettings).IsAssignableFrom(ts.ServiceType))

@@ -1,15 +1,16 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
 using Nop.Admin.Validators.Catalog;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Catalog
 {
-    [Validator(typeof(ManufacturerValidator))]
     public partial class ManufacturerModel : BaseNopEntityModel, ILocalizedModel<ManufacturerLocalizedModel>
     {
         public ManufacturerModel()
@@ -32,11 +33,11 @@ namespace Nop.Admin.Models.Catalog
         }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.Description")]
-        [AllowHtml]
+
         public string Description { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.ManufacturerTemplate")]
@@ -44,19 +45,19 @@ namespace Nop.Admin.Models.Catalog
         public IList<SelectListItem> AvailableManufacturerTemplates { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.MetaKeywords")]
-        [AllowHtml]
+
         public string MetaKeywords { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.MetaDescription")]
-        [AllowHtml]
+
         public string MetaDescription { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.MetaTitle")]
-        [AllowHtml]
+
         public string MetaTitle { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.SeName")]
-        [AllowHtml]
+
         public string SeName { get; set; }
 
         [UIHint("Picture")]
@@ -73,7 +74,7 @@ namespace Nop.Admin.Models.Catalog
         public string PageSizeOptions { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.PriceRanges")]
-        [AllowHtml]
+
         public string PriceRanges { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.Published")]
@@ -139,7 +140,7 @@ namespace Nop.Admin.Models.Catalog
             }
 
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductName")]
-            [AllowHtml]
+
             public string SearchProductName { get; set; }
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchCategory")]
             public int SearchCategoryId { get; set; }
@@ -171,27 +172,27 @@ namespace Nop.Admin.Models.Catalog
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.Description")]
-        [AllowHtml]
+
         public string Description {get;set;}
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.MetaKeywords")]
-        [AllowHtml]
+
         public string MetaKeywords { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.MetaDescription")]
-        [AllowHtml]
+
         public string MetaDescription { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.MetaTitle")]
-        [AllowHtml]
+
         public string MetaTitle { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Manufacturers.Fields.SeName")]
-        [AllowHtml]
+
         public string SeName { get; set; }
     }
 }

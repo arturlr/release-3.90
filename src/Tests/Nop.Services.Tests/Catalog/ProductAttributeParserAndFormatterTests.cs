@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
+using Moq;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Data;
@@ -16,7 +17,6 @@ using Nop.Services.Media;
 using Nop.Services.Tax;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Services.Tests.Catalog
 {
@@ -171,35 +171,40 @@ namespace Nop.Services.Tests.Catalog
 
             #endregion
 
-            _productAttributeRepo = MockRepository.GenerateMock<IRepository<ProductAttribute>>();
-            _productAttributeRepo.Expect(x => x.Table).Return(new List<ProductAttribute> { pa1, pa2, pa3, pa4 }.AsQueryable());
-            _productAttributeRepo.Expect(x => x.GetById(pa1.Id)).Return(pa1);
-            _productAttributeRepo.Expect(x => x.GetById(pa2.Id)).Return(pa2);
-            _productAttributeRepo.Expect(x => x.GetById(pa3.Id)).Return(pa3);
-            _productAttributeRepo.Expect(x => x.GetById(pa4.Id)).Return(pa4);
+            var productAttributeRepoMock = new Mock<IRepository<ProductAttribute>>();
+            productAttributeRepoMock.Setup(x => x.Table).Returns(new List<ProductAttribute> { pa1, pa2, pa3, pa4 }.AsQueryable());
+            productAttributeRepoMock.Setup(x => x.GetById(pa1.Id)).Returns(pa1);
+            productAttributeRepoMock.Setup(x => x.GetById(pa2.Id)).Returns(pa2);
+            productAttributeRepoMock.Setup(x => x.GetById(pa3.Id)).Returns(pa3);
+            productAttributeRepoMock.Setup(x => x.GetById(pa4.Id)).Returns(pa4);
+            _productAttributeRepo = productAttributeRepoMock.Object;
 
-            _productAttributeMappingRepo = MockRepository.GenerateMock<IRepository<ProductAttributeMapping>>();
-            _productAttributeMappingRepo.Expect(x => x.Table).Return(new List<ProductAttributeMapping> { pam1_1, pam2_1, pam3_1, pam4_1 }.AsQueryable());
-            _productAttributeMappingRepo.Expect(x => x.GetById(pam1_1.Id)).Return(pam1_1);
-            _productAttributeMappingRepo.Expect(x => x.GetById(pam2_1.Id)).Return(pam2_1);
-            _productAttributeMappingRepo.Expect(x => x.GetById(pam3_1.Id)).Return(pam3_1);
-            _productAttributeMappingRepo.Expect(x => x.GetById(pam4_1.Id)).Return(pam4_1);
+            var productAttributeMappingRepoMock = new Mock<IRepository<ProductAttributeMapping>>();
+            productAttributeMappingRepoMock.Setup(x => x.Table).Returns(new List<ProductAttributeMapping> { pam1_1, pam2_1, pam3_1, pam4_1 }.AsQueryable());
+            productAttributeMappingRepoMock.Setup(x => x.GetById(pam1_1.Id)).Returns(pam1_1);
+            productAttributeMappingRepoMock.Setup(x => x.GetById(pam2_1.Id)).Returns(pam2_1);
+            productAttributeMappingRepoMock.Setup(x => x.GetById(pam3_1.Id)).Returns(pam3_1);
+            productAttributeMappingRepoMock.Setup(x => x.GetById(pam4_1.Id)).Returns(pam4_1);
+            _productAttributeMappingRepo = productAttributeMappingRepoMock.Object;
 
-            _productAttributeCombinationRepo = MockRepository.GenerateMock<IRepository<ProductAttributeCombination>>();
-            _productAttributeCombinationRepo.Expect(x => x.Table).Return(new List<ProductAttributeCombination>().AsQueryable());
+            var productAttributeCombinationRepoMock = new Mock<IRepository<ProductAttributeCombination>>();
+            productAttributeCombinationRepoMock.Setup(x => x.Table).Returns(new List<ProductAttributeCombination>().AsQueryable());
+            _productAttributeCombinationRepo = productAttributeCombinationRepoMock.Object;
 
-            _productAttributeValueRepo = MockRepository.GenerateMock<IRepository<ProductAttributeValue>>();
-            _productAttributeValueRepo.Expect(x => x.Table).Return(new List<ProductAttributeValue> { pav1_1, pav1_2, pav2_1, pav2_2, pav4_1 }.AsQueryable());
-            _productAttributeValueRepo.Expect(x => x.GetById(pav1_1.Id)).Return(pav1_1);
-            _productAttributeValueRepo.Expect(x => x.GetById(pav1_2.Id)).Return(pav1_2);
-            _productAttributeValueRepo.Expect(x => x.GetById(pav2_1.Id)).Return(pav2_1);
-            _productAttributeValueRepo.Expect(x => x.GetById(pav2_2.Id)).Return(pav2_2);
-            _productAttributeValueRepo.Expect(x => x.GetById(pav4_1.Id)).Return(pav4_1);
+            var productAttributeValueRepoMock = new Mock<IRepository<ProductAttributeValue>>();
+            productAttributeValueRepoMock.Setup(x => x.Table).Returns(new List<ProductAttributeValue> { pav1_1, pav1_2, pav2_1, pav2_2, pav4_1 }.AsQueryable());
+            productAttributeValueRepoMock.Setup(x => x.GetById(pav1_1.Id)).Returns(pav1_1);
+            productAttributeValueRepoMock.Setup(x => x.GetById(pav1_2.Id)).Returns(pav1_2);
+            productAttributeValueRepoMock.Setup(x => x.GetById(pav2_1.Id)).Returns(pav2_1);
+            productAttributeValueRepoMock.Setup(x => x.GetById(pav2_2.Id)).Returns(pav2_2);
+            productAttributeValueRepoMock.Setup(x => x.GetById(pav4_1.Id)).Returns(pav4_1);
+            _productAttributeValueRepo = productAttributeValueRepoMock.Object;
 
-            _predefinedProductAttributeValueRepo = MockRepository.GenerateMock<IRepository<PredefinedProductAttributeValue>>();
+            _predefinedProductAttributeValueRepo = new Mock<IRepository<PredefinedProductAttributeValue>>().Object;
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            var eventPublisherMock = new Mock<IEventPublisher>();
+            eventPublisherMock.Setup(x => x.Publish(It.IsAny<object>()));
+            _eventPublisher = eventPublisherMock.Object;
 
             var cacheManager = new NopNullCache();
 
@@ -211,26 +216,30 @@ namespace Nop.Services.Tests.Catalog
                 _predefinedProductAttributeValueRepo,
                 _eventPublisher);
 
-            _context = MockRepository.GenerateMock<IDbContext>();
+            _context = new Mock<IDbContext>().Object;
 
             _productAttributeParser = new ProductAttributeParser(_context, _productAttributeService);
 
-            _priceCalculationService = MockRepository.GenerateMock<IPriceCalculationService>();
+            _priceCalculationService = new Mock<IPriceCalculationService>().Object;
 
             var workingLanguage = new Language();
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workContext.Expect(x => x.WorkingLanguage).Return(workingLanguage);
-            _currencyService = MockRepository.GenerateMock<ICurrencyService>();
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _localizationService.Expect(x => x.GetResource("GiftCardAttribute.For.Virtual")).Return("For: {0} <{1}>");
-            _localizationService.Expect(x => x.GetResource("GiftCardAttribute.From.Virtual")).Return("From: {0} <{1}>");
-            _localizationService.Expect(x => x.GetResource("GiftCardAttribute.For.Physical")).Return("For: {0}");
-            _localizationService.Expect(x => x.GetResource("GiftCardAttribute.From.Physical")).Return("From: {0}");
-            _taxService = MockRepository.GenerateMock<ITaxService>();
-            _priceFormatter = MockRepository.GenerateMock<IPriceFormatter>();
-            _downloadService = MockRepository.GenerateMock<IDownloadService>();
-            _webHelper = MockRepository.GenerateMock<IWebHelper>();
-            _shoppingCartSettings = MockRepository.GenerateMock<ShoppingCartSettings>();
+            var workContextMock = new Mock<IWorkContext>();
+            workContextMock.Setup(x => x.WorkingLanguage).Returns(workingLanguage);
+            _workContext = workContextMock.Object;
+            _currencyService = new Mock<ICurrencyService>().Object;
+
+            var localizationServiceMock = new Mock<ILocalizationService>();
+            localizationServiceMock.Setup(x => x.GetResource("GiftCardAttribute.For.Virtual")).Returns("For: {0} <{1}>");
+            localizationServiceMock.Setup(x => x.GetResource("GiftCardAttribute.From.Virtual")).Returns("From: {0} <{1}>");
+            localizationServiceMock.Setup(x => x.GetResource("GiftCardAttribute.For.Physical")).Returns("For: {0}");
+            localizationServiceMock.Setup(x => x.GetResource("GiftCardAttribute.From.Physical")).Returns("From: {0}");
+            _localizationService = localizationServiceMock.Object;
+
+            _taxService = new Mock<ITaxService>().Object;
+            _priceFormatter = new Mock<IPriceFormatter>().Object;
+            _downloadService = new Mock<IDownloadService>().Object;
+            _webHelper = new Mock<IWebHelper>().Object;
+            _shoppingCartSettings = new Mock<ShoppingCartSettings>().Object;
 
             _productAttributeFormatter = new ProductAttributeFormatter(_workContext,
                 _productAttributeService,

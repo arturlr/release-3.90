@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using Nop.Data;
 using Nop.Plugin.Tax.FixedOrByCountryStateZip.Domain;
@@ -13,24 +12,38 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Data
     /// </summary>
     public class CountryStateZipObjectContext : DbContext, IDbContext
     {
+        #region Fields
+
+        private readonly string _connectionString;
+
+        #endregion
+
         #region Ctor
 
         public CountryStateZipObjectContext(string nameOrConnectionString)
-            : base(nameOrConnectionString)
         {
-            //((IObjectContextAdapter) this).ObjectContext.ContextOptions.LazyLoadingEnabled = true;
+            _connectionString = nameOrConnectionString;
         }
 
         #endregion
 
         #region Utilities
 
-        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        /// <summary>
+        /// Configure the DbContext options
+        /// </summary>
+        /// <param name="optionsBuilder">Options builder</param>
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            modelBuilder.Configurations.Add(new TaxRateMap());
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlServer(_connectionString);
+            }
+        }
 
-            //disable EdmMetadata generation
-            //modelBuilder.Conventions.Remove<IncludeMetadataConvention>();
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.ApplyConfiguration(new TaxRateMap());
             base.OnModelCreating(modelBuilder);
         }
         
@@ -40,10 +53,10 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Data
 
         public string CreateDatabaseScript()
         {
-            return ((IObjectContextAdapter)this).ObjectContext.CreateDatabaseScript();
+            return Database.GenerateCreateScript();
         }
 
-        public new IDbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
+        public new DbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
         {
             return base.Set<TEntity>();
         }
@@ -55,7 +68,7 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Data
         {
             //create the table
             var dbScript = CreateDatabaseScript();
-            Database.ExecuteSqlCommand(dbScript);
+            Database.ExecuteSqlRaw(dbScript);
             SaveChanges();
         }
 
@@ -116,7 +129,9 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Data
             if (entity == null)
                 throw new ArgumentNullException("entity");
 
-            ((IObjectContextAdapter)this).ObjectContext.Detach(entity);
+            var entry = Entry(entity);
+            if (entry != null)
+                entry.State = EntityState.Detached;
         }
 
         #endregion
@@ -128,14 +143,8 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Data
         /// </summary>
         public virtual bool ProxyCreationEnabled
         {
-            get
-            {
-                return Configuration.ProxyCreationEnabled;
-            }
-            set
-            {
-                Configuration.ProxyCreationEnabled = value;
-            }
+            get { return false; }
+            set { /* No-op in EF Core */ }
         }
 
         /// <summary>
@@ -143,14 +152,8 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Data
         /// </summary>
         public virtual bool AutoDetectChangesEnabled
         {
-            get
-            {
-                return Configuration.AutoDetectChangesEnabled;
-            }
-            set
-            {
-                Configuration.AutoDetectChangesEnabled = value;
-            }
+            get { return ChangeTracker.AutoDetectChangesEnabled; }
+            set { ChangeTracker.AutoDetectChangesEnabled = value; }
         }
 
         #endregion

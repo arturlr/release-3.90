@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -34,7 +34,8 @@ namespace Nop.Web.Framework.Security
             AuthorizationRuleCollection rules;
             try
             {
-                rules = Directory.GetAccessControl(path).GetAccessRules(true, true, typeof(SecurityIdentifier));
+                var directoryInfo = new DirectoryInfo(path);
+                rules = directoryInfo.GetAccessControl().GetAccessRules(true, true, typeof(SecurityIdentifier));
             }
             catch
             {

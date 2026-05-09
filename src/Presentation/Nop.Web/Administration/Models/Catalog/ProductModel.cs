@@ -1,17 +1,18 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
 using Nop.Admin.Models.Settings;
 using Nop.Admin.Validators.Catalog;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Admin.Models.Catalog
 {
-    [Validator(typeof(ProductValidator))]
     public partial class ProductModel : BaseNopEntityModel, ILocalizedModel<ProductLocalizedModel>
     {
         public ProductModel()
@@ -81,38 +82,38 @@ namespace Nop.Admin.Models.Catalog
         public Dictionary<int, IList<SelectListItem>> ProductsTypesSupportedByProductTemplates { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.ShortDescription")]
-        [AllowHtml]
+
         public string ShortDescription { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.FullDescription")]
-        [AllowHtml]
+
         public string FullDescription { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.AdminComment")]
-        [AllowHtml]
+
         public string AdminComment { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.ShowOnHomePage")]
         public bool ShowOnHomePage { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.MetaKeywords")]
-        [AllowHtml]
+
         public string MetaKeywords { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.MetaDescription")]
-        [AllowHtml]
+
         public string MetaDescription { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.MetaTitle")]
-        [AllowHtml]
+
         public string MetaTitle { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.SeName")]
-        [AllowHtml]
+
         public string SeName { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.AllowCustomerReviews")]
@@ -125,15 +126,15 @@ namespace Nop.Admin.Models.Catalog
 
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.Sku")]
-        [AllowHtml]
+
         public string Sku { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.ManufacturerPartNumber")]
-        [AllowHtml]
+
         public string ManufacturerPartNumber { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.GTIN")]
-        [AllowHtml]
+
         public virtual string Gtin { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.IsGiftCard")]
@@ -184,7 +185,7 @@ namespace Nop.Admin.Models.Catalog
         public bool HasUserAgreement { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.UserAgreementText")]
-        [AllowHtml]
+
         public string UserAgreementText { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.IsRecurring")]
@@ -463,7 +464,7 @@ namespace Nop.Admin.Models.Catalog
             }
 
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductName")]
-            [AllowHtml]
+
             public string SearchProductName { get; set; }
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchCategory")]
             public int SearchCategoryId { get; set; }
@@ -503,7 +504,7 @@ namespace Nop.Admin.Models.Catalog
             [NopResourceDisplayName("Admin.Catalog.Products.SpecificationAttributes.Fields.SpecificationAttributeOption")]
             public int SpecificationAttributeOptionId { get; set; }
 
-            [AllowHtml]
+
             [NopResourceDisplayName("Admin.Catalog.Products.SpecificationAttributes.Fields.CustomValue")]
             public string CustomValue { get; set; }
 
@@ -535,11 +536,11 @@ namespace Nop.Admin.Models.Catalog
             public int DisplayOrder { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.Pictures.Fields.OverrideAltAttribute")]
-            [AllowHtml]
+
             public string OverrideAltAttribute { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.Pictures.Fields.OverrideTitleAttribute")]
-            [AllowHtml]
+
             public string OverrideTitleAttribute { get; set; }
         }
 
@@ -565,7 +566,7 @@ namespace Nop.Admin.Models.Catalog
             }
 
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductName")]
-            [AllowHtml]
+
             public string SearchProductName { get; set; }
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchCategory")]
             public int SearchCategoryId { get; set; }
@@ -611,7 +612,7 @@ namespace Nop.Admin.Models.Catalog
             }
 
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductName")]
-            [AllowHtml]
+
             public string SearchProductName { get; set; }
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchCategory")]
             public int SearchCategoryId { get; set; }
@@ -657,7 +658,7 @@ namespace Nop.Admin.Models.Catalog
             }
 
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductName")]
-            [AllowHtml]
+
             public string SearchProductName { get; set; }
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchCategory")]
             public int SearchCategoryId { get; set; }
@@ -749,7 +750,7 @@ namespace Nop.Admin.Models.Catalog
             public string ProductAttribute { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.ProductAttributes.Attributes.Fields.TextPrompt")]
-            [AllowHtml]
+
             public string TextPrompt { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.ProductAttributes.Attributes.Fields.IsRequired")]
@@ -774,13 +775,13 @@ namespace Nop.Admin.Models.Catalog
             [NopResourceDisplayName("Admin.Catalog.Products.ProductAttributes.Attributes.ValidationRules.MaxLength")]
             [UIHint("Int32Nullable")]
             public int? ValidationMaxLength { get; set; }
-            [AllowHtml]
+
             [NopResourceDisplayName("Admin.Catalog.Products.ProductAttributes.Attributes.ValidationRules.FileAllowedExtensions")]
             public string ValidationFileAllowedExtensions { get; set; }
             [NopResourceDisplayName("Admin.Catalog.Products.ProductAttributes.Attributes.ValidationRules.FileMaximumSize")]
             [UIHint("Int32Nullable")]
             public int? ValidationFileMaximumSize { get; set; }
-            [AllowHtml]
+
             [NopResourceDisplayName("Admin.Catalog.Products.ProductAttributes.Attributes.ValidationRules.DefaultValue")]
             public string DefaultValue { get; set; }
             public string ValidationRulesString { get; set; }
@@ -800,7 +801,6 @@ namespace Nop.Admin.Models.Catalog
 
             public string ProductAttributeName { get; set; }
         }
-        [Validator(typeof(ProductAttributeValueModelValidator))]
         public partial class ProductAttributeValueModel : BaseNopEntityModel, ILocalizedModel<ProductAttributeValueLocalizedModel>
         {
             public ProductAttributeValueModel()
@@ -822,11 +822,11 @@ namespace Nop.Admin.Models.Catalog
             public string AssociatedProductName { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.ProductAttributes.Attributes.Values.Fields.Name")]
-            [AllowHtml]
+
             public string Name { get; set; }
             
             [NopResourceDisplayName("Admin.Catalog.Products.ProductAttributes.Attributes.Values.Fields.ColorSquaresRgb")]
-            [AllowHtml]
+
             public string ColorSquaresRgb { get; set; }
             public bool DisplayColorSquaresRgb { get; set; }
 
@@ -884,7 +884,7 @@ namespace Nop.Admin.Models.Catalog
                 }
 
                 [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductName")]
-                [AllowHtml]
+
                 public string SearchProductName { get; set; }
                 [NopResourceDisplayName("Admin.Catalog.Products.List.SearchCategory")]
                 public int SearchCategoryId { get; set; }
@@ -916,7 +916,7 @@ namespace Nop.Admin.Models.Catalog
             public int LanguageId { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.ProductAttributes.Attributes.Values.Fields.Name")]
-            [AllowHtml]
+
             public string Name { get; set; }
         }
         public partial class ProductAttributeCombinationModel : BaseNopEntityModel
@@ -924,10 +924,10 @@ namespace Nop.Admin.Models.Catalog
             public int ProductId { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.ProductAttributes.AttributeCombinations.Fields.Attributes")]
-            [AllowHtml]
+
             public string AttributesXml { get; set; }
 
-            [AllowHtml]
+
             public string Warnings { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.ProductAttributes.AttributeCombinations.Fields.StockQuantity")]
@@ -962,11 +962,11 @@ namespace Nop.Admin.Models.Catalog
             public int SearchWarehouseId { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.StockQuantityHistory.Fields.Warehouse")]
-            [AllowHtml]
+
             public string WarehouseName { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.StockQuantityHistory.Fields.Combination")]
-            [AllowHtml]
+
             public string AttributeCombination { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.StockQuantityHistory.Fields.QuantityAdjustment")]
@@ -976,7 +976,7 @@ namespace Nop.Admin.Models.Catalog
             public int StockQuantity { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.StockQuantityHistory.Fields.Message")]
-            [AllowHtml]
+
             public string Message { get; set; }
 
             [NopResourceDisplayName("Admin.Catalog.Products.StockQuantityHistory.Fields.CreatedOn")]
@@ -994,31 +994,31 @@ namespace Nop.Admin.Models.Catalog
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.Name")]
-        [AllowHtml]
+
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.ShortDescription")]
-        [AllowHtml]
+
         public string ShortDescription { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.FullDescription")]
-        [AllowHtml]
+
         public string FullDescription { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.MetaKeywords")]
-        [AllowHtml]
+
         public string MetaKeywords { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.MetaDescription")]
-        [AllowHtml]
+
         public string MetaDescription { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.MetaTitle")]
-        [AllowHtml]
+
         public string MetaTitle { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Products.Fields.SeName")]
-        [AllowHtml]
+
         public string SeName { get; set; }
     }
 }

@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Web.Mvc;
+using System.Threading.Tasks;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Infrastructure;
@@ -12,6 +12,11 @@ using Nop.Services.Stores;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.UI;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewEngines;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+
 
 namespace Nop.Web.Framework.Controllers
 {
@@ -58,17 +63,21 @@ namespace Nop.Web.Framework.Controllers
         /// <returns>Result</returns>
         public virtual string RenderPartialViewToString(string viewName, object model)
         {
-            //Original source code: http://craftycodeblog.com/2010/05/15/asp-net-mvc-render-partial-view-to-string/
             if (string.IsNullOrEmpty(viewName))
-                viewName = this.ControllerContext.RouteData.GetRequiredString("action");
+                viewName = ControllerContext.RouteData.Values["action"]?.ToString();
 
-            this.ViewData.Model = model;
+            ViewData.Model = model;
 
             using (var sw = new StringWriter())
             {
-                ViewEngineResult viewResult = System.Web.Mvc.ViewEngines.Engines.FindPartialView(this.ControllerContext, viewName);
-                var viewContext = new ViewContext(this.ControllerContext, viewResult.View, this.ViewData, this.TempData, sw);
-                viewResult.View.Render(viewContext, sw);
+                var viewEngine = HttpContext.RequestServices.GetService(typeof(ICompositeViewEngine)) as ICompositeViewEngine;
+                var viewResult = viewEngine.FindView(ControllerContext, viewName, false);
+                
+                if (viewResult.View == null)
+                    throw new InvalidOperationException($"View '{viewName}' not found.");
+
+                var viewContext = new ViewContext(ControllerContext, viewResult.View, ViewData, TempData, sw, new HtmlHelperOptions());
+                viewResult.View.RenderAsync(viewContext).GetAwaiter().GetResult();
 
                 return sw.GetStringBuilder().ToString();
             }
@@ -188,9 +197,6 @@ namespace Nop.Web.Framework.Controllers
         /// <param name="editPageUrl">Edit page URL</param>
         protected virtual void DisplayEditLink(string editPageUrl)
         {
-            //We cannot use ViewData because it works only for the current controller (and we pass and then render "Edit" link data in distinct controllers)
-            //that's why we use IPageHeadBuilder
-            //ViewData["nop.editpage.link"] = editPageUrl;
             var pageHeadBuilder = EngineContext.Current.Resolve<IPageHeadBuilder>();
             pageHeadBuilder.AddEditPageUrl(editPageUrl);
         }

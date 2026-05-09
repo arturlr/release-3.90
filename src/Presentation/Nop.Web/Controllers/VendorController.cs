@@ -1,6 +1,5 @@
-﻿using System;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using System;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Localization;
@@ -17,6 +16,8 @@ using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Security;
 using Nop.Web.Framework.Security.Captcha;
 using Nop.Web.Models.Vendors;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace Nop.Web.Controllers
 {
@@ -90,7 +91,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("HomePage");
 
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var model = new ApplyVendorModel();
             model = _vendorModelFactory.PrepareApplyVendorModel(model, true, false);
@@ -100,13 +101,13 @@ namespace Nop.Web.Controllers
         [HttpPost, ActionName("ApplyVendor")]
         [PublicAntiForgery]
         [CaptchaValidator]
-        public virtual ActionResult ApplyVendorSubmit(ApplyVendorModel model, bool captchaValid, HttpPostedFileBase uploadedFile)
+        public virtual ActionResult ApplyVendorSubmit(ApplyVendorModel model, bool captchaValid, IFormFile uploadedFile)
         {
             if (!_vendorSettings.AllowCustomersToApplyForVendorAccount)
                 return RedirectToRoute("HomePage");
 
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             //validate CAPTCHA
             if (_captchaSettings.Enabled && _captchaSettings.ShowOnApplyVendorPage && !captchaValid)
@@ -180,7 +181,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult Info()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             if (_workContext.CurrentVendor == null || !_vendorSettings.AllowVendorsToEditInfo)
                 return RedirectToRoute("CustomerInfo");
@@ -192,12 +193,11 @@ namespace Nop.Web.Controllers
 
         [HttpPost, ActionName("Info")]
         [PublicAntiForgery]
-        [ValidateInput(false)]
         [FormValueRequired("save-info-button")]
-        public virtual ActionResult Info(VendorInfoModel model, HttpPostedFileBase uploadedFile)
+        public virtual ActionResult Info(VendorInfoModel model, IFormFile uploadedFile)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             if (_workContext.CurrentVendor == null || !_vendorSettings.AllowVendorsToEditInfo)
                 return RedirectToRoute("CustomerInfo");
@@ -256,12 +256,11 @@ namespace Nop.Web.Controllers
 
         [HttpPost, ActionName("Info")]
         [PublicAntiForgery]
-        [ValidateInput(false)]
         [FormValueRequired("remove-picture")]
         public virtual ActionResult RemovePicture()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             if (_workContext.CurrentVendor == null || !_vendorSettings.AllowVendorsToEditInfo)
                 return RedirectToRoute("CustomerInfo");

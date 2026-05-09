@@ -28,6 +28,7 @@ using Nop.Services.Tax;
 using Nop.Services.Vendors;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
+using OfficeOpenXml.Style;
 
 namespace Nop.Services.ExportImport
 {
@@ -36,6 +37,10 @@ namespace Nop.Services.ExportImport
     /// </summary>
     public partial class ExportManager : IExportManager
     {
+        static ExportManager()
+        {
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+        }
         #region Fields
 
         private readonly ICategoryService _categoryService;

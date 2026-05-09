@@ -1,30 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Core;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
+
 
 namespace Nop.Web.Framework.Mvc
 {
     /// <summary>
-    /// This MetadataProvider adds some functionality on top of the default DataAnnotationsModelMetadataProvider.
-    /// It adds custom attributes (implementing IModelAttribute) to the AdditionalValues property of the model's metadata
+    /// This MetadataProvider adds custom attributes (implementing IModelAttribute) to the model's metadata
     /// so that it can be retrieved later.
+    /// In ASP.NET Core, this is implemented as an IDisplayMetadataProvider.
     /// </summary>
-    public class NopMetadataProvider : DataAnnotationsModelMetadataProvider
+    public class NopMetadataProvider : IDisplayMetadataProvider
     {
-        protected override ModelMetadata CreateMetadata(IEnumerable<Attribute> attributes, Type containerType, Func<object> modelAccessor, Type modelType, string propertyName)
+        public void CreateDisplayMetadata(DisplayMetadataProviderContext context)
         {
-            var metadata = base.CreateMetadata(attributes, containerType, modelAccessor, modelType, propertyName);
-            var additionalValues = attributes.OfType<IModelAttribute>().ToList();
-            foreach (var additionalValue in additionalValues)
+            if (context.PropertyAttributes != null)
             {
-                if (metadata.AdditionalValues.ContainsKey(additionalValue.Name))
-                    throw new NopException("There is already an attribute with the name of \"" + additionalValue.Name +
-                                           "\" on this model.");
-                metadata.AdditionalValues.Add(additionalValue.Name, additionalValue);
+                var additionalValues = context.PropertyAttributes.OfType<IModelAttribute>().ToList();
+                foreach (var additionalValue in additionalValues)
+                {
+                    context.DisplayMetadata.AdditionalValues[additionalValue.Name] = additionalValue;
+                }
             }
-            return metadata;
         }
     }
 }

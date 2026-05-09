@@ -1,7 +1,8 @@
 using System;
 using System.Diagnostics;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
+using System.IO;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Nop.Core;
 using Nop.Core.Configuration;
 using Nop.Core.Data;
@@ -21,9 +22,8 @@ namespace Nop.Services.Media
     {
         #region Fields
         
-        private static CloudStorageAccount _storageAccount = null;
-        private static CloudBlobClient blobClient = null;
-        private static CloudBlobContainer container_thumb = null;
+        private static BlobServiceClient _blobServiceClient = null;
+        private static BlobContainerClient _containerClient = null;
 
         private readonly MediaSettings _mediaSettings;
         private readonly NopConfig _config;
@@ -62,18 +62,9 @@ namespace Nop.Services.Media
             if (String.IsNullOrEmpty(_config.AzureBlobStorageEndPoint))
                 throw new Exception("Azure end point for BLOB is not specified");
 
-            _storageAccount = CloudStorageAccount.Parse(_config.AzureBlobStorageConnectionString);
-            if (_storageAccount == null)
-                throw new Exception("Azure connection string for BLOB is not wrong");
-
-            //should we do it for each HTTP request?
-            blobClient = _storageAccount.CreateCloudBlobClient();
-            BlobContainerPermissions containerPermissions = new BlobContainerPermissions();
-            containerPermissions.PublicAccess = BlobContainerPublicAccessType.Blob;
-            //container.SetPermissions(containerPermissions);
-            container_thumb = blobClient.GetContainerReference(_config.AzureBlobStorageContainerName);
-            container_thumb.CreateIfNotExists();
-            container_thumb.SetPermissions(containerPermissions);
+            _blobServiceClient = new BlobServiceClient(_config.AzureBlobStorageConnectionString);
+            _containerClient = _blobServiceClient.GetBlobContainerClient(_config.AzureBlobStorageContainerName);
+            _containerClient.CreateIfNotExists(PublicAccessType.Blob);
         }
 
         #endregion
@@ -87,11 +78,11 @@ namespace Nop.Services.Media
         protected override void DeletePictureThumbs(Picture picture)
         {
             string filter = string.Format("{0}", picture.Id.ToString("0000000"));
-            var files = container_thumb.ListBlobs(prefix: filter, useFlatBlobListing: false);
-            foreach (var ff in files)
+            var blobs = _containerClient.GetBlobs(prefix: filter);
+            foreach (var blobItem in blobs)
             {
-                CloudBlockBlob blockBlob = (CloudBlockBlob)ff;
-                blockBlob.Delete();
+                var blobClient = _containerClient.GetBlobClient(blobItem.Name);
+                blobClient.Delete();
             }
         }
 
@@ -130,8 +121,8 @@ namespace Nop.Services.Media
         {
             try
             {
-                CloudBlockBlob blockBlob = container_thumb.GetBlockBlobReference(thumbFileName);
-                return blockBlob.Exists();
+                var blobClient = _containerClient.GetBlobClient(thumbFileName);
+                return blobClient.Exists();
             }
             catch (Exception ex)
             {
@@ -149,17 +140,22 @@ namespace Nop.Services.Media
         /// <param name="binary">Picture binary</param>
         protected override void SaveThumb(string thumbFilePath, string thumbFileName, string mimeType, byte[] binary)
         {
-            CloudBlockBlob blockBlob = container_thumb.GetBlockBlobReference(thumbFileName);
-            
-            //set mime type
+            var blobClient = _containerClient.GetBlobClient(thumbFileName);
+
+            using (var stream = new MemoryStream(binary))
+            {
+                blobClient.Upload(stream, overwrite: true);
+            }
+
+            //set properties (mime type and cache control)
+            var headers = new BlobHttpHeaders();
             if (!String.IsNullOrEmpty(mimeType))
-                blockBlob.Properties.ContentType = mimeType;
-
-            //set cache control
+                headers.ContentType = mimeType;
             if (!string.IsNullOrEmpty(_mediaSettings.AzureCacheControlHeader))
-                blockBlob.Properties.CacheControl = _mediaSettings.AzureCacheControlHeader;
+                headers.CacheControl = _mediaSettings.AzureCacheControlHeader;
 
-            blockBlob.UploadFromByteArray(binary, 0, binary.Length);
+            if (!String.IsNullOrEmpty(mimeType) || !string.IsNullOrEmpty(_mediaSettings.AzureCacheControlHeader))
+                blobClient.SetHttpHeaders(headers);
         }
 
         #endregion

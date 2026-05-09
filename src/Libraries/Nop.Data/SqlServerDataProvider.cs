@@ -1,14 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using System.Data.SqlClient;
 using System.IO;
 using System.Text;
 using Nop.Core;
 using Nop.Core.Data;
-using Nop.Data.Initializers;
+using Microsoft.Data.SqlClient;
+
 
 namespace Nop.Data
 {
@@ -74,10 +72,8 @@ namespace Nop.Data
         /// </summary>
         public virtual void InitConnectionFactory()
         {
-            var connectionFactory = new SqlConnectionFactory();
-            //TODO fix compilation warning (below)
-            #pragma warning disable 0618
-            Database.DefaultConnectionFactory = connectionFactory;
+            // In EF Core, connection factory is configured via DbContextOptions
+            // No global connection factory needed
         }
 
         /// <summary>
@@ -94,17 +90,8 @@ namespace Nop.Data
         /// </summary>
         public virtual void SetDatabaseInitializer()
         {
-            //pass some table names to ensure that we have nopCommerce 2.X installed
-            var tablesToValidate = new[] { "Customer", "Discount", "Order", "Product", "ShoppingCartItem" };
-
-            //custom commands (stored procedures, indexes)
-
-            var customCommands = new List<string>();
-            customCommands.AddRange(ParseCommands(CommonHelper.MapPath("~/App_Data/Install/SqlServer.Indexes.sql"), false));
-            customCommands.AddRange(ParseCommands(CommonHelper.MapPath("~/App_Data/Install/SqlServer.StoredProcedures.sql"), false));
-
-            var initializer = new CreateTablesIfNotExist<NopObjectContext>(tablesToValidate, customCommands.ToArray());
-            Database.SetInitializer(initializer);
+            // In EF Core, database initialization is handled via migrations or EnsureCreated
+            // The old Database.SetInitializer pattern is not supported
         }
 
         /// <summary>

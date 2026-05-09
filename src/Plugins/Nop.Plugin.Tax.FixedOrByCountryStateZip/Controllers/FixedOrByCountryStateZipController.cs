@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Web.Mvc;
+using System.Linq;
 using Nop.Core;
 using Nop.Plugin.Tax.FixedOrByCountryStateZip.Domain;
 using Nop.Plugin.Tax.FixedOrByCountryStateZip.Models;
@@ -13,6 +12,9 @@ using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
 using Nop.Web.Framework.Security;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
 {
@@ -47,16 +49,6 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
             this._countryStateZipSettings = countryStateZipSettings;
         }
 
-        protected override void Initialize(System.Web.Routing.RequestContext requestContext)
-        {
-            //little hack here
-            //always set culture to 'en-US' (Telerik has a bug related to editing decimal values in other cultures). Like currently it's done for admin area in Global.asax.cs
-            CommonHelper.SetTelerikCulture();
-
-            base.Initialize(requestContext);
-        }
-
-        [ChildActionOnly]
         public ActionResult Configure()
         {
             var taxCategories = _taxCategoryService.GetAllTaxCategories();
@@ -102,7 +94,7 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
             return Json(new
             {
                 Result = true
-            }, JsonRequestBehavior.AllowGet);
+            });
         }
 
         #region Fixed tax

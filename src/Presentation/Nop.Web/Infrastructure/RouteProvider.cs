@@ -1,13 +1,15 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc.Routes;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Web.Infrastructure
 {
     public partial class RouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IRouteBuilder routes)
         {
             //We reordered our routes so the most used ones are on top. It can improve performance.
 
@@ -54,7 +56,7 @@ namespace Nop.Web.Infrastructure
             //wishlist
             routes.MapLocalizedRoute("Wishlist",
                             "wishlist/{customerGuid}",
-                            new { controller = "ShoppingCart", action = "Wishlist", customerGuid = UrlParameter.Optional },
+                            new { controller = "ShoppingCart", action = "Wishlist", customerGuid = "" },
                             new[] { "Nop.Web.Controllers" });
 
             //customer account links
@@ -178,7 +180,7 @@ namespace Nop.Web.Infrastructure
             //product tags
             routes.MapLocalizedRoute("ProductsByTag",
                             "producttag/{productTagId}/{SeName}",
-                            new { controller = "Catalog", action = "ProductsByTag", SeName = UrlParameter.Optional },
+                            new { controller = "Catalog", action = "ProductsByTag", SeName = "" },
                             new { productTagId = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             //comparing products
@@ -270,7 +272,7 @@ namespace Nop.Web.Infrastructure
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("CheckoutCompleted",
                             "checkout/completed/{orderId}",
-                            new { controller = "Checkout", action = "Completed", orderId = UrlParameter.Optional },
+                            new { controller = "Checkout", action = "Completed", orderId = "" },
                             new { orderId = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
 
@@ -364,7 +366,7 @@ namespace Nop.Web.Infrastructure
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("CustomerBackInStockSubscriptionsPaged",
                             "backinstocksubscriptions/manage/{page}",
-                            new { controller = "BackInStockSubscription", action = "CustomerSubscriptions", page = UrlParameter.Optional },
+                            new { controller = "BackInStockSubscription", action = "CustomerSubscriptions", page = "" },
                             new { page = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("CustomerRewardPoints",
@@ -398,7 +400,7 @@ namespace Nop.Web.Infrastructure
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("CustomerForumSubscriptionsPaged",
                             "boards/forumsubscriptions/{page}",
-                            new { controller = "Boards", action = "CustomerForumSubscriptions", page = UrlParameter.Optional },
+                            new { controller = "Boards", action = "CustomerForumSubscriptions", page = "" },
                             new { page = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("CustomerAddressEdit",
@@ -453,7 +455,7 @@ namespace Nop.Web.Infrastructure
             //order downloads
             routes.MapRoute("GetDownload",
                             "download/getdownload/{orderItemId}/{agree}",
-                            new { controller = "Download", action = "GetDownload", agree = UrlParameter.Optional },
+                            new { controller = "Download", action = "GetDownload", agree = "" },
                             new { orderItemId = new GuidConstraint(false) },
                             new[] { "Nop.Web.Controllers" });
             routes.MapRoute("GetLicense",
@@ -553,7 +555,7 @@ namespace Nop.Web.Infrastructure
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("ActiveDiscussionsPaged",
                             "boards/activediscussions/page/{page}",
-                            new { controller = "Boards", action = "ActiveDiscussions", page = UrlParameter.Optional },
+                            new { controller = "Boards", action = "ActiveDiscussions", page = "" },
                             new { page = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("ActiveDiscussionsRSS",
@@ -607,12 +609,12 @@ namespace Nop.Web.Infrastructure
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("TopicSlug",
                             "boards/topic/{id}/{slug}",
-                            new { controller = "Boards", action = "Topic", slug = UrlParameter.Optional },
+                            new { controller = "Boards", action = "Topic", slug = "" },
                             new { id = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("TopicSlugPaged",
                             "boards/topic/{id}/{slug}/page/{page}",
-                            new { controller = "Boards", action = "Topic", slug = UrlParameter.Optional, page = UrlParameter.Optional },
+                            new { controller = "Boards", action = "Topic", slug = "", page = "" },
                             new { id = @"\d+", page = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("ForumWatch",
@@ -627,17 +629,17 @@ namespace Nop.Web.Infrastructure
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("ForumSlug",
                             "boards/forum/{id}/{slug}",
-                            new { controller = "Boards", action = "Forum", slug = UrlParameter.Optional },
+                            new { controller = "Boards", action = "Forum", slug = "" },
                             new { id = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("ForumSlugPaged",
                             "boards/forum/{id}/{slug}/page/{page}",
-                            new { controller = "Boards", action = "Forum", slug = UrlParameter.Optional, page = UrlParameter.Optional },
+                            new { controller = "Boards", action = "Forum", slug = "", page = "" },
                             new { id = @"\d+", page = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("ForumGroupSlug",
                             "boards/forumgroup/{id}/{slug}",
-                            new { controller = "Boards", action = "ForumGroup", slug = UrlParameter.Optional },
+                            new { controller = "Boards", action = "ForumGroup", slug = "" },
                             new { id = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("Search",
@@ -648,11 +650,11 @@ namespace Nop.Web.Infrastructure
             //private messages
             routes.MapLocalizedRoute("PrivateMessages",
                             "privatemessages/{tab}",
-                            new { controller = "PrivateMessages", action = "Index", tab = UrlParameter.Optional },
+                            new { controller = "PrivateMessages", action = "Index", tab = "" },
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("PrivateMessagesPaged",
                             "privatemessages/{tab}/page/{page}",
-                            new { controller = "PrivateMessages", action = "Index", tab = UrlParameter.Optional },
+                            new { controller = "PrivateMessages", action = "Index", tab = "" },
                             new { page = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("PrivateMessagesInbox",

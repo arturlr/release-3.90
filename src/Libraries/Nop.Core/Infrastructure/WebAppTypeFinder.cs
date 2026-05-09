@@ -1,8 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Web;
-using System.Web.Hosting;
 
 namespace Nop.Core.Infrastructure
 {
@@ -40,13 +38,7 @@ namespace Nop.Core.Infrastructure
         /// <returns>The physical path. E.g. "c:\inetpub\wwwroot\bin"</returns>
         public virtual string GetBinDirectory()
         {
-            if (HostingEnvironment.IsHosted)
-            {
-                //hosted
-                return HttpRuntime.BinDirectory;
-            }
-
-            //not hosted. For example, run either in unit tests
+            //In .NET Core, use the application base directory
             return AppDomain.CurrentDomain.BaseDirectory;
         }
 
@@ -56,7 +48,6 @@ namespace Nop.Core.Infrastructure
             {
                 _binFolderAssembliesLoaded = true;
                 string binPath = GetBinDirectory();
-                //binPath = _webHelper.MapPath("~/bin");
                 LoadMatchingAssemblies(binPath);
             }
 

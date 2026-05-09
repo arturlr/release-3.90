@@ -1,42 +1,43 @@
-﻿using System.Text;
-using System.Web;
+using System.Collections.Specialized;
+using System.Text;
 
 namespace Nop.Core.Fakes
 {
-    public class FakeHttpResponse : HttpResponseBase
+    /// <summary>
+    /// Fake HTTP response for use in scenarios where a real HttpResponse is not available.
+    /// </summary>
+    public class FakeHttpResponse
     {
-        private readonly HttpCookieCollection _cookies;
+        private readonly NameValueCollection _cookies;
+        private readonly StringBuilder _outputString = new StringBuilder();
+
         public FakeHttpResponse()
         {
-            this._cookies = new HttpCookieCollection();
+            _cookies = new NameValueCollection();
         }
-        private readonly StringBuilder _outputString = new StringBuilder();
 
         public string ResponseOutput
         {
             get { return _outputString.ToString(); }
         }
 
-        public override int StatusCode { get; set; }
+        public virtual int StatusCode { get; set; }
 
-        public override string RedirectLocation { get; set; }
+        public virtual string RedirectLocation { get; set; }
 
-        public override void Write(string s)
+        public virtual void Write(string s)
         {
             _outputString.Append(s);
         }
 
-        public override string ApplyAppPathModifier(string virtualPath)
+        public virtual string ApplyAppPathModifier(string virtualPath)
         {
             return virtualPath;
         }
 
-        public override HttpCookieCollection Cookies
+        public virtual NameValueCollection Cookies
         {
-            get
-            {
-                return _cookies;
-            }
+            get { return _cookies; }
         }
     }
 }

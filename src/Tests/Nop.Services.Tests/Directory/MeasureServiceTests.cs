@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
+using Moq;
 using Nop.Core.Caching;
 using Nop.Core.Data;
 using Nop.Core.Domain.Directory;
@@ -7,7 +8,6 @@ using Nop.Services.Directory;
 using Nop.Services.Events;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Services.Tests.Directory
 {
@@ -94,19 +94,21 @@ namespace Nop.Services.Tests.Directory
                 DisplayOrder = 4,
             };
 
-            _measureDimensionRepository = MockRepository.GenerateMock<IRepository<MeasureDimension>>();
-            _measureDimensionRepository.Expect(x => x.Table).Return(new List<MeasureDimension> { measureDimension1, measureDimension2, measureDimension3, measureDimension4 }.AsQueryable());
-            _measureDimensionRepository.Expect(x => x.GetById(measureDimension1.Id)).Return(measureDimension1);
-            _measureDimensionRepository.Expect(x => x.GetById(measureDimension2.Id)).Return(measureDimension2);
-            _measureDimensionRepository.Expect(x => x.GetById(measureDimension3.Id)).Return(measureDimension3);
-            _measureDimensionRepository.Expect(x => x.GetById(measureDimension4.Id)).Return(measureDimension4);
+            var measureDimensionRepoMock = new Mock<IRepository<MeasureDimension>>();
+            measureDimensionRepoMock.Setup(x => x.Table).Returns(new List<MeasureDimension> { measureDimension1, measureDimension2, measureDimension3, measureDimension4 }.AsQueryable());
+            measureDimensionRepoMock.Setup(x => x.GetById(measureDimension1.Id)).Returns(measureDimension1);
+            measureDimensionRepoMock.Setup(x => x.GetById(measureDimension2.Id)).Returns(measureDimension2);
+            measureDimensionRepoMock.Setup(x => x.GetById(measureDimension3.Id)).Returns(measureDimension3);
+            measureDimensionRepoMock.Setup(x => x.GetById(measureDimension4.Id)).Returns(measureDimension4);
+            _measureDimensionRepository = measureDimensionRepoMock.Object;
 
-            _measureWeightRepository = MockRepository.GenerateMock<IRepository<MeasureWeight>>();
-            _measureWeightRepository.Expect(x => x.Table).Return(new List<MeasureWeight> { measureWeight1, measureWeight2, measureWeight3, measureWeight4 }.AsQueryable());
-            _measureWeightRepository.Expect(x => x.GetById(measureWeight1.Id)).Return(measureWeight1);
-            _measureWeightRepository.Expect(x => x.GetById(measureWeight2.Id)).Return(measureWeight2);
-            _measureWeightRepository.Expect(x => x.GetById(measureWeight3.Id)).Return(measureWeight3);
-            _measureWeightRepository.Expect(x => x.GetById(measureWeight4.Id)).Return(measureWeight4);
+            var measureWeightRepoMock = new Mock<IRepository<MeasureWeight>>();
+            measureWeightRepoMock.Setup(x => x.Table).Returns(new List<MeasureWeight> { measureWeight1, measureWeight2, measureWeight3, measureWeight4 }.AsQueryable());
+            measureWeightRepoMock.Setup(x => x.GetById(measureWeight1.Id)).Returns(measureWeight1);
+            measureWeightRepoMock.Setup(x => x.GetById(measureWeight2.Id)).Returns(measureWeight2);
+            measureWeightRepoMock.Setup(x => x.GetById(measureWeight3.Id)).Returns(measureWeight3);
+            measureWeightRepoMock.Setup(x => x.GetById(measureWeight4.Id)).Returns(measureWeight4);
+            _measureWeightRepository = measureWeightRepoMock.Object;
 
 
             var cacheManager = new NopNullCache();
@@ -115,8 +117,9 @@ namespace Nop.Services.Tests.Directory
             _measureSettings.BaseDimensionId = measureDimension1.Id; //inch(es)
             _measureSettings.BaseWeightId = measureWeight2.Id; //lb(s)
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            var eventPublisherMock = new Mock<IEventPublisher>();
+            eventPublisherMock.Setup(x => x.Publish(It.IsAny<object>()));
+            _eventPublisher = eventPublisherMock.Object;
 
             _measureService = new MeasureService(cacheManager,
                 _measureDimensionRepository,

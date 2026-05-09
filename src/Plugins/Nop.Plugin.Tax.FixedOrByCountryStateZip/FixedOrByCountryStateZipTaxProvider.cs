@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Routing;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Plugins;
@@ -10,6 +9,8 @@ using Nop.Plugin.Tax.FixedOrByCountryStateZip.Services;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Services.Tax;
+using Microsoft.AspNetCore.Routing;
+
 
 namespace Nop.Plugin.Tax.FixedOrByCountryStateZip
 {
