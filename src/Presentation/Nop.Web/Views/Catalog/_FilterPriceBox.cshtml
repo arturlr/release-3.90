@@ -1,24 +1,27 @@
 @model CatalogPagingFilteringModel.PriceRangeFilterModel
+@using Microsoft.AspNetCore.Html
 @using Nop.Web.Models.Catalog;
 @{
     var selectedItem = Model.Items.FirstOrDefault(x => x.Selected);
 }
-@helper FormatPriceRangeText(CatalogPagingFilteringModel.PriceRangeFilterItem filterItem)
-{
-    string rangeText = "";
-    if (String.IsNullOrWhiteSpace(filterItem.From))
+@functions {
+    public IHtmlContent FormatPriceRangeText(CatalogPagingFilteringModel.PriceRangeFilterItem filterItem)
     {
-        rangeText = string.Format(T("Filtering.PriceRangeFilter.Under").Text, string.Format("<span class=\"PriceRange\">{0}</span>", filterItem.To));
+        string rangeText;
+        if (String.IsNullOrWhiteSpace(filterItem.From))
+        {
+            rangeText = string.Format(T("Filtering.PriceRangeFilter.Under").Text, string.Format("<span class=\"PriceRange\">{0}</span>", filterItem.To));
+        }
+        else if (String.IsNullOrWhiteSpace(filterItem.To))
+        {
+            rangeText = string.Format(T("Filtering.PriceRangeFilter.Over").Text, string.Format("<span class=\"PriceRange\">{0}</span>", filterItem.From));
+        }
+        else
+        {
+            rangeText = string.Format("<span class=\"PriceRange\">{0}</span> - <span class=\"PriceRange\">{1}</span>", filterItem.From, filterItem.To);
+        }
+        return new HtmlString(rangeText);
     }
-    else if (String.IsNullOrWhiteSpace(filterItem.To))
-    {
-        rangeText = string.Format(T("Filtering.PriceRangeFilter.Over").Text, string.Format("<span class=\"PriceRange\">{0}</span>", filterItem.From));
-    }
-    else
-    {
-        rangeText = string.Format("<span class=\"PriceRange\">{0}</span> - <span class=\"PriceRange\">{1}</span>", filterItem.From, filterItem.To);
-    }
-    <text>@Html.Raw(rangeText)</text>
 }
 @if (Model.Enabled)
 {
@@ -48,6 +51,5 @@
                 </div>
             }
         </div>
-
     </div>
 }

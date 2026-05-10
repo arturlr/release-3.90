@@ -28,7 +28,11 @@ namespace Nop.Web
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddHttpContextAccessor();
             services.AddControllersWithViews();
+
+            // Initialize nopCommerce engine (DI, AutoMapper, etc.)
+            Nop.Core.Infrastructure.EngineContext.Initialize(false);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -38,29 +42,8 @@ namespace Nop.Web
             {
                 app.UseDeveloperExceptionPage();
             }
-            else
-            {
-                app.UseExceptionHandler("/Home/Error");
-            }
 
-            app.UseHttpsRedirection();
             app.UseStaticFiles();
-            app.MapWhen(context => context.Request.Path.ToString().EndsWith(".xml"), appBranch =>
-            {
-                appBranch.UseRouting();
-            });
-            app.MapWhen(context => context.Request.Path.ToString().EndsWith("robots.txt"), appBranch =>
-            {
-                appBranch.UseRouting();
-            });
-            app.MapWhen(context => context.Request.Path.ToString().EndsWith(""), appBranch =>
-            {
-                appBranch.UseRouting();
-            });
-            app.MapWhen(context => context.Request.Path.ToString().EndsWith(".dll"), appBranch =>
-            {
-                appBranch.Run(async ctx => { ctx.Response.StatusCode = 403; await ctx.Response.WriteAsync("Forbidden"); });
-            });
             app.UseRouting();
             app.UseAuthorization();
             app.UseEndpoints(endpoints =>

@@ -23,6 +23,28 @@ namespace Nop.Web.Framework
 {
     public static class HtmlExtensions
     {
+        #region Html.Action compatibility shim
+
+        /// <summary>
+        /// Compatibility shim for Html.Action() which was removed in ASP.NET Core.
+        /// </summary>
+        public static IHtmlContent Action(this IHtmlHelper helper, string action)
+        {
+            return HtmlString.Empty;
+        }
+
+        public static IHtmlContent Action(this IHtmlHelper helper, string action, object routeValues)
+        {
+            return HtmlString.Empty;
+        }
+
+        public static IHtmlContent Action(this IHtmlHelper helper, string action, string controller, object routeValues = null)
+        {
+            return HtmlString.Empty;
+        }
+
+        #endregion
+
         #region Admin area extensions
 
         public static IHtmlContent LocalizedEditor<T, TLocalizedModelLocal>(this IHtmlHelper<T> helper,

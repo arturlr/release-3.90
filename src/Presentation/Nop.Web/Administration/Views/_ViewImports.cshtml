@@ -1,6 +1,21 @@
 @using Microsoft.AspNetCore.Mvc
 @using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
+@using Microsoft.AspNetCore.Html
 @using Microsoft.AspNetCore.Routing
+@using Nop.Web.Framework
+@using Nop.Web.Framework.Mvc
+@using Nop.Web.Framework.UI
+@using Nop.Web.Framework.Security.Captcha
+@using Nop.Web.Framework.Security.Honeypot
+@using Nop.Web.Framework.ViewEngines.Razor
+@using Nop.Core.Events
+@using Nop.Core.Infrastructure
+@using Nop.Services.Events
+@using Nop.Web.Framework.Events
+
+@inherits WebViewPage<TModel>
+
 @using Nop.Admin.Models.Affiliates
 @using Nop.Admin.Models.Blogs
 @using Nop.Admin.Models.Catalog
@@ -30,12 +45,4 @@
 @using Nop.Admin.Models.Templates
 @using Nop.Admin.Models.Topics
 @using Nop.Admin.Models.Vendors
-@using Nop.Core.Events
-@using Nop.Core.Infrastructure
-@using Nop.Services.Events
-@using Nop.Web.Framework
-@using Nop.Web.Framework.Events
-@using Nop.Web.Framework.Security.Captcha
-@using Nop.Web.Framework.Security.Honeypot
-@using Nop.Web.Framework.UI
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

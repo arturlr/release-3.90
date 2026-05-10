@@ -20,6 +20,16 @@ namespace Nop.Web.Framework.ViewEngines.Razor
         private Localizer _localizer;
 
         /// <summary>
+        /// Gets the HttpRequest for the current view
+        /// </summary>
+        public Microsoft.AspNetCore.Http.HttpRequest Request => ViewContext?.HttpContext?.Request;
+
+        /// <summary>
+        /// Provides access to HttpContext.Current equivalent
+        /// </summary>
+        public Microsoft.AspNetCore.Http.HttpContext HttpContext => ViewContext?.HttpContext;
+
+        /// <summary>
         /// Get a localized resources
         /// </summary>
         public Localizer T

@@ -71,9 +71,7 @@ namespace Nop.Web.Framework
         public virtual void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
             //HTTP context and other related stuff
-            builder.Register(c => c.Resolve<IHttpContextAccessor>())
-                .As<IHttpContextAccessor>()
-                .InstancePerLifetimeScope();
+            builder.RegisterType<HttpContextAccessor>().As<IHttpContextAccessor>().SingleInstance();
 
             //web helper
             builder.RegisterType<WebHelper>().As<IWebHelper>().InstancePerLifetimeScope();

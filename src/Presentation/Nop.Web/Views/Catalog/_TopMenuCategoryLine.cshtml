@@ -1,0 +1,30 @@
+@model CategorySimpleModel
+@using Nop.Web.Models.Catalog;
+@{
+    var level = (int)ViewData["Level"];
+    var responsiveMobileMenu = (bool)ViewData["ResponsiveMobileMenu"];
+
+    var subCategories = responsiveMobileMenu ?
+        Model.SubCategories :
+        Model.SubCategories.Where(x => x.IncludeInTopMenu).ToList();
+
+    var levelClass = level == 0 ? "first-level" : "";
+}
+<li>
+    <a href="@Url.RouteUrl("Category", new { SeName = Model.SeName })">@Model.Name
+        @if (Model.NumberOfProducts.HasValue)
+        {
+            <text> </text>@T("Categories.TotalProducts", Model.NumberOfProducts.Value)
+        }
+    </a>
+    @if (subCategories.Count > 0)
+    {
+        <div class="sublist-toggle"></div>
+        <ul class="sublist @levelClass">
+            @foreach (var subCategory in subCategories)
+            {
+                @await Html.PartialAsync("_TopMenuCategoryLine", subCategory, new ViewDataDictionary(ViewData) { { "Level", level + 1 }, { "ResponsiveMobileMenu", responsiveMobileMenu } })
+            }
+        </ul>
+    }
+</li>

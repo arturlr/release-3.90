@@ -8,7 +8,7 @@
     var themes = Model.AvailableStoreThemes.Select(x => new SelectListItem
     {
         Text = x.Title,
-        Value = webHelper.ModifyQueryString(Url.Action("SetStoreTheme", "Common", new { themename = x.Name }), "returnurl=" + HttpUtility.UrlEncode(HttpContext.Current.Request.RawUrl), null),
+        Value = webHelper.ModifyQueryString(Url.Action("SetStoreTheme", "Common", new { themename = x.Name }), "returnurl=" + HttpUtility.UrlEncode((ViewContext.HttpContext.Request.Path.Value + ViewContext.HttpContext.Request.QueryString.Value)), null),
         Selected = x.Name.Equals(Model.CurrentStoreTheme.Name, StringComparison.InvariantCultureIgnoreCase)
     });
     <div class="theme-selector">

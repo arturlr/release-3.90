@@ -9,7 +9,7 @@ namespace Nop.Web.Infrastructure
 {
     public partial class RouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(IRouteBuilder routes)
+        public void RegisterRoutes(IEndpointRouteBuilder routes)
         {
             //We reordered our routes so the most used ones are on top. It can improve performance.
 

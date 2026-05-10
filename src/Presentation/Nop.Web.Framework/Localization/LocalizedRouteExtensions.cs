@@ -1,4 +1,5 @@
 using System;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
 
@@ -6,123 +7,75 @@ namespace Nop.Web.Framework.Localization
 {
     public static class LocalizedRouteExtensions
     {
-        //Override for localized route
-        public static IRouteBuilder MapLocalizedRoute(this IRouteBuilder routeBuilder, string name, string template)
+        public static IEndpointRouteBuilder MapLocalizedRoute(this IEndpointRouteBuilder endpointRouteBuilder, string name, string template)
         {
-            return MapLocalizedRoute(routeBuilder, name, template, null /* defaults */, null /* constraints */);
+            return MapLocalizedRoute(endpointRouteBuilder, name, template, null, null);
         }
-        public static IRouteBuilder MapLocalizedRoute(this IRouteBuilder routeBuilder, string name, string template, object defaults)
+
+        public static IEndpointRouteBuilder MapLocalizedRoute(this IEndpointRouteBuilder endpointRouteBuilder, string name, string template, object defaults)
         {
-            return MapLocalizedRoute(routeBuilder, name, template, defaults, null /* constraints */);
+            return MapLocalizedRoute(endpointRouteBuilder, name, template, defaults, null);
         }
-        public static IRouteBuilder MapLocalizedRoute(this IRouteBuilder routeBuilder, string name, string template, object defaults, object constraints)
+
+        public static IEndpointRouteBuilder MapLocalizedRoute(this IEndpointRouteBuilder endpointRouteBuilder, string name, string template, object defaults, object constraints)
         {
-            return MapLocalizedRoute(routeBuilder, name, template, defaults, constraints, null /* namespaces */);
+            return MapLocalizedRoute(endpointRouteBuilder, name, template, defaults, constraints, null);
         }
-        public static IRouteBuilder MapLocalizedRoute(this IRouteBuilder routeBuilder, string name, string template, string[] namespaces)
+
+        public static IEndpointRouteBuilder MapLocalizedRoute(this IEndpointRouteBuilder endpointRouteBuilder, string name, string template, string[] namespaces)
         {
-            return MapLocalizedRoute(routeBuilder, name, template, null /* defaults */, null /* constraints */, namespaces);
+            return MapLocalizedRoute(endpointRouteBuilder, name, template, null, null, namespaces);
         }
-        public static IRouteBuilder MapLocalizedRoute(this IRouteBuilder routeBuilder, string name, string template, object defaults, string[] namespaces)
+
+        public static IEndpointRouteBuilder MapLocalizedRoute(this IEndpointRouteBuilder endpointRouteBuilder, string name, string template, object defaults, string[] namespaces)
         {
-            return MapLocalizedRoute(routeBuilder, name, template, defaults, null /* constraints */, namespaces);
+            return MapLocalizedRoute(endpointRouteBuilder, name, template, defaults, null, namespaces);
         }
-        public static IRouteBuilder MapLocalizedRoute(this IRouteBuilder routeBuilder, string name, string template, object defaults, object constraints, string[] namespaces)
+
+        public static IEndpointRouteBuilder MapLocalizedRoute(this IEndpointRouteBuilder endpointRouteBuilder, string name, string template, object defaults, object constraints, string[] namespaces)
         {
-            if (routeBuilder == null)
-            {
-                throw new ArgumentNullException(nameof(routeBuilder));
-            }
+            if (endpointRouteBuilder == null)
+                throw new ArgumentNullException(nameof(endpointRouteBuilder));
             if (template == null)
-            {
                 throw new ArgumentNullException(nameof(template));
-            }
 
-            // In ASP.NET Core, we use the IRouteBuilder to add the localized route
-            var defaultsDictionary = defaults != null ? new RouteValueDictionary(defaults) : new RouteValueDictionary();
-            var constraintsDictionary = constraints != null ? new RouteValueDictionary(constraints) : new RouteValueDictionary();
-            var dataTokens = new RouteValueDictionary();
+            var conventionBuilder = endpointRouteBuilder.MapControllerRoute(
+                name: name,
+                pattern: template,
+                defaults: defaults,
+                constraints: constraints);
 
-            if (namespaces != null && namespaces.Length > 0)
-            {
-                dataTokens["Namespaces"] = namespaces;
-            }
-
-            var inlineConstraintResolver = (IInlineConstraintResolver)routeBuilder.ServiceProvider.GetService(typeof(IInlineConstraintResolver));
-            
-            // Create the localized route wrapping the default handler
-            var localizedRoute = new LocalizedRoute(routeBuilder.DefaultHandler);
-            
-            routeBuilder.Routes.Add(new Route(
-                localizedRoute,
-                name,
-                template,
-                defaultsDictionary,
-                new RouteValueDictionary(constraintsDictionary),
-                dataTokens,
-                inlineConstraintResolver));
-
-            return routeBuilder;
+            return endpointRouteBuilder;
         }
 
-        // MapRoute overloads that accept namespace arrays (for backward compatibility with MVC 5 route registration)
-        public static IRouteBuilder MapRoute(this IRouteBuilder routeBuilder, string name, string template, object defaults, string[] namespaces)
+        public static IEndpointRouteBuilder MapRoute(this IEndpointRouteBuilder endpointRouteBuilder, string name, string template, object defaults)
         {
-            return MapRoute(routeBuilder, name, template, defaults, null /* constraints */, namespaces);
+            if (endpointRouteBuilder == null)
+                throw new ArgumentNullException(nameof(endpointRouteBuilder));
+
+            endpointRouteBuilder.MapControllerRoute(name: name, pattern: template, defaults: defaults);
+            return endpointRouteBuilder;
         }
-        public static IRouteBuilder MapRoute(this IRouteBuilder routeBuilder, string name, string template, object defaults, object constraints, string[] namespaces)
+
+        public static IEndpointRouteBuilder MapRoute(this IEndpointRouteBuilder endpointRouteBuilder, string name, string template, object defaults, string[] namespaces)
         {
-            if (routeBuilder == null)
-            {
-                throw new ArgumentNullException(nameof(routeBuilder));
-            }
+            return MapRoute(endpointRouteBuilder, name, template, defaults, null, namespaces);
+        }
+
+        public static IEndpointRouteBuilder MapRoute(this IEndpointRouteBuilder endpointRouteBuilder, string name, string template, object defaults, object constraints, string[] namespaces)
+        {
+            if (endpointRouteBuilder == null)
+                throw new ArgumentNullException(nameof(endpointRouteBuilder));
             if (template == null)
-            {
                 throw new ArgumentNullException(nameof(template));
-            }
 
-            var defaultsDictionary = defaults != null ? new RouteValueDictionary(defaults) : new RouteValueDictionary();
-            var constraintsDictionary = constraints != null ? new RouteValueDictionary(constraints) : new RouteValueDictionary();
-            var dataTokens = new RouteValueDictionary();
+            endpointRouteBuilder.MapControllerRoute(
+                name: name,
+                pattern: template,
+                defaults: defaults,
+                constraints: constraints);
 
-            if (namespaces != null && namespaces.Length > 0)
-            {
-                dataTokens["Namespaces"] = namespaces;
-            }
-
-            var inlineConstraintResolver = (IInlineConstraintResolver)routeBuilder.ServiceProvider.GetService(typeof(IInlineConstraintResolver));
-
-            routeBuilder.Routes.Add(new Route(
-                routeBuilder.DefaultHandler,
-                name,
-                template,
-                defaultsDictionary,
-                new RouteValueDictionary(constraintsDictionary),
-                dataTokens,
-                inlineConstraintResolver));
-
-            return routeBuilder;
-        }
-        
-        public static void ClearSeoFriendlyUrlsCachedValueForRoutes(this IRouteBuilder routeBuilder)
-        {
-            if (routeBuilder == null)
-            {
-                throw new ArgumentNullException(nameof(routeBuilder));
-            }
-            foreach (var router in routeBuilder.Routes)
-            {
-                if (router is LocalizedRoute localizedRoute)
-                {
-                    localizedRoute.ClearSeoFriendlyUrlsCachedValue();
-                }
-                else if (router is Route route)
-                {
-                    // The Route wraps a target IRouter - try to find LocalizedRoute in its hierarchy
-                    // In ASP.NET Core, Route stores target internally; we check if the route name matches
-                    // our pattern and clear all cached values through the localized routes we track
-                }
-            }
+            return endpointRouteBuilder;
         }
     }
 }

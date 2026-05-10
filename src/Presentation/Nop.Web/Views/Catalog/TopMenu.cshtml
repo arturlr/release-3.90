@@ -1,42 +1,6 @@
 @model TopMenuModel
 @using Nop.Web.Models.Catalog;
 
-@helper RenderCategoryLine(CategorySimpleModel category, int level, bool responsiveMobileMenu)
-{
-    <li>
-        <a href="@Url.RouteUrl("Category", new { SeName = category.SeName })">@category.Name
-        @if (category.NumberOfProducts.HasValue)
-        {
-            <text> </text>@T("Categories.TotalProducts", category.NumberOfProducts.Value)
-        }
-        </a>
-        @{
-            //subcategories
-            var subCategories = responsiveMobileMenu ?
-                //responsive (all categories)
-                category.SubCategories :
-                //standard design (only categories with "IncludeInTopMenu")
-                category.SubCategories.Where(x => x.IncludeInTopMenu).ToList();
-
-            var levelClass = "";
-            if (level == 0)
-            {
-                levelClass = "first-level";
-            }
-            if (subCategories.Count > 0)
-            {
-                <div class="sublist-toggle"></div>
-                <ul class="sublist @levelClass">
-                    @foreach (var subCategory in subCategories)
-                    {
-                        @RenderCategoryLine(subCategory, level + 1, responsiveMobileMenu)
-                    }
-                </ul>
-            }
-        }
-    </li>
-}
-
 <ul class="top-menu">
     @Html.Widget("header_menu_before")
     @if (Model.DisplayHomePageMenuItem)
@@ -48,7 +12,7 @@
     }
     @foreach (var category in rootCategories)
     {
-        @RenderCategoryLine(category, 0, false)
+        @await Html.PartialAsync("_TopMenuCategoryLine", category, new ViewDataDictionary(ViewData) { { "Level", 0 }, { "ResponsiveMobileMenu", false } })
     }
     @foreach (var topic in Model.Topics)
     {
@@ -83,7 +47,6 @@
 
 @{
     var rootCategoriesResponsive = Model.Categories.ToList();
-    //name it "Categories" if we have only categories. Otherwise, "Menu"
     var responsiveMenuTitle = Model.HasOnlyCategories ? T("Categories") : T("Menu");
     <div class="menu-toggle">@responsiveMenuTitle</div>
     <ul class="top-menu mobile">
@@ -94,7 +57,7 @@
         }
         @foreach (var category in rootCategoriesResponsive)
         {
-            @RenderCategoryLine(category, 0, true)
+            @await Html.PartialAsync("_TopMenuCategoryLine", category, new ViewDataDictionary(ViewData) { { "Level", 0 }, { "ResponsiveMobileMenu", true } })
         }
         @foreach (var topic in Model.Topics)
         {
@@ -126,7 +89,7 @@
         }
         @Html.Widget("mob_header_menu_after")
     </ul>
-    
+
     <script type="text/javascript">
         $(document).ready(function () {
             $('.menu-toggle').click(function () {
@@ -138,6 +101,3 @@
         });
     </script>
 }
-
-
-

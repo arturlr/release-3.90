@@ -8,7 +8,7 @@ namespace Nop.Web.Infrastructure
 {
     public partial class GenericUrlRouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(IRouteBuilder routes)
+        public void RegisterRoutes(IEndpointRouteBuilder routes)
         {
             //generic URLs
             routes.MapGenericPathRoute("GenericUrl",

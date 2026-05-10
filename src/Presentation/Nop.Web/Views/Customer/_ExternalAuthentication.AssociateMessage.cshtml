@@ -8,6 +8,6 @@
     <div class="external-auth-association">
         <label>@T("Account.AssociatedExternalAuth.YourAccountWillBeLinkedTo")</label>
         <span class="identifier">@CommonHelper.EnsureMaximumLength(openAuthParameters.ExternalIdentifier, 40, "...")</span>
-        <a href="@Url.Action("RemoveParameterAssociation", "ExternalAuthentication", new { ReturnUrl = HttpContext.Current.Request.RawUrl })" class="remove">@T("Account.AssociatedExternalAuth.YourAccountWillBeLinkedTo.Remove")</a>
+        <a href="@Url.Action("RemoveParameterAssociation", "ExternalAuthentication", new { ReturnUrl = (ViewContext.HttpContext.Request.Path.Value + ViewContext.HttpContext.Request.QueryString.Value) })" class="remove">@T("Account.AssociatedExternalAuth.YourAccountWillBeLinkedTo.Remove")</a>
     </div>
 }

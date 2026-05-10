@@ -4,6 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Nop.Admin</RootNamespace>
     <AssemblyName>Nop.Admin</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <RazorCompileOnBuild>false</RazorCompileOnBuild>
+    <RazorCompileOnPublish>false</RazorCompileOnPublish>
+    <UseRazorSourceGenerator>false</UseRazorSourceGenerator>
+    <OutputType>Library</OutputType>
   </PropertyGroup>
 
   <ItemGroup>

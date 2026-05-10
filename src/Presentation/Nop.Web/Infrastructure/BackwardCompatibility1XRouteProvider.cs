@@ -12,7 +12,7 @@ namespace Nop.Web.Infrastructure
     //Routes used for backward compatibility with 1.x versions of nopCommerce
     public partial class BackwardCompatibility1XRouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(IRouteBuilder routes)
+        public void RegisterRoutes(IEndpointRouteBuilder routes)
         {
             var config = EngineContext.Current.Resolve<NopConfig>();
             if (!config.SupportPreviousNopcommerceVersions)

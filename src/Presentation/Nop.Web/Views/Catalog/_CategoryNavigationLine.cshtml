@@ -1,0 +1,38 @@
+@model CategorySimpleModel
+@using Nop.Web.Models.Catalog;
+@{
+    var currentCategoryId = (int)ViewData["CurrentCategoryId"];
+
+    bool BreadCrumbContains(CategorySimpleModel cat)
+    {
+        if (currentCategoryId == 0) return false;
+        if (cat.Id == currentCategoryId) return true;
+        foreach (var sub in cat.SubCategories)
+        {
+            if (BreadCrumbContains(sub)) return true;
+        }
+        return false;
+    }
+
+    bool active = Model.Id == currentCategoryId || Model.SubCategories.Count(BreadCrumbContains) > 0;
+    bool last = Model.Id == currentCategoryId;
+    string liClass = active ? "active" : "inactive";
+    if (last) { liClass += " last"; }
+}
+<li class="@liClass">
+    <a href="@Url.RouteUrl("Category", new { SeName = Model.SeName })">@Model.Name
+        @if (Model.NumberOfProducts.HasValue)
+        {
+            <text> </text>@T("Categories.TotalProducts", Model.NumberOfProducts.Value)
+        }
+    </a>
+    @if (active && Model.SubCategories.Count > 0)
+    {
+        <ul class="sublist">
+            @foreach (var subCategory in Model.SubCategories)
+            {
+                @await Html.PartialAsync("_CategoryNavigationLine", subCategory, new ViewDataDictionary(ViewData) { { "CurrentCategoryId", currentCategoryId } })
+            }
+        </ul>
+    }
+</li>

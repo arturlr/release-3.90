@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Web;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SystemWebAdapters;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
 
@@ -17,20 +19,17 @@ namespace Nop.Core
     {
         #region Fields 
 
-        private readonly HttpContext _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private System.Web.HttpContext _httpContext => _httpContextAccessor?.HttpContext?.AsSystemWeb();
         private readonly string[] _staticFileExtensions;
 
         #endregion
 
         #region Constructor
 
-        /// <summary>
-        /// Ctor
-        /// </summary>
-        /// <param name="httpContext">HTTP context</param>
-        public WebHelper(HttpContext httpContext)
+        public WebHelper(IHttpContextAccessor httpContextAccessor)
         {
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._staticFileExtensions = new[] { ".axd", ".ashx", ".bmp", ".css", ".gif", ".htm", ".html", ".ico", ".jpeg", ".jpg", ".js", ".png", ".rar", ".zip" };
         }
 
@@ -38,7 +37,7 @@ namespace Nop.Core
 
         #region Utilities
 
-        protected virtual Boolean IsRequestAvailable(HttpContext httpContext)
+        protected virtual Boolean IsRequestAvailable(System.Web.HttpContext httpContext)
         {
             if (httpContext == null)
                 return false;
@@ -364,7 +363,11 @@ namespace Nop.Core
             if (result.EndsWith("/"))
                 result = result.Substring(0, result.Length - 1);
             if (IsRequestAvailable(_httpContext))
-                result = result + _httpContext.Request.ApplicationPath;
+            {
+                var appPath = _httpContext.Request.ApplicationPath;
+                if (!string.IsNullOrEmpty(appPath) && appPath != "/")
+                    result = result + appPath;
+            }
             if (!result.EndsWith("/"))
                 result += "/";
 
@@ -387,7 +390,7 @@ namespace Nop.Core
         /// .axd
         /// .ashx
         /// </remarks>
-        public virtual bool IsStaticResource(HttpRequest request)
+        public virtual bool IsStaticResource(System.Web.HttpRequest request)
         {
             if (request == null)
                 throw new ArgumentNullException("request");

@@ -12,10 +12,10 @@
 
     //register URL with return URL (if specified)
     var registerUrl = Url.RouteUrl("Register");
-    if (!String.IsNullOrEmpty(this.Context.Request.QueryString["returnUrl"]))
+    if (!String.IsNullOrEmpty(this.Context.Request.Query["returnUrl"]))
     {
         var webHelper = EngineContext.Current.Resolve<IWebHelper>();
-        registerUrl = webHelper.ModifyQueryString(registerUrl, "returnurl=" + HttpUtility.UrlEncode(this.Context.Request.QueryString["returnUrl"]), null);
+        registerUrl = webHelper.ModifyQueryString(registerUrl, "returnurl=" + HttpUtility.UrlEncode(this.Context.Request.Query["returnUrl"]), null);
     }
 }
 <div class="page login-page">
