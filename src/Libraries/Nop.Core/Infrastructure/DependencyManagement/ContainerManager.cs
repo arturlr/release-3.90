@@ -11,13 +11,13 @@ namespace Nop.Core.Infrastructure.DependencyManagement
     /// </summary>
     public class ContainerManager
     {
-        private readonly IContainer _container;
+        private readonly ILifetimeScope _container;
 
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="container">Conainer</param>
-        public ContainerManager(IContainer container)
+        /// <param name="container">Container</param>
+        public ContainerManager(ILifetimeScope container)
         {
             this._container = container;
         }
@@ -25,7 +25,7 @@ namespace Nop.Core.Infrastructure.DependencyManagement
         /// <summary>
         /// Gets a container
         /// </summary>
-        public virtual IContainer Container
+        public virtual ILifetimeScope Container
         {
             get
             {
@@ -195,18 +195,22 @@ namespace Nop.Core.Infrastructure.DependencyManagement
         {
             try
             {
-                //when such lifetime scope is returned, you should be sure that it'll be disposed once used (e.g. in schedule tasks)
-                return Container.BeginLifetimeScope(MatchingScopeLifetimeTags.RequestLifetimeScopeTag);
+                var httpContextAccessor = Container.ResolveOptional<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
+                var httpContext = httpContextAccessor?.HttpContext;
+                if (httpContext != null)
+                {
+                    // When Autofac is the service provider, RequestServices wraps the per-request lifetime scope
+                    var requestScope = httpContext.RequestServices.GetService(typeof(ILifetimeScope)) as ILifetimeScope;
+                    if (requestScope != null)
+                        return requestScope;
+                }
             }
-            catch (Exception)
+            catch
             {
-                //we can get an exception here if RequestLifetimeScope is already disposed
-                //for example, requested in or after "Application_EndRequest" handler
-                //but note that usually it should never happen
-
-                //when such lifetime scope is returned, you should be sure that it'll be disposed once used (e.g. in schedule tasks)
-                return Container.BeginLifetimeScope(MatchingScopeLifetimeTags.RequestLifetimeScopeTag);
             }
+
+            // Fallback for background tasks or when no HTTP context
+            return Container;
         }
     }
 }

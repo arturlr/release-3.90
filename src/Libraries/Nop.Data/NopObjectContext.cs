@@ -41,7 +41,7 @@ namespace Nop.Data
         {
             if (!optionsBuilder.IsConfigured && !string.IsNullOrEmpty(_connectionString))
             {
-                optionsBuilder.UseSqlServer(_connectionString);
+                optionsBuilder.UseLazyLoadingProxies().UseSqlServer(_connectionString);
             }
         }
 

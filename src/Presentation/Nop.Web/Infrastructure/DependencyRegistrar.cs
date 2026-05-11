@@ -29,6 +29,13 @@ namespace Nop.Web.Infrastructure
 
 
 
+            //register all controllers
+            var controllerTypes = typeFinder.FindClassesOfType<Microsoft.AspNetCore.Mvc.Controller>();
+            foreach (var controllerType in controllerTypes)
+            {
+                builder.RegisterType(controllerType).InstancePerLifetimeScope();
+            }
+
             //controllers (we cache some data between HTTP requests)
             builder.RegisterType<ProductController>()
                 .WithParameter(ResolvedParameter.ForNamed<ICacheManager>("nop_cache_static"));

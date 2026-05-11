@@ -1,1 +1,4 @@
-@*This is here so that if an error doesn't get throw if a theme doesn't have a Shared/Head.cshtml*@
+@{
+    Html.AppendCssFileParts("~/Themes/DefaultClean/Content/css/styles.css");
+    Html.AppendCssFileParts("~/Content/jquery-ui-themes/smoothness/jquery-ui-1.10.3.custom.min.css");
+}

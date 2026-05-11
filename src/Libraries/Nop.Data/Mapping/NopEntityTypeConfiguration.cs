@@ -367,15 +367,15 @@ namespace Nop.Data.Mapping
             _configurations = configurations;
             _configIndex = configurations.Count;
 
-            // Add default configuration (no cascade delete)
+            // Add default configuration - HasForeignKey<TEntity> marks TEntity as the dependent (it has the FK)
             var nav = _navigation;
             var inv = _inverseNavigation;
             _configurations.Add(b =>
             {
                 if (inv != null)
-                    b.HasOne(nav).WithOne(inv).IsRequired(false);
+                    b.HasOne(nav).WithOne(inv).HasForeignKey<TEntity>(nav.GetPropertyName() + "_Id").IsRequired(false);
                 else
-                    b.HasOne(nav).WithOne().IsRequired(false);
+                    b.HasOne(nav).WithOne().HasForeignKey<TEntity>(nav.GetPropertyName() + "_Id").IsRequired(false);
             });
         }
 
@@ -387,9 +387,9 @@ namespace Nop.Data.Mapping
             {
                 ReferenceReferenceBuilder<TEntity, TRelated> refBuilder;
                 if (inv != null)
-                    refBuilder = b.HasOne(nav).WithOne(inv).IsRequired(false);
+                    refBuilder = b.HasOne(nav).WithOne(inv).HasForeignKey<TEntity>(nav.GetPropertyName() + "_Id").IsRequired(false);
                 else
-                    refBuilder = b.HasOne(nav).WithOne().IsRequired(false);
+                    refBuilder = b.HasOne(nav).WithOne().HasForeignKey<TEntity>(nav.GetPropertyName() + "_Id").IsRequired(false);
                 refBuilder.OnDelete(cascade ? DeleteBehavior.Cascade : DeleteBehavior.Restrict);
             };
             return this;
@@ -655,6 +655,12 @@ namespace Nop.Data.Mapping
             var nav = _navigation;
             var inv = _inverseNavigation;
 
+            // Derive FK column names using EF6 convention: EntityTypeName_Id
+            var leftType = typeof(TEntity);
+            var rightType = typeof(TRelated);
+            var leftFk = leftType.Name + "_Id";
+            var rightFk = rightType.Name + "_Id";
+
             _configurations.Add(b =>
             {
                 CollectionCollectionBuilder<TRelated, TEntity> manyBuilder;
@@ -665,7 +671,9 @@ namespace Nop.Data.Mapping
 
                 if (!string.IsNullOrEmpty(tableName))
                 {
-                    manyBuilder.UsingEntity(tableName);
+                    manyBuilder.UsingEntity(tableName,
+                        r => r.HasOne(rightType).WithMany().HasForeignKey(rightFk),
+                        l => l.HasOne(leftType).WithMany().HasForeignKey(leftFk));
                 }
             });
         }
@@ -716,4 +724,16 @@ namespace Nop.Data.Mapping
     }
 
     #endregion
+
+    internal static class ExpressionExtensions
+    {
+        public static string GetPropertyName<TSource, TProperty>(this Expression<Func<TSource, TProperty>> expression)
+        {
+            if (expression.Body is MemberExpression member)
+                return member.Member.Name;
+            if (expression.Body is UnaryExpression unary && unary.Operand is MemberExpression unaryMember)
+                return unaryMember.Member.Name;
+            throw new ArgumentException("Expression is not a member access expression.");
+        }
+    }
 }

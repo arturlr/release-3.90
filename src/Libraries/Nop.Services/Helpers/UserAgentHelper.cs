@@ -15,18 +15,18 @@ namespace Nop.Services.Helpers
     public partial class UserAgentHelper : IUserAgentHelper
     {
         private readonly NopConfig _config;
-        private readonly HttpContext _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private static readonly object _locker = new object();
 
         /// <summary>
         /// Ctor
         /// </summary>
         /// <param name="config">Config</param>
-        /// <param name="httpContext">HTTP context</param>
-        public UserAgentHelper(NopConfig config, HttpContext httpContext)
+        /// <param name="httpContextAccessor">HTTP context accessor</param>
+        public UserAgentHelper(NopConfig config, IHttpContextAccessor httpContextAccessor)
         {
             this._config = config;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
@@ -62,7 +62,7 @@ namespace Nop.Services.Helpers
         /// <returns>Result</returns>
         public virtual bool IsSearchEngine()
         {
-            if (_httpContext == null)
+            if (_httpContextAccessor.HttpContext == null)
                 return false;
 
             //we put required logic in try-catch block
@@ -75,7 +75,7 @@ namespace Nop.Services.Helpers
                 if (bowscapXmlHelper == null)
                     return false;
 
-                var userAgent = _httpContext.Request.Headers["User-Agent"].ToString();
+                var userAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
                 return bowscapXmlHelper.IsCrawler(userAgent);
             }
             catch (Exception exc)

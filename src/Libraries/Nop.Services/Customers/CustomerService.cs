@@ -394,6 +394,11 @@ namespace Nop.Services.Customers
                         orderby c.Id
                         select c;
             var customer = query.FirstOrDefault();
+            // Eagerly load roles to avoid lazy loading issues across scopes
+            if (customer != null)
+            {
+                var _ = customer.CustomerRoles;
+            }
             return customer;
         }
 

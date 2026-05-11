@@ -192,14 +192,18 @@ namespace Nop.Core
         /// <returns>Page name</returns>
         public virtual string GetThisPageUrl(bool includeQueryString, bool useSsl)
         {
-            if (!IsRequestAvailable(_httpContext))
+            var httpContext = _httpContextAccessor?.HttpContext;
+            if (httpContext == null)
                 return string.Empty;
             
             //get the host considering using SSL
             var url = GetStoreHost(useSsl).TrimEnd('/');
 
             //get full URL with or without query string
-            url += includeQueryString ? _httpContext.Request.RawUrl : _httpContext.Request.Path;
+            if (includeQueryString)
+                url += httpContext.Request.Path + httpContext.Request.QueryString;
+            else
+                url += httpContext.Request.Path;
 
             return url.ToLowerInvariant();
         }

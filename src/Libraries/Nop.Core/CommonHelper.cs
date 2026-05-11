@@ -315,10 +315,20 @@ namespace Nop.Core
         public static string MapPath(string path)
         {
             //In .NET Core there is no HostingEnvironment.MapPath.
-            //Use the application base directory instead.
-            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            //Use the content root directory (where the project files are).
+            string baseDirectory = _contentRootPath ?? AppDomain.CurrentDomain.BaseDirectory;
             path = path.Replace("~/", "").TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
             return Path.Combine(baseDirectory, path);
+        }
+
+        private static string _contentRootPath;
+
+        /// <summary>
+        /// Set the content root path for MapPath resolution
+        /// </summary>
+        public static void SetContentRootPath(string path)
+        {
+            _contentRootPath = path;
         }        
     }
 }

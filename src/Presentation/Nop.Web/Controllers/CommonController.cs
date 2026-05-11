@@ -776,8 +776,55 @@ https://docs.microsoft.com/en-us/aspnet/core/mvc/views/view-components?view=aspn
 
         public virtual ActionResult GenericUrl()
         {
-            //seems that no entity was found
-            return InvokeHttp404();
+            // Get the slug from route data
+            var slug = RouteData.Values["generic_se_name"]?.ToString();
+            if (string.IsNullOrEmpty(slug))
+                return InvokeHttp404();
+
+            // Look up the URL record
+            var urlRecordService = Nop.Core.Infrastructure.EngineContext.Current.Resolve<Nop.Services.Seo.IUrlRecordService>();
+            var urlRecord = urlRecordService.GetBySlug(slug);
+            if (urlRecord == null || !urlRecord.IsActive)
+                return InvokeHttp404();
+
+            // Forward to the appropriate action internally (no redirect)
+            switch (urlRecord.EntityName.ToLowerInvariant())
+            {
+                case "product":
+                    RouteData.Values["controller"] = "Product";
+                    RouteData.Values["action"] = "ProductDetails";
+                    RouteData.Values["productId"] = urlRecord.EntityId;
+                    RouteData.Values["SeName"] = urlRecord.Slug;
+                    var productController = Nop.Core.Infrastructure.EngineContext.Current.Resolve<Nop.Web.Controllers.ProductController>();
+                    productController.ControllerContext = ControllerContext;
+                    return productController.ProductDetails(urlRecord.EntityId, 0);
+                case "category":
+                    RouteData.Values["controller"] = "Catalog";
+                    RouteData.Values["action"] = "Category";
+                    RouteData.Values["categoryId"] = urlRecord.EntityId;
+                    RouteData.Values["SeName"] = urlRecord.Slug;
+                    var catalogController = Nop.Core.Infrastructure.EngineContext.Current.Resolve<Nop.Web.Controllers.CatalogController>();
+                    catalogController.ControllerContext = ControllerContext;
+                    return catalogController.Category(urlRecord.EntityId, new Nop.Web.Models.Catalog.CatalogPagingFilteringModel());
+                case "manufacturer":
+                    RouteData.Values["controller"] = "Catalog";
+                    RouteData.Values["action"] = "Manufacturer";
+                    RouteData.Values["manufacturerId"] = urlRecord.EntityId;
+                    RouteData.Values["SeName"] = urlRecord.Slug;
+                    var mfgController = Nop.Core.Infrastructure.EngineContext.Current.Resolve<Nop.Web.Controllers.CatalogController>();
+                    mfgController.ControllerContext = ControllerContext;
+                    return mfgController.Manufacturer(urlRecord.EntityId, new Nop.Web.Models.Catalog.CatalogPagingFilteringModel());
+                case "topic":
+                    RouteData.Values["controller"] = "Topic";
+                    RouteData.Values["action"] = "TopicDetails";
+                    RouteData.Values["topicId"] = urlRecord.EntityId;
+                    RouteData.Values["SeName"] = urlRecord.Slug;
+                    var topicController = Nop.Core.Infrastructure.EngineContext.Current.Resolve<Nop.Web.Controllers.TopicController>();
+                    topicController.ControllerContext = ControllerContext;
+                    return topicController.TopicDetails(urlRecord.EntityId);
+                default:
+                    return InvokeHttp404();
+            }
         }
 
         //store is closed

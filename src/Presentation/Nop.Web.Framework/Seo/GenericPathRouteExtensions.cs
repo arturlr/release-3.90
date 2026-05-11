@@ -24,11 +24,16 @@ namespace Nop.Web.Framework.Seo
             if (template == null)
                 throw new ArgumentNullException(nameof(template));
 
+            // Ignore constraints if it's a string array (MVC5 namespaces pattern)
+            object routeConstraints = null;
+            if (constraints != null && constraints is not string[] && constraints is not Array)
+                routeConstraints = constraints;
+
             endpointRouteBuilder.MapControllerRoute(
                 name: name,
                 pattern: template,
                 defaults: defaults,
-                constraints: constraints);
+                constraints: routeConstraints);
 
             return endpointRouteBuilder;
         }

@@ -19,8 +19,15 @@ namespace Nop.Web.Framework.Themes
 
         public void PopulateValues(ViewLocationExpanderContext context)
         {
-            var themeContext = EngineContext.Current.Resolve<IThemeContext>();
-            context.Values[ThemeKey] = themeContext.WorkingThemeName;
+            try
+            {
+                var themeContext = EngineContext.Current.Resolve<IThemeContext>();
+                context.Values[ThemeKey] = themeContext.WorkingThemeName;
+            }
+            catch
+            {
+                context.Values[ThemeKey] = "DefaultClean";
+            }
         }
 
         public IEnumerable<string> ExpandViewLocations(ViewLocationExpanderContext context, IEnumerable<string> viewLocations)

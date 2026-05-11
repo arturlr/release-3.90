@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Net;
+using System.Threading.Tasks;
 using Nop.Core;
 using Nop.Core.Infrastructure;
 using Nop.Services.Localization;
@@ -13,10 +14,15 @@ using Nop.Services.Stores;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Razor;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Html;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Nop.Web.Framework
@@ -27,20 +33,184 @@ namespace Nop.Web.Framework
 
         /// <summary>
         /// Compatibility shim for Html.Action() which was removed in ASP.NET Core.
+        /// Invokes a controller action and returns its rendered HTML.
         /// </summary>
         public static IHtmlContent Action(this IHtmlHelper helper, string action)
         {
-            return HtmlString.Empty;
+            return Action(helper, action, null, null);
         }
 
         public static IHtmlContent Action(this IHtmlHelper helper, string action, object routeValues)
         {
-            return HtmlString.Empty;
+            return Action(helper, action, null, routeValues);
         }
 
         public static IHtmlContent Action(this IHtmlHelper helper, string action, string controller, object routeValues = null)
         {
+            var httpContext = helper.ViewContext.HttpContext;
+
+            // Prevent infinite recursion
+            const string depthKey = "HtmlAction_Depth";
+            var depth = httpContext.Items.ContainsKey(depthKey) ? (int)httpContext.Items[depthKey] : 0;
+            if (depth > 3)
+                return HtmlString.Empty;
+            httpContext.Items[depthKey] = depth + 1;
+
+            try
+            {
+                controller = controller ?? helper.ViewContext.RouteData.Values["controller"]?.ToString();
+                var routeDict = routeValues != null ? new RouteValueDictionary(routeValues) : new RouteValueDictionary();
+                var actionDescriptorProvider = httpContext.RequestServices.GetRequiredService<IActionDescriptorCollectionProvider>();
+                var descriptor = actionDescriptorProvider.ActionDescriptors.Items
+                    .OfType<ControllerActionDescriptor>()
+                    .FirstOrDefault(d => string.Equals(d.RouteValues["action"], action, StringComparison.OrdinalIgnoreCase)
+                                      && string.Equals(d.RouteValues["controller"], controller, StringComparison.OrdinalIgnoreCase));
+
+                if (descriptor == null)
+                    return HtmlString.Empty;
+
+                // Create route data for the child action
+                var routeData = new RouteData();
+                routeData.Values["action"] = action;
+                routeData.Values["controller"] = controller;
+                foreach (var kvp in routeDict)
+                    routeData.Values[kvp.Key] = kvp.Value;
+
+                // Create controller instance via DI (Autofac)
+                var controllerType = descriptor.ControllerTypeInfo.AsType();
+                var controller_instance = EngineContext.Current.Resolve(controllerType);
+
+                if (controller_instance is Controller mvcController)
+                {
+                    var actionContext = new ActionContext(httpContext, routeData, descriptor);
+                    mvcController.ControllerContext = new ControllerContext(actionContext);
+                    // Set up TempData
+                    var tempDataProvider = httpContext.RequestServices.GetRequiredService<ITempDataProvider>();
+                    mvcController.TempData = new TempDataDictionary(httpContext, tempDataProvider);
+                }
+
+                // Invoke the action method
+                var methodInfo = descriptor.MethodInfo;
+                var parameters = methodInfo.GetParameters();
+                var args = new object[parameters.Length];
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    if (routeDict.TryGetValue(parameters[i].Name, out var val) && val != null)
+                    {
+                        if (parameters[i].ParameterType.IsAssignableFrom(val.GetType()))
+                            args[i] = val;
+                        else
+                            args[i] = Convert.ChangeType(val, parameters[i].ParameterType);
+                    }
+                    else if (parameters[i].HasDefaultValue)
+                        args[i] = parameters[i].DefaultValue;
+                    else
+                        args[i] = parameters[i].ParameterType.IsValueType ? Activator.CreateInstance(parameters[i].ParameterType) : null;
+                }
+
+                var result = methodInfo.Invoke(controller_instance, args);
+
+                // Handle async results
+                if (result is Task task)
+                {
+                    task.GetAwaiter().GetResult();
+                    var taskType = task.GetType();
+                    if (taskType.IsGenericType)
+                        result = taskType.GetProperty("Result")?.GetValue(task);
+                    else
+                        return HtmlString.Empty;
+                }
+
+                if (result is ViewResult viewResult)
+                {
+                    return RenderViewResultToHtml(httpContext, helper.ViewContext.RouteData, descriptor, viewResult, controller_instance as Controller);
+                }
+                else if (result is PartialViewResult partialViewResult)
+                {
+                    return RenderPartialViewResultToHtml(httpContext, helper.ViewContext.RouteData, descriptor, partialViewResult, controller_instance as Controller);
+                }
+                else if (result is ContentResult contentResult)
+                {
+                    return new HtmlString(contentResult.Content ?? "");
+                }
+            }
+            catch
+            {
+                // Swallow errors in child actions
+            }
+            finally
+            {
+                httpContext.Items[depthKey] = depth;
+            }
+
             return HtmlString.Empty;
+        }
+
+        private static IHtmlContent RenderViewResultToHtml(Microsoft.AspNetCore.Http.HttpContext httpContext, RouteData parentRouteData, ControllerActionDescriptor descriptor, ViewResult viewResult, Controller mvcController)
+        {
+            var viewEngine = httpContext.RequestServices.GetRequiredService<IRazorViewEngine>();
+            var tempDataProvider = httpContext.RequestServices.GetRequiredService<ITempDataProvider>();
+
+            var routeData = new RouteData(parentRouteData);
+            routeData.Values["action"] = descriptor.RouteValues["action"];
+            routeData.Values["controller"] = descriptor.RouteValues["controller"];
+            var actionContext = new ActionContext(httpContext, routeData, descriptor);
+
+            var viewName = viewResult.ViewName ?? descriptor.ActionName;
+            var viewEngineResult = viewEngine.FindView(actionContext, viewName, false);
+            if (!viewEngineResult.Success)
+            {
+                // Try as main page to find in controller folder
+                viewEngineResult = viewEngine.FindView(actionContext, viewName, true);
+            }
+            if (!viewEngineResult.Success)
+                return HtmlString.Empty;
+
+            using (var sw = new StringWriter())
+            {
+                var viewData = mvcController?.ViewData ?? new ViewDataDictionary(new Microsoft.AspNetCore.Mvc.ModelBinding.EmptyModelMetadataProvider(), new Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary());
+                if (viewResult.Model != null)
+                    viewData.Model = viewResult.Model;
+                // Suppress layout for child actions
+                viewData["__ChildAction"] = true;
+                var tempData = new TempDataDictionary(httpContext, tempDataProvider);
+                var viewContext = new ViewContext(actionContext, viewEngineResult.View, viewData, tempData, sw, new HtmlHelperOptions());
+                viewEngineResult.View.RenderAsync(viewContext).GetAwaiter().GetResult();
+                return new HtmlString(sw.ToString());
+            }
+        }
+
+        private static IHtmlContent RenderPartialViewResultToHtml(Microsoft.AspNetCore.Http.HttpContext httpContext, RouteData parentRouteData, ControllerActionDescriptor descriptor, PartialViewResult partialViewResult, Controller mvcController)
+        {
+            var viewEngine = httpContext.RequestServices.GetRequiredService<IRazorViewEngine>();
+            var tempDataProvider = httpContext.RequestServices.GetRequiredService<ITempDataProvider>();
+
+            var routeData = new RouteData(parentRouteData);
+            routeData.Values["action"] = descriptor.RouteValues["action"];
+            routeData.Values["controller"] = descriptor.RouteValues["controller"];
+            var actionContext = new ActionContext(httpContext, routeData, descriptor);
+
+            var viewName = partialViewResult.ViewName ?? descriptor.ActionName;
+            var viewEngineResult = viewEngine.FindView(actionContext, viewName, false);
+            if (!viewEngineResult.Success)
+            {
+                viewEngineResult = viewEngine.FindView(actionContext, viewName, true);
+            }
+            if (!viewEngineResult.Success)
+                return HtmlString.Empty;
+
+            using (var sw = new StringWriter())
+            {
+                var viewData = mvcController?.ViewData ?? new ViewDataDictionary(new Microsoft.AspNetCore.Mvc.ModelBinding.EmptyModelMetadataProvider(), new Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary());
+                if (partialViewResult.Model != null)
+                    viewData.Model = partialViewResult.Model;
+                // Suppress layout for child actions
+                viewData["__ChildAction"] = true;
+                var tempData = new TempDataDictionary(httpContext, tempDataProvider);
+                var viewContext = new ViewContext(actionContext, viewEngineResult.View, viewData, tempData, sw, new HtmlHelperOptions());
+                viewEngineResult.View.RenderAsync(viewContext).GetAwaiter().GetResult();
+                return new HtmlString(sw.ToString());
+            }
         }
 
         #endregion

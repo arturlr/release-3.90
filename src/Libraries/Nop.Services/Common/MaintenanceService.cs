@@ -25,7 +25,7 @@ namespace Nop.Services.Common
         private readonly IDataProvider _dataProvider;
         private readonly IDbContext _dbContext;
         private readonly CommonSettings _commonSettings;
-        private readonly HttpContext _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         #endregion
 
         #region Ctor
@@ -38,12 +38,12 @@ namespace Nop.Services.Common
         /// <param name="commonSettings">Common settings</param>
         /// <param name="httpContext">HTTP context</param>
         public MaintenanceService(IDataProvider dataProvider, IDbContext dbContext,
-            CommonSettings commonSettings, HttpContext httpContext)
+            CommonSettings commonSettings, IHttpContextAccessor httpContextAccessor)
         {
             this._dataProvider = dataProvider;
             this._dbContext = dbContext;
             this._commonSettings = commonSettings;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
         }
 
         #endregion
@@ -202,3 +202,5 @@ namespace Nop.Services.Common
         #endregion
     }
 }
+
+

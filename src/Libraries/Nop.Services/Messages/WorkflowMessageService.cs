@@ -36,7 +36,7 @@ namespace Nop.Services.Messages
         private readonly CommonSettings _commonSettings;
         private readonly EmailAccountSettings _emailAccountSettings;
         private readonly IEventPublisher _eventPublisher;
-        private readonly HttpContext _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         #endregion
 
@@ -53,7 +53,7 @@ namespace Nop.Services.Messages
             CommonSettings commonSettings,
             EmailAccountSettings emailAccountSettings,
             IEventPublisher eventPublisher,
-            HttpContext httpContext)
+            IHttpContextAccessor httpContextAccessor)
         {
             this._messageTemplateService = messageTemplateService;
             this._queuedEmailService = queuedEmailService;
@@ -66,7 +66,7 @@ namespace Nop.Services.Messages
             this._commonSettings = commonSettings;
             this._emailAccountSettings = emailAccountSettings;
             this._eventPublisher = eventPublisher;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
         }
 
         #endregion
@@ -1919,3 +1919,5 @@ namespace Nop.Services.Messages
         #endregion
     }
 }
+
+

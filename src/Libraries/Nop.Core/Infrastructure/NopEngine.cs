@@ -46,7 +46,16 @@ namespace Nop.Core.Infrastructure
         protected virtual void RegisterDependencies(NopConfig config)
         {
             var builder = new ContainerBuilder();
-            
+            RegisterDependencies(config, builder);
+            var container = builder.Build();
+            this._containerManager = new ContainerManager(container);
+        }
+
+        /// <summary>
+        /// Register dependencies into an existing ContainerBuilder (for ASP.NET Core integration)
+        /// </summary>
+        public virtual void RegisterDependencies(NopConfig config, ContainerBuilder builder)
+        {
             //dependencies
             var typeFinder = new WebAppTypeFinder();
             builder.RegisterInstance(config).As<NopConfig>().SingleInstance();
@@ -62,8 +71,13 @@ namespace Nop.Core.Infrastructure
             drInstances = drInstances.AsQueryable().OrderBy(t => t.Order).ToList();
             foreach (var dependencyRegistrar in drInstances)
                 dependencyRegistrar.Register(builder, typeFinder, config);
+        }
 
-            var container = builder.Build();
+        /// <summary>
+        /// Set the container manager from an externally-built container
+        /// </summary>
+        public void SetContainerManager(ILifetimeScope container)
+        {
             this._containerManager = new ContainerManager(container);
         }
 
@@ -71,7 +85,7 @@ namespace Nop.Core.Infrastructure
         /// Register mapping
         /// </summary>
         /// <param name="config">Config</param>
-        protected virtual void RegisterMapperConfiguration(NopConfig config)
+        public virtual void RegisterMapperConfiguration(NopConfig config)
         {
             //dependencies
             var typeFinder = new WebAppTypeFinder();

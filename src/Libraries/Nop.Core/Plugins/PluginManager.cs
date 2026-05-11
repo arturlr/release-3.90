@@ -40,7 +40,7 @@ namespace Nop.Core.Plugins
         /// <summary>
         /// Returns a collection of all referenced plugin assemblies that have been shadow copied
         /// </summary>
-        public static IEnumerable<PluginDescriptor> ReferencedPlugins { get; set; }
+        public static IEnumerable<PluginDescriptor> ReferencedPlugins { get; set; } = new List<PluginDescriptor>();
 
         /// <summary>
         /// Returns a collection of all plugin which are not compatible with the current version

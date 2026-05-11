@@ -324,7 +324,9 @@ namespace Nop.Services.Security
             if (String.IsNullOrEmpty(permissionRecordSystemName))
                 return false;
 
-            var customerRoles = customer.CustomerRoles.Where(cr => cr.Active);
+            var customerRoles = customer.CustomerRoles?.Where(cr => cr.Active);
+            if (customerRoles == null)
+                return false;
             foreach (var role in customerRoles)
                 if (Authorize(permissionRecordSystemName, role))
                     //yes, we have such permission

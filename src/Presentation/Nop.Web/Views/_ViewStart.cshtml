@@ -1,3 +1,10 @@
 @{
-    Layout = "~/Views/Shared/_ColumnsOne.cshtml";
+    if (ViewData.ContainsKey("__ChildAction"))
+    {
+        Layout = null;
+    }
+    else
+    {
+        Layout = "~/Views/Shared/_ColumnsOne.cshtml";
+    }
 }

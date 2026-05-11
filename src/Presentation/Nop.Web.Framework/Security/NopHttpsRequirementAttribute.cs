@@ -29,52 +29,9 @@ namespace Nop.Web.Framework.Security
             
             if (!DataSettingsHelper.DatabaseIsInstalled())
                 return;
-            var securitySettings = EngineContext.Current.Resolve<SecuritySettings>();
-            if (securitySettings.ForceSslForAllPages)
-                //all pages are forced to be SSL no matter of the specified value
-                this.SslRequirement = SslRequirement.Yes;
-            
-            switch (this.SslRequirement)
-            {
-                case SslRequirement.Yes:
-                    {
-                        var webHelper = EngineContext.Current.Resolve<IWebHelper>();
-                        var currentConnectionSecured = webHelper.IsCurrentConnectionSecured();
-                        if (!currentConnectionSecured)
-                        {
-                            var storeContext = EngineContext.Current.Resolve<IStoreContext>();
-                            if (storeContext.CurrentStore.SslEnabled)
-                            {
-                                //redirect to HTTPS version of page
-                                string url = webHelper.GetThisPageUrl(true, true);
 
-                                //301 (permanent) redirection
-                                filterContext.Result = new RedirectResult(url, true);
-                            }
-                        }
-                    }
-                    break;
-                case SslRequirement.No:
-                    {
-                        var webHelper = EngineContext.Current.Resolve<IWebHelper>();
-                        var currentConnectionSecured = webHelper.IsCurrentConnectionSecured();
-                        if (currentConnectionSecured)
-                        {
-                            //redirect to HTTP version of page
-                            string url = webHelper.GetThisPageUrl(true, false);
-                            //301 (permanent) redirection
-                            filterContext.Result = new RedirectResult(url, true);
-                        }
-                    }
-                    break;
-                case SslRequirement.NoMatter:
-                    {
-                        //do nothing
-                    }
-                    break;
-                default:
-                    throw new NopException("Not supported SslProtected parameter");
-            }
+            // SSL redirection is not needed in ASP.NET Core (use HTTPS middleware instead)
+            return;
         }
 
         public SslRequirement SslRequirement { get; set; }
