@@ -46,11 +46,16 @@
     @Html.Widget("head_html_tag")
     @Html.NopCssFiles(this.Url, ResourceLocation.Head)
     @Html.NopScripts(this.Url, ResourceLocation.Head)
+    <link href="/Themes/DefaultClean/Content/css/styles.css" rel="stylesheet" type="text/css" />
+    <script src="/Scripts/jquery-1.10.2.min.js"></script>
+    <script src="/Scripts/jquery.validate.min.js"></script>
+    <script src="/Scripts/jquery.validate.unobtrusive.min.js"></script>
+    <script src="/Scripts/jquery-ui-1.10.3.custom.min.js"></script>
+    <script src="/Scripts/jquery-migrate-1.2.1.min.js"></script>
+    <script src="/Scripts/public.common.js"></script>
+    <script src="/Scripts/public.ajaxcart.js"></script>
     @Html.NopCanonicalUrls()
-    @Html.Action("RssHeaderLink", "News")
-    @Html.Action("RssHeaderLink", "Blog")
     @*Favicon - upload favicon.ico file to the root directory*@
-    @Html.Action("Favicon", "Common")
     @if (displayMiniProfiler)
     {
         <mini-profiler />

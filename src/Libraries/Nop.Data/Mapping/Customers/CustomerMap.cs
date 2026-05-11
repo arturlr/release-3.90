@@ -15,13 +15,13 @@ namespace Nop.Data.Mapping.Customers
             
             this.HasMany(c => c.CustomerRoles)
                 .WithMany()
-                .Map(m => m.ToTable("Customer_CustomerRole_Mapping"));
+                .Map(m => { m.ToTable("Customer_CustomerRole_Mapping"); m.MapLeftKey("Customer_Id"); m.MapRightKey("CustomerRole_Id"); });
 
             this.HasMany(c => c.Addresses)
                 .WithMany()
-                .Map(m => m.ToTable("CustomerAddresses"));
-            this.HasOptional(c => c.BillingAddress);
-            this.HasOptional(c => c.ShippingAddress);
+                .Map(m => { m.ToTable("CustomerAddresses"); m.MapLeftKey("Customer_Id"); m.MapRightKey("Address_Id"); });
+            this.Ignore(c => c.BillingAddress);
+            this.Ignore(c => c.ShippingAddress);
         }
     }
 }

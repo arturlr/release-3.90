@@ -43,6 +43,7 @@ namespace Nop.Data
             {
                 optionsBuilder.UseSqlServer(_connectionString);
             }
+            optionsBuilder.UseLazyLoadingProxies();
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -26,7 +26,7 @@ namespace Nop.Core.Plugins
         {
             if (!_arePluginsLoaded)
             {
-                var foundPlugins = PluginManager.ReferencedPlugins.ToList();
+                var foundPlugins = (PluginManager.ReferencedPlugins ?? Enumerable.Empty<PluginDescriptor>()).ToList();
                 foundPlugins.Sort();
                 _plugins = foundPlugins.ToList();
 

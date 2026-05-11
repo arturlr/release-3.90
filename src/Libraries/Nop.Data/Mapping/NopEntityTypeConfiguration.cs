@@ -367,15 +367,15 @@ namespace Nop.Data.Mapping
             _configurations = configurations;
             _configIndex = configurations.Count;
 
-            // Add default configuration (no cascade delete)
+            // Add default configuration - specify FK on dependent (TRelated)
             var nav = _navigation;
             var inv = _inverseNavigation;
             _configurations.Add(b =>
             {
                 if (inv != null)
-                    b.HasOne(nav).WithOne(inv).IsRequired(false);
+                    b.HasOne(nav).WithOne(inv).HasForeignKey<TRelated>().IsRequired(false);
                 else
-                    b.HasOne(nav).WithOne().IsRequired(false);
+                    b.HasOne(nav).WithOne().HasForeignKey<TRelated>().IsRequired(false);
             });
         }
 
@@ -387,9 +387,9 @@ namespace Nop.Data.Mapping
             {
                 ReferenceReferenceBuilder<TEntity, TRelated> refBuilder;
                 if (inv != null)
-                    refBuilder = b.HasOne(nav).WithOne(inv).IsRequired(false);
+                    refBuilder = b.HasOne(nav).WithOne(inv).HasForeignKey<TRelated>().IsRequired(false);
                 else
-                    refBuilder = b.HasOne(nav).WithOne().IsRequired(false);
+                    refBuilder = b.HasOne(nav).WithOne().HasForeignKey<TRelated>().IsRequired(false);
                 refBuilder.OnDelete(cascade ? DeleteBehavior.Cascade : DeleteBehavior.Restrict);
             };
             return this;
@@ -652,6 +652,8 @@ namespace Nop.Data.Mapping
             var mapBuilder = new ManyToManyMapBuilder();
             configAction(mapBuilder);
             var tableName = mapBuilder.TableName;
+            var leftKey = mapBuilder.LeftKey;
+            var rightKey = mapBuilder.RightKey;
             var nav = _navigation;
             var inv = _inverseNavigation;
 
@@ -663,10 +665,20 @@ namespace Nop.Data.Mapping
                 else
                     manyBuilder = b.HasMany(nav).WithMany();
 
-                if (!string.IsNullOrEmpty(tableName))
-                {
-                    manyBuilder.UsingEntity(tableName);
-                }
+                manyBuilder.UsingEntity(
+                    tableName ?? (typeof(TEntity).Name + typeof(TRelated).Name),
+                    right => right.HasOne(typeof(TRelated)).WithMany().HasForeignKey(rightKey ?? (typeof(TRelated).Name + "Id")),
+                    left => left.HasOne(typeof(TEntity)).WithMany().HasForeignKey(leftKey ?? (typeof(TEntity).Name + "Id")),
+                    joinEntity =>
+                    {
+                        if (!string.IsNullOrEmpty(tableName))
+                            joinEntity.ToTable(tableName);
+                        if (!string.IsNullOrEmpty(leftKey))
+                            joinEntity.Property(leftKey);
+                        if (!string.IsNullOrEmpty(rightKey))
+                            joinEntity.Property(rightKey);
+                    }
+                );
             });
         }
     }
@@ -674,10 +686,24 @@ namespace Nop.Data.Mapping
     public class ManyToManyMapBuilder
     {
         public string TableName { get; private set; }
+        public string LeftKey { get; private set; }
+        public string RightKey { get; private set; }
 
         public void ToTable(string tableName)
         {
             TableName = tableName;
+        }
+
+        public ManyToManyMapBuilder MapLeftKey(string columnName)
+        {
+            LeftKey = columnName;
+            return this;
+        }
+
+        public ManyToManyMapBuilder MapRightKey(string columnName)
+        {
+            RightKey = columnName;
+            return this;
         }
     }
 

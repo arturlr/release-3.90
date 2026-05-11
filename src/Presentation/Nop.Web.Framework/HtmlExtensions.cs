@@ -27,6 +27,7 @@ namespace Nop.Web.Framework
 
         /// <summary>
         /// Compatibility shim for Html.Action() which was removed in ASP.NET Core.
+        /// These need to be converted to ViewComponents for full functionality.
         /// </summary>
         public static IHtmlContent Action(this IHtmlHelper helper, string action)
         {

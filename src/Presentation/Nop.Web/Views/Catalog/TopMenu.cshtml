@@ -12,7 +12,7 @@
     }
     @foreach (var category in rootCategories)
     {
-        @await Html.PartialAsync("_TopMenuCategoryLine", category, new ViewDataDictionary(ViewData) { { "Level", 0 }, { "ResponsiveMobileMenu", false } })
+        @await Html.PartialAsync("~/Views/Catalog/_TopMenuCategoryLine.cshtml", category, new ViewDataDictionary(ViewData) { { "Level", 0 }, { "ResponsiveMobileMenu", false } })
     }
     @foreach (var topic in Model.Topics)
     {
@@ -57,7 +57,7 @@
         }
         @foreach (var category in rootCategoriesResponsive)
         {
-            @await Html.PartialAsync("_TopMenuCategoryLine", category, new ViewDataDictionary(ViewData) { { "Level", 0 }, { "ResponsiveMobileMenu", true } })
+            @await Html.PartialAsync("~/Views/Catalog/_TopMenuCategoryLine.cshtml", category, new ViewDataDictionary(ViewData) { { "Level", 0 }, { "ResponsiveMobileMenu", true } })
         }
         @foreach (var topic in Model.Topics)
         {

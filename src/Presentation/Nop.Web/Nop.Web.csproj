@@ -19,6 +19,11 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);wwwroot\Plugins\**\Views\**\*.cshtml</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
+    <None Update="App_Data\Settings.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" />
     <ProjectReference Include="..\..\Libraries\Nop.Data\Nop.Data.csproj" />
     <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj" />

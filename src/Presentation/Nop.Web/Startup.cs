@@ -44,8 +44,16 @@ namespace Nop.Web
             }
 
             app.UseStaticFiles();
+            // Serve dynamically generated thumbnails from the content directory
+            var thumbsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "content");
+            if (!System.IO.Directory.Exists(thumbsPath))
+                System.IO.Directory.CreateDirectory(thumbsPath);
+            app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
+            {
+                FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(thumbsPath),
+                RequestPath = "/content"
+            });
             app.UseRouting();
-            app.UseAuthorization();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");

@@ -23,7 +23,10 @@
         <ul class="sublist @levelClass">
             @foreach (var subCategory in subCategories)
             {
-                @await Html.PartialAsync("_TopMenuCategoryLine", subCategory, new ViewDataDictionary(ViewData) { { "Level", level + 1 }, { "ResponsiveMobileMenu", responsiveMobileMenu } })
+                var childViewData = new ViewDataDictionary(ViewData);
+                childViewData["Level"] = level + 1;
+                childViewData["ResponsiveMobileMenu"] = responsiveMobileMenu;
+                @await Html.PartialAsync("~/Views/Catalog/_TopMenuCategoryLine.cshtml", subCategory, childViewData)
             }
         </ul>
     }

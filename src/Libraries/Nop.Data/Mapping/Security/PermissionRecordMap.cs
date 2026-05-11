@@ -14,7 +14,7 @@ namespace Nop.Data.Mapping.Security
 
             this.HasMany(pr => pr.CustomerRoles)
                 .WithMany(cr => cr.PermissionRecords)
-                .Map(m => m.ToTable("PermissionRecord_Role_Mapping"));
+                .Map(m => { m.ToTable("PermissionRecord_Role_Mapping"); m.MapLeftKey("PermissionRecord_Id"); m.MapRightKey("CustomerRole_Id"); });
         }
     }
 }
