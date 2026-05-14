@@ -9,6 +9,9 @@
     <Content Remove="Administration\**" />
     <EmbeddedResource Remove="Administration\**" />
     <None Remove="Administration\**" />
+    <Compile Remove="Plugins\**" />
+    <Content Remove="Plugins\**\*.cshtml" />
+    <None Include="Plugins\**\*.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Content Update="wwwroot\Plugins\**\Views\**\*.cshtml">

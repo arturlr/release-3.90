@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<test-run id="0" runstate="Runnable" testcasecount="84" result="Failed" total="84" passed="57" failed="26" warnings="0" inconclusive="0" skipped="1" asserts="142" engine-version="3.22.0.0" clr-version="8.0.26" start-time="2026-05-14 00:14:30Z" end-time="2026-05-14 00:14:31Z" duration="1.430913">
+  <command-line><![CDATA[D:\Users\artrodri\.dotnet\tools\.store\nunit.consolerunner.netcore\3.22.0\nunit.consolerunner.netcore\3.22.0\tools\net8.0\any\nunit3-console.dll src/Tests/Nop.Core.Tests/bin/Debug/net10.0/Nop.Core.Tests.dll]]></command-line>
+  <test-suite type="Assembly" id="1-1105" name="Nop.Core.Tests.dll" fullname="D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\bin\Debug\net10.0\Nop.Core.Tests.dll" runstate="Runnable" testcasecount="84" result="Failed" site="Child" start-time="2026-05-14T00:14:30.5256560Z" end-time="2026-05-14T00:14:31.4325384Z" duration="0.906837" total="84" passed="57" failed="26" warnings="0" inconclusive="0" skipped="1" asserts="142">
+    <environment framework-version="4.3.2.0" clr-version="8.0.26" os-version="Microsoft Windows 10.0.26100" platform="Win32NT" cwd="D:\Users\artrodri\source\repos\release-3.90" machine-name="WS-2B26TBBFKD6H" user="artrodri" user-domain="ANT" culture="en-US" uiculture="en-US" os-architecture="x64" />
+    <settings>
+      <setting name="DisposeRunners" value="True" />
+      <setting name="WorkDirectory" value="D:\Users\artrodri\source\repos\release-3.90" />
+      <setting name="NumberOfTestWorkers" value="4" />
+    </settings>
+    <properties>
+      <property name="_PID" value="29236" />
+      <property name="_APPDOMAIN" value="nunit3-console" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="TestSuite" id="1-1106" name="Nop" fullname="Nop" runstate="Runnable" testcasecount="84" result="Failed" site="Child" start-time="2026-05-14T00:14:30.5318274Z" end-time="2026-05-14T00:14:31.4325216Z" duration="0.900693" total="84" passed="57" failed="26" warnings="0" inconclusive="0" skipped="1" asserts="142">
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1-1107" name="Core" fullname="Nop.Core" runstate="Runnable" testcasecount="84" result="Failed" site="Child" start-time="2026-05-14T00:14:30.5323970Z" end-time="2026-05-14T00:14:31.4325066Z" duration="0.900109" total="84" passed="57" failed="26" warnings="0" inconclusive="0" skipped="1" asserts="142">
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1-1108" name="Tests" fullname="Nop.Core.Tests" runstate="Runnable" testcasecount="84" result="Failed" site="Child" start-time="2026-05-14T00:14:30.5324857Z" end-time="2026-05-14T00:14:31.4324916Z" duration="0.900005" total="84" passed="57" failed="26" warnings="0" inconclusive="0" skipped="1" asserts="142">
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1-1121" name="Caching" fullname="Nop.Core.Tests.Caching" runstate="Runnable" testcasecount="3" result="Failed" site="Child" start-time="2026-05-14T00:14:30.5325282Z" end-time="2026-05-14T00:14:30.6619122Z" duration="0.129384" total="3" passed="0" failed="3" warnings="0" inconclusive="0" skipped="0" asserts="0">
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestFixture" id="1-1101" name="MemoryCacheManagerTests" fullname="Nop.Core.Tests.Caching.MemoryCacheManagerTests" classname="Nop.Core.Tests.Caching.MemoryCacheManagerTests" runstate="Runnable" testcasecount="3" result="Failed" site="Child" start-time="2026-05-14T00:14:30.5402241Z" end-time="2026-05-14T00:14:30.6604671Z" duration="0.120243" total="3" passed="0" failed="3" warnings="0" inconclusive="0" skipped="0" asserts="0">
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1-1104" name="Can_clear_cache" fullname="Nop.Core.Tests.Caching.MemoryCacheManagerTests.Can_clear_cache" methodname="Can_clear_cache" classname="Nop.Core.Tests.Caching.MemoryCacheManagerTests" runstate="Runnable" seed="1843471857" result="Failed" label="Error" start-time="2026-05-14T00:14:30.5442059Z" end-time="2026-05-14T00:14:30.6497136Z" duration="0.105566" asserts="0">
+                <failure>
+                  <message><![CDATA[System.MissingMethodException : Method not found: 'System.TimeSpan System.TimeSpan.FromMinutes(Int64)'.]]></message>
+                  <stack-trace><![CDATA[   at Nop.Core.Caching.MemoryCacheManager.Set(String key, Object data, Int32 cacheTime)
+   at Nop.Core.Tests.Caching.MemoryCacheManagerTests.Can_clear_cache() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\Caching\MemoryCacheManagerTests.cs:line 34
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1-1102" name="Can_set_and_get_object_from_cache" fullname="Nop.Core.Tests.Caching.MemoryCacheManagerTests.Can_set_and_get_object_from_cache" methodname="Can_set_and_get_object_from_cache" classname="Nop.Core.Tests.Caching.MemoryCacheManagerTests" runstate="Runnable" seed="546839377" result="Failed" label="Error" start-time="2026-05-14T00:14:30.6523183Z" end-time="2026-05-14T00:14:30.6533914Z" duration="0.001073" asserts="0">
+                <failure>
+                  <message><![CDATA[System.MissingMethodException : Method not found: 'System.TimeSpan System.TimeSpan.FromMinutes(Int64)'.]]></message>
+                  <stack-trace><![CDATA[   at Nop.Core.Caching.MemoryCacheManager.Set(String key, Object data, Int32 cacheTime)
+   at Nop.Core.Tests.Caching.MemoryCacheManagerTests.Can_set_and_get_object_from_cache() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\Caching\MemoryCacheManagerTests.cs:line 14
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1-1103" name="Can_validate_whetherobject_is_cached" fullname="Nop.Core.Tests.Caching.MemoryCacheManagerTests.Can_validate_whetherobject_is_cached" methodname="Can_validate_whetherobject_is_cached" classname="Nop.Core.Tests.Caching.MemoryCacheManagerTests" runstate="Runnable" seed="961252477" result="Failed" label="Error" start-time="2026-05-14T00:14:30.6543235Z" end-time="2026-05-14T00:14:30.6578247Z" duration="0.003501" asserts="0">
+                <failure>
+                  <message><![CDATA[System.MissingMethodException : Method not found: 'System.TimeSpan System.TimeSpan.FromMinutes(Int64)'.]]></message>
+                  <stack-trace><![CDATA[   at Nop.Core.Caching.MemoryCacheManager.Set(String key, Object data, Int32 cacheTime)
+   at Nop.Core.Tests.Caching.MemoryCacheManagerTests.Can_validate_whetherobject_is_cached() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\Caching\MemoryCacheManagerTests.cs:line 23
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+                </failure>
+              </test-case>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestFixture" id="1-1000" name="CommonHelperEmailValidatorTests" fullname="Nop.Core.Tests.CommonHelperEmailValidatorTests" classname="Nop.Core.Tests.CommonHelperEmailValidatorTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-05-14T00:14:30.6655734Z" end-time="2026-05-14T00:14:30.7418521Z" duration="0.076278" total="7" passed="7" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="8">
+            <test-case id="1-1006" name="This_should_not_hang" fullname="Nop.Core.Tests.CommonHelperEmailValidatorTests.This_should_not_hang" methodname="This_should_not_hang" classname="Nop.Core.Tests.CommonHelperEmailValidatorTests" runstate="Runnable" seed="1394892530" result="Passed" start-time="2026-05-14T00:14:30.6663259Z" end-time="2026-05-14T00:14:30.7368376Z" duration="0.070512" asserts="1" />
+            <test-case id="1-1007" name="When_email_address_contains_upper_cases_then_the_validator_should_pass" fullname="Nop.Core.Tests.CommonHelperEmailValidatorTests.When_email_address_contains_upper_cases_then_the_validator_should_pass" methodname="When_email_address_contains_upper_cases_then_the_validator_should_pass" classname="Nop.Core.Tests.CommonHelperEmailValidatorTests" runstate="Runnable" seed="1921794130" result="Passed" start-time="2026-05-14T00:14:30.7371203Z" end-time="2026-05-14T00:14:30.7393164Z" duration="0.002196" asserts="2" />
+            <test-case id="1-1002" name="When_the_text_is_a_valid_email_address_including_plus_validator_should_pass" fullname="Nop.Core.Tests.CommonHelperEmailValidatorTests.When_the_text_is_a_valid_email_address_including_plus_validator_should_pass" methodname="When_the_text_is_a_valid_email_address_including_plus_validator_should_pass" classname="Nop.Core.Tests.CommonHelperEmailValidatorTests" runstate="Runnable" seed="591977502" result="Passed" start-time="2026-05-14T00:14:30.7398355Z" end-time="2026-05-14T00:14:30.7400436Z" duration="0.000208" asserts="1" />
+            <test-case id="1-1001" name="When_the_text_is_a_valid_email_address_then_the_validator_should_pass" fullname="Nop.Core.Tests.CommonHelperEmailValidatorTests.When_the_text_is_a_valid_email_address_then_the_validator_should_pass" methodname="When_the_text_is_a_valid_email_address_then_the_validator_should_pass" classname="Nop.Core.Tests.CommonHelperEmailValidatorTests" runstate="Runnable" seed="1141812744" result="Passed" start-time="2026-05-14T00:14:30.7403982Z" end-time="2026-05-14T00:14:30.7405860Z" duration="0.000188" asserts="1" />
+            <test-case id="1-1004" name="When_the_text_is_empty_then_the_validator_should_fail" fullname="Nop.Core.Tests.CommonHelperEmailValidatorTests.When_the_text_is_empty_then_the_validator_should_fail" methodname="When_the_text_is_empty_then_the_validator_should_fail" classname="Nop.Core.Tests.CommonHelperEmailValidatorTests" runstate="Runnable" seed="28927924" result="Passed" start-time="2026-05-14T00:14:30.7409241Z" end-time="2026-05-14T00:14:30.7410777Z" duration="0.000153" asserts="1" />
+            <test-case id="1-1005" name="When_the_text_is_not_a_valid_email_address_then_the_validator_should_fail" fullname="Nop.Core.Tests.CommonHelperEmailValidatorTests.When_the_text_is_not_a_valid_email_address_then_the_validator_should_fail" methodname="When_the_text_is_not_a_valid_email_address_then_the_validator_should_fail" classname="Nop.Core.Tests.CommonHelperEmailValidatorTests" runstate="Runnable" seed="655415293" result="Passed" start-time="2026-05-14T00:14:30.7413766Z" end-time="2026-05-14T00:14:30.7415492Z" duration="0.000173" asserts="1" />
+            <test-case id="1-1003" name="When_the_text_is_null_then_the_validator_should_fail" fullname="Nop.Core.Tests.CommonHelperEmailValidatorTests.When_the_text_is_null_then_the_validator_should_fail" methodname="When_the_text_is_null_then_the_validator_should_fail" classname="Nop.Core.Tests.CommonHelperEmailValidatorTests" runstate="Runnable" seed="645561161" result="Passed" start-time="2026-05-14T00:14:30.7416250Z" end-time="2026-05-14T00:14:30.7417901Z" duration="0.000165" asserts="1" />
+          </test-suite>
+          <test-suite type="TestFixture" id="1-1008" name="CommonHelperIpAddressValidatorTests" fullname="Nop.Core.Tests.CommonHelperIpAddressValidatorTests" classname="Nop.Core.Tests.CommonHelperIpAddressValidatorTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-05-14T00:14:30.7419364Z" end-time="2026-05-14T00:14:30.7763236Z" duration="0.034388" total="4" passed="4" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="4">
+            <test-case id="1-1009" name="When_the_text_is_a_valid_ipv4_address_then_the_validator_should_pass" fullname="Nop.Core.Tests.CommonHelperIpAddressValidatorTests.When_the_text_is_a_valid_ipv4_address_then_the_validator_should_pass" methodname="When_the_text_is_a_valid_ipv4_address_then_the_validator_should_pass" classname="Nop.Core.Tests.CommonHelperIpAddressValidatorTests" runstate="Runnable" seed="342214442" result="Passed" start-time="2026-05-14T00:14:30.7421142Z" end-time="2026-05-14T00:14:30.7556147Z" duration="0.013501" asserts="1" />
+            <test-case id="1-1010" name="When_the_text_is_a_valid_ipv6_address_then_the_validator_should_pass" fullname="Nop.Core.Tests.CommonHelperIpAddressValidatorTests.When_the_text_is_a_valid_ipv6_address_then_the_validator_should_pass" methodname="When_the_text_is_a_valid_ipv6_address_then_the_validator_should_pass" classname="Nop.Core.Tests.CommonHelperIpAddressValidatorTests" runstate="Runnable" seed="1925394033" result="Passed" start-time="2026-05-14T00:14:30.7584097Z" end-time="2026-05-14T00:14:30.7605901Z" duration="0.002180" asserts="1" />
+            <test-case id="1-1012" name="When_the_text_is_an_ip_address_but_with_wrong_range_then_the_validator_should_fail" fullname="Nop.Core.Tests.CommonHelperIpAddressValidatorTests.When_the_text_is_an_ip_address_but_with_wrong_range_then_the_validator_should_fail" methodname="When_the_text_is_an_ip_address_but_with_wrong_range_then_the_validator_should_fail" classname="Nop.Core.Tests.CommonHelperIpAddressValidatorTests" runstate="Runnable" seed="1287832433" result="Passed" start-time="2026-05-14T00:14:30.7644199Z" end-time="2026-05-14T00:14:30.7651908Z" duration="0.000771" asserts="1" />
+            <test-case id="1-1011" name="When_the_text_is_not_a_valid_ip_address_then_the_validator_should_fail" fullname="Nop.Core.Tests.CommonHelperIpAddressValidatorTests.When_the_text_is_not_a_valid_ip_address_then_the_validator_should_fail" methodname="When_the_text_is_not_a_valid_ip_address_then_the_validator_should_fail" classname="Nop.Core.Tests.CommonHelperIpAddressValidatorTests" runstate="Runnable" seed="1885102022" result="Passed" start-time="2026-05-14T00:14:30.7710703Z" end-time="2026-05-14T00:14:30.7714670Z" duration="0.000396" asserts="1" />
+          </test-suite>
+          <test-suite type="TestFixture" id="1-1013" name="CommonHelperTests" fullname="Nop.Core.Tests.CommonHelperTests" classname="Nop.Core.Tests.CommonHelperTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-05-14T00:14:30.7805857Z" end-time="2026-05-14T00:14:30.8005547Z" duration="0.019969" total="1" passed="1" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="2">
+            <test-case id="1-1014" name="Can_get_typed_value" fullname="Nop.Core.Tests.CommonHelperTests.Can_get_typed_value" methodname="Can_get_typed_value" classname="Nop.Core.Tests.CommonHelperTests" runstate="Runnable" seed="1487700599" result="Passed" start-time="2026-05-14T00:14:30.7829765Z" end-time="2026-05-14T00:14:30.8001573Z" duration="0.017181" asserts="2" />
+          </test-suite>
+          <test-suite type="TestSuite" id="1-1120" name="ComponentModel" fullname="Nop.Core.Tests.ComponentModel" runstate="Runnable" testcasecount="6" result="Failed" site="Child" start-time="2026-05-14T00:14:30.5337547Z" end-time="2026-05-14T00:14:30.8687878Z" duration="0.335032" total="6" passed="0" failed="6" warnings="0" inconclusive="0" skipped="0" asserts="6">
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestFixture" id="1-1094" name="GenericListTypeConverter" fullname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter" classname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter" runstate="Runnable" testcasecount="6" result="Failed" site="Child" start-time="2026-05-14T00:14:30.8008731Z" end-time="2026-05-14T00:14:30.8685298Z" duration="0.067656" total="6" passed="0" failed="6" warnings="0" inconclusive="0" skipped="0" asserts="6">
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1-1099" name="Can_convert_int_list_to_string" fullname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_convert_int_list_to_string" methodname="Can_convert_int_list_to_string" classname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter" runstate="Runnable" seed="636527060" result="Failed" start-time="2026-05-14T00:14:30.8011095Z" end-time="2026-05-14T00:14:30.8524772Z" duration="0.051368" asserts="2">
+                <failure>
+                  <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected string length 14 but was 12. Strings differ at index 0.
+  Expected: "10,20,30,40,50"
+  But was:  "(Collection)"
+  -----------^
+]]></message>
+                  <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_convert_int_list_to_string() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\ComponentModel\GenericListTypeConverterTests.cs:line 63
+]]></stack-trace>
+                </failure>
+                <assertions>
+                  <assertion result="Failed">
+                    <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected string length 14 but was 12. Strings differ at index 0.
+  Expected: "10,20,30,40,50"
+  But was:  "(Collection)"
+  -----------^
+]]></message>
+                    <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_convert_int_list_to_string() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\ComponentModel\GenericListTypeConverterTests.cs:line 63
+]]></stack-trace>
+                  </assertion>
+                </assertions>
+              </test-case>
+              <test-case id="1-1100" name="Can_convert_string_list_to_string" fullname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_convert_string_list_to_string" methodname="Can_convert_string_list_to_string" classname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter" runstate="Runnable" seed="1528665151" result="Failed" start-time="2026-05-14T00:14:30.8530943Z" end-time="2026-05-14T00:14:30.8555259Z" duration="0.002431" asserts="2">
+                <failure>
+                  <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected string length 11 but was 12. Strings differ at index 0.
+  Expected: "foo,bar,day"
+  But was:  "(Collection)"
+  -----------^
+]]></message>
+                  <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_convert_string_list_to_string() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\ComponentModel\GenericListTypeConverterTests.cs:line 73
+]]></stack-trace>
+                </failure>
+                <assertions>
+                  <assertion result="Failed">
+                    <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected string length 11 but was 12. Strings differ at index 0.
+  Expected: "foo,bar,day"
+  But was:  "(Collection)"
+  -----------^
+]]></message>
+                    <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_convert_string_list_to_string() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\ComponentModel\GenericListTypeConverterTests.cs:line 73
+]]></stack-trace>
+                  </assertion>
+                </assertions>
+              </test-case>
+              <test-case id="1-1097" name="Can_get_int_list_from_string" fullname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_get_int_list_from_string" methodname="Can_get_int_list_from_string" classname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter" runstate="Runnable" seed="1308656451" result="Failed" label="Error" start-time="2026-05-14T00:14:30.8572319Z" end-time="2026-05-14T00:14:30.8626786Z" duration="0.005447" asserts="0">
+                <failure>
+                  <message><![CDATA[System.NotSupportedException : CollectionConverter cannot convert from System.String.]]></message>
+                  <stack-trace><![CDATA[   at System.ComponentModel.TypeConverter.GetConvertFromException(Object value)
+   at System.ComponentModel.TypeConverter.ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, Object value)
+   at Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_get_int_list_from_string() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\ComponentModel\GenericListTypeConverterTests.cs:line 40
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1-1095" name="Can_get_int_list_type_converter" fullname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_get_int_list_type_converter" methodname="Can_get_int_list_type_converter" classname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter" runstate="Runnable" seed="182273024" result="Failed" start-time="2026-05-14T00:14:30.8638966Z" end-time="2026-05-14T00:14:30.8663608Z" duration="0.002464" asserts="1">
+                <failure>
+                  <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected: <Nop.Core.ComponentModel.GenericListTypeConverter`1[System.Int32]>
+  But was:  <System.ComponentModel.CollectionConverter>
+]]></message>
+                  <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_get_int_list_type_converter() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\ComponentModel\GenericListTypeConverterTests.cs:line 25
+]]></stack-trace>
+                </failure>
+                <assertions>
+                  <assertion result="Failed">
+                    <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected: <Nop.Core.ComponentModel.GenericListTypeConverter`1[System.Int32]>
+  But was:  <System.ComponentModel.CollectionConverter>
+]]></message>
+                    <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_get_int_list_type_converter() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\ComponentModel\GenericListTypeConverterTests.cs:line 25
+]]></stack-trace>
+                  </assertion>
+                </assertions>
+              </test-case>
+              <test-case id="1-1098" name="Can_get_string_list_from_string" fullname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_get_string_list_from_string" methodname="Can_get_string_list_from_string" classname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter" runstate="Runnable" seed="968895339" result="Failed" label="Error" start-time="2026-05-14T00:14:30.8668675Z" end-time="2026-05-14T00:14:30.8674347Z" duration="0.000567" asserts="0">
+                <failure>
+                  <message><![CDATA[System.NotSupportedException : CollectionConverter cannot convert from System.String.]]></message>
+                  <stack-trace><![CDATA[   at System.ComponentModel.TypeConverter.GetConvertFromException(Object value)
+   at System.ComponentModel.TypeConverter.ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, Object value)
+   at Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_get_string_list_from_string() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\ComponentModel\GenericListTypeConverterTests.cs:line 50
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1-1096" name="Can_get_string_list_type_converter" fullname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_get_string_list_type_converter" methodname="Can_get_string_list_type_converter" classname="Nop.Core.Tests.ComponentModel.GenericListTypeConverter" runstate="Runnable" seed="1424269403" result="Failed" start-time="2026-05-14T00:14:30.8677362Z" end-time="2026-05-14T00:14:30.8684891Z" duration="0.000753" asserts="1">
+                <failure>
+                  <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected: <Nop.Core.ComponentModel.GenericListTypeConverter`1[System.String]>
+  But was:  <System.ComponentModel.CollectionConverter>
+]]></message>
+                  <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_get_string_list_type_converter() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\ComponentModel\GenericListTypeConverterTests.cs:line 32
+]]></stack-trace>
+                </failure>
+                <assertions>
+                  <assertion result="Failed">
+                    <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected: <Nop.Core.ComponentModel.GenericListTypeConverter`1[System.String]>
+  But was:  <System.ComponentModel.CollectionConverter>
+]]></message>
+                    <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.ComponentModel.GenericListTypeConverter.Can_get_string_list_type_converter() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\ComponentModel\GenericListTypeConverterTests.cs:line 32
+]]></stack-trace>
+                  </assertion>
+                </assertions>
+              </test-case>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestSuite" id="1-1111" name="Domain" fullname="Nop.Core.Tests.Domain" runstate="Runnable" testcasecount="40" result="Failed" site="Child" start-time="2026-05-14T00:14:30.5348380Z" end-time="2026-05-14T00:14:30.9729912Z" duration="0.438152" total="40" passed="36" failed="4" warnings="0" inconclusive="0" skipped="0" asserts="103">
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestSuite" id="1-1119" name="Blogs" fullname="Nop.Core.Tests.Domain.Blogs" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-05-14T00:14:30.5364205Z" end-time="2026-05-14T00:14:30.8728343Z" duration="0.336414" total="1" passed="1" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="4">
+              <test-suite type="TestFixture" id="1-1092" name="BlogPostTests" fullname="Nop.Core.Tests.Domain.Blogs.BlogPostTests" classname="Nop.Core.Tests.Domain.Blogs.BlogPostTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-05-14T00:14:30.8691402Z" end-time="2026-05-14T00:14:30.8723807Z" duration="0.003241" total="1" passed="1" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="4">
+                <test-case id="1-1093" name="Can_parse_tags" fullname="Nop.Core.Tests.Domain.Blogs.BlogPostTests.Can_parse_tags" methodname="Can_parse_tags" classname="Nop.Core.Tests.Domain.Blogs.BlogPostTests" runstate="Runnable" seed="1661966008" result="Passed" start-time="2026-05-14T00:14:30.8693419Z" end-time="2026-05-14T00:14:30.8718673Z" duration="0.002526" asserts="4" />
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestSuite" id="1-1118" name="Catalog" fullname="Nop.Core.Tests.Domain.Catalog" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-05-14T00:14:30.5374469Z" end-time="2026-05-14T00:14:30.9134456Z" duration="0.375999" total="7" passed="7" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="10">
+              <test-suite type="TestFixture" id="1-1084" name="ProductExtensionTests" fullname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests" classname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-05-14T00:14:30.8743843Z" end-time="2026-05-14T00:14:30.9133966Z" duration="0.039012" total="7" passed="7" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="10">
+                <test-case id="1-1085" name="Can_parse_required_product_ids" fullname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests.Can_parse_required_product_ids" methodname="Can_parse_required_product_ids" classname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests" runstate="Runnable" seed="682404400" result="Passed" start-time="2026-05-14T00:14:30.8746992Z" end-time="2026-05-14T00:14:30.9014871Z" duration="0.026789" asserts="4" />
+                <test-case id="1-1090" name="Should_be_available_when_enddate_is_greater_than_somedate" fullname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests.Should_be_available_when_enddate_is_greater_than_somedate" methodname="Should_be_available_when_enddate_is_greater_than_somedate" classname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests" runstate="Runnable" seed="1165199078" result="Passed" start-time="2026-05-14T00:14:30.9075756Z" end-time="2026-05-14T00:14:30.9101044Z" duration="0.002528" asserts="1" />
+                <test-case id="1-1089" name="Should_be_available_when_enddate_is_not_set" fullname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests.Should_be_available_when_enddate_is_not_set" methodname="Should_be_available_when_enddate_is_not_set" classname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests" runstate="Runnable" seed="1595309749" result="Passed" start-time="2026-05-14T00:14:30.9112941Z" end-time="2026-05-14T00:14:30.9115812Z" duration="0.000287" asserts="1" />
+                <test-case id="1-1087" name="Should_be_available_when_startdate_is_less_than_somedate" fullname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests.Should_be_available_when_startdate_is_less_than_somedate" methodname="Should_be_available_when_startdate_is_less_than_somedate" classname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests" runstate="Runnable" seed="1313947857" result="Passed" start-time="2026-05-14T00:14:30.9117657Z" end-time="2026-05-14T00:14:30.9120983Z" duration="0.000333" asserts="1" />
+                <test-case id="1-1086" name="Should_be_available_when_startdate_is_not_set" fullname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests.Should_be_available_when_startdate_is_not_set" methodname="Should_be_available_when_startdate_is_not_set" classname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests" runstate="Runnable" seed="540166767" result="Passed" start-time="2026-05-14T00:14:30.9123615Z" end-time="2026-05-14T00:14:30.9125330Z" duration="0.000172" asserts="1" />
+                <test-case id="1-1091" name="Should_not_be_available_when_enddate_is_less_than_somedate" fullname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests.Should_not_be_available_when_enddate_is_less_than_somedate" methodname="Should_not_be_available_when_enddate_is_less_than_somedate" classname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests" runstate="Runnable" seed="430544538" result="Passed" start-time="2026-05-14T00:14:30.9127161Z" end-time="2026-05-14T00:14:30.9129629Z" duration="0.000248" asserts="1" />
+                <test-case id="1-1088" name="Should_not_be_available_when_startdate_is_greater_than_somedate" fullname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests.Should_not_be_available_when_startdate_is_greater_than_somedate" methodname="Should_not_be_available_when_startdate_is_greater_than_somedate" classname="Nop.Core.Tests.Domain.Catalog.ProductExtensionTests" runstate="Runnable" seed="407548137" result="Passed" start-time="2026-05-14T00:14:30.9130545Z" end-time="2026-05-14T00:14:30.9132883Z" duration="0.000234" asserts="1" />
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestSuite" id="1-1117" name="Common" fullname="Nop.Core.Tests.Domain.Common" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-05-14T00:14:30.5376902Z" end-time="2026-05-14T00:14:30.9181538Z" duration="0.380463" total="1" passed="1" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="19">
+              <test-suite type="TestFixture" id="1-1082" name="AddressTests" fullname="Nop.Core.Tests.Domain.Common.AddressTests" classname="Nop.Core.Tests.Domain.Common.AddressTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-05-14T00:14:30.9136117Z" end-time="2026-05-14T00:14:30.9181261Z" duration="0.004515" total="1" passed="1" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="19">
+                <test-case id="1-1083" name="Can_clone_address" fullname="Nop.Core.Tests.Domain.Common.AddressTests.Can_clone_address" methodname="Can_clone_address" classname="Nop.Core.Tests.Domain.Common.AddressTests" runstate="Runnable" seed="1392160982" result="Passed" start-time="2026-05-14T00:14:30.9137913Z" end-time="2026-05-14T00:14:30.9178126Z" duration="0.004022" asserts="19" />
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestSuite" id="1-1116" name="Configuration" fullname="Nop.Core.Tests.Domain.Configuration" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-05-14T00:14:30.5384573Z" end-time="2026-05-14T00:14:30.9191554Z" duration="0.380698" total="1" passed="1" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="2">
+              <test-suite type="TestFixture" id="1-1080" name="SettingTestFixture" fullname="Nop.Core.Tests.Domain.Configuration.SettingTestFixture" classname="Nop.Core.Tests.Domain.Configuration.SettingTestFixture" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-05-14T00:14:30.9182629Z" end-time="2026-05-14T00:14:30.9190339Z" duration="0.000771" total="1" passed="1" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="2">
+                <test-case id="1-1081" name="Can_create_setting" fullname="Nop.Core.Tests.Domain.Configuration.SettingTestFixture.Can_create_setting" methodname="Can_create_setting" classname="Nop.Core.Tests.Domain.Configuration.SettingTestFixture" runstate="Runnable" seed="827168206" result="Passed" start-time="2026-05-14T00:14:30.9184238Z" end-time="2026-05-14T00:14:30.9188313Z" duration="0.000408" asserts="2" />
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestSuite" id="1-1115" name="Customers" fullname="Nop.Core.Tests.Domain.Customers" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-05-14T00:14:30.5385998Z" end-time="2026-05-14T00:14:30.9293761Z" duration="0.390776" total="9" passed="9" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="19">
+              <test-suite type="TestFixture" id="1-1070" name="CustomerTests" fullname="Nop.Core.Tests.Domain.Customers.CustomerTests" classname="Nop.Core.Tests.Domain.Customers.CustomerTests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-05-14T00:14:30.9193239Z" end-time="2026-05-14T00:14:30.9293226Z" duration="0.009998" total="9" passed="9" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="19">
+                <test-case id="1-1076" name="Can_add_address" fullname="Nop.Core.Tests.Domain.Customers.CustomerTests.Can_add_address" methodname="Can_add_address" classname="Nop.Core.Tests.Domain.Customers.CustomerTests" runstate="Runnable" seed="2115908300" result="Passed" start-time="2026-05-14T00:14:30.9195002Z" end-time="2026-05-14T00:14:30.9210138Z" duration="0.001514" asserts="2" />
+                <test-case id="1-1078" name="Can_add_rewardPointsHistoryEntry" fullname="Nop.Core.Tests.Domain.Customers.CustomerTests.Can_add_rewardPointsHistoryEntry" methodname="Can_add_rewardPointsHistoryEntry" classname="Nop.Core.Tests.Domain.Customers.CustomerTests" runstate="Runnable" seed="1253046602" result="Passed" start-time="2026-05-14T00:14:30.9212647Z" end-time="2026-05-14T00:14:30.9213604Z" duration="0.000096" asserts="0" />
+                <test-case id="1-1071" name="Can_check_IsInCustomerRole" fullname="Nop.Core.Tests.Domain.Customers.CustomerTests.Can_check_IsInCustomerRole" methodname="Can_check_IsInCustomerRole" classname="Nop.Core.Tests.Domain.Customers.CustomerTests" runstate="Runnable" seed="1025332200" result="Passed" start-time="2026-05-14T00:14:30.9214801Z" end-time="2026-05-14T00:14:30.9239218Z" duration="0.002442" asserts="6" />
+                <test-case id="1-1072" name="Can_check_whether_customer_is_admin" fullname="Nop.Core.Tests.Domain.Customers.CustomerTests.Can_check_whether_customer_is_admin" methodname="Can_check_whether_customer_is_admin" classname="Nop.Core.Tests.Domain.Customers.CustomerTests" runstate="Runnable" seed="833806839" result="Passed" start-time="2026-05-14T00:14:30.9240585Z" end-time="2026-05-14T00:14:30.9256100Z" duration="0.001552" asserts="2" />
+                <test-case id="1-1073" name="Can_check_whether_customer_is_forum_moderator" fullname="Nop.Core.Tests.Domain.Customers.CustomerTests.Can_check_whether_customer_is_forum_moderator" methodname="Can_check_whether_customer_is_forum_moderator" classname="Nop.Core.Tests.Domain.Customers.CustomerTests" runstate="Runnable" seed="1375452250" result="Passed" start-time="2026-05-14T00:14:30.9257097Z" end-time="2026-05-14T00:14:30.9260681Z" duration="0.000358" asserts="2" />
+                <test-case id="1-1074" name="Can_check_whether_customer_is_guest" fullname="Nop.Core.Tests.Domain.Customers.CustomerTests.Can_check_whether_customer_is_guest" methodname="Can_check_whether_customer_is_guest" classname="Nop.Core.Tests.Domain.Customers.CustomerTests" runstate="Runnable" seed="1524857423" result="Passed" start-time="2026-05-14T00:14:30.9262164Z" end-time="2026-05-14T00:14:30.9267295Z" duration="0.000513" asserts="2" />
+                <test-case id="1-1075" name="Can_check_whether_customer_is_registered" fullname="Nop.Core.Tests.Domain.Customers.CustomerTests.Can_check_whether_customer_is_registered" methodname="Can_check_whether_customer_is_registered" classname="Nop.Core.Tests.Domain.Customers.CustomerTests" runstate="Runnable" seed="2099059847" result="Passed" start-time="2026-05-14T00:14:30.9269863Z" end-time="2026-05-14T00:14:30.9272938Z" duration="0.000307" asserts="2" />
+                <test-case id="1-1079" name="Can_get_rewardPointsHistoryBalance" fullname="Nop.Core.Tests.Domain.Customers.CustomerTests.Can_get_rewardPointsHistoryBalance" methodname="Can_get_rewardPointsHistoryBalance" classname="Nop.Core.Tests.Domain.Customers.CustomerTests" runstate="Runnable" seed="49389080" result="Passed" start-time="2026-05-14T00:14:30.9274445Z" end-time="2026-05-14T00:14:30.9275069Z" duration="0.000062" asserts="0" />
+                <test-case id="1-1077" name="Can_remove_address_assigned_as_billing_address" fullname="Nop.Core.Tests.Domain.Customers.CustomerTests.Can_remove_address_assigned_as_billing_address" methodname="Can_remove_address_assigned_as_billing_address" classname="Nop.Core.Tests.Domain.Customers.CustomerTests" runstate="Runnable" seed="116823839" result="Passed" start-time="2026-05-14T00:14:30.9275638Z" end-time="2026-05-14T00:14:30.9292397Z" duration="0.001676" asserts="3" />
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestFixture" id="1-1043" name="EntityEqualityTests" fullname="Nop.Core.Tests.Domain.EntityEqualityTests" classname="Nop.Core.Tests.Domain.EntityEqualityTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-05-14T00:14:30.9297691Z" end-time="2026-05-14T00:14:30.9395028Z" duration="0.009734" total="7" passed="7" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="8">
+              <test-case id="1-1047" name="Entities_with_different_id_should_not_be_equal" fullname="Nop.Core.Tests.Domain.EntityEqualityTests.Entities_with_different_id_should_not_be_equal" methodname="Entities_with_different_id_should_not_be_equal" classname="Nop.Core.Tests.Domain.EntityEqualityTests" runstate="Runnable" seed="12910044" result="Passed" start-time="2026-05-14T00:14:30.9299296Z" end-time="2026-05-14T00:14:30.9306087Z" duration="0.000679" asserts="1" />
+              <test-case id="1-1049" name="Entities_with_same_id_but_different_type_should_not_be_equal" fullname="Nop.Core.Tests.Domain.EntityEqualityTests.Entities_with_same_id_but_different_type_should_not_be_equal" methodname="Entities_with_same_id_but_different_type_should_not_be_equal" classname="Nop.Core.Tests.Domain.EntityEqualityTests" runstate="Runnable" seed="961455566" result="Passed" start-time="2026-05-14T00:14:30.9308494Z" end-time="2026-05-14T00:14:30.9315569Z" duration="0.000707" asserts="1" />
+              <test-case id="1-1048" name="Entity_should_not_equal_transient_entity" fullname="Nop.Core.Tests.Domain.EntityEqualityTests.Entity_should_not_equal_transient_entity" methodname="Entity_should_not_equal_transient_entity" classname="Nop.Core.Tests.Domain.EntityEqualityTests" runstate="Runnable" seed="154426548" result="Passed" start-time="2026-05-14T00:14:30.9318171Z" end-time="2026-05-14T00:14:30.9320705Z" duration="0.000253" asserts="1" />
+              <test-case id="1-1050" name="Equality_works_using_operators" fullname="Nop.Core.Tests.Domain.EntityEqualityTests.Equality_works_using_operators" methodname="Equality_works_using_operators" classname="Nop.Core.Tests.Domain.EntityEqualityTests" runstate="Runnable" seed="894800545" result="Passed" start-time="2026-05-14T00:14:30.9366809Z" end-time="2026-05-14T00:14:30.9369565Z" duration="0.000275" asserts="2" />
+              <test-case id="1-1045" name="Two_references_to_same_transient_entity_should_be_equal" fullname="Nop.Core.Tests.Domain.EntityEqualityTests.Two_references_to_same_transient_entity_should_be_equal" methodname="Two_references_to_same_transient_entity_should_be_equal" classname="Nop.Core.Tests.Domain.EntityEqualityTests" runstate="Runnable" seed="161861666" result="Passed" start-time="2026-05-14T00:14:30.9380066Z" end-time="2026-05-14T00:14:30.9382794Z" duration="0.000273" asserts="1" />
+              <test-case id="1-1046" name="Two_references_with_the_same_id_should_be_equal" fullname="Nop.Core.Tests.Domain.EntityEqualityTests.Two_references_with_the_same_id_should_be_equal" methodname="Two_references_with_the_same_id_should_be_equal" classname="Nop.Core.Tests.Domain.EntityEqualityTests" runstate="Runnable" seed="138876867" result="Passed" start-time="2026-05-14T00:14:30.9383363Z" end-time="2026-05-14T00:14:30.9386667Z" duration="0.000331" asserts="1" />
+              <test-case id="1-1044" name="Two_transient_entities_should_not_be_equal" fullname="Nop.Core.Tests.Domain.EntityEqualityTests.Two_transient_entities_should_not_be_equal" methodname="Two_transient_entities_should_not_be_equal" classname="Nop.Core.Tests.Domain.EntityEqualityTests" runstate="Runnable" seed="965866979" result="Passed" start-time="2026-05-14T00:14:30.9390193Z" end-time="2026-05-14T00:14:30.9393059Z" duration="0.000287" asserts="1" />
+            </test-suite>
+            <test-suite type="TestSuite" id="1-1114" name="Orders" fullname="Nop.Core.Tests.Domain.Orders" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-05-14T00:14:30.5387194Z" end-time="2026-05-14T00:14:30.9546542Z" duration="0.415934" total="8" passed="8" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="30">
+              <test-suite type="TestFixture" id="1-1060" name="GiftCardTests" fullname="Nop.Core.Tests.Domain.Orders.GiftCardTests" classname="Nop.Core.Tests.Domain.Orders.GiftCardTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-05-14T00:14:30.9397949Z" end-time="2026-05-14T00:14:30.9456094Z" duration="0.005815" total="2" passed="2" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="5">
+                <test-case id="1-1062" name="Can_calculate_giftCard_remainingAmount" fullname="Nop.Core.Tests.Domain.Orders.GiftCardTests.Can_calculate_giftCard_remainingAmount" methodname="Can_calculate_giftCard_remainingAmount" classname="Nop.Core.Tests.Domain.Orders.GiftCardTests" runstate="Runnable" seed="1971402386" result="Passed" start-time="2026-05-14T00:14:30.9399809Z" end-time="2026-05-14T00:14:30.9444108Z" duration="0.004430" asserts="1" />
+                <test-case id="1-1061" name="Can_validate_giftCard" fullname="Nop.Core.Tests.Domain.Orders.GiftCardTests.Can_validate_giftCard" methodname="Can_validate_giftCard" classname="Nop.Core.Tests.Domain.Orders.GiftCardTests" runstate="Runnable" seed="2048807226" result="Passed" start-time="2026-05-14T00:14:30.9447668Z" end-time="2026-05-14T00:14:30.9454810Z" duration="0.000714" asserts="4" />
+              </test-suite>
+              <test-suite type="TestFixture" id="1-1063" name="RecurringPaymentTests" fullname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests" classname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-05-14T00:14:30.9457826Z" end-time="2026-05-14T00:14:30.9542592Z" duration="0.008477" total="6" passed="6" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="25">
+                <test-case id="1-1064" name="Can_calculate_nextPaymentDate_with_days_as_cycle_period" fullname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests.Can_calculate_nextPaymentDate_with_days_as_cycle_period" methodname="Can_calculate_nextPaymentDate_with_days_as_cycle_period" classname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests" runstate="Runnable" seed="675909526" result="Passed" start-time="2026-05-14T00:14:30.9459498Z" end-time="2026-05-14T00:14:30.9495320Z" duration="0.003582" asserts="4" />
+                <test-case id="1-1066" name="Can_calculate_nextPaymentDate_with_months_as_cycle_period" fullname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests.Can_calculate_nextPaymentDate_with_months_as_cycle_period" methodname="Can_calculate_nextPaymentDate_with_months_as_cycle_period" classname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests" runstate="Runnable" seed="1405649704" result="Passed" start-time="2026-05-14T00:14:30.9503651Z" end-time="2026-05-14T00:14:30.9507813Z" duration="0.000416" asserts="4" />
+                <test-case id="1-1065" name="Can_calculate_nextPaymentDate_with_weeks_as_cycle_period" fullname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests.Can_calculate_nextPaymentDate_with_weeks_as_cycle_period" methodname="Can_calculate_nextPaymentDate_with_weeks_as_cycle_period" classname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests" runstate="Runnable" seed="1208080298" result="Passed" start-time="2026-05-14T00:14:30.9508332Z" end-time="2026-05-14T00:14:30.9511825Z" duration="0.000349" asserts="4" />
+                <test-case id="1-1067" name="Can_calculate_nextPaymentDate_with_years_as_cycle_period" fullname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests.Can_calculate_nextPaymentDate_with_years_as_cycle_period" methodname="Can_calculate_nextPaymentDate_with_years_as_cycle_period" classname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests" runstate="Runnable" seed="1534321075" result="Passed" start-time="2026-05-14T00:14:30.9514836Z" end-time="2026-05-14T00:14:30.9519808Z" duration="0.000497" asserts="4" />
+                <test-case id="1-1069" name="Can_calculate_number_of_remaining_cycle" fullname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests.Can_calculate_number_of_remaining_cycle" methodname="Can_calculate_number_of_remaining_cycle" classname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests" runstate="Runnable" seed="339666028" result="Passed" start-time="2026-05-14T00:14:30.9524313Z" end-time="2026-05-14T00:14:30.9529095Z" duration="0.000478" asserts="5" />
+                <test-case id="1-1068" name="Next_payment_date_is_null_when_recurring_payment_is_not_active" fullname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests.Next_payment_date_is_null_when_recurring_payment_is_not_active" methodname="Next_payment_date_is_null_when_recurring_payment_is_not_active" classname="Nop.Core.Tests.Domain.Orders.RecurringPaymentTests" runstate="Runnable" seed="1144077969" result="Passed" start-time="2026-05-14T00:14:30.9533152Z" end-time="2026-05-14T00:14:30.9536218Z" duration="0.000306" asserts="4" />
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestSuite" id="1-1113" name="Shipping" fullname="Nop.Core.Tests.Domain.Shipping" runstate="Runnable" testcasecount="4" result="Failed" site="Child" start-time="2026-05-14T00:14:30.5387963Z" end-time="2026-05-14T00:14:30.9691590Z" duration="0.430363" total="4" passed="0" failed="4" warnings="0" inconclusive="0" skipped="0" asserts="2">
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-suite type="TestFixture" id="1-1054" name="ShippingOptionListTypeConverterTests" fullname="Nop.Core.Tests.Domain.Shipping.ShippingOptionListTypeConverterTests" classname="Nop.Core.Tests.Domain.Shipping.ShippingOptionListTypeConverterTests" runstate="Runnable" testcasecount="2" result="Failed" site="Child" start-time="2026-05-14T00:14:30.9557555Z" end-time="2026-05-14T00:14:30.9621640Z" duration="0.006408" total="2" passed="0" failed="2" warnings="0" inconclusive="0" skipped="0" asserts="1">
+                <failure>
+                  <message><![CDATA[One or more child tests had errors]]></message>
+                </failure>
+                <test-case id="1-1056" name="Can_convert_shippingOptionList_to_string_and_back" fullname="Nop.Core.Tests.Domain.Shipping.ShippingOptionListTypeConverterTests.Can_convert_shippingOptionList_to_string_and_back" methodname="Can_convert_shippingOptionList_to_string_and_back" classname="Nop.Core.Tests.Domain.Shipping.ShippingOptionListTypeConverterTests" runstate="Runnable" seed="898430280" result="Failed" label="Error" start-time="2026-05-14T00:14:30.9561726Z" end-time="2026-05-14T00:14:30.9579777Z" duration="0.001805" asserts="0">
+                  <failure>
+                    <message><![CDATA[System.NotSupportedException : CollectionConverter cannot convert from System.String.]]></message>
+                    <stack-trace><![CDATA[   at System.ComponentModel.TypeConverter.GetConvertFromException(Object value)
+   at System.ComponentModel.TypeConverter.ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, Object value)
+   at Nop.Core.Tests.Domain.Shipping.ShippingOptionListTypeConverterTests.Can_convert_shippingOptionList_to_string_and_back() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\Domain\Shipping\ShippingOptionListTypeConverterTests.cs:line 48
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+                  </failure>
+                </test-case>
+                <test-case id="1-1055" name="Can_get_type_converter" fullname="Nop.Core.Tests.Domain.Shipping.ShippingOptionListTypeConverterTests.Can_get_type_converter" methodname="Can_get_type_converter" classname="Nop.Core.Tests.Domain.Shipping.ShippingOptionListTypeConverterTests" runstate="Runnable" seed="514892296" result="Failed" start-time="2026-05-14T00:14:30.9598179Z" end-time="2026-05-14T00:14:30.9618333Z" duration="0.002015" asserts="1">
+                  <failure>
+                    <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected: <Nop.Core.Domain.Shipping.ShippingOptionListTypeConverter>
+  But was:  <System.ComponentModel.CollectionConverter>
+]]></message>
+                    <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.Domain.Shipping.ShippingOptionListTypeConverterTests.Can_get_type_converter() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\Domain\Shipping\ShippingOptionListTypeConverterTests.cs:line 23
+]]></stack-trace>
+                  </failure>
+                  <assertions>
+                    <assertion result="Failed">
+                      <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected: <Nop.Core.Domain.Shipping.ShippingOptionListTypeConverter>
+  But was:  <System.ComponentModel.CollectionConverter>
+]]></message>
+                      <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.Domain.Shipping.ShippingOptionListTypeConverterTests.Can_get_type_converter() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\Domain\Shipping\ShippingOptionListTypeConverterTests.cs:line 23
+]]></stack-trace>
+                    </assertion>
+                  </assertions>
+                </test-case>
+              </test-suite>
+              <test-suite type="TestFixture" id="1-1057" name="ShippingOptionTypeConverterTests" fullname="Nop.Core.Tests.Domain.Shipping.ShippingOptionTypeConverterTests" classname="Nop.Core.Tests.Domain.Shipping.ShippingOptionTypeConverterTests" runstate="Runnable" testcasecount="2" result="Failed" site="Child" start-time="2026-05-14T00:14:30.9650947Z" end-time="2026-05-14T00:14:30.9689798Z" duration="0.003885" total="2" passed="0" failed="2" warnings="0" inconclusive="0" skipped="0" asserts="1">
+                <failure>
+                  <message><![CDATA[One or more child tests had errors]]></message>
+                </failure>
+                <test-case id="1-1059" name="Can_convert_shippingOption_to_string_and_back" fullname="Nop.Core.Tests.Domain.Shipping.ShippingOptionTypeConverterTests.Can_convert_shippingOption_to_string_and_back" methodname="Can_convert_shippingOption_to_string_and_back" classname="Nop.Core.Tests.Domain.Shipping.ShippingOptionTypeConverterTests" runstate="Runnable" seed="1122882253" result="Failed" label="Error" start-time="2026-05-14T00:14:30.9662122Z" end-time="2026-05-14T00:14:30.9671763Z" duration="0.000964" asserts="0">
+                  <failure>
+                    <message><![CDATA[System.NotSupportedException : TypeConverter cannot convert from System.String.]]></message>
+                    <stack-trace><![CDATA[   at System.ComponentModel.TypeConverter.GetConvertFromException(Object value)
+   at System.ComponentModel.TypeConverter.ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, Object value)
+   at Nop.Core.Tests.Domain.Shipping.ShippingOptionTypeConverterTests.Can_convert_shippingOption_to_string_and_back() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\Domain\Shipping\ShippingOptionTypeConverterTests.cs:line 38
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+                  </failure>
+                </test-case>
+                <test-case id="1-1058" name="Can_get_type_converter" fullname="Nop.Core.Tests.Domain.Shipping.ShippingOptionTypeConverterTests.Can_get_type_converter" methodname="Can_get_type_converter" classname="Nop.Core.Tests.Domain.Shipping.ShippingOptionTypeConverterTests" runstate="Runnable" seed="6977975" result="Failed" start-time="2026-05-14T00:14:30.9676256Z" end-time="2026-05-14T00:14:30.9686455Z" duration="0.001020" asserts="1">
+                  <failure>
+                    <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected: <Nop.Core.Domain.Shipping.ShippingOptionTypeConverter>
+  But was:  <System.ComponentModel.TypeConverter>
+]]></message>
+                    <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.Domain.Shipping.ShippingOptionTypeConverterTests.Can_get_type_converter() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\Domain\Shipping\ShippingOptionTypeConverterTests.cs:line 22
+]]></stack-trace>
+                  </failure>
+                  <assertions>
+                    <assertion result="Failed">
+                      <message><![CDATA[  Assert.That(actual, Is.EqualTo(expected))
+  Expected: <Nop.Core.Domain.Shipping.ShippingOptionTypeConverter>
+  But was:  <System.ComponentModel.TypeConverter>
+]]></message>
+                      <stack-trace><![CDATA[   at Nop.Tests.TestExtensions.ShouldEqual[T](T actual, Object expected) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Tests\TestExtensions.cs:line 37
+   at Nop.Core.Tests.Domain.Shipping.ShippingOptionTypeConverterTests.Can_get_type_converter() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\Domain\Shipping\ShippingOptionTypeConverterTests.cs:line 22
+]]></stack-trace>
+                    </assertion>
+                  </assertions>
+                </test-case>
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestSuite" id="1-1112" name="Stores" fullname="Nop.Core.Tests.Domain.Stores" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-05-14T00:14:30.5388214Z" end-time="2026-05-14T00:14:30.9729705Z" duration="0.434149" total="2" passed="2" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="9">
+              <test-suite type="TestFixture" id="1-1051" name="StoreExtensionsTests" fullname="Nop.Core.Tests.Domain.Stores.StoreExtensionsTests" classname="Nop.Core.Tests.Domain.Stores.StoreExtensionsTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-05-14T00:14:30.9698812Z" end-time="2026-05-14T00:14:30.9729012Z" duration="0.003020" total="2" passed="2" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="9">
+                <test-case id="1-1053" name="Can_find_host_value" fullname="Nop.Core.Tests.Domain.Stores.StoreExtensionsTests.Can_find_host_value" methodname="Can_find_host_value" classname="Nop.Core.Tests.Domain.Stores.StoreExtensionsTests" runstate="Runnable" seed="1625290405" result="Passed" start-time="2026-05-14T00:14:30.9703824Z" end-time="2026-05-14T00:14:30.9718779Z" duration="0.001496" asserts="6" />
+                <test-case id="1-1052" name="Can_parse_host_values" fullname="Nop.Core.Tests.Domain.Stores.StoreExtensionsTests.Can_parse_host_values" methodname="Can_parse_host_values" classname="Nop.Core.Tests.Domain.Stores.StoreExtensionsTests" runstate="Runnable" seed="337541411" result="Passed" start-time="2026-05-14T00:14:30.9721885Z" end-time="2026-05-14T00:14:30.9727011Z" duration="0.000513" asserts="3" />
+              </test-suite>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestFixture" id="1-1015" name="ExtensionsTests" fullname="Nop.Core.Tests.ExtensionsTests" classname="Nop.Core.Tests.ExtensionsTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-05-14T00:14:30.9730411Z" end-time="2026-05-14T00:14:30.9738092Z" duration="0.000768" total="1" passed="1" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="3">
+            <test-case id="1-1016" name="Can_check_IsNullOrDefault" fullname="Nop.Core.Tests.ExtensionsTests.Can_check_IsNullOrDefault" methodname="Can_check_IsNullOrDefault" classname="Nop.Core.Tests.ExtensionsTests" runstate="Runnable" seed="1453073854" result="Passed" start-time="2026-05-14T00:14:30.9731958Z" end-time="2026-05-14T00:14:30.9736190Z" duration="0.000423" asserts="3" />
+          </test-suite>
+          <test-suite type="TestSuite" id="1-1109" name="Infrastructure" fullname="Nop.Core.Tests.Infrastructure" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-05-14T00:14:30.5388482Z" end-time="2026-05-14T00:14:31.3158309Z" duration="0.776983" total="8" passed="8" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="16">
+            <test-suite type="TestSuite" id="1-1110" name="DependencyManagement" fullname="Nop.Core.Tests.Infrastructure.DependencyManagement" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-05-14T00:14:30.5388686Z" end-time="2026-05-14T00:14:31.1689256Z" duration="0.630058" total="1" passed="1" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="6">
+              <test-suite type="TestFixture" id="1-1041" name="AutofacTests" fullname="Nop.Core.Tests.Infrastructure.DependencyManagement.AutofacTests" classname="Nop.Core.Tests.Infrastructure.DependencyManagement.AutofacTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-05-14T00:14:30.9740646Z" end-time="2026-05-14T00:14:31.1640802Z" duration="0.190016" total="1" passed="1" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="6">
+                <test-case id="1-1042" name="EnumerablesFromDifferentLifetimeScopesShouldReturnDifferentCollections" fullname="Nop.Core.Tests.Infrastructure.DependencyManagement.AutofacTests.EnumerablesFromDifferentLifetimeScopesShouldReturnDifferentCollections" methodname="EnumerablesFromDifferentLifetimeScopesShouldReturnDifferentCollections" classname="Nop.Core.Tests.Infrastructure.DependencyManagement.AutofacTests" runstate="Runnable" seed="344315262" result="Passed" start-time="2026-05-14T00:14:30.9743020Z" end-time="2026-05-14T00:14:31.1638831Z" duration="0.189582" asserts="6">
+                  <properties>
+                    <property name="Description" value="Exercises a problem in a previous version, to make sure older Autofac.dll isn't picked up" />
+                  </properties>
+                </test-case>
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestFixture" id="1-1032" name="SingletonTests" fullname="Nop.Core.Tests.Infrastructure.SingletonTests" classname="Nop.Core.Tests.Infrastructure.SingletonTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-05-14T00:14:31.1720636Z" end-time="2026-05-14T00:14:31.2073128Z" duration="0.035249" total="6" passed="6" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="8">
+              <test-case id="1-1033" name="Singleton_IsNullByDefault" fullname="Nop.Core.Tests.Infrastructure.SingletonTests.Singleton_IsNullByDefault" methodname="Singleton_IsNullByDefault" classname="Nop.Core.Tests.Infrastructure.SingletonTests" runstate="Runnable" seed="1254725742" result="Passed" start-time="2026-05-14T00:14:31.1737451Z" end-time="2026-05-14T00:14:31.1745319Z" duration="0.000787" asserts="1" />
+              <test-case id="1-1036" name="SingletonDictionary_CanStoreStuff" fullname="Nop.Core.Tests.Infrastructure.SingletonTests.SingletonDictionary_CanStoreStuff" methodname="SingletonDictionary_CanStoreStuff" classname="Nop.Core.Tests.Infrastructure.SingletonTests" runstate="Runnable" seed="423554693" result="Passed" start-time="2026-05-14T00:14:31.1799990Z" end-time="2026-05-14T00:14:31.1824244Z" duration="0.002425" asserts="1" />
+              <test-case id="1-1035" name="SingletonDictionary_IsCreatedByDefault" fullname="Nop.Core.Tests.Infrastructure.SingletonTests.SingletonDictionary_IsCreatedByDefault" methodname="SingletonDictionary_IsCreatedByDefault" classname="Nop.Core.Tests.Infrastructure.SingletonTests" runstate="Runnable" seed="799482387" result="Passed" start-time="2026-05-14T00:14:31.1857531Z" end-time="2026-05-14T00:14:31.1861284Z" duration="0.000375" asserts="1" />
+              <test-case id="1-1038" name="SingletonList_CanStoreItems" fullname="Nop.Core.Tests.Infrastructure.SingletonTests.SingletonList_CanStoreItems" methodname="SingletonList_CanStoreItems" classname="Nop.Core.Tests.Infrastructure.SingletonTests" runstate="Runnable" seed="131442810" result="Passed" start-time="2026-05-14T00:14:31.1898576Z" end-time="2026-05-14T00:14:31.1907430Z" duration="0.000885" asserts="1" />
+              <test-case id="1-1037" name="SingletonList_IsCreatedByDefault" fullname="Nop.Core.Tests.Infrastructure.SingletonTests.SingletonList_IsCreatedByDefault" methodname="SingletonList_IsCreatedByDefault" classname="Nop.Core.Tests.Infrastructure.SingletonTests" runstate="Runnable" seed="1921118029" result="Passed" start-time="2026-05-14T00:14:31.1972202Z" end-time="2026-05-14T00:14:31.1974926Z" duration="0.000272" asserts="1" />
+              <test-case id="1-1034" name="Singletons_ShareSame_SingletonsDictionary" fullname="Nop.Core.Tests.Infrastructure.SingletonTests.Singletons_ShareSame_SingletonsDictionary" methodname="Singletons_ShareSame_SingletonsDictionary" classname="Nop.Core.Tests.Infrastructure.SingletonTests" runstate="Runnable" seed="135449616" result="Passed" start-time="2026-05-14T00:14:31.2013665Z" end-time="2026-05-14T00:14:31.2037186Z" duration="0.002352" asserts="3" />
+            </test-suite>
+            <test-suite type="TestFixture" id="1-1039" name="TypeFinderTests" fullname="Nop.Core.Tests.Infrastructure.TypeFinderTests" classname="Nop.Core.Tests.Infrastructure.TypeFinderTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-05-14T00:14:31.2130266Z" end-time="2026-05-14T00:14:31.3154253Z" duration="0.102399" total="1" passed="1" failed="0" warnings="0" inconclusive="0" skipped="0" asserts="2">
+              <test-case id="1-1040" name="TypeFinder_Benchmark_Findings" fullname="Nop.Core.Tests.Infrastructure.TypeFinderTests.TypeFinder_Benchmark_Findings" methodname="TypeFinder_Benchmark_Findings" classname="Nop.Core.Tests.Infrastructure.TypeFinderTests" runstate="Runnable" seed="1304834325" result="Passed" start-time="2026-05-14T00:14:31.2182891Z" end-time="2026-05-14T00:14:31.3133470Z" duration="0.095058" asserts="2" />
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestFixture" id="1-1017" name="WebHelperTests" fullname="Nop.Core.Tests.WebHelperTests" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" testcasecount="14" result="Failed" site="Child" start-time="2026-05-14T00:14:31.3164045Z" end-time="2026-05-14T00:14:31.4324681Z" duration="0.116063" total="14" passed="0" failed="13" warnings="0" inconclusive="0" skipped="1" asserts="0">
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-case id="1-1025" name="Can_get_queryString" fullname="Nop.Core.Tests.WebHelperTests.Can_get_queryString" methodname="Can_get_queryString" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="557711830" result="Failed" label="Error" start-time="2026-05-14T00:14:31.3169476Z" end-time="2026-05-14T00:14:31.3976217Z" duration="0.080675" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_get_queryString() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 151
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1018" name="Can_get_serverVariables" fullname="Nop.Core.Tests.WebHelperTests.Can_get_serverVariables" methodname="Can_get_serverVariables" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="2144078273" result="Failed" label="Error" start-time="2026-05-14T00:14:31.3978552Z" end-time="2026-05-14T00:14:31.3999626Z" duration="0.002108" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_get_serverVariables() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 84
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1020" name="Can_get_storeHost_with_ssl" fullname="Nop.Core.Tests.WebHelperTests.Can_get_storeHost_with_ssl" methodname="Can_get_storeHost_with_ssl" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="1581957541" result="Failed" label="Error" start-time="2026-05-14T00:14:31.4003202Z" end-time="2026-05-14T00:14:31.4022406Z" duration="0.001920" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_get_storeHost_with_ssl() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 104
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1019" name="Can_get_storeHost_without_ssl" fullname="Nop.Core.Tests.WebHelperTests.Can_get_storeHost_without_ssl" methodname="Can_get_storeHost_without_ssl" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="564286340" result="Failed" label="Error" start-time="2026-05-14T00:14:31.4025639Z" end-time="2026-05-14T00:14:31.4047795Z" duration="0.002216" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_get_storeHost_without_ssl() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 95
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1023" name="Can_get_storeLocation_in_virtual_directory" fullname="Nop.Core.Tests.WebHelperTests.Can_get_storeLocation_in_virtual_directory" methodname="Can_get_storeLocation_in_virtual_directory" classname="Nop.Core.Tests.WebHelperTests" runstate="Ignored" seed="201144475" result="Skipped" label="Ignored" start-time="2026-05-14T00:14:31.4049701Z" end-time="2026-05-14T00:14:31.4052705Z" duration="0.000300" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="Virtual directory detection requires SystemWebAdapters app path configuration not available in unit tests" />
+              </properties>
+              <reason>
+                <message><![CDATA[Virtual directory detection requires SystemWebAdapters app path configuration not available in unit tests]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1-1022" name="Can_get_storeLocation_with_ssl" fullname="Nop.Core.Tests.WebHelperTests.Can_get_storeLocation_with_ssl" methodname="Can_get_storeLocation_with_ssl" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="32671607" result="Failed" label="Error" start-time="2026-05-14T00:14:31.4064863Z" end-time="2026-05-14T00:14:31.4093449Z" duration="0.002859" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_get_storeLocation_with_ssl() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 122
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1021" name="Can_get_storeLocation_without_ssl" fullname="Nop.Core.Tests.WebHelperTests.Can_get_storeLocation_without_ssl" methodname="Can_get_storeLocation_without_ssl" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="477086662" result="Failed" label="Error" start-time="2026-05-14T00:14:31.4100756Z" end-time="2026-05-14T00:14:31.4121001Z" duration="0.002024" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_get_storeLocation_without_ssl() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 113
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1029" name="Can_modify_queryString" fullname="Nop.Core.Tests.WebHelperTests.Can_modify_queryString" methodname="Can_modify_queryString" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="1788618734" result="Failed" label="Error" start-time="2026-05-14T00:14:31.4125561Z" end-time="2026-05-14T00:14:31.4149367Z" duration="0.002381" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_modify_queryString() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 191
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1031" name="Can_modify_queryString_new_anchor_should_remove_previous_one" fullname="Nop.Core.Tests.WebHelperTests.Can_modify_queryString_new_anchor_should_remove_previous_one" methodname="Can_modify_queryString_new_anchor_should_remove_previous_one" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="547786512" result="Failed" label="Error" start-time="2026-05-14T00:14:31.4159456Z" end-time="2026-05-14T00:14:31.4176676Z" duration="0.001722" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_modify_queryString_new_anchor_should_remove_previous_one() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 214
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1030" name="Can_modify_queryString_with_anchor" fullname="Nop.Core.Tests.WebHelperTests.Can_modify_queryString_with_anchor" methodname="Can_modify_queryString_with_anchor" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="10927980" result="Failed" label="Error" start-time="2026-05-14T00:14:31.4180451Z" end-time="2026-05-14T00:14:31.4196882Z" duration="0.001644" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_modify_queryString_with_anchor() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 206
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1026" name="Can_remove_queryString" fullname="Nop.Core.Tests.WebHelperTests.Can_remove_queryString" methodname="Can_remove_queryString" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="200681198" result="Failed" label="Error" start-time="2026-05-14T00:14:31.4198531Z" end-time="2026-05-14T00:14:31.4249335Z" duration="0.005081" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_remove_queryString() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 160
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1028" name="Can_remove_queryString_should_ignore_input_parameter_case" fullname="Nop.Core.Tests.WebHelperTests.Can_remove_queryString_should_ignore_input_parameter_case" methodname="Can_remove_queryString_should_ignore_input_parameter_case" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="814730307" result="Failed" label="Error" start-time="2026-05-14T00:14:31.4265049Z" end-time="2026-05-14T00:14:31.4283534Z" duration="0.001849" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_remove_queryString_should_ignore_input_parameter_case() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 183
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1027" name="Can_remove_queryString_should_return_lowerCased_result" fullname="Nop.Core.Tests.WebHelperTests.Can_remove_queryString_should_return_lowerCased_result" methodname="Can_remove_queryString_should_return_lowerCased_result" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="726308886" result="Failed" label="Error" start-time="2026-05-14T00:14:31.4284690Z" end-time="2026-05-14T00:14:31.4303200Z" duration="0.001851" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Can_remove_queryString_should_return_lowerCased_result() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 175
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1-1024" name="Get_storeLocation_should_return_lowerCased_result" fullname="Nop.Core.Tests.WebHelperTests.Get_storeLocation_should_return_lowerCased_result" methodname="Get_storeLocation_should_return_lowerCased_result" classname="Nop.Core.Tests.WebHelperTests" runstate="Runnable" seed="1845658962" result="Failed" label="Error" start-time="2026-05-14T00:14:31.4305063Z" end-time="2026-05-14T00:14:31.4324107Z" duration="0.001904" asserts="0">
+              <failure>
+                <message><![CDATA[System.IO.FileNotFoundException : Could not load file or assembly 'System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'. The system cannot find the file specified.]]></message>
+                <stack-trace><![CDATA[   at Microsoft.AspNetCore.Http.DefaultHttpContext..ctor()
+   at Nop.Core.Tests.WebHelperTests.SetupContext(String relativeUrl, String method, NameValueCollection queryStringParams, NameValueCollection serverVariables) in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 25
+   at Nop.Core.Tests.WebHelperTests.Get_storeLocation_should_return_lowerCased_result() in D:\Users\artrodri\source\repos\release-3.90\src\Tests\Nop.Core.Tests\WebHelperTests.cs:line 141
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)]]></stack-trace>
+              </failure>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
