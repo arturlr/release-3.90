@@ -1,23 +1,25 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Catalog;
 
 namespace Nop.Data.Mapping.Catalog
 {
     public partial class BackInStockSubscriptionMap : NopEntityTypeConfiguration<BackInStockSubscription>
     {
-        public BackInStockSubscriptionMap()
+        public override void Configure(EntityTypeBuilder<BackInStockSubscription> builder)
         {
-            this.ToTable("BackInStockSubscription");
-            this.HasKey(x => x.Id);
+            builder.ToTable("BackInStockSubscription");
+            builder.HasKey(x => x.Id);
 
-            this.HasRequired(x => x.Product)
+            builder.HasOne(x => x.Product)
                 .WithMany()
                 .HasForeignKey(x => x.ProductId)
-                .WillCascadeOnDelete(true);
-            
-            this.HasRequired(x => x.Customer)
+                .IsRequired();
+
+            builder.HasOne(x => x.Customer)
                 .WithMany()
                 .HasForeignKey(x => x.CustomerId)
-                .WillCascadeOnDelete(true);
+                .IsRequired();
         }
     }
 }

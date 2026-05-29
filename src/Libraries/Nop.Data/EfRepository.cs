@@ -1,22 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Validation;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using Nop.Core.Data;
 
 namespace Nop.Data
 {
     /// <summary>
-    /// Entity Framework repository
+    /// Entity Framework Core repository
     /// </summary>
     public partial class EfRepository<T> : IRepository<T> where T : BaseEntity
     {
         #region Fields
 
         private readonly IDbContext _context;
-        private IDbSet<T> _entities;
+        private DbSet<T> _entities;
 
         #endregion
 
@@ -28,25 +27,7 @@ namespace Nop.Data
         /// <param name="context">Object context</param>
         public EfRepository(IDbContext context)
         {
-            this._context = context;
-        }
-
-        #endregion
-
-        #region Utilities
-
-        /// <summary>
-        /// Get full error
-        /// </summary>
-        /// <param name="exc">Exception</param>
-        /// <returns>Error</returns>
-        protected string GetFullErrorText(DbEntityValidationException exc)
-        {
-            var msg = string.Empty;
-            foreach (var validationErrors in exc.EntityValidationErrors)
-                foreach (var error in validationErrors.ValidationErrors)
-                    msg += string.Format("Property: {0} Error: {1}", error.PropertyName, error.ErrorMessage) + Environment.NewLine;
-            return msg;
+            _context = context;
         }
 
         #endregion
@@ -60,9 +41,7 @@ namespace Nop.Data
         /// <returns>Entity</returns>
         public virtual T GetById(object id)
         {
-            //see some suggested performance optimization (not tested)
-            //http://stackoverflow.com/questions/11686225/dbset-find-method-ridiculously-slow-compared-to-singleordefault-on-id/11688189#comment34876113_11688189
-            return this.Entities.Find(id);
+            return Entities.Find(id);
         }
 
         /// <summary>
@@ -71,19 +50,11 @@ namespace Nop.Data
         /// <param name="entity">Entity</param>
         public virtual void Insert(T entity)
         {
-            try
-            {
-                if (entity == null)
-                    throw new ArgumentNullException("entity");
+            if (entity == null)
+                throw new ArgumentNullException(nameof(entity));
 
-                this.Entities.Add(entity);
-
-                this._context.SaveChanges();
-            }
-            catch (DbEntityValidationException dbEx)
-            {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
-            }
+            Entities.Add(entity);
+            _context.SaveChanges();
         }
 
         /// <summary>
@@ -92,20 +63,11 @@ namespace Nop.Data
         /// <param name="entities">Entities</param>
         public virtual void Insert(IEnumerable<T> entities)
         {
-            try
-            {
-                if (entities == null)
-                    throw new ArgumentNullException("entities");
+            if (entities == null)
+                throw new ArgumentNullException(nameof(entities));
 
-                foreach (var entity in entities)
-                    this.Entities.Add(entity);
-
-                this._context.SaveChanges();
-            }
-            catch (DbEntityValidationException dbEx)
-            {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
-            }
+            Entities.AddRange(entities);
+            _context.SaveChanges();
         }
 
         /// <summary>
@@ -114,17 +76,10 @@ namespace Nop.Data
         /// <param name="entity">Entity</param>
         public virtual void Update(T entity)
         {
-            try
-            {
-                if (entity == null)
-                    throw new ArgumentNullException("entity");
+            if (entity == null)
+                throw new ArgumentNullException(nameof(entity));
 
-                this._context.SaveChanges();
-            }
-            catch (DbEntityValidationException dbEx)
-            {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
-            }
+            _context.SaveChanges();
         }
 
         /// <summary>
@@ -133,17 +88,10 @@ namespace Nop.Data
         /// <param name="entities">Entities</param>
         public virtual void Update(IEnumerable<T> entities)
         {
-            try
-            {
-                if (entities == null)
-                    throw new ArgumentNullException("entities");
+            if (entities == null)
+                throw new ArgumentNullException(nameof(entities));
 
-                this._context.SaveChanges();
-            }
-            catch (DbEntityValidationException dbEx)
-            {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
-            }
+            _context.SaveChanges();
         }
 
         /// <summary>
@@ -152,19 +100,11 @@ namespace Nop.Data
         /// <param name="entity">Entity</param>
         public virtual void Delete(T entity)
         {
-            try
-            {
-                if (entity == null)
-                    throw new ArgumentNullException("entity");
+            if (entity == null)
+                throw new ArgumentNullException(nameof(entity));
 
-                this.Entities.Remove(entity);
-
-                this._context.SaveChanges();
-            }
-            catch (DbEntityValidationException dbEx)
-            {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
-            }
+            Entities.Remove(entity);
+            _context.SaveChanges();
         }
 
         /// <summary>
@@ -173,22 +113,13 @@ namespace Nop.Data
         /// <param name="entities">Entities</param>
         public virtual void Delete(IEnumerable<T> entities)
         {
-            try
-            {
-                if (entities == null)
-                    throw new ArgumentNullException("entities");
+            if (entities == null)
+                throw new ArgumentNullException(nameof(entities));
 
-                foreach (var entity in entities)
-                    this.Entities.Remove(entity);
-
-                this._context.SaveChanges();
-            }
-            catch (DbEntityValidationException dbEx)
-            {
-                throw new Exception(GetFullErrorText(dbEx), dbEx);
-            }
+            Entities.RemoveRange(entities);
+            _context.SaveChanges();
         }
-        
+
         #endregion
 
         #region Properties
@@ -198,27 +129,21 @@ namespace Nop.Data
         /// </summary>
         public virtual IQueryable<T> Table
         {
-            get
-            {
-                return this.Entities;
-            }
+            get { return Entities; }
         }
 
         /// <summary>
-        /// Gets a table with "no tracking" enabled (EF feature) Use it only when you load record(s) only for read-only operations
+        /// Gets a table with "no tracking" enabled (EF feature). Use it only when you load record(s) only for read-only operations
         /// </summary>
         public virtual IQueryable<T> TableNoTracking
         {
-            get
-            {
-                return this.Entities.AsNoTracking();
-            }
+            get { return Entities.AsNoTracking(); }
         }
 
         /// <summary>
         /// Entities
         /// </summary>
-        protected virtual IDbSet<T> Entities
+        protected virtual DbSet<T> Entities
         {
             get
             {

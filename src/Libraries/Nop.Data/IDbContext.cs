@@ -1,9 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Data.Entity;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 
 namespace Nop.Data
 {
+    /// <summary>
+    /// Represents a DB context
+    /// </summary>
     public interface IDbContext
     {
         /// <summary>
@@ -11,12 +15,12 @@ namespace Nop.Data
         /// </summary>
         /// <typeparam name="TEntity">Entity type</typeparam>
         /// <returns>DbSet</returns>
-        IDbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity;
+        DbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity;
 
         /// <summary>
         /// Save changes
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Number of state entries written</returns>
         int SaveChanges();
 
         /// <summary>
@@ -30,13 +34,15 @@ namespace Nop.Data
             where TEntity : BaseEntity, new();
 
         /// <summary>
-        /// Creates a raw SQL query that will return elements of the given generic type.  The type can be any type that has properties that match the names of the columns returned from the query, or can be a simple primitive type. The type does not have to be an entity type. The results of this query are never tracked by the context even if the type of object returned is an entity type.
+        /// Creates a raw SQL query that will return elements of the given generic type.
+        /// The type can be any type that has properties that match the names of the columns returned from the query,
+        /// or can be a simple primitive type.
         /// </summary>
         /// <typeparam name="TElement">The type of object returned by the query.</typeparam>
         /// <param name="sql">The SQL query string.</param>
         /// <param name="parameters">The parameters to apply to the SQL query string.</param>
         /// <returns>Result</returns>
-        IEnumerable<TElement> SqlQuery<TElement>(string sql, params object[] parameters);
+        IList<TElement> SqlQuery<TElement>(string sql, params object[] parameters);
 
         /// <summary>
         /// Executes the given DDL/DML command against the database.
@@ -49,15 +55,10 @@ namespace Nop.Data
         int ExecuteSqlCommand(string sql, bool doNotEnsureTransaction = false, int? timeout = null, params object[] parameters);
 
         /// <summary>
-        /// Detach an entity
+        /// Detach an entity from the context (stop tracking)
         /// </summary>
         /// <param name="entity">Entity</param>
         void Detach(object entity);
-
-        /// <summary>
-        /// Gets or sets a value indicating whether proxy creation setting is enabled (used in EF)
-        /// </summary>
-        bool ProxyCreationEnabled { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether auto detect changes setting is enabled (used in EF)

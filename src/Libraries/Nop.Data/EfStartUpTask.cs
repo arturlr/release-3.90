@@ -1,9 +1,12 @@
-﻿using Nop.Core;
+using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
 
 namespace Nop.Data
 {
+    /// <summary>
+    /// EF Core startup task - initializes the data provider
+    /// </summary>
     public class EfStartUpTask : IStartupTask
     {
         public void Execute()
@@ -14,13 +17,13 @@ namespace Nop.Data
                 var provider = EngineContext.Current.Resolve<IDataProvider>();
                 if (provider == null)
                     throw new NopException("No IDataProvider found");
-                provider.SetDatabaseInitializer();
+                provider.InitDatabase();
             }
         }
 
         public int Order
         {
-            //ensure that this task is run first 
+            // Ensure that this task is run first
             get { return -1000; }
         }
     }

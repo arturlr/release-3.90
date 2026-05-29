@@ -1,24 +1,28 @@
-﻿using Nop.Core.Domain.Forums;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Nop.Core.Domain.Forums;
 
 namespace Nop.Data.Mapping.Forums
 {
     public partial class ForumPostMap : NopEntityTypeConfiguration<ForumPost>
     {
-        public ForumPostMap()
+        public override void Configure(EntityTypeBuilder<ForumPost> builder)
         {
-            this.ToTable("Forums_Post");
-            this.HasKey(fp => fp.Id);
-            this.Property(fp => fp.Text).IsRequired();
-            this.Property(fp => fp.IPAddress).HasMaxLength(100);
+            builder.ToTable("Forums_Post");
+            builder.HasKey(fp => fp.Id);
+            builder.Property(fp => fp.Text).IsRequired();
+            builder.Property(fp => fp.IPAddress).HasMaxLength(100);
 
-            this.HasRequired(fp => fp.ForumTopic)
+            builder.HasOne(fp => fp.ForumTopic)
                 .WithMany()
-                .HasForeignKey(fp => fp.TopicId);
+                .HasForeignKey(fp => fp.TopicId)
+                .IsRequired();
 
-            this.HasRequired(fp => fp.Customer)
-               .WithMany()
-               .HasForeignKey(fp => fp.CustomerId)
-               .WillCascadeOnDelete(false);
+            builder.HasOne(fp => fp.Customer)
+                .WithMany()
+                .HasForeignKey(fp => fp.CustomerId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
