@@ -1,5 +1,7 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core.Data;
 using Nop.Core.Domain.Security;
 using Nop.Core.Infrastructure;
@@ -7,42 +9,39 @@ using Nop.Core.Infrastructure;
 namespace Nop.Web.Framework.Security
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
-    public class PublicAntiForgeryAttribute : FilterAttribute, IAuthorizationFilter
+    public class PublicAntiForgeryAttribute : ActionFilterAttribute
     {
         private readonly bool _ignore;
 
-        /// <summary>
-        /// Anti-forgery security attribute
-        /// </summary>
-        /// <param name="ignore">Pass false in order to ignore this security validation</param>
         public PublicAntiForgeryAttribute(bool ignore = false)
         {
             this._ignore = ignore;
         }
-        public virtual void OnAuthorization(AuthorizationContext filterContext)
+
+        public override void OnActionExecuting(ActionExecutingContext context)
         {
-            if (filterContext == null)
-                throw new ArgumentNullException("filterContext");
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
 
             if (_ignore)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
             //only POST requests
-            if (!String.Equals(filterContext.HttpContext.Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(context.HttpContext.Request.Method, "POST", StringComparison.OrdinalIgnoreCase))
                 return;
 
             if (!DataSettingsHelper.DatabaseIsInstalled())
                 return;
+
             var securitySettings = EngineContext.Current.Resolve<SecuritySettings>();
             if (!securitySettings.EnableXsrfProtectionForPublicStore)
                 return;
-            
-            var validator = new ValidateAntiForgeryTokenAttribute();
-            validator.OnAuthorization(filterContext);
+
+            var antiforgery = context.HttpContext.RequestServices.GetService<IAntiforgery>();
+            if (antiforgery != null)
+            {
+                antiforgery.ValidateRequestAsync(context.HttpContext).GetAwaiter().GetResult();
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
@@ -12,24 +13,16 @@ namespace Nop.Web.Framework
     /// </summary>
     public class ValidatePasswordAttribute : ActionFilterAttribute
     {
-        /// <summary>
-        /// Called by the ASP.NET MVC framework before the action method executes
-        /// </summary>
-        /// <param name="filterContext">The filter context</param>
-        public override void OnActionExecuting(ActionExecutingContext filterContext)
+        public override void OnActionExecuting(ActionExecutingContext context)
         {
-            if (filterContext == null || filterContext.HttpContext == null || filterContext.HttpContext.Request == null)
+            if (context == null || context.HttpContext == null || context.HttpContext.Request == null)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
-            var actionName = filterContext.ActionDescriptor.ActionName;
+            var actionName = context.RouteData.Values["action"]?.ToString();
             if (string.IsNullOrEmpty(actionName) || actionName.Equals("ChangePassword", StringComparison.InvariantCultureIgnoreCase))
                 return;
 
-            var controllerName = filterContext.Controller.ToString();
+            var controllerName = context.RouteData.Values["controller"]?.ToString();
             if (string.IsNullOrEmpty(controllerName) || controllerName.Equals("Customer", StringComparison.InvariantCultureIgnoreCase))
                 return;
 
@@ -42,8 +35,7 @@ namespace Nop.Web.Framework
             //check password expiration
             if (customer.PasswordIsExpired())
             {
-                var changePasswordUrl = new UrlHelper(filterContext.RequestContext).RouteUrl("CustomerChangePassword");
-                filterContext.Result = new RedirectResult(changePasswordUrl);
+                context.Result = new RedirectToRouteResult("CustomerChangePassword", null);
             }
         }
     }

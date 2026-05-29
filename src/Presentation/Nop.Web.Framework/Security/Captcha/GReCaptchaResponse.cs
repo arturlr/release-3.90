@@ -1,15 +1,13 @@
-﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace Nop.Web.Framework.Security.Captcha
 {
     public class GReCaptchaResponse
     {
-        public bool IsValid { get; set; }
-        public List<string> ErrorCodes { get; set; }
+        [JsonProperty("success")]
+        public bool Success { get; set; }
 
-        public GReCaptchaResponse()
-        {
-            ErrorCodes = new List<string>();
-        }
+        [JsonProperty("error-codes")]
+        public string[] ErrorCodes { get; set; }
     }
 }

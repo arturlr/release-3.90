@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.ServiceModel.Syndication;
-using System.Web.Mvc;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 
 namespace Nop.Web.Framework
@@ -23,19 +24,21 @@ namespace Nop.Web.Framework
             //add atom:link with rel='self' 
             this.Feed.ElementExtensions.Add(new XElement(atom + "link", new XAttribute("href", new Uri(feedPageUrl)), new XAttribute("rel", "self"), new XAttribute("type", "application/rss+xml")));
         }
+
         public SyndicationFeed Feed { get; set; }
 
-        public override void ExecuteResult(ControllerContext context)
+        public override async Task ExecuteResultAsync(ActionContext context)
         {
-            context.HttpContext.Response.ContentType = MimeTypes.ApplicationRssXml;
+            var response = context.HttpContext.Response;
+            response.ContentType = MimeTypes.ApplicationRssXml;
 
             var rssFormatter = Feed.GetRss20Formatter();
-            //remove a10 namespace
             rssFormatter.SerializeExtensionsAsAtom = false;
 
-            using (var writer = XmlWriter.Create(context.HttpContext.Response.Output))
+            using (var writer = XmlWriter.Create(response.Body, new XmlWriterSettings { Async = true }))
             {
                 rssFormatter.WriteTo(writer);
+                await writer.FlushAsync();
             }
         }
     }

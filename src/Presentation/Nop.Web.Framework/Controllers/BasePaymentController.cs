@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 using Nop.Services.Payments;
 
 namespace Nop.Web.Framework.Controllers
@@ -9,7 +9,7 @@ namespace Nop.Web.Framework.Controllers
     /// </summary>
     public abstract class BasePaymentController : BasePluginController
     {
-        public abstract IList<string> ValidatePaymentForm(FormCollection form);
-        public abstract ProcessPaymentRequest GetPaymentInfo(FormCollection form);
+        public abstract IList<string> ValidatePaymentForm(IFormCollection form);
+        public abstract ProcessPaymentRequest GetPaymentInfo(IFormCollection form);
     }
 }

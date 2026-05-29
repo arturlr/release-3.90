@@ -1,21 +1,18 @@
 using System;
 using System.Linq;
+using FluentValidation;
 using FluentValidation.Validators;
 
 namespace Nop.Web.Framework.Validators
 {
-    public class CreditCardPropertyValidator : PropertyValidator
+    public class CreditCardPropertyValidator<T, TProperty> : PropertyValidator<T, TProperty>
     {
-        public CreditCardPropertyValidator()
-            : base("Credit card number is not valid")
-        {
+        public override string Name => "CreditCardPropertyValidator";
 
-        }
-
-        protected override bool IsValid(PropertyValidatorContext context)
+        public override bool IsValid(ValidationContext<T> context, TProperty value)
         {
-            var ccValue = context.PropertyValue as string;
-            if (String.IsNullOrWhiteSpace(ccValue))
+            var ccValue = value as string;
+            if (string.IsNullOrWhiteSpace(ccValue))
                 return false;
 
             ccValue = ccValue.Replace(" ", "");
@@ -24,10 +21,9 @@ namespace Nop.Web.Framework.Validators
             int checksum = 0;
             bool evenDigit = false;
 
-            //http://www.beachnet.com/~hstiles/cardtype.html
             foreach (char digit in ccValue.Reverse())
             {
-                if (!Char.IsDigit(digit))
+                if (!char.IsDigit(digit))
                     return false;
 
                 int digitValue = (digit - '0') * (evenDigit ? 2 : 1);
@@ -42,5 +38,8 @@ namespace Nop.Web.Framework.Validators
 
             return (checksum % 10) == 0;
         }
+
+        protected override string GetDefaultMessageTemplate(string errorCode)
+            => "Credit card number is not valid";
     }
 }

@@ -1,10 +1,10 @@
-﻿using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 
 namespace Nop.Web.Framework.Mvc.Routes
 {
     public interface IRouteProvider
     {
-        void RegisterRoutes(RouteCollection routes);
+        void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder);
 
         int Priority { get; }
     }

@@ -1,11 +1,10 @@
-﻿
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Services.Seo;
 
 namespace Nop.Web.Framework.Seo
 {
     /// <summary>
-    /// Event to handle unknow URL record entity names
+    /// Event to handle unknown URL record entity names
     /// </summary>
     public class CustomUrlRecordEntityNameRequested
     {

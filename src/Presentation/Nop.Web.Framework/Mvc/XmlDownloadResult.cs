@@ -1,6 +1,8 @@
-﻿using System.Text;
-using System.Web.Mvc;
+using System;
+using System.Text;
+using System.Threading.Tasks;
 using System.Xml;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Nop.Web.Framework.Mvc
 {
@@ -12,20 +14,14 @@ namespace Nop.Web.Framework.Mvc
             FileDownloadName = fileDownloadName;
         }
 
-        public string FileDownloadName
-        {
-            get;
-            set;
-        }
+        public string FileDownloadName { get; set; }
+        public string Xml { get; set; }
 
-        public string Xml
+        public override async Task ExecuteResultAsync(ActionContext context)
         {
-            get;
-            set;
-        }
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
 
-        public override void ExecuteResult(ControllerContext context)
-        {
             var document = new XmlDocument();
             document.LoadXml(Xml);
             var decl = document.FirstChild as XmlDeclaration;
@@ -33,11 +29,13 @@ namespace Nop.Web.Framework.Mvc
             {
                 decl.Encoding = "utf-8";
             }
-            context.HttpContext.Response.Charset = "utf-8";
-            context.HttpContext.Response.ContentType = "text/xml";
-            context.HttpContext.Response.AddHeader("content-disposition", string.Format("attachment; filename={0}", FileDownloadName));
-            context.HttpContext.Response.BinaryWrite(Encoding.UTF8.GetBytes(document.InnerXml));
-            context.HttpContext.Response.End();
+
+            var response = context.HttpContext.Response;
+            response.ContentType = "text/xml";
+            response.Headers["content-disposition"] = $"attachment; filename={FileDownloadName}";
+
+            var bytes = Encoding.UTF8.GetBytes(document.InnerXml);
+            await response.Body.WriteAsync(bytes, 0, bytes.Length);
         }
     }
 }

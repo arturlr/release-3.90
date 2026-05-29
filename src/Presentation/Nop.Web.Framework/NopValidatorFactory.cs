@@ -1,30 +1,28 @@
-﻿using System;
+using System;
 using FluentValidation;
-using FluentValidation.Attributes;
 using Nop.Core.Infrastructure;
 
 namespace Nop.Web.Framework
 {
-    public class NopValidatorFactory : AttributedValidatorFactory
+    /// <summary>
+    /// Validator factory for resolving FluentValidation validators via DI
+    /// </summary>
+#pragma warning disable CS0618 // Type or member is obsolete
+    public class NopValidatorFactory : ValidatorFactoryBase
     {
-        //private readonly InstanceCache _cache = new InstanceCache();
-        public override IValidator GetValidator(Type type)
+        public override IValidator CreateInstance(Type validatorType)
         {
-            if (type != null)
+            try
             {
-                var attribute = (ValidatorAttribute)Attribute.GetCustomAttribute(type, typeof(ValidatorAttribute));
-                if ((attribute != null) && (attribute.ValidatorType != null))
-                {
-                    //validators can depend on some customer specific settings (such as working language)
-                    //that's why we do not cache validators
-                    //var instance = _cache.GetOrCreateInstance(attribute.ValidatorType,
-                    //                           x => EngineContext.Current.ContainerManager.ResolveUnregistered(x));
-                    var instance = EngineContext.Current.ContainerManager.ResolveUnregistered(attribute.ValidatorType);
-                    return instance as IValidator;
-                }
+                var instance = EngineContext.Current.Resolve<IServiceProvider>();
+                var validator = instance.GetService(validatorType);
+                return validator as IValidator;
             }
-            return null;
-
+            catch
+            {
+                return null;
+            }
         }
     }
+#pragma warning restore CS0618
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Autofac;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure.DependencyManagement;
@@ -20,7 +20,7 @@ namespace Nop.Web.Framework.Mvc
         /// <param name="contextName">Context name</param>
         public static void RegisterPluginDataContext<T>(this IDependencyRegistrar dependencyRegistrar,
             ContainerBuilder builder, string contextName)
-             where T: IDbContext
+             where T : IDbContext
         {
             //data layer
             var dataSettingsManager = new DataSettingsManager();

@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml;
-using Nop.Core;
+using Microsoft.AspNetCore.Hosting;
+using Nop.Core.Infrastructure;
 
 namespace Nop.Web.Framework.Themes
 {
@@ -18,9 +19,15 @@ namespace Nop.Web.Framework.Themes
 
         #region Constructors
 
+        public ThemeProvider(IWebHostEnvironment webHostEnvironment)
+        {
+            _basePath = Path.Combine(webHostEnvironment.ContentRootPath, "Themes");
+            LoadConfigurations();
+        }
+
         public ThemeProvider()
         {
-            _basePath = CommonHelper.MapPath("~/Themes/");
+            _basePath = Path.Combine(Directory.GetCurrentDirectory(), "Themes");
             LoadConfigurations();
         }
 
@@ -50,7 +57,9 @@ namespace Nop.Web.Framework.Themes
 
         private void LoadConfigurations()
         {
-            //TODO:Use IFileStorage?
+            if (!Directory.Exists(_basePath))
+                return;
+
             foreach (string themeName in Directory.GetDirectories(_basePath))
             {
                 var configuration = CreateThemeConfiguration(themeName);
