@@ -1,18 +1,21 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Customers;
 
 namespace Nop.Data.Mapping.Customers
 {
     public partial class CustomerAttributeValueMap : NopEntityTypeConfiguration<CustomerAttributeValue>
     {
-        public CustomerAttributeValueMap()
+        public override void Configure(EntityTypeBuilder<CustomerAttributeValue> builder)
         {
-            this.ToTable("CustomerAttributeValue");
-            this.HasKey(cav => cav.Id);
-            this.Property(cav => cav.Name).IsRequired().HasMaxLength(400);
+            builder.ToTable("CustomerAttributeValue");
+            builder.HasKey(cav => cav.Id);
+            builder.Property(cav => cav.Name).IsRequired().HasMaxLength(400);
 
-            this.HasRequired(cav => cav.CustomerAttribute)
+            builder.HasOne(cav => cav.CustomerAttribute)
                 .WithMany(ca => ca.CustomerAttributeValues)
-                .HasForeignKey(cav => cav.CustomerAttributeId);
+                .HasForeignKey(cav => cav.CustomerAttributeId)
+                .IsRequired();
         }
     }
 }

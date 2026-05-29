@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core.Plugins;
 
 namespace Nop.Services.Cms

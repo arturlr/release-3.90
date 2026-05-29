@@ -14,7 +14,7 @@ using Nop.Services.Events;
 using Nop.Services.Localization;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Discounts
 {
@@ -35,7 +35,7 @@ namespace Nop.Services.Tests.Discounts
         [SetUp]
         public new void SetUp()
         {
-            _discountRepo = MockRepository.GenerateMock<IRepository<Discount>>();
+            _discountRepo = Substitute.For<IRepository<Discount>>();
             var discount1 = new Discount
             {
                 Id = 1,
@@ -61,23 +61,23 @@ namespace Nop.Services.Tests.Discounts
                 LimitationTimes = 3,
             };
 
-            _discountRepo.Expect(x => x.Table).Return(new List<Discount> { discount1, discount2 }.AsQueryable());
+            _discountRepo.Table.Returns(new List<Discount> { discount1, discount2 }.AsQueryable());
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = Substitute.For<IEventPublisher>();
+// NSubstitute: void method - no setup needed
 
-            _storeContext = MockRepository.GenerateMock<IStoreContext>();
+            _storeContext = Substitute.For<IStoreContext>();
             _workContext = null;
 
             var cacheManager = new NopNullCache();
-            _discountRequirementRepo = MockRepository.GenerateMock<IRepository<DiscountRequirement>>();
-            _discountRequirementRepo.Expect(x => x.Table).Return(new List<DiscountRequirement>().AsQueryable());
+            _discountRequirementRepo = Substitute.For<IRepository<DiscountRequirement>>();
+            _discountRequirementRepo.Table.Returns(new List<DiscountRequirement>().AsQueryable());
 
-            _discountUsageHistoryRepo = MockRepository.GenerateMock<IRepository<DiscountUsageHistory>>();
+            _discountUsageHistoryRepo = Substitute.For<IRepository<DiscountUsageHistory>>();
             var pluginFinder = new PluginFinder();
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _categoryService = MockRepository.GenerateMock<ICategoryService>();
+            _genericAttributeService = Substitute.For<IGenericAttributeService>();
+            _localizationService = Substitute.For<ILocalizationService>();
+            _categoryService = Substitute.For<ICategoryService>();
             _discountService = new DiscountService(cacheManager, _discountRepo, _discountRequirementRepo,
                 _discountUsageHistoryRepo, _storeContext,
                 _localizationService, _categoryService, pluginFinder, _eventPublisher, _workContext);

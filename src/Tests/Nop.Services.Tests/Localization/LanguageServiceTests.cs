@@ -9,7 +9,7 @@ using Nop.Services.Localization;
 using Nop.Services.Stores;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Localization
 {
@@ -26,7 +26,7 @@ namespace Nop.Services.Tests.Localization
         [SetUp]
         public new void SetUp()
         {
-            _languageRepo = MockRepository.GenerateMock<IRepository<Language>>();
+            _languageRepo = Substitute.For<IRepository<Language>>();
             var lang1 = new Language
             {
                 Name = "English",
@@ -44,16 +44,16 @@ namespace Nop.Services.Tests.Localization
                 DisplayOrder = 2
             };
 
-            _languageRepo.Expect(x => x.Table).Return(new List<Language> { lang1, lang2 }.AsQueryable());
+            _languageRepo.Table.Returns(new List<Language> { lang1, lang2 }.AsQueryable());
 
-            _storeMappingService = MockRepository.GenerateMock<IStoreMappingService>();
+            _storeMappingService = Substitute.For<IStoreMappingService>();
 
             var cacheManager = new NopNullCache();
 
-            _settingService = MockRepository.GenerateMock<ISettingService>();
+            _settingService = Substitute.For<ISettingService>();
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = Substitute.For<IEventPublisher>();
+// NSubstitute: void method - no setup needed
 
             _localizationSettings = new LocalizationSettings();
             _languageService = new LanguageService(cacheManager, _languageRepo, _storeMappingService,

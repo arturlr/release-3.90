@@ -1,6 +1,6 @@
-﻿using System;
-using System.Web;
-using System.Web.Routing;
+using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 
 namespace Nop.Web.Framework.Mvc.Routes
 {
@@ -12,17 +12,16 @@ namespace Nop.Web.Framework.Mvc.Routes
         {
             this._allowEmpty = allowEmpty;
         }
-        public bool Match(HttpContextBase httpContext, Route route, string parameterName, RouteValueDictionary values, RouteDirection routeDirection)
+
+        public bool Match(HttpContext httpContext, IRouter route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
         {
-            if (values.ContainsKey(parameterName))
+            if (values.ContainsKey(routeKey))
             {
-                string stringValue = values[parameterName] != null ? values[parameterName].ToString() : null;
+                string stringValue = values[routeKey]?.ToString();
 
                 if (!string.IsNullOrEmpty(stringValue))
                 {
-                    Guid guidValue;
-
-                    return Guid.TryParse(stringValue, out guidValue) && 
+                    return Guid.TryParse(stringValue, out Guid guidValue) &&
                         (_allowEmpty || guidValue != Guid.Empty);
                 }
             }

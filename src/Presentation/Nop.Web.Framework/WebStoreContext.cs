@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Nop.Core;
 using Nop.Core.Domain.Stores;
@@ -32,14 +32,13 @@ namespace Nop.Web.Framework
                 if (_cachedStore != null)
                     return _cachedStore;
 
-                //ty to determine the current store by HTTP_HOST
+                //try to determine the current store by HTTP_HOST
                 var host = _webHelper.ServerVariables("HTTP_HOST");
                 var allStores = _storeService.GetAllStores();
                 var store = allStores.FirstOrDefault(s => s.ContainsHostValue(host));
 
                 if (store == null)
                 {
-                    //load the first found store
                     store = allStores.FirstOrDefault();
                 }
                 if (store == null)

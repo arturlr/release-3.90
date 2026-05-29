@@ -1,5 +1,7 @@
-﻿using System.Collections.Specialized;
-using System.Web;
+using System.Collections.Specialized;
+using System.Net;
+using System.Text;
+using Microsoft.AspNetCore.Http;
 using Nop.Core;
 using Nop.Core.Infrastructure;
 
@@ -10,7 +12,7 @@ namespace Nop.Web.Framework
     /// </summary>
     public partial class RemotePost
     {
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IWebHelper _webHelper;
         private readonly NameValueCollection _inputValues;
 
@@ -35,39 +37,33 @@ namespace Nop.Web.Framework
         public string AcceptCharset { get; set; }
 
         /// <summary>
-        /// A value indicating whether we should create a new "input" HTML element for each value (in case if there are more than one) for the same "name" attributes.
+        /// A value indicating whether we should create a new "input" HTML element for each value.
         /// </summary>
         public bool NewInputForEachValue { get; set; }
 
-        public NameValueCollection Params
-        {
-            get
-            {
-                return _inputValues;
-            }
-        }
+        public NameValueCollection Params => _inputValues;
 
         /// <summary>
         /// Creates a new instance of the RemotePost class
         /// </summary>
         public RemotePost()
-            : this(EngineContext.Current.Resolve<HttpContextBase>(), EngineContext.Current.Resolve<IWebHelper>())
+            : this(EngineContext.Current.Resolve<IHttpContextAccessor>(), EngineContext.Current.Resolve<IWebHelper>())
         {
         }
 
         /// <summary>
         /// Creates a new instance of the RemotePost class
         /// </summary>
-        /// <param name="httpContext">HTTP Context</param>
+        /// <param name="httpContextAccessor">HTTP context accessor</param>
         /// <param name="webHelper">Web helper</param>
-        public RemotePost(HttpContextBase httpContext, IWebHelper webHelper)
+        public RemotePost(IHttpContextAccessor httpContextAccessor, IWebHelper webHelper)
         {
             this._inputValues = new NameValueCollection();
             this.Url = "http://www.someurl.com";
             this.Method = "post";
             this.FormName = "formName";
 
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._webHelper = webHelper;
         }
 
@@ -80,24 +76,29 @@ namespace Nop.Web.Framework
         {
             _inputValues.Add(name, value);
         }
-        
+
         /// <summary>
         /// Post
         /// </summary>
         public void Post()
         {
-            _httpContext.Response.Clear();
-            _httpContext.Response.Write("<html><head>");
-            _httpContext.Response.Write(string.Format("</head><body onload=\"document.{0}.submit()\">", FormName));
+            var context = _httpContextAccessor.HttpContext;
+            if (context == null)
+                return;
+
+            var response = context.Response;
+            response.Clear();
+
+            var sb = new StringBuilder();
+            sb.Append("<html><head>");
+            sb.AppendFormat("</head><body onload=\"document.{0}.submit()\">", FormName);
             if (!string.IsNullOrEmpty(AcceptCharset))
             {
-                //AcceptCharset specified
-                _httpContext.Response.Write(string.Format("<form name=\"{0}\" method=\"{1}\" action=\"{2}\" accept-charset=\"{3}\">", FormName, Method, Url, AcceptCharset));
+                sb.AppendFormat("<form name=\"{0}\" method=\"{1}\" action=\"{2}\" accept-charset=\"{3}\">", FormName, Method, Url, AcceptCharset);
             }
             else
             {
-                //no AcceptCharset specified
-                _httpContext.Response.Write(string.Format("<form name=\"{0}\" method=\"{1}\" action=\"{2}\" >", FormName, Method, Url));
+                sb.AppendFormat("<form name=\"{0}\" method=\"{1}\" action=\"{2}\" >", FormName, Method, Url);
             }
             if (NewInputForEachValue)
             {
@@ -108,7 +109,8 @@ namespace Nop.Web.Framework
                     {
                         foreach (string value in values)
                         {
-                            _httpContext.Response.Write(string.Format("<input name=\"{0}\" type=\"hidden\" value=\"{1}\">", HttpUtility.HtmlEncode(key), HttpUtility.HtmlEncode(value)));
+                            sb.AppendFormat("<input name=\"{0}\" type=\"hidden\" value=\"{1}\">",
+                                WebUtility.HtmlEncode(key), WebUtility.HtmlEncode(value));
                         }
                     }
                 }
@@ -116,11 +118,16 @@ namespace Nop.Web.Framework
             else
             {
                 for (int i = 0; i < _inputValues.Keys.Count; i++)
-                    _httpContext.Response.Write(string.Format("<input name=\"{0}\" type=\"hidden\" value=\"{1}\">", HttpUtility.HtmlEncode(_inputValues.Keys[i]), HttpUtility.HtmlEncode(_inputValues[_inputValues.Keys[i]])));
+                    sb.AppendFormat("<input name=\"{0}\" type=\"hidden\" value=\"{1}\">",
+                        WebUtility.HtmlEncode(_inputValues.Keys[i]),
+                        WebUtility.HtmlEncode(_inputValues[_inputValues.Keys[i]]));
             }
-            _httpContext.Response.Write("</form>");
-            _httpContext.Response.Write("</body></html>");
-            _httpContext.Response.End();
+            sb.Append("</form>");
+            sb.Append("</body></html>");
+
+            response.ContentType = "text/html";
+            response.WriteAsync(sb.ToString()).GetAwaiter().GetResult();
+
             //store a value indicating whether POST has been done
             _webHelper.IsPostBeingDone = true;
         }

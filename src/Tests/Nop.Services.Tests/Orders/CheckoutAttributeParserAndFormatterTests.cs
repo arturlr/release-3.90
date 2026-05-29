@@ -16,7 +16,7 @@ using Nop.Services.Stores;
 using Nop.Services.Tax;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Orders
 {
@@ -117,25 +117,25 @@ namespace Nop.Services.Tests.Orders
 
             #endregion
             
-            _checkoutAttributeRepo = MockRepository.GenerateMock<IRepository<CheckoutAttribute>>();
-            _checkoutAttributeRepo.Expect(x => x.Table).Return(new List<CheckoutAttribute> { ca1, ca2, ca3 }.AsQueryable());
-            _checkoutAttributeRepo.Expect(x => x.GetById(ca1.Id)).Return(ca1);
-            _checkoutAttributeRepo.Expect(x => x.GetById(ca2.Id)).Return(ca2);
-            _checkoutAttributeRepo.Expect(x => x.GetById(ca3.Id)).Return(ca3);
+            _checkoutAttributeRepo = Substitute.For<IRepository<CheckoutAttribute>>();
+            _checkoutAttributeRepo.Table.Returns(new List<CheckoutAttribute> { ca1, ca2, ca3 }.AsQueryable());
+            _checkoutAttributeRepo.GetById(ca1.Id).Returns(ca1);
+            _checkoutAttributeRepo.GetById(ca2.Id).Returns(ca2);
+            _checkoutAttributeRepo.GetById(ca3.Id).Returns(ca3);
 
-            _checkoutAttributeValueRepo = MockRepository.GenerateMock<IRepository<CheckoutAttributeValue>>();
-            _checkoutAttributeValueRepo.Expect(x => x.Table).Return(new List<CheckoutAttributeValue> { cav1_1, cav1_2, cav2_1, cav2_2 }.AsQueryable());
-            _checkoutAttributeValueRepo.Expect(x => x.GetById(cav1_1.Id)).Return(cav1_1);
-            _checkoutAttributeValueRepo.Expect(x => x.GetById(cav1_2.Id)).Return(cav1_2);
-            _checkoutAttributeValueRepo.Expect(x => x.GetById(cav2_1.Id)).Return(cav2_1);
-            _checkoutAttributeValueRepo.Expect(x => x.GetById(cav2_2.Id)).Return(cav2_2);
+            _checkoutAttributeValueRepo = Substitute.For<IRepository<CheckoutAttributeValue>>();
+            _checkoutAttributeValueRepo.Table.Returns(new List<CheckoutAttributeValue> { cav1_1, cav1_2, cav2_1, cav2_2 }.AsQueryable());
+            _checkoutAttributeValueRepo.GetById(cav1_1.Id).Returns(cav1_1);
+            _checkoutAttributeValueRepo.GetById(cav1_2.Id).Returns(cav1_2);
+            _checkoutAttributeValueRepo.GetById(cav2_1.Id).Returns(cav2_1);
+            _checkoutAttributeValueRepo.GetById(cav2_2.Id).Returns(cav2_2);
 
             var cacheManager = new NopNullCache();
 
-            _storeMappingService = MockRepository.GenerateMock<IStoreMappingService>();
+            _storeMappingService = Substitute.For<IStoreMappingService>();
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = Substitute.For<IEventPublisher>();
+// NSubstitute: void method - no setup needed
 
             _checkoutAttributeService = new CheckoutAttributeService(cacheManager,
                 _checkoutAttributeRepo,
@@ -148,13 +148,13 @@ namespace Nop.Services.Tests.Orders
 
 
             var workingLanguage = new Language();
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workContext.Expect(x => x.WorkingLanguage).Return(workingLanguage);
-            _currencyService = MockRepository.GenerateMock<ICurrencyService>();
-            _taxService = MockRepository.GenerateMock<ITaxService>();
-            _priceFormatter = MockRepository.GenerateMock<IPriceFormatter>();
-            _downloadService = MockRepository.GenerateMock<IDownloadService>();
-            _webHelper = MockRepository.GenerateMock<IWebHelper>();
+            _workContext = Substitute.For<IWorkContext>();
+            _workContext.WorkingLanguage.Returns(workingLanguage);
+            _currencyService = Substitute.For<ICurrencyService>();
+            _taxService = Substitute.For<ITaxService>();
+            _priceFormatter = Substitute.For<IPriceFormatter>();
+            _downloadService = Substitute.For<IDownloadService>();
+            _webHelper = Substitute.For<IWebHelper>();
 
             _checkoutAttributeFormatter = new CheckoutAttributeFormatter(_workContext,
                 _checkoutAttributeService,

@@ -1,22 +1,25 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Catalog;
 
 namespace Nop.Data.Mapping.Catalog
 {
     public partial class ProductManufacturerMap : NopEntityTypeConfiguration<ProductManufacturer>
     {
-        public ProductManufacturerMap()
+        public override void Configure(EntityTypeBuilder<ProductManufacturer> builder)
         {
-            this.ToTable("Product_Manufacturer_Mapping");
-            this.HasKey(pm => pm.Id);
-            
-            this.HasRequired(pm => pm.Manufacturer)
+            builder.ToTable("Product_Manufacturer_Mapping");
+            builder.HasKey(pm => pm.Id);
+
+            builder.HasOne(pm => pm.Manufacturer)
                 .WithMany()
-                .HasForeignKey(pm => pm.ManufacturerId);
+                .HasForeignKey(pm => pm.ManufacturerId)
+                .IsRequired();
 
-
-            this.HasRequired(pm => pm.Product)
+            builder.HasOne(pm => pm.Product)
                 .WithMany(p => p.ProductManufacturers)
-                .HasForeignKey(pm => pm.ProductId);
+                .HasForeignKey(pm => pm.ProductId)
+                .IsRequired();
         }
     }
 }

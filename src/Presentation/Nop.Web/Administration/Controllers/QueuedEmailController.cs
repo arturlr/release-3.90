@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Messages;
 using Nop.Core;
@@ -36,12 +37,12 @@ namespace Nop.Admin.Controllers
             this._workContext = workContext;
 		}
 
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-		public virtual ActionResult List()
+		public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageQueue))
                 return AccessDeniedView();
@@ -55,7 +56,7 @@ namespace Nop.Admin.Controllers
 		}
 
 		[HttpPost]
-		public virtual ActionResult QueuedEmailList(DataSourceRequest command, QueuedEmailListModel model)
+		public virtual IActionResult QueuedEmailList(DataSourceRequest command, QueuedEmailListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageQueue))
                 return AccessDeniedKendoGridJson();
@@ -94,7 +95,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("List")]
         [FormValueRequired("go-to-email-by-number")]
-        public virtual ActionResult GoToEmailByNumber(QueuedEmailListModel model)
+        public virtual IActionResult GoToEmailByNumber(QueuedEmailListModel model)
         {
             var queuedEmail = _queuedEmailService.GetQueuedEmailById(model.GoDirectlyToNumber);
             if (queuedEmail == null)
@@ -103,7 +104,7 @@ namespace Nop.Admin.Controllers
             return RedirectToAction("Edit", "QueuedEmail", new { id = queuedEmail.Id });
         }
 
-		public virtual ActionResult Edit(int id)
+		public virtual IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageQueue))
                 return AccessDeniedView();
@@ -127,7 +128,7 @@ namespace Nop.Admin.Controllers
         [HttpPost, ActionName("Edit")]
         [ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
-        public virtual ActionResult Edit(QueuedEmailModel model, bool continueEditing)
+        public virtual IActionResult Edit(QueuedEmailModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageQueue))
                 return AccessDeniedView();
@@ -159,7 +160,7 @@ namespace Nop.Admin.Controllers
 		}
 
         [HttpPost, ActionName("Edit"), FormValueRequired("requeue")]
-        public virtual ActionResult Requeue(QueuedEmailModel queuedEmailModel)
+        public virtual IActionResult Requeue(QueuedEmailModel queuedEmailModel)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageQueue))
                 return AccessDeniedView();
@@ -197,7 +198,7 @@ namespace Nop.Admin.Controllers
         }
 
 	    [HttpPost]
-        public virtual ActionResult Delete(int id)
+        public virtual IActionResult Delete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageQueue))
                 return AccessDeniedView();
@@ -214,7 +215,7 @@ namespace Nop.Admin.Controllers
 		}
 
         [HttpPost]
-        public virtual ActionResult DeleteSelected(ICollection<int> selectedIds)
+        public virtual IActionResult DeleteSelected(ICollection<int> selectedIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageQueue))
                 return AccessDeniedView();
@@ -229,7 +230,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("List")]
         [FormValueRequired("delete-all")]
-        public virtual ActionResult DeleteAll()
+        public virtual IActionResult DeleteAll()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageQueue))
                 return AccessDeniedView();

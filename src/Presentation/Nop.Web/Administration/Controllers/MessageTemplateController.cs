@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Http;
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Messages;
 using Nop.Core.Domain.Messages;
@@ -141,12 +143,12 @@ namespace Nop.Admin.Controllers
         
         #region Methods
 
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-        public virtual ActionResult List()
+        public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageTemplates))
                 return AccessDeniedView();
@@ -161,7 +163,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult List(DataSourceRequest command, MessageTemplateListModel model)
+        public virtual IActionResult List(DataSourceRequest command, MessageTemplateListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageTemplates))
                 return AccessDeniedKendoGridJson();
@@ -191,7 +193,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        public virtual ActionResult Edit(int id)
+        public virtual IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageTemplates))
                 return AccessDeniedView();
@@ -240,7 +242,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
-        public virtual ActionResult Edit(MessageTemplateModel model, bool continueEditing)
+        public virtual IActionResult Edit(MessageTemplateModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageTemplates))
                 return AccessDeniedView();
@@ -309,7 +311,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Delete(int id)
+        public virtual IActionResult Delete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageTemplates))
                 return AccessDeniedView();
@@ -330,7 +332,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("message-template-copy")]
-        public virtual ActionResult CopyTemplate(MessageTemplateModel model)
+        public virtual IActionResult CopyTemplate(MessageTemplateModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageTemplates))
                 return AccessDeniedView();
@@ -353,7 +355,7 @@ namespace Nop.Admin.Controllers
             }
         }
 
-        public virtual ActionResult TestTemplate(int id, int languageId = 0)
+        public virtual IActionResult TestTemplate(int id, int languageId = 0)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageTemplates))
                 return AccessDeniedView();
@@ -379,8 +381,8 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("TestTemplate")]
         [FormValueRequired("send-test")]
-        [ValidateInput(false)]
-        public virtual ActionResult TestTemplate(TestMessageTemplateModel model, FormCollection form)
+        
+        public virtual IActionResult TestTemplate(TestMessageTemplateModel model, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMessageTemplates))
                 return AccessDeniedView();
@@ -391,7 +393,7 @@ namespace Nop.Admin.Controllers
                 return RedirectToAction("List");
 
             var tokens = new List<Token>();
-            foreach (var formKey in form.AllKeys)
+            foreach (var formKey in form.Keys)
                 if (formKey.StartsWith("token_", StringComparison.InvariantCultureIgnoreCase))
                 {
                     var tokenKey = formKey.Substring("token_".Length).Replace("%", "");

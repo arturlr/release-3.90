@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
-using System.IO;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Web;
+using System.Net.Http;
 using System.Xml;
 
 namespace Nop.Core.Plugins
@@ -12,30 +12,36 @@ namespace Nop.Core.Plugins
     /// </summary>
     public partial class OfficialFeedManager : IOfficialFeedManager
     {
+        #region Fields
+
+        private static readonly HttpClient _httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(5)
+        };
+
+        #endregion
+
+        #region Utilities
+
         private static string MakeUrl(string query, params object[] args)
         {
             var url = "http://www.nopcommerce.com/extensionsxml.aspx?" + query;
-
             return string.Format(url, args);
         }
 
         private static XmlDocument GetDocument(string feedQuery, params object[] args)
         {
-            var request = WebRequest.Create(MakeUrl(feedQuery, args));
-            request.Timeout = 5000;
-            using (var response = request.GetResponse())
-            {
-                using (var dataStream = response.GetResponseStream())
-                using (var reader = new StreamReader(dataStream))
-                {
-                    string responseFromServer = reader.ReadToEnd();
+            var url = MakeUrl(feedQuery, args);
+            var responseString = _httpClient.GetStringAsync(url).GetAwaiter().GetResult();
 
-                    var xmlDoc = new XmlDocument();
-                    xmlDoc.LoadXml(responseFromServer);
-                    return xmlDoc;
-                }
-            }
+            var xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(responseString);
+            return xmlDoc;
         }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Get categories
@@ -49,7 +55,6 @@ namespace Nop.Core.Plugins
                 ParentCategoryId = int.Parse(node.ElText(@"parentCategoryId")),
                 Name = node.ElText(@"name"),
             }).ToList();
-            
         }
 
         /// <summary>
@@ -62,7 +67,7 @@ namespace Nop.Core.Plugins
             {
                 Id = int.Parse(node.ElText(@"id")),
                 Name = node.ElText(@"name"),
-            }).ToList();            
+            }).ToList();
         }
 
         /// <summary>
@@ -80,11 +85,8 @@ namespace Nop.Core.Plugins
             string searchTerm = "",
             int pageIndex = 0, int pageSize = int.MaxValue)
         {
-            int totalRecords = 0;
-
-            //pageSize parameter is currently ignored by official site (set to 15)
             var xmlDoc = GetDocument("category={0}&version={1}&price={2}&pageIndex={3}&pageSize={4}&searchTerm={5}",
-                categoryId, versionId, price, pageIndex, pageSize, HttpUtility.UrlEncode(searchTerm));
+                categoryId, versionId, price, pageIndex, pageSize, WebUtility.UrlEncode(searchTerm));
 
             var list = xmlDoc.SelectNodes(@"//extensions/extension").Cast<XmlNode>().Select(node => new OfficialFeedPlugin
             {
@@ -96,9 +98,11 @@ namespace Nop.Core.Plugins
                 Price = node.ElText(@"price")
             }).ToList();
 
-            totalRecords = int.Parse(xmlDoc.SelectNodes(@"//totalRecords")[0].ElText(@"value"));
-                        
+            int totalRecords = int.Parse(xmlDoc.SelectNodes(@"//totalRecords")[0].ElText(@"value"));
+
             return new PagedList<OfficialFeedPlugin>(list, pageIndex, pageSize, totalRecords);
         }
+
+        #endregion
     }
 }

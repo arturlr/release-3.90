@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core.Infrastructure;
 using Nop.Core.Plugins;
 
@@ -17,7 +17,7 @@ namespace Nop.Web.Framework.Mvc.Routes
         /// <summary>
         /// Ctor
         /// </summary>
-        /// <param name="typeFinder"></param>
+        /// <param name="typeFinder">Type finder</param>
         public RoutePublisher(ITypeFinder typeFinder)
         {
             this.typeFinder = typeFinder;
@@ -31,7 +31,7 @@ namespace Nop.Web.Framework.Mvc.Routes
         protected virtual PluginDescriptor FindPlugin(Type providerType)
         {
             if (providerType == null)
-                throw new ArgumentNullException("providerType");
+                throw new ArgumentNullException(nameof(providerType));
 
             foreach (var plugin in PluginManager.ReferencedPlugins)
             {
@@ -48,8 +48,8 @@ namespace Nop.Web.Framework.Mvc.Routes
         /// <summary>
         /// Register routes
         /// </summary>
-        /// <param name="routes">Routes</param>
-        public virtual void RegisterRoutes(RouteCollection routes)
+        /// <param name="endpointRouteBuilder">Endpoint route builder</param>
+        public virtual void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
         {
             var routeProviderTypes = typeFinder.FindClassesOfType<IRouteProvider>();
             var routeProviders = new List<IRouteProvider>();
@@ -64,7 +64,7 @@ namespace Nop.Web.Framework.Mvc.Routes
                 routeProviders.Add(provider);
             }
             routeProviders = routeProviders.OrderByDescending(rp => rp.Priority).ToList();
-            routeProviders.ForEach(rp => rp.RegisterRoutes(routes));
+            routeProviders.ForEach(rp => rp.RegisterRoutes(endpointRouteBuilder));
         }
     }
 }

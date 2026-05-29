@@ -1,7 +1,7 @@
 //Contributor:  Nicholas Mayne
 
 using System.Collections.Generic;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 using Nop.Core.Infrastructure;
 
 namespace Nop.Services.Authentication.External
@@ -11,51 +11,72 @@ namespace Nop.Services.Authentication.External
     /// </summary>
     public static partial class ExternalAuthorizerHelper
     {
-        private static HttpSessionStateBase GetSession()
+        private const string ParametersKey = "nop.externalauth.parameters";
+        private const string ErrorsKey = "nop.externalauth.errors";
+
+        private static ISession GetSession()
         {
-            var session = EngineContext.Current.Resolve<HttpSessionStateBase>();
-            return session;
+            var httpContextAccessor = EngineContext.Current.Resolve<IHttpContextAccessor>();
+            return httpContextAccessor.HttpContext?.Session;
         }
 
         public static void StoreParametersForRoundTrip(OpenAuthenticationParameters parameters)
         {
             var session = GetSession();
-            session["nop.externalauth.parameters"] = parameters;
+            if (session != null)
+                session.SetString(ParametersKey, Newtonsoft.Json.JsonConvert.SerializeObject(parameters));
         }
+
         public static OpenAuthenticationParameters RetrieveParametersFromRoundTrip(bool removeOnRetrieval)
         {
             var session = GetSession();
-            var parameters = session["nop.externalauth.parameters"];
-            if (parameters != null && removeOnRetrieval)
+            if (session == null)
+                return null;
+
+            var json = session.GetString(ParametersKey);
+            if (string.IsNullOrEmpty(json))
+                return null;
+
+            if (removeOnRetrieval)
                 RemoveParameters();
 
-            return parameters as OpenAuthenticationParameters;
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<OpenAuthenticationParameters>(json);
         }
 
         public static void RemoveParameters()
         {
             var session = GetSession();
-            session.Remove("nop.externalauth.parameters");
+            session?.Remove(ParametersKey);
         }
 
         public static void AddErrorsToDisplay(string error)
         {
             var session = GetSession();
-            var errors = session["nop.externalauth.errors"] as IList<string>;
-            if (errors == null)
-            {
-                errors = new List<string>();
-                session.Add("nop.externalauth.errors", errors);
-            }
+            if (session == null)
+                return;
+
+            var json = session.GetString(ErrorsKey);
+            var errors = string.IsNullOrEmpty(json) 
+                ? new List<string>() 
+                : Newtonsoft.Json.JsonConvert.DeserializeObject<List<string>>(json);
             errors.Add(error);
+            session.SetString(ErrorsKey, Newtonsoft.Json.JsonConvert.SerializeObject(errors));
         }
 
         public static IList<string> RetrieveErrorsToDisplay(bool removeOnRetrieval)
         {
             var session = GetSession();
-            var errors = session["nop.externalauth.errors"] as IList<string>;
-            if (errors != null && removeOnRetrieval)
-                session.Remove("nop.externalauth.errors");
+            if (session == null)
+                return null;
+
+            var json = session.GetString(ErrorsKey);
+            if (string.IsNullOrEmpty(json))
+                return null;
+
+            var errors = Newtonsoft.Json.JsonConvert.DeserializeObject<List<string>>(json);
+            if (removeOnRetrieval)
+                session.Remove(ErrorsKey);
+
             return errors;
         }
     }

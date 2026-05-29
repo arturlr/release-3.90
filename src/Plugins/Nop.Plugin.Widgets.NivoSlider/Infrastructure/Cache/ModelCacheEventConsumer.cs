@@ -1,4 +1,4 @@
-﻿using Nop.Core.Caching;
+using Nop.Core.Caching;
 using Nop.Core.Domain.Configuration;
 using Nop.Core.Events;
 using Nop.Core.Infrastructure;
@@ -14,12 +14,6 @@ namespace Nop.Plugin.Widgets.NivoSlider.Infrastructure.Cache
         IConsumer<EntityUpdated<Setting>>,
         IConsumer<EntityDeleted<Setting>>
     {
-        /// <summary>
-        /// Key for caching
-        /// </summary>
-        /// <remarks>
-        /// {0} : picture id
-        /// </remarks>
         public const string PICTURE_URL_MODEL_KEY = "Nop.plugins.widgets.nivosrlider.pictureurl-{0}";
         public const string PICTURE_URL_PATTERN_KEY = "Nop.plugins.widgets.nivosrlider";
 
@@ -27,8 +21,7 @@ namespace Nop.Plugin.Widgets.NivoSlider.Infrastructure.Cache
 
         public ModelCacheEventConsumer()
         {
-            //TODO inject static cache manager using constructor
-            this._cacheManager = EngineContext.Current.ContainerManager.Resolve<ICacheManager>("nop_cache_static");
+            this._cacheManager = EngineContext.Current.Resolve<ICacheManager>();
         }
 
         public void HandleEvent(EntityInserted<Setting> eventMessage)

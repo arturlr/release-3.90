@@ -1,5 +1,6 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Customers;
@@ -10,8 +11,8 @@ namespace Nop.Web.Framework.Controllers
     /// <summary>
     /// Attribute to ensure that users with "Vendor" customer role has appropriate vendor account associated (and active)
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, Inherited=true, AllowMultiple=true)]
-    public class AdminVendorValidation : FilterAttribute, IAuthorizationFilter
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, Inherited = true, AllowMultiple = true)]
+    public class AdminVendorValidation : ActionFilterAttribute, IAuthorizationFilter
     {
         private readonly bool _ignore;
 
@@ -20,16 +21,12 @@ namespace Nop.Web.Framework.Controllers
             this._ignore = ignore;
         }
 
-        public virtual void OnAuthorization(AuthorizationContext filterContext)
+        public void OnAuthorization(AuthorizationFilterContext context)
         {
-            if (filterContext == null)
-                throw new ArgumentNullException("filterContext");
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
 
             if (_ignore)
-                return;
-
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
                 return;
 
             if (!DataSettingsHelper.DatabaseIsInstalled())
@@ -39,9 +36,8 @@ namespace Nop.Web.Framework.Controllers
             if (!workContext.CurrentCustomer.IsVendor())
                 return;
 
-            //ensure that this user has active vendor record associated
             if (workContext.CurrentVendor == null)
-                filterContext.Result = new HttpUnauthorizedResult();
+                context.Result = new UnauthorizedResult();
         }
     }
 }

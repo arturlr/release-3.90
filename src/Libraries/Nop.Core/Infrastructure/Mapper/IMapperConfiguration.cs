@@ -1,18 +1,18 @@
-﻿using System;
 using AutoMapper;
 
 namespace Nop.Core.Infrastructure.Mapper
 {
     /// <summary>
-    /// Mapper configuration registrar interface
+    /// Mapper configuration registrar interface.
+    /// Implementations provide AutoMapper Profile instances for mapping configuration.
     /// </summary>
     public interface IMapperConfiguration
     {
         /// <summary>
-        /// Get configuration
+        /// Get the AutoMapper profile for this configuration
         /// </summary>
-        /// <returns>Mapper configuration action</returns>
-        Action<IMapperConfigurationExpression> GetConfiguration();
+        /// <returns>AutoMapper Profile instance</returns>
+        Profile GetProfile();
 
         /// <summary>
         /// Order of this mapper implementation

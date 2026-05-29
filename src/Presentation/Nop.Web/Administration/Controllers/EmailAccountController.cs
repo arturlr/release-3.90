@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Messages;
 using Nop.Core;
@@ -42,7 +43,7 @@ namespace Nop.Admin.Controllers
             this._customerActivityService = customerActivityService;
         }
 
-		public virtual ActionResult List()
+		public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageEmailAccounts))
                 return AccessDeniedView();
@@ -51,7 +52,7 @@ namespace Nop.Admin.Controllers
 		}
 
 		[HttpPost]
-		public virtual ActionResult List(DataSourceRequest command)
+		public virtual IActionResult List(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageEmailAccounts))
                 return AccessDeniedKendoGridJson();
@@ -71,7 +72,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        public virtual ActionResult MarkAsDefaultEmail(int id)
+        public virtual IActionResult MarkAsDefaultEmail(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageEmailAccounts))
                 return AccessDeniedView();
@@ -85,7 +86,7 @@ namespace Nop.Admin.Controllers
             return RedirectToAction("List");
         }
 
-		public virtual ActionResult Create()
+		public virtual IActionResult Create()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageEmailAccounts))
                 return AccessDeniedView();
@@ -97,7 +98,7 @@ namespace Nop.Admin.Controllers
 		}
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-		public virtual ActionResult Create(EmailAccountModel model, bool continueEditing)
+		public virtual IActionResult Create(EmailAccountModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageEmailAccounts))
                 return AccessDeniedView();
@@ -120,7 +121,7 @@ namespace Nop.Admin.Controllers
             return View(model);
 		}
 
-		public virtual ActionResult Edit(int id)
+		public virtual IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageEmailAccounts))
                 return AccessDeniedView();
@@ -135,7 +136,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
-        public virtual ActionResult Edit(EmailAccountModel model, bool continueEditing)
+        public virtual IActionResult Edit(EmailAccountModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageEmailAccounts))
                 return AccessDeniedView();
@@ -163,7 +164,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("changepassword")]
-        public virtual ActionResult ChangePassword(EmailAccountModel model)
+        public virtual IActionResult ChangePassword(EmailAccountModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageEmailAccounts))
                 return AccessDeniedView();
@@ -182,7 +183,7 @@ namespace Nop.Admin.Controllers
         
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("sendtestemail")]
-        public virtual ActionResult SendTestEmail(EmailAccountModel model)
+        public virtual IActionResult SendTestEmail(EmailAccountModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageEmailAccounts))
                 return AccessDeniedView();
@@ -218,7 +219,7 @@ namespace Nop.Admin.Controllers
         }
 
 	    [HttpPost]
-	    public virtual ActionResult Delete(int id)
+	    public virtual IActionResult Delete(int id)
 	    {
 	        if (!_permissionService.Authorize(StandardPermissionProvider.ManageEmailAccounts))
 	            return AccessDeniedView();

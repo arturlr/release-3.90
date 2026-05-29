@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 using Nop.Core.Domain.Catalog;
 
 namespace Nop.Services.Catalog
@@ -13,65 +13,55 @@ namespace Nop.Services.Catalog
     {
         #region Fields
 
-        private readonly HttpContextBase _httpContext;
+        private const string RECENTLY_VIEWED_COOKIE_NAME = "NopCommerce.RecentlyViewedProducts";
+
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IProductService _productService;
         private readonly CatalogSettings _catalogSettings;
 
         #endregion
 
         #region Ctor
-        
-        /// <summary>
-        /// Ctor
-        /// </summary>
-        /// <param name="httpContext">HTTP context</param>
-        /// <param name="productService">Product service</param>
-        /// <param name="catalogSettings">Catalog settings</param>
-        public RecentlyViewedProductsService(HttpContextBase httpContext, IProductService productService,
+
+        public RecentlyViewedProductsService(IHttpContextAccessor httpContextAccessor,
+            IProductService productService,
             CatalogSettings catalogSettings)
         {
-            this._httpContext = httpContext;
-            this._productService = productService;
-            this._catalogSettings = catalogSettings;
+            _httpContextAccessor = httpContextAccessor;
+            _productService = productService;
+            _catalogSettings = catalogSettings;
         }
 
         #endregion
 
         #region Utilities
 
-        /// <summary>
-        /// Gets a "recently viewed products" identifier list
-        /// </summary>
-        /// <returns>"recently viewed products" list</returns>
         protected IList<int> GetRecentlyViewedProductsIds()
         {
             return GetRecentlyViewedProductsIds(int.MaxValue);
         }
 
-        /// <summary>
-        /// Gets a "recently viewed products" identifier list
-        /// </summary>
-        /// <param name="number">Number of products to load</param>
-        /// <returns>"recently viewed products" list</returns>
         protected IList<int> GetRecentlyViewedProductsIds(int number)
         {
             var productIds = new List<int>();
-            var recentlyViewedCookie = _httpContext.Request.Cookies.Get("NopCommerce.RecentlyViewedProducts");
-            if (recentlyViewedCookie == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
                 return productIds;
-            string[] values = recentlyViewedCookie.Values.GetValues("RecentlyViewedProductIds");
-            if (values == null)
+
+            if (!httpContext.Request.Cookies.TryGetValue(RECENTLY_VIEWED_COOKIE_NAME, out var productIdsStr))
                 return productIds;
-            foreach (string productId in values)
+
+            if (string.IsNullOrEmpty(productIdsStr))
+                return productIds;
+
+            foreach (var id in productIdsStr.Split(',', StringSplitOptions.RemoveEmptyEntries))
             {
-                int prodId = int.Parse(productId);
-                if (!productIds.Contains(prodId))
+                if (int.TryParse(id.Trim(), out var prodId) && !productIds.Contains(prodId))
                 {
                     productIds.Add(prodId);
                     if (productIds.Count >= number)
                         break;
                 }
-
             }
 
             return productIds;
@@ -81,12 +71,6 @@ namespace Nop.Services.Catalog
 
         #region Methods
 
-
-        /// <summary>
-        /// Gets a "recently viewed products" list
-        /// </summary>
-        /// <param name="number">Number of products to load</param>
-        /// <returns>"recently viewed products" list</returns>
         public virtual IList<Product> GetRecentlyViewedProducts(int number)
         {
             var products = new List<Product>();
@@ -97,44 +81,31 @@ namespace Nop.Services.Catalog
             return products;
         }
 
-        /// <summary>
-        /// Adds a product to a recently viewed products list
-        /// </summary>
-        /// <param name="productId">Product identifier</param>
         public virtual void AddProductToRecentlyViewedList(int productId)
         {
             if (!_catalogSettings.RecentlyViewedProductsEnabled)
                 return;
 
             var oldProductIds = GetRecentlyViewedProductsIds();
-            var newProductIds = new List<int>();
-            newProductIds.Add(productId);
+            var newProductIds = new List<int> { productId };
             foreach (int oldProductId in oldProductIds)
                 if (oldProductId != productId)
                     newProductIds.Add(oldProductId);
 
-            var recentlyViewedCookie = _httpContext.Request.Cookies.Get("NopCommerce.RecentlyViewedProducts");
-            if (recentlyViewedCookie == null)
-            {
-                recentlyViewedCookie = new HttpCookie("NopCommerce.RecentlyViewedProducts");
-                recentlyViewedCookie.HttpOnly = true;
-            }
-            recentlyViewedCookie.Values.Clear();
             int maxProducts = _catalogSettings.RecentlyViewedProductsNumber;
             if (maxProducts <= 0)
                 maxProducts = 10;
-            int i = 1;
-            foreach (int newProductId in newProductIds)
+
+            var idsToStore = newProductIds.Take(maxProducts).ToList();
+            var cookieValue = string.Join(",", idsToStore);
+            var cookieOptions = new CookieOptions
             {
-                recentlyViewedCookie.Values.Add("RecentlyViewedProductIds", newProductId.ToString());
-                if (i == maxProducts)
-                    break;
-                i++;
-            }
-            recentlyViewedCookie.Expires = DateTime.Now.AddDays(10.0);
-            _httpContext.Response.Cookies.Set(recentlyViewedCookie);
+                HttpOnly = true,
+                Expires = DateTime.Now.AddDays(10)
+            };
+            _httpContextAccessor.HttpContext?.Response.Cookies.Append(RECENTLY_VIEWED_COOKIE_NAME, cookieValue, cookieOptions);
         }
-        
+
         #endregion
     }
 }

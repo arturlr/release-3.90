@@ -1,25 +1,18 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Web.Framework.Mvc.Routes;
 
 namespace Nop.Plugin.DiscountRules.CustomerRoles
 {
     public partial class RouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
         {
-            routes.MapRoute("Plugin.DiscountRules.CustomerRoles.Configure",
-                 "Plugins/DiscountRulesCustomerRoles/Configure",
-                 new { controller = "DiscountRulesCustomerRoles", action = "Configure" },
-                 new[] { "Nop.Plugin.DiscountRules.CustomerRoles.Controllers" }
-            );
+            // Endpoint routing is configured via attribute routing in .NET Core
         }
+
         public int Priority
         {
-            get
-            {
-                return 0;
-            }
+            get { return 0; }
         }
     }
 }

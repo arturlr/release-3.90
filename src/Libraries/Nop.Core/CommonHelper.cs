@@ -9,8 +9,6 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Web;
-using System.Web.Hosting;
 
 namespace Nop.Core
 {
@@ -23,7 +21,7 @@ namespace Nop.Core
         /// Ensures the subscriber email or throw.
         /// </summary>
         /// <param name="email">The email.</param>
-        /// <returns></returns>
+        /// <returns>Validated email</returns>
         public static string EnsureSubscriberEmailOrThrow(string email)
         {
             string output = EnsureNotNull(email);
@@ -45,23 +43,24 @@ namespace Nop.Core
         /// <returns>true if the string is a valid e-mail address and false if it's not</returns>
         public static bool IsValidEmail(string email)
         {
-            if (String.IsNullOrEmpty(email))
+            if (string.IsNullOrEmpty(email))
                 return false;
 
             email = email.Trim();
-            var result = Regex.IsMatch(email, "^(?:[\\w\\!\\#\\$\\%\\&\\'\\*\\+\\-\\/\\=\\?\\^\\`\\{\\|\\}\\~]+\\.)*[\\w\\!\\#\\$\\%\\&\\'\\*\\+\\-\\/\\=\\?\\^\\`\\{\\|\\}\\~]+@(?:(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9\\-](?!\\.)){0,61}[a-zA-Z0-9]?\\.)+[a-zA-Z0-9](?:[a-zA-Z0-9\\-](?!$)){0,61}[a-zA-Z0-9]?)|(?:\\[(?:(?:[01]?\\d{1,2}|2[0-4]\\d|25[0-5])\\.){3}(?:[01]?\\d{1,2}|2[0-4]\\d|25[0-5])\\]))$", RegexOptions.IgnoreCase);
+            var result = Regex.IsMatch(email,
+                @"^(?:[\w\!\#\$\%\&\'\*\+\-\/\=\?\^\`\{\|\}\~]+\.)*[\w\!\#\$\%\&\'\*\+\-\/\=\?\^\`\{\|\}\~]+@(?:(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-](?!\.)){0,61}[a-zA-Z0-9]?\.)+[a-zA-Z0-9](?:[a-zA-Z0-9\-](?!$)){0,61}[a-zA-Z0-9]?)|(?:\[(?:(?:[01]?\d{1,2}|2[0-4]\d|25[0-5])\.){3}(?:[01]?\d{1,2}|2[0-4]\d|25[0-5])\]))$",
+                RegexOptions.IgnoreCase);
             return result;
         }
 
         /// <summary>
-        /// Verifies that string is an valid IP-Address
+        /// Verifies that string is a valid IP-Address
         /// </summary>
         /// <param name="ipAddress">IPAddress to verify</param>
         /// <returns>true if the string is a valid IpAddress and false if it's not</returns>
         public static bool IsValidIpAddress(string ipAddress)
         {
-            IPAddress ip;
-            return IPAddress.TryParse(ipAddress, out ip);
+            return IPAddress.TryParse(ipAddress, out _);
         }
 
         /// <summary>
@@ -74,21 +73,19 @@ namespace Nop.Core
             var random = new Random();
             string str = string.Empty;
             for (int i = 0; i < length; i++)
-                str = String.Concat(str, random.Next(10).ToString());
+                str = string.Concat(str, random.Next(10).ToString());
             return str;
         }
 
         /// <summary>
-        /// Returns an random interger number within a specified rage
+        /// Returns a random integer number within a specified range
         /// </summary>
         /// <param name="min">Minimum number</param>
         /// <param name="max">Maximum number</param>
         /// <returns>Result</returns>
         public static int GenerateRandomInteger(int min = 0, int max = int.MaxValue)
         {
-            var randomNumberBuffer = new byte[10];
-            new RNGCryptoServiceProvider().GetBytes(randomNumberBuffer);
-            return new Random(BitConverter.ToInt32(randomNumberBuffer, 0)).Next(min, max);
+            return RandomNumberGenerator.GetInt32(min, max);
         }
 
         /// <summary>
@@ -96,19 +93,18 @@ namespace Nop.Core
         /// </summary>
         /// <param name="str">Input string</param>
         /// <param name="maxLength">Maximum length</param>
-        /// <param name="postfix">A string to add to the end if the original string was shorten</param>
-        /// <returns>Input string if its lengh is OK; otherwise, truncated input string</returns>
+        /// <param name="postfix">A string to add to the end if the original string was shortened</param>
+        /// <returns>Input string if its length is OK; otherwise, truncated input string</returns>
         public static string EnsureMaximumLength(string str, int maxLength, string postfix = null)
         {
-            if (String.IsNullOrEmpty(str))
+            if (string.IsNullOrEmpty(str))
                 return str;
 
             if (str.Length > maxLength)
             {
                 var pLen = postfix == null ? 0 : postfix.Length;
-
                 var result = str.Substring(0, maxLength - pLen);
-                if (!String.IsNullOrEmpty(postfix))
+                if (!string.IsNullOrEmpty(postfix))
                 {
                     result += postfix;
                 }
@@ -125,7 +121,7 @@ namespace Nop.Core
         /// <returns>Input string with only numeric values, empty string if input is null/empty</returns>
         public static string EnsureNumericOnly(string str)
         {
-            return string.IsNullOrEmpty(str) ? string.Empty : new string(str.Where(p => char.IsDigit(p)).ToArray());
+            return string.IsNullOrEmpty(str) ? string.Empty : new string(str.Where(char.IsDigit).ToArray());
         }
 
         /// <summary>
@@ -149,7 +145,7 @@ namespace Nop.Core
         }
 
         /// <summary>
-        /// Compare two arrasy
+        /// Compare two arrays
         /// </summary>
         /// <typeparam name="T">Type</typeparam>
         /// <param name="a1">Array 1</param>
@@ -157,7 +153,6 @@ namespace Nop.Core
         /// <returns>Result</returns>
         public static bool ArraysEqual<T>(T[] a1, T[] a2)
         {
-            //also see Enumerable.SequenceEqual(a1, a2);
             if (ReferenceEquals(a1, a2))
                 return true;
 
@@ -175,52 +170,16 @@ namespace Nop.Core
             return true;
         }
 
-        private static AspNetHostingPermissionLevel? _trustLevel;
         /// <summary>
-        /// Finds the trust level of the running application (http://blogs.msdn.com/dmitryr/archive/2007/01/23/finding-out-the-current-trust-level-in-asp-net.aspx)
-        /// </summary>
-        /// <returns>The current trust level.</returns>
-        public static AspNetHostingPermissionLevel GetTrustLevel()
-        {
-            if (!_trustLevel.HasValue)
-            {
-                //set minimum
-                _trustLevel = AspNetHostingPermissionLevel.None;
-
-                //determine maximum
-                foreach (AspNetHostingPermissionLevel trustLevel in new[] {
-                                AspNetHostingPermissionLevel.Unrestricted,
-                                AspNetHostingPermissionLevel.High,
-                                AspNetHostingPermissionLevel.Medium,
-                                AspNetHostingPermissionLevel.Low,
-                                AspNetHostingPermissionLevel.Minimal
-                            })
-                {
-                    try
-                    {
-                        new AspNetHostingPermission(trustLevel).Demand();
-                        _trustLevel = trustLevel;
-                        break; //we've set the highest permission we can
-                    }
-                    catch (System.Security.SecurityException)
-                    {
-                        continue;
-                    }
-                }
-            }
-            return _trustLevel.Value;
-        }
-
-        /// <summary>
-        /// Sets a property on an object to a valuae.
+        /// Sets a property on an object to a value.
         /// </summary>
         /// <param name="instance">The object whose property to set.</param>
         /// <param name="propertyName">The name of the property to set.</param>
         /// <param name="value">The value to set the property to.</param>
         public static void SetProperty(object instance, string propertyName, object value)
         {
-            if (instance == null) throw new ArgumentNullException("instance");
-            if (propertyName == null) throw new ArgumentNullException("propertyName");
+            if (instance == null) throw new ArgumentNullException(nameof(instance));
+            if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
 
             Type instanceType = instance.GetType();
             PropertyInfo pi = instanceType.GetProperty(propertyName);
@@ -282,7 +241,6 @@ namespace Nop.Core
         /// <returns>The converted value.</returns>
         public static T To<T>(object value)
         {
-            //return (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
             return (T)To(value, typeof(T));
         }
 
@@ -301,7 +259,7 @@ namespace Nop.Core
                 else
                     result += c.ToString();
 
-            //ensure no spaces (e.g. when the first letter is upper case)
+            // Ensure no leading spaces
             result = result.TrimStart();
             return result;
         }
@@ -311,9 +269,7 @@ namespace Nop.Core
         /// </summary>
         public static void SetTelerikCulture()
         {
-            //little hack here
-            //always set culture to 'en-US' (Kendo UI has a bug related to editing decimal values in other cultures). Like currently it's done for admin area in Global.asax.cs
-
+            // Always set culture to 'en-US' (Kendo UI compatibility)
             var culture = new CultureInfo("en-US");
             Thread.CurrentThread.CurrentCulture = culture;
             Thread.CurrentThread.CurrentUICulture = culture;
@@ -322,13 +278,11 @@ namespace Nop.Core
         /// <summary>
         /// Get difference in years
         /// </summary>
-        /// <param name="startDate"></param>
-        /// <param name="endDate"></param>
-        /// <returns></returns>
+        /// <param name="startDate">Start date</param>
+        /// <param name="endDate">End date</param>
+        /// <returns>Difference in years</returns>
         public static int GetDifferenceInYears(DateTime startDate, DateTime endDate)
         {
-            //source: http://stackoverflow.com/questions/9/how-do-i-calculate-someones-age-in-c
-            //this assumes you are looking for the western idea of age and not using East Asian reckoning.
             int age = endDate.Year - startDate.Year;
             if (startDate > endDate.AddYears(-age))
                 age--;
@@ -342,16 +296,14 @@ namespace Nop.Core
         /// <returns>The physical path. E.g. "c:\inetpub\wwwroot\bin"</returns>
         public static string MapPath(string path)
         {
-            if (HostingEnvironment.IsHosted)
-            {
-                //hosted
-                return HostingEnvironment.MapPath(path);
-            }
+            // In ASP.NET Core, use the content root (AppContext.BaseDirectory)
+            // combined with the relative path
+            string baseDirectory = AppContext.BaseDirectory;
 
-            //not hosted. For example, run in unit tests
-            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            path = path.Replace("~/", "").TrimStart('/').Replace('/', '\\');
+            // Remove the ~/ or / prefix and normalize path separators
+            path = path.Replace("~/", "").TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+
             return Path.Combine(baseDirectory, path);
-        }        
+        }
     }
 }

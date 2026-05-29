@@ -1,3 +1,4 @@
+using Nop.Web.MVC.Tests;
 ﻿using FluentValidation.TestHelper;
 using Nop.Admin.Models.Vendors;
 using Nop.Admin.Validators.Vendors;

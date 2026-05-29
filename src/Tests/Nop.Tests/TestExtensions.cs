@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using Nop.Core;
 using System.Collections.Generic;
-using Rhino.Mocks.Constraints;
 
 namespace Nop.Tests
 {
@@ -40,13 +39,6 @@ namespace Nop.Tests
             return actual;
         }
 
-        ///<summary>
-        /// Asserts that two objects are equal.
-        ///</summary>
-        ///<param name="actual"></param>
-        ///<param name="expected"></param>
-        ///<param name="message"></param>
-        ///<exception cref="AssertionException"></exception>
         public static void ShouldEqual(this object actual, object expected, string message)
         {
             Assert.AreEqual(expected, actual);
@@ -92,11 +84,6 @@ namespace Nop.Tests
             Assert.IsFalse(source);
         }
 
-        /// <summary>
-        /// Compares the two strings (case-insensitive).
-        /// </summary>
-        /// <param name="actual"></param>
-        /// <param name="expected"></param>
         public static void AssertSameStringAs(this string actual, string expected)
         {
             if (!string.Equals(actual, expected, StringComparison.InvariantCultureIgnoreCase))
@@ -108,42 +95,39 @@ namespace Nop.Tests
 
         public static T PropertiesShouldEqual<T>(this T actual, T expected, params string[] filters)
         {
-            var properties = typeof (T).GetProperties().ToList();
+            var properties = typeof(T).GetProperties().ToList();
 
             var filterByEnteties = new List<string>();
             var values = new Dictionary<string, object>();
 
             foreach (var propertyInfo in properties.ToList())
             {
-                //skip by filter
                 if (filters.Any(f => f == propertyInfo.Name || f + "Id" == propertyInfo.Name) || propertyInfo.Name == "Id")
                     continue;
                 var value = propertyInfo.GetValue(actual);
                 values.Add(propertyInfo.Name, value);
 
-                if(value == null)
+                if (value == null)
                     continue;
 
-                //skip array and System.Collections.Generic types
                 if (value.GetType().IsArray || value.GetType().Namespace == "System.Collections.Generic")
                 {
                     properties.Remove(propertyInfo);
                     continue;
                 }
-                
+
                 if (!(value is BaseEntity))
                     continue;
 
-                //skip BaseEntity types and enteties Id
                 filterByEnteties.Add(propertyInfo.Name + "Id");
                 properties.Remove(propertyInfo);
             }
 
-            foreach (var propertyInfo in properties.Where(p=>values.ContainsKey(p.Name)))
+            foreach (var propertyInfo in properties.Where(p => values.ContainsKey(p.Name)))
             {
                 if (filterByEnteties.Any(f => f == propertyInfo.Name))
                     continue;
-               
+
                 Assert.AreEqual(values[propertyInfo.Name], propertyInfo.GetValue(expected), string.Format("The property \"{0}.{1}\" of these objects is not equal", typeof(T).Name, propertyInfo.Name));
             }
 

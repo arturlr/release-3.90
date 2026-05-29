@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+﻿using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Catalog
@@ -7,15 +7,15 @@ namespace Nop.Admin.Models.Catalog
     {
         public int AttributeTypeId { get; set; }
 
-        [AllowHtml]
+        
         public string AttributeTypeName { get; set; }
 
         public int AttributeId { get; set; }
 
-        [AllowHtml]
+        
         public string AttributeName { get; set; }
 
-        [AllowHtml]
+        
         public string ValueRaw { get; set; }
 
         public bool AllowFiltering { get; set; }

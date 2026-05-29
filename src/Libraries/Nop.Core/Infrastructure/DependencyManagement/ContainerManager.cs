@@ -1,122 +1,92 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
 using Autofac;
-using Autofac.Core.Lifetime;
-using Autofac.Integration.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Nop.Core.Infrastructure.DependencyManagement
 {
     /// <summary>
-    /// Container manager
+    /// Container manager - wraps IServiceProvider for service resolution.
+    /// In ASP.NET Core, scoped resolution is handled by the framework's
+    /// built-in request scope. This class provides a compatibility layer
+    /// for code that still uses the service locator pattern.
     /// </summary>
     public class ContainerManager
     {
-        private readonly IContainer _container;
+        private IServiceProvider _serviceProvider;
 
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="container">Conainer</param>
-        public ContainerManager(IContainer container)
+        /// <param name="serviceProvider">The application service provider</param>
+        public ContainerManager(IServiceProvider serviceProvider)
         {
-            this._container = container;
+            _serviceProvider = serviceProvider;
         }
 
         /// <summary>
-        /// Gets a container
+        /// Gets or sets the service provider
         /// </summary>
-        public virtual IContainer Container
+        public IServiceProvider ServiceProvider
         {
-            get
-            {
-                return _container;
-            }
+            get => _serviceProvider;
+            set => _serviceProvider = value;
         }
 
         /// <summary>
-        /// Resolve
+        /// Resolve a service
         /// </summary>
-        /// <typeparam name="T">Type</typeparam>
-        /// <param name="key">key</param>
-        /// <param name="scope">Scope; pass null to automatically resolve the current scope</param>
+        /// <typeparam name="T">Type of service</typeparam>
+        /// <param name="key">Optional key (not used in standard DI)</param>
         /// <returns>Resolved service</returns>
-        public virtual T Resolve<T>(string key = "", ILifetimeScope scope = null) where T : class
+        public virtual T Resolve<T>(string key = "") where T : class
         {
-            if (scope == null)
-            {
-                //no scope specified
-                scope = Scope();
-            }
             if (string.IsNullOrEmpty(key))
-            {
-                return scope.Resolve<T>();
-            }
-            return scope.ResolveKeyed<T>(key);
+                return _serviceProvider.GetService<T>();
+
+            // Keyed services support in .NET 8+
+            return _serviceProvider.GetKeyedService<T>(key);
         }
 
         /// <summary>
-        /// Resolve
+        /// Resolve a service by type
         /// </summary>
-        /// <param name="type">Type</param>
-        /// <param name="scope">Scope; pass null to automatically resolve the current scope</param>
+        /// <param name="type">Type of service</param>
         /// <returns>Resolved service</returns>
-        public virtual object Resolve(Type type, ILifetimeScope scope = null)
+        public virtual object Resolve(Type type)
         {
-            if (scope == null)
-            {
-                //no scope specified
-                scope = Scope();
-            }
-            return scope.Resolve(type);
+            return _serviceProvider.GetService(type);
         }
 
         /// <summary>
-        /// Resolve all
+        /// Resolve all implementations of a service
         /// </summary>
-        /// <typeparam name="T">Type</typeparam>
-        /// <param name="key">key</param>
-        /// <param name="scope">Scope; pass null to automatically resolve the current scope</param>
-        /// <returns>Resolved services</returns>
-        public virtual T[] ResolveAll<T>(string key = "", ILifetimeScope scope = null)
+        /// <typeparam name="T">Type of service</typeparam>
+        /// <returns>All resolved services</returns>
+        public virtual T[] ResolveAll<T>()
         {
-            if (scope == null)
-            {
-                //no scope specified
-                scope = Scope();
-            }
-            if (string.IsNullOrEmpty(key))
-            {
-                return scope.Resolve<IEnumerable<T>>().ToArray();
-            }
-            return scope.ResolveKeyed<IEnumerable<T>>(key).ToArray();
+            return _serviceProvider.GetServices<T>().ToArray();
         }
 
         /// <summary>
-        /// Resolve unregistered service
+        /// Resolve an unregistered service by attempting constructor injection
         /// </summary>
-        /// <typeparam name="T">Type</typeparam>
-        /// <param name="scope">Scope; pass null to automatically resolve the current scope</param>
+        /// <typeparam name="T">Type of service</typeparam>
         /// <returns>Resolved service</returns>
-        public virtual T ResolveUnregistered<T>(ILifetimeScope scope = null) where T:class
+        public virtual T ResolveUnregistered<T>() where T : class
         {
-            return ResolveUnregistered(typeof(T), scope) as T;
+            return ResolveUnregistered(typeof(T)) as T;
         }
 
         /// <summary>
-        /// Resolve unregistered service
+        /// Resolve an unregistered service by attempting constructor injection
         /// </summary>
-        /// <param name="type">Type</param>
-        /// <param name="scope">Scope; pass null to automatically resolve the current scope</param>
+        /// <param name="type">Type of service</param>
         /// <returns>Resolved service</returns>
-        public virtual object ResolveUnregistered(Type type, ILifetimeScope scope = null)
+        public virtual object ResolveUnregistered(Type type)
         {
-            if (scope == null)
-            {
-                //no scope specified
-                scope = Scope();
-            }
+            Exception innerException = null;
             var constructors = type.GetConstructors();
             foreach (var constructor in constructors)
             {
@@ -126,92 +96,51 @@ namespace Nop.Core.Infrastructure.DependencyManagement
                     var parameterInstances = new List<object>();
                     foreach (var parameter in parameters)
                     {
-                        var service = Resolve(parameter.ParameterType, scope);
-                        if (service == null) throw new NopException("Unknown dependency");
+                        var service = Resolve(parameter.ParameterType);
+                        if (service == null)
+                            throw new NopException("Unknown dependency");
                         parameterInstances.Add(service);
                     }
                     return Activator.CreateInstance(type, parameterInstances.ToArray());
                 }
-                catch (NopException)
+                catch (Exception ex)
                 {
-
+                    innerException = ex;
                 }
             }
-            throw new NopException("No constructor  was found that had all the dependencies satisfied.");
+            throw new NopException("No constructor was found that had all the dependencies satisfied.", innerException);
         }
-        
+
         /// <summary>
-        /// Try to resolve srevice
+        /// Try to resolve a service
         /// </summary>
-        /// <param name="serviceType">Type</param>
-        /// <param name="scope">Scope; pass null to automatically resolve the current scope</param>
-        /// <param name="instance">Resolved service</param>
-        /// <returns>Value indicating whether service has been successfully resolved</returns>
-        public virtual bool TryResolve(Type serviceType, ILifetimeScope scope, out object instance)
+        /// <param name="serviceType">Type of service</param>
+        /// <param name="instance">Resolved instance</param>
+        /// <returns>True if resolved successfully</returns>
+        public virtual bool TryResolve(Type serviceType, out object instance)
         {
-            if (scope == null)
-            {
-                //no scope specified
-                scope = Scope();
-            }
-            return scope.TryResolve(serviceType, out instance);
+            instance = _serviceProvider.GetService(serviceType);
+            return instance != null;
         }
 
         /// <summary>
         /// Check whether some service is registered (can be resolved)
         /// </summary>
-        /// <param name="serviceType">Type</param>
-        /// <param name="scope">Scope; pass null to automatically resolve the current scope</param>
-        /// <returns>Result</returns>
-        public virtual bool IsRegistered(Type serviceType, ILifetimeScope scope = null)
+        /// <param name="serviceType">Type of service</param>
+        /// <returns>True if registered</returns>
+        public virtual bool IsRegistered(Type serviceType)
         {
-            if (scope == null)
-            {
-                //no scope specified
-                scope = Scope();
-            }
-            return scope.IsRegistered(serviceType);
+            return _serviceProvider.GetService(serviceType) != null;
         }
 
         /// <summary>
-        /// Resolve optional
+        /// Resolve optional service (returns null if not registered)
         /// </summary>
-        /// <param name="serviceType">Type</param>
-        /// <param name="scope">Scope; pass null to automatically resolve the current scope</param>
-        /// <returns>Resolved service</returns>
-        public virtual object ResolveOptional(Type serviceType, ILifetimeScope scope = null)
+        /// <param name="serviceType">Type of service</param>
+        /// <returns>Resolved service or null</returns>
+        public virtual object ResolveOptional(Type serviceType)
         {
-            if (scope == null)
-            {
-                //no scope specified
-                scope = Scope();
-            }
-            return scope.ResolveOptional(serviceType);
-        }
-        
-        /// <summary>
-        /// Get current scope
-        /// </summary>
-        /// <returns>Scope</returns>
-        public virtual ILifetimeScope Scope()
-        {
-            try
-            {
-                if (HttpContext.Current != null)
-                    return AutofacDependencyResolver.Current.RequestLifetimeScope;
-
-                //when such lifetime scope is returned, you should be sure that it'll be disposed once used (e.g. in schedule tasks)
-                return Container.BeginLifetimeScope(MatchingScopeLifetimeTags.RequestLifetimeScopeTag);
-            }
-            catch (Exception)
-            {
-                //we can get an exception here if RequestLifetimeScope is already disposed
-                //for example, requested in or after "Application_EndRequest" handler
-                //but note that usually it should never happen
-
-                //when such lifetime scope is returned, you should be sure that it'll be disposed once used (e.g. in schedule tasks)
-                return Container.BeginLifetimeScope(MatchingScopeLifetimeTags.RequestLifetimeScopeTag);
-            }
+            return _serviceProvider.GetService(serviceType);
         }
     }
 }

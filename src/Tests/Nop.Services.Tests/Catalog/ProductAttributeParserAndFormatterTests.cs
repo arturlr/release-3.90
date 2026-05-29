@@ -16,7 +16,7 @@ using Nop.Services.Media;
 using Nop.Services.Tax;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Catalog
 {
@@ -171,35 +171,35 @@ namespace Nop.Services.Tests.Catalog
 
             #endregion
 
-            _productAttributeRepo = MockRepository.GenerateMock<IRepository<ProductAttribute>>();
-            _productAttributeRepo.Expect(x => x.Table).Return(new List<ProductAttribute> { pa1, pa2, pa3, pa4 }.AsQueryable());
-            _productAttributeRepo.Expect(x => x.GetById(pa1.Id)).Return(pa1);
-            _productAttributeRepo.Expect(x => x.GetById(pa2.Id)).Return(pa2);
-            _productAttributeRepo.Expect(x => x.GetById(pa3.Id)).Return(pa3);
-            _productAttributeRepo.Expect(x => x.GetById(pa4.Id)).Return(pa4);
+            _productAttributeRepo = Substitute.For<IRepository<ProductAttribute>>();
+            _productAttributeRepo.Table.Returns(new List<ProductAttribute> { pa1, pa2, pa3, pa4 }.AsQueryable());
+            _productAttributeRepo.GetById(pa1.Id).Returns(pa1);
+            _productAttributeRepo.GetById(pa2.Id).Returns(pa2);
+            _productAttributeRepo.GetById(pa3.Id).Returns(pa3);
+            _productAttributeRepo.GetById(pa4.Id).Returns(pa4);
 
-            _productAttributeMappingRepo = MockRepository.GenerateMock<IRepository<ProductAttributeMapping>>();
-            _productAttributeMappingRepo.Expect(x => x.Table).Return(new List<ProductAttributeMapping> { pam1_1, pam2_1, pam3_1, pam4_1 }.AsQueryable());
-            _productAttributeMappingRepo.Expect(x => x.GetById(pam1_1.Id)).Return(pam1_1);
-            _productAttributeMappingRepo.Expect(x => x.GetById(pam2_1.Id)).Return(pam2_1);
-            _productAttributeMappingRepo.Expect(x => x.GetById(pam3_1.Id)).Return(pam3_1);
-            _productAttributeMappingRepo.Expect(x => x.GetById(pam4_1.Id)).Return(pam4_1);
+            _productAttributeMappingRepo = Substitute.For<IRepository<ProductAttributeMapping>>();
+            _productAttributeMappingRepo.Table.Returns(new List<ProductAttributeMapping> { pam1_1, pam2_1, pam3_1, pam4_1 }.AsQueryable());
+            _productAttributeMappingRepo.GetById(pam1_1.Id).Returns(pam1_1);
+            _productAttributeMappingRepo.GetById(pam2_1.Id).Returns(pam2_1);
+            _productAttributeMappingRepo.GetById(pam3_1.Id).Returns(pam3_1);
+            _productAttributeMappingRepo.GetById(pam4_1.Id).Returns(pam4_1);
 
-            _productAttributeCombinationRepo = MockRepository.GenerateMock<IRepository<ProductAttributeCombination>>();
-            _productAttributeCombinationRepo.Expect(x => x.Table).Return(new List<ProductAttributeCombination>().AsQueryable());
+            _productAttributeCombinationRepo = Substitute.For<IRepository<ProductAttributeCombination>>();
+            _productAttributeCombinationRepo.Table.Returns(new List<ProductAttributeCombination>().AsQueryable());
 
-            _productAttributeValueRepo = MockRepository.GenerateMock<IRepository<ProductAttributeValue>>();
-            _productAttributeValueRepo.Expect(x => x.Table).Return(new List<ProductAttributeValue> { pav1_1, pav1_2, pav2_1, pav2_2, pav4_1 }.AsQueryable());
-            _productAttributeValueRepo.Expect(x => x.GetById(pav1_1.Id)).Return(pav1_1);
-            _productAttributeValueRepo.Expect(x => x.GetById(pav1_2.Id)).Return(pav1_2);
-            _productAttributeValueRepo.Expect(x => x.GetById(pav2_1.Id)).Return(pav2_1);
-            _productAttributeValueRepo.Expect(x => x.GetById(pav2_2.Id)).Return(pav2_2);
-            _productAttributeValueRepo.Expect(x => x.GetById(pav4_1.Id)).Return(pav4_1);
+            _productAttributeValueRepo = Substitute.For<IRepository<ProductAttributeValue>>();
+            _productAttributeValueRepo.Table.Returns(new List<ProductAttributeValue> { pav1_1, pav1_2, pav2_1, pav2_2, pav4_1 }.AsQueryable());
+            _productAttributeValueRepo.GetById(pav1_1.Id).Returns(pav1_1);
+            _productAttributeValueRepo.GetById(pav1_2.Id).Returns(pav1_2);
+            _productAttributeValueRepo.GetById(pav2_1.Id).Returns(pav2_1);
+            _productAttributeValueRepo.GetById(pav2_2.Id).Returns(pav2_2);
+            _productAttributeValueRepo.GetById(pav4_1.Id).Returns(pav4_1);
 
-            _predefinedProductAttributeValueRepo = MockRepository.GenerateMock<IRepository<PredefinedProductAttributeValue>>();
+            _predefinedProductAttributeValueRepo = Substitute.For<IRepository<PredefinedProductAttributeValue>>();
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = Substitute.For<IEventPublisher>();
+// NSubstitute: void method - no setup needed
 
             var cacheManager = new NopNullCache();
 
@@ -211,26 +211,26 @@ namespace Nop.Services.Tests.Catalog
                 _predefinedProductAttributeValueRepo,
                 _eventPublisher);
 
-            _context = MockRepository.GenerateMock<IDbContext>();
+            _context = Substitute.For<IDbContext>();
 
             _productAttributeParser = new ProductAttributeParser(_context, _productAttributeService);
 
-            _priceCalculationService = MockRepository.GenerateMock<IPriceCalculationService>();
+            _priceCalculationService = Substitute.For<IPriceCalculationService>();
 
             var workingLanguage = new Language();
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workContext.Expect(x => x.WorkingLanguage).Return(workingLanguage);
-            _currencyService = MockRepository.GenerateMock<ICurrencyService>();
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _localizationService.Expect(x => x.GetResource("GiftCardAttribute.For.Virtual")).Return("For: {0} <{1}>");
-            _localizationService.Expect(x => x.GetResource("GiftCardAttribute.From.Virtual")).Return("From: {0} <{1}>");
-            _localizationService.Expect(x => x.GetResource("GiftCardAttribute.For.Physical")).Return("For: {0}");
-            _localizationService.Expect(x => x.GetResource("GiftCardAttribute.From.Physical")).Return("From: {0}");
-            _taxService = MockRepository.GenerateMock<ITaxService>();
-            _priceFormatter = MockRepository.GenerateMock<IPriceFormatter>();
-            _downloadService = MockRepository.GenerateMock<IDownloadService>();
-            _webHelper = MockRepository.GenerateMock<IWebHelper>();
-            _shoppingCartSettings = MockRepository.GenerateMock<ShoppingCartSettings>();
+            _workContext = Substitute.For<IWorkContext>();
+            _workContext.WorkingLanguage.Returns(workingLanguage);
+            _currencyService = Substitute.For<ICurrencyService>();
+            _localizationService = Substitute.For<ILocalizationService>();
+            _localizationService.GetResource("GiftCardAttribute.For.Virtual").Returns("For: {0} <{1}>");
+            _localizationService.GetResource("GiftCardAttribute.From.Virtual").Returns("From: {0} <{1}>");
+            _localizationService.GetResource("GiftCardAttribute.For.Physical").Returns("For: {0}");
+            _localizationService.GetResource("GiftCardAttribute.From.Physical").Returns("From: {0}");
+            _taxService = Substitute.For<ITaxService>();
+            _priceFormatter = Substitute.For<IPriceFormatter>();
+            _downloadService = Substitute.For<IDownloadService>();
+            _webHelper = Substitute.For<IWebHelper>();
+            _shoppingCartSettings = Substitute.For<ShoppingCartSettings>();
 
             _productAttributeFormatter = new ProductAttributeFormatter(_workContext,
                 _productAttributeService,

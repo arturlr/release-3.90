@@ -1,14 +1,15 @@
+using Microsoft.AspNetCore.Mvc.Rendering;
 ﻿using System;
 using System.Collections.Generic;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using Microsoft.AspNetCore.Mvc;
+
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 using Nop.Web.Validators.Customer;
 
 namespace Nop.Web.Models.Customer
 {
-    [Validator(typeof(CustomerInfoValidator))]
+    
     public partial class CustomerInfoModel : BaseNopModel
     {
         public CustomerInfoModel()
@@ -21,7 +22,7 @@ namespace Nop.Web.Models.Customer
         }
 
         [NopResourceDisplayName("Account.Fields.Email")]
-        [AllowHtml]
+        
         public string Email { get; set; }
         [NopResourceDisplayName("Account.Fields.EmailToRevalidate")]
         public string EmailToRevalidate { get; set; }
@@ -30,7 +31,7 @@ namespace Nop.Web.Models.Customer
         public bool AllowUsersToChangeUsernames { get; set; }
         public bool UsernamesEnabled { get; set; }
         [NopResourceDisplayName("Account.Fields.Username")]
-        [AllowHtml]
+        
         public string Username { get; set; }
 
         //form fields & properties
@@ -39,10 +40,10 @@ namespace Nop.Web.Models.Customer
         public string Gender { get; set; }
 
         [NopResourceDisplayName("Account.Fields.FirstName")]
-        [AllowHtml]
+        
         public string FirstName { get; set; }
         [NopResourceDisplayName("Account.Fields.LastName")]
-        [AllowHtml]
+        
         public string LastName { get; set; }
 
 
@@ -71,31 +72,31 @@ namespace Nop.Web.Models.Customer
         public bool CompanyEnabled { get; set; }
         public bool CompanyRequired { get; set; }
         [NopResourceDisplayName("Account.Fields.Company")]
-        [AllowHtml]
+        
         public string Company { get; set; }
 
         public bool StreetAddressEnabled { get; set; }
         public bool StreetAddressRequired { get; set; }
         [NopResourceDisplayName("Account.Fields.StreetAddress")]
-        [AllowHtml]
+        
         public string StreetAddress { get; set; }
 
         public bool StreetAddress2Enabled { get; set; }
         public bool StreetAddress2Required { get; set; }
         [NopResourceDisplayName("Account.Fields.StreetAddress2")]
-        [AllowHtml]
+        
         public string StreetAddress2 { get; set; }
 
         public bool ZipPostalCodeEnabled { get; set; }
         public bool ZipPostalCodeRequired { get; set; }
         [NopResourceDisplayName("Account.Fields.ZipPostalCode")]
-        [AllowHtml]
+        
         public string ZipPostalCode { get; set; }
 
         public bool CityEnabled { get; set; }
         public bool CityRequired { get; set; }
         [NopResourceDisplayName("Account.Fields.City")]
-        [AllowHtml]
+        
         public string City { get; set; }
 
         public bool CountryEnabled { get; set; }
@@ -113,13 +114,13 @@ namespace Nop.Web.Models.Customer
         public bool PhoneEnabled { get; set; }
         public bool PhoneRequired { get; set; }
         [NopResourceDisplayName("Account.Fields.Phone")]
-        [AllowHtml]
+        
         public string Phone { get; set; }
 
         public bool FaxEnabled { get; set; }
         public bool FaxRequired { get; set; }
         [NopResourceDisplayName("Account.Fields.Fax")]
-        [AllowHtml]
+        
         public string Fax { get; set; }
 
         public bool NewsletterEnabled { get; set; }
@@ -129,7 +130,7 @@ namespace Nop.Web.Models.Customer
         //preferences
         public bool SignatureEnabled { get; set; }
         [NopResourceDisplayName("Account.Fields.Signature")]
-        [AllowHtml]
+        
         public string Signature { get; set; }
 
         //time zone
@@ -140,7 +141,7 @@ namespace Nop.Web.Models.Customer
 
         //EU VAT
         [NopResourceDisplayName("Account.Fields.VatNumber")]
-        [AllowHtml]
+        
         public string VatNumber { get; set; }
         public string VatNumberStatusNote { get; set; }
         public bool DisplayVatNumber { get; set; }

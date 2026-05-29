@@ -1,12 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
 
 namespace Nop.Web.Framework.Mvc
 {
     /// <summary>
     /// Base nopCommerce model
     /// </summary>
-    [ModelBinder(typeof(NopModelBinder))]
     public partial class BaseNopModel
     {
         public BaseNopModel()
@@ -15,17 +13,12 @@ namespace Nop.Web.Framework.Mvc
             PostInitialize();
         }
 
-        public virtual void BindModel(ControllerContext controllerContext, ModelBindingContext bindingContext)
-        {
-        }
-
         /// <summary>
         /// Developers can override this method in custom partial classes
         /// in order to add some custom initialization code to constructors
         /// </summary>
         protected virtual void PostInitialize()
         {
-            
         }
 
         /// <summary>

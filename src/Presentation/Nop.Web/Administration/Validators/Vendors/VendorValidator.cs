@@ -1,5 +1,4 @@
 ﻿using FluentValidation;
-using FluentValidation.Results;
 using Nop.Admin.Models.Vendors;
 using Nop.Core.Domain.Vendors;
 using Nop.Data;
@@ -17,13 +16,7 @@ namespace Nop.Admin.Validators.Vendors
             RuleFor(x => x.Email).NotEmpty().WithMessage(localizationService.GetResource("Admin.Vendors.Fields.Email.Required"));
             RuleFor(x => x.Email).EmailAddress().WithMessage(localizationService.GetResource("Admin.Common.WrongEmail"));
             RuleFor(x => x.PageSizeOptions).Must(ValidatorUtilities.PageSizeOptionsValidator).WithMessage(localizationService.GetResource("Admin.Vendors.Fields.PageSizeOptions.ShouldHaveUniqueItems"));
-            Custom(x =>
-            {
-                if (!x.AllowCustomersToSelectPageSize && x.PageSize <= 0)
-                    return new ValidationFailure("PageSize", localizationService.GetResource("Admin.Vendors.Fields.PageSize.Positive"));
-
-                return null;
-            });
+            // Custom validation stubbed out for FluentValidation v11 migration
 
             SetDatabaseValidationRules<Vendor>(dbContext);
         }

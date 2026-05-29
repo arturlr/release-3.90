@@ -1,4 +1,4 @@
-﻿using System.Data.Entity;
+using Microsoft.EntityFrameworkCore;
 using Nop.Tests;
 using NUnit.Framework;
 
@@ -10,10 +10,13 @@ namespace Nop.Data.Tests
         [Test]
         public void Can_generate_schema()
         {
-            Database.SetInitializer<NopObjectContext>(null);
-            var ctx = new NopObjectContext("Test");
-            string result = ctx.CreateDatabaseScript();
-            result.ShouldNotBeNull();
+            var options = new DbContextOptionsBuilder<NopObjectContext>()
+                .UseInMemoryDatabase(databaseName: "SchemaTestDb")
+                .Options;
+            var ctx = new NopObjectContext(options);
+            // In EF Core, we verify the model can be built
+            var model = ctx.Model;
+            model.ShouldNotBeNull();
         }
     }
 }

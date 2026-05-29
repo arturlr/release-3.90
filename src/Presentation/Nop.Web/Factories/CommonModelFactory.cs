@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Domain;
@@ -64,7 +64,7 @@ namespace Nop.Web.Factories
         private readonly ICacheManager _cacheManager;
         private readonly IPageHeadBuilder _pageHeadBuilder;
         private readonly IPictureService _pictureService;
-        private readonly HttpContextBase _httpContext;
+        private readonly Microsoft.AspNetCore.Http.IHttpContextAccessor _httpContext;
 
         private readonly CatalogSettings _catalogSettings;
         private readonly StoreInformationSettings _storeInformationSettings;
@@ -99,7 +99,7 @@ namespace Nop.Web.Factories
             ICacheManager cacheManager,
             IPageHeadBuilder pageHeadBuilder,
             IPictureService pictureService,
-            HttpContextBase httpContext,
+            Microsoft.AspNetCore.Http.IHttpContextAccessor httpContext,
             CatalogSettings catalogSettings,
             StoreInformationSettings storeInformationSettings,
             CommonSettings commonSettings,
@@ -559,7 +559,7 @@ namespace Nop.Web.Factories
         /// <param name="url">URL helper</param>
         /// <param name="id">Sitemap identifier; pass null to load the first sitemap or sitemap index file</param>
         /// <returns>Sitemap as string in XML format</returns>
-        public virtual string PrepareSitemapXml(UrlHelper url, int? id)
+        public virtual string PrepareSitemapXml(Microsoft.AspNetCore.Mvc.IUrlHelper url, int? id)
         {
             string cacheKey = string.Format(ModelCacheEventConsumer.SITEMAP_SEO_MODEL_KEY, id,
                 _workContext.WorkingLanguage.Id,
@@ -602,12 +602,12 @@ namespace Nop.Web.Factories
 
             //try loading a store specific favicon
             var faviconFileName = string.Format("favicon-{0}.ico", _storeContext.CurrentStore.Id);
-            var localFaviconPath = System.IO.Path.Combine(_httpContext.Request.PhysicalApplicationPath, faviconFileName);
+            var localFaviconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, faviconFileName);
             if (!System.IO.File.Exists(localFaviconPath))
             {
                 //try loading a generic favicon
                 faviconFileName = "favicon.ico";
-                localFaviconPath = System.IO.Path.Combine(_httpContext.Request.PhysicalApplicationPath, faviconFileName);
+                localFaviconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, faviconFileName);
                 if (!System.IO.File.Exists(localFaviconPath))
                 {
                     return model;

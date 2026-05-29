@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Directory;
 using Nop.Core.Domain.Directory;
@@ -46,7 +47,7 @@ namespace Nop.Admin.Controllers
 
         #region Methods
 
-        public virtual ActionResult List()
+        public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -58,7 +59,7 @@ namespace Nop.Admin.Controllers
 
 
         [HttpPost]
-        public virtual ActionResult Weights(DataSourceRequest command)
+        public virtual IActionResult Weights(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedKendoGridJson();
@@ -78,7 +79,7 @@ namespace Nop.Admin.Controllers
 		}
 
         [HttpPost]
-        public virtual ActionResult WeightUpdate(MeasureWeightModel model)
+        public virtual IActionResult WeightUpdate(MeasureWeightModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -99,7 +100,7 @@ namespace Nop.Admin.Controllers
         }
         
         [HttpPost]
-        public virtual ActionResult WeightAdd([Bind(Exclude="Id")] MeasureWeightModel model)
+        public virtual IActionResult WeightAdd(MeasureWeightModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -120,7 +121,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult WeightDelete(int id)
+        public virtual IActionResult WeightDelete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -143,7 +144,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult MarkAsPrimaryWeight(int id)
+        public virtual IActionResult MarkAsPrimaryWeight(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -163,7 +164,7 @@ namespace Nop.Admin.Controllers
         #region Dimensions
 
         [HttpPost]
-        public virtual ActionResult Dimensions(DataSourceRequest command)
+        public virtual IActionResult Dimensions(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedKendoGridJson();
@@ -183,7 +184,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult DimensionUpdate(MeasureDimensionModel model)
+        public virtual IActionResult DimensionUpdate(MeasureDimensionModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -204,7 +205,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult DimensionAdd([Bind(Exclude = "Id")] MeasureDimensionModel model)
+        public virtual IActionResult DimensionAdd(MeasureDimensionModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -225,7 +226,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult DimensionDelete(int id)
+        public virtual IActionResult DimensionDelete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -248,7 +249,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult MarkAsPrimaryDimension(int id)
+        public virtual IActionResult MarkAsPrimaryDimension(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -23,7 +23,7 @@ namespace Nop.Admin.Models.Logging
         public DateTime? CreatedOnTo { get; set; }
 
         [NopResourceDisplayName("Admin.System.Log.List.Message")]
-        [AllowHtml]
+        
         public string Message { get; set; }
 
         [NopResourceDisplayName("Admin.System.Log.List.LogLevel")]

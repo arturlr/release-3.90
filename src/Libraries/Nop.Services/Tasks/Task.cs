@@ -41,7 +41,7 @@ namespace Nop.Services.Tasks
 
         #region Utilities
 
-        private ITask CreateTask(ILifetimeScope scope)
+        private ITask CreateTask()
         {
             ITask task = null;
             if (this.Enabled)
@@ -50,10 +50,14 @@ namespace Nop.Services.Tasks
                 if (type2 != null)
                 {
                     object instance;
-                    if (!EngineContext.Current.ContainerManager.TryResolve(type2, scope, out instance))
+                    try
+                    {
+                        instance = EngineContext.Current.Resolve(type2);
+                    }
+                    catch
                     {
                         //not resolved
-                        instance = EngineContext.Current.ContainerManager.ResolveUnregistered(type2, scope);
+                        instance = EngineContext.Current.ResolveUnregistered(type2);
                     }
                     task = instance as ITask;
                 }
@@ -77,8 +81,8 @@ namespace Nop.Services.Tasks
             //because scope is generated each time it's requested
             //that's why we get one single scope here
             //this way we can also dispose resources once a task is completed
-            var scope = EngineContext.Current.ContainerManager.Scope();
-            var scheduleTaskService = EngineContext.Current.ContainerManager.Resolve<IScheduleTaskService>("", scope);
+            
+            var scheduleTaskService = EngineContext.Current.Resolve<IScheduleTaskService>();
             var scheduleTask = scheduleTaskService.GetTaskByType(this.Type);
 
             try
@@ -90,10 +94,10 @@ namespace Nop.Services.Tasks
                 if (ensureRunOnOneWebFarmInstance)
                 {
                     //is web farm enabled (multiple instances)?
-                    var nopConfig = EngineContext.Current.ContainerManager.Resolve<NopConfig>("", scope);
+                    var nopConfig = EngineContext.Current.Resolve<NopConfig>();
                     if (nopConfig.MultipleInstancesEnabled)
                     {
-                        var machineNameProvider = EngineContext.Current.ContainerManager.Resolve<IMachineNameProvider>("", scope);
+                        var machineNameProvider = EngineContext.Current.Resolve<IMachineNameProvider>();
                         var machineName = machineNameProvider.GetMachineName();
                         if (String.IsNullOrEmpty(machineName))
                         {
@@ -113,7 +117,7 @@ namespace Nop.Services.Tasks
                                 {
                                     //execute task
                                     taskExecuted = true;
-                                    var task = this.CreateTask(scope);
+                                    var task = this.CreateTask();
                                     if (task != null)
                                     {
                                         //update appropriate datetime properties
@@ -125,7 +129,7 @@ namespace Nop.Services.Tasks
                                 });
 
                                 //execute task with lock
-                                var redisWrapper = EngineContext.Current.ContainerManager.Resolve<IRedisConnectionWrapper>(scope: scope);
+                                var redisWrapper = EngineContext.Current.Resolve<IRedisConnectionWrapper>();
                                 if (!redisWrapper.PerformActionWithLock(scheduleTask.Type, TimeSpan.FromSeconds(expirationInSeconds), executeTaskAction))
                                     return;
                             }
@@ -150,7 +154,7 @@ namespace Nop.Services.Tasks
                 if (!taskExecuted)
                 {
                     //initialize and execute
-                    var task = this.CreateTask(scope);
+                    var task = this.CreateTask();
                     if (task != null)
                     {
                         this.LastStartUtc = DateTime.UtcNow;
@@ -171,7 +175,7 @@ namespace Nop.Services.Tasks
                 this.LastEndUtc = DateTime.UtcNow;
 
                 //log error
-                var logger = EngineContext.Current.ContainerManager.Resolve<ILogger>("", scope);
+                var logger = EngineContext.Current.Resolve<ILogger>();
                 logger.Error(string.Format("Error while running the '{0}' schedule task. {1}", this.Name, exc.Message), exc);
                 if (throwException)
                     throw;
@@ -188,7 +192,7 @@ namespace Nop.Services.Tasks
             //dispose all resources
             if (dispose)
             {
-                scope.Dispose();
+                // scope disposed via Autofac lifetime management
             }
         }
 

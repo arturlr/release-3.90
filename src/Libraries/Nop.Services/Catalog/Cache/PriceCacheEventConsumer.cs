@@ -85,7 +85,7 @@ namespace Nop.Services.Catalog.Cache
         public PriceCacheEventConsumer()
         {
             //TODO inject static cache manager using constructor
-            this._cacheManager = EngineContext.Current.ContainerManager.Resolve<ICacheManager>("nop_cache_static");
+            this._cacheManager = EngineContext.Current.Resolve<ICacheManager>();
         }
 
         //settings

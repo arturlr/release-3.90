@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Nop.Web.Factories;
 using Nop.Web.Framework;
 
@@ -25,11 +25,11 @@ namespace Nop.Web.Controllers
 
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        [AcceptVerbs(HttpVerbs.Get)]
-        public virtual ActionResult GetStatesByCountryId(string countryId, bool addSelectStateItem)
+        [HttpGet]
+        public virtual IActionResult GetStatesByCountryId(string countryId, bool addSelectStateItem)
         {
             var model = _countryModelFactory.GetStatesByCountryId(countryId, addSelectStateItem);
-            return Json(model, JsonRequestBehavior.AllowGet);
+            return Json(model);
         }
 
         #endregion

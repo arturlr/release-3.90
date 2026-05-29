@@ -1,35 +1,49 @@
-using System.Collections;
+using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
 
 namespace Nop.Core.Caching
 {
     /// <summary>
-    /// Represents a manager for caching during an HTTP request (short term caching)
+    /// Represents a manager for caching during an HTTP request (short term caching).
+    /// Uses HttpContext.Items which is scoped to the current request.
     /// </summary>
     public partial class PerRequestCacheManager : ICacheManager
     {
-        private readonly HttpContextBase _context;
+        #region Fields
+
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        #endregion
+
+        #region Ctor
 
         /// <summary>
         /// Ctor
         /// </summary>
-        /// <param name="context">Context</param>
-        public PerRequestCacheManager(HttpContextBase context)
+        /// <param name="httpContextAccessor">HTTP context accessor</param>
+        public PerRequestCacheManager(IHttpContextAccessor httpContextAccessor)
         {
-            this._context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
-        
-        /// <summary>
-        /// Creates a new instance of the NopRequestCache class
-        /// </summary>
-        protected virtual IDictionary GetItems()
-        {
-            if (_context != null)
-                return _context.Items;
 
-            return null;
+        #endregion
+
+        #region Utilities
+
+        /// <summary>
+        /// Gets the items dictionary from the current HttpContext
+        /// </summary>
+        protected virtual IDictionary<object, object> GetItems()
+        {
+            return _httpContextAccessor?.HttpContext?.Items;
         }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Gets or sets the value associated with the specified key.
@@ -43,7 +57,10 @@ namespace Nop.Core.Caching
             if (items == null)
                 return default(T);
 
-            return (T)items[key];
+            if (items.TryGetValue(key, out var value))
+                return (T)value;
+
+            return default(T);
         }
 
         /// <summary>
@@ -51,7 +68,7 @@ namespace Nop.Core.Caching
         /// </summary>
         /// <param name="key">key</param>
         /// <param name="data">Data</param>
-        /// <param name="cacheTime">Cache time</param>
+        /// <param name="cacheTime">Cache time (ignored for per-request cache)</param>
         public virtual void Set(string key, object data, int cacheTime)
         {
             var items = GetItems();
@@ -60,10 +77,7 @@ namespace Nop.Core.Caching
 
             if (data != null)
             {
-                if (items.Contains(key))
-                    items[key] = data;
-                else
-                    items.Add(key, data);
+                items[key] = data;
             }
         }
 
@@ -77,21 +91,18 @@ namespace Nop.Core.Caching
             var items = GetItems();
             if (items == null)
                 return false;
-            
-            return (items[key] != null);
+
+            return items.ContainsKey(key) && items[key] != null;
         }
 
         /// <summary>
         /// Removes the value with the specified key from the cache
         /// </summary>
-        /// <param name="key">/key</param>
+        /// <param name="key">key</param>
         public virtual void Remove(string key)
         {
             var items = GetItems();
-            if (items == null)
-                return;
-
-            items.Remove(key);
+            items?.Remove(key);
         }
 
         /// <summary>
@@ -104,7 +115,14 @@ namespace Nop.Core.Caching
             if (items == null)
                 return;
 
-            this.RemoveByPattern(pattern, items.Keys.Cast<object>().Select(p => p.ToString()));
+            var regex = new Regex(pattern, RegexOptions.Singleline | RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            var keysToRemove = items.Keys
+                .Select(k => k.ToString())
+                .Where(k => regex.IsMatch(k))
+                .ToList();
+
+            foreach (var key in keysToRemove)
+                items.Remove(key);
         }
 
         /// <summary>
@@ -113,10 +131,7 @@ namespace Nop.Core.Caching
         public virtual void Clear()
         {
             var items = GetItems();
-            if (items == null)
-                return;
-
-            items.Clear();
+            items?.Clear();
         }
 
         /// <summary>
@@ -125,5 +140,7 @@ namespace Nop.Core.Caching
         public virtual void Dispose()
         {
         }
+
+        #endregion
     }
 }

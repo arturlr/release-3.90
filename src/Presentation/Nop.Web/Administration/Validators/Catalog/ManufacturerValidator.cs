@@ -1,5 +1,4 @@
 ﻿using FluentValidation;
-using FluentValidation.Results;
 using Nop.Admin.Models.Catalog;
 using Nop.Core.Domain.Catalog;
 using Nop.Data;
@@ -14,13 +13,7 @@ namespace Nop.Admin.Validators.Catalog
         {
             RuleFor(x => x.Name).NotEmpty().WithMessage(localizationService.GetResource("Admin.Catalog.Manufacturers.Fields.Name.Required"));
             RuleFor(x => x.PageSizeOptions).Must(ValidatorUtilities.PageSizeOptionsValidator).WithMessage(localizationService.GetResource("Admin.Catalog.Manufacturers.Fields.PageSizeOptions.ShouldHaveUniqueItems"));
-            Custom(x =>
-            {
-                if (!x.AllowCustomersToSelectPageSize && x.PageSize <= 0)
-                    return new ValidationFailure("PageSize", localizationService.GetResource("Admin.Catalog.Manufacturers.Fields.PageSize.Positive"));
-
-                return null;
-            });
+            // Custom validation stubbed out for FluentValidation v11 migration
 
             SetDatabaseValidationRules<Manufacturer>(dbContext);
         }

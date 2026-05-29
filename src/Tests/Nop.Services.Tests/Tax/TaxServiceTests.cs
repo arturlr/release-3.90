@@ -14,7 +14,7 @@ using Nop.Services.Logging;
 using Nop.Services.Tax;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Tax
 {
@@ -44,19 +44,19 @@ namespace Nop.Services.Tests.Tax
             _workContext = null;
             _storeContext = null;
 
-            _addressService = MockRepository.GenerateMock<IAddressService>();
+            _addressService = Substitute.For<IAddressService>();
             //default tax address
-            _addressService.Expect(x => x.GetAddressById(_taxSettings.DefaultTaxAddressId)).Return(new Address { Id = _taxSettings.DefaultTaxAddressId });
+            _addressService.GetAddressById(_taxSettings.DefaultTaxAddressId).Returns(new Address { Id = _taxSettings.DefaultTaxAddressId });
 
             var pluginFinder = new PluginFinder();
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = Substitute.For<IEventPublisher>();
+// NSubstitute: void method - no setup needed
 
-            _geoLookupService = MockRepository.GenerateMock<IGeoLookupService>();
-            _countryService = MockRepository.GenerateMock<ICountryService>();
-            _stateProvinceService = MockRepository.GenerateMock<IStateProvinceService>();
-            _logger = MockRepository.GenerateMock<ILogger>();
+            _geoLookupService = Substitute.For<IGeoLookupService>();
+            _countryService = Substitute.For<ICountryService>();
+            _stateProvinceService = Substitute.For<IStateProvinceService>();
+            _logger = Substitute.For<ILogger>();
             _customerSettings = new CustomerSettings();
             _shippingSettings = new ShippingSettings();
             _addressSettings = new AddressSettings();

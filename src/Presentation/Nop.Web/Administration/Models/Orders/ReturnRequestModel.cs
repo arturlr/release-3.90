@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Validators.Orders;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Orders
 {
-    [Validator(typeof(ReturnRequestValidator))]
     public partial class ReturnRequestModel : BaseNopEntityModel
     {
         [NopResourceDisplayName("Admin.ReturnRequests.Fields.CustomNumber")]
@@ -30,22 +28,22 @@ namespace Nop.Admin.Models.Orders
         [NopResourceDisplayName("Admin.ReturnRequests.Fields.Quantity")]
         public int Quantity { get; set; }
 
-        [AllowHtml]
+        
         [NopResourceDisplayName("Admin.ReturnRequests.Fields.ReasonForReturn")]
         public string ReasonForReturn { get; set; }
 
-        [AllowHtml]
+        
         [NopResourceDisplayName("Admin.ReturnRequests.Fields.RequestedAction")]
         public string RequestedAction { get; set; }
 
-        [AllowHtml]
+        
         [NopResourceDisplayName("Admin.ReturnRequests.Fields.CustomerComments")]
         public string CustomerComments { get; set; }
 
         [NopResourceDisplayName("Admin.ReturnRequests.Fields.UploadedFile")]
         public Guid UploadedFileGuid { get; set; }
 
-        [AllowHtml]
+        
         [NopResourceDisplayName("Admin.ReturnRequests.Fields.StaffNotes")]
         public string StaffNotes { get; set; }
 

@@ -1,12 +1,10 @@
-﻿using System;
-using System.Runtime.Serialization;
+using System;
 
 namespace Nop.Core
 {
     /// <summary>
     /// Represents errors that occur during application execution
     /// </summary>
-    [Serializable]
     public class NopException : Exception
     {
         /// <summary>
@@ -28,21 +26,10 @@ namespace Nop.Core
         /// <summary>
         /// Initializes a new instance of the Exception class with a specified error message.
         /// </summary>
-		/// <param name="messageFormat">The exception message format.</param>
-		/// <param name="args">The exception message arguments.</param>
+        /// <param name="messageFormat">The exception message format.</param>
+        /// <param name="args">The exception message arguments.</param>
         public NopException(string messageFormat, params object[] args)
-			: base(string.Format(messageFormat, args))
-		{
-		}
-
-        /// <summary>
-        /// Initializes a new instance of the Exception class with serialized data.
-        /// </summary>
-        /// <param name="info">The SerializationInfo that holds the serialized object data about the exception being thrown.</param>
-        /// <param name="context">The StreamingContext that contains contextual information about the source or destination.</param>
-        protected NopException(SerializationInfo
-            info, StreamingContext context)
-            : base(info, context)
+            : base(string.Format(messageFormat, args))
         {
         }
 

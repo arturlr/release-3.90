@@ -212,7 +212,7 @@ namespace Nop.Services.Common
 
             if (_pdfSettings.LetterPageSizeEnabled)
             {
-                pageSize = PageSize.LETTER;
+                pageSize = PageSize.Letter;
             }
 
 
@@ -223,7 +223,7 @@ namespace Nop.Services.Common
             //fonts
             var titleFont = GetFont();
             titleFont.SetStyle(Font.BOLD);
-            titleFont.Color = BaseColor.BLACK;
+            titleFont.Color = BaseColor.Black;
             var font = GetFont();
             var attributesFont = GetFont();
             attributesFont.SetStyle(Font.ITALIC);
@@ -471,7 +471,7 @@ namespace Nop.Services.Common
 
                 //product name
                 var cellProductItem = new PdfPCell(new Phrase(_localizationService.GetResource("PDFInvoice.ProductName", lang.Id), font));
-                cellProductItem.BackgroundColor = BaseColor.LIGHT_GRAY;
+                cellProductItem.BackgroundColor = BaseColor.LightGray;
                 cellProductItem.HorizontalAlignment = Element.ALIGN_CENTER;
                 productsTable.AddCell(cellProductItem);
 
@@ -479,26 +479,26 @@ namespace Nop.Services.Common
                 if (_catalogSettings.ShowSkuOnProductDetailsPage)
                 {
                     cellProductItem = new PdfPCell(new Phrase(_localizationService.GetResource("PDFInvoice.SKU", lang.Id), font));
-                    cellProductItem.BackgroundColor = BaseColor.LIGHT_GRAY;
+                    cellProductItem.BackgroundColor = BaseColor.LightGray;
                     cellProductItem.HorizontalAlignment = Element.ALIGN_CENTER;
                     productsTable.AddCell(cellProductItem);
                 }
 
                 //price
                 cellProductItem = new PdfPCell(new Phrase(_localizationService.GetResource("PDFInvoice.ProductPrice", lang.Id), font));
-                cellProductItem.BackgroundColor = BaseColor.LIGHT_GRAY;
+                cellProductItem.BackgroundColor = BaseColor.LightGray;
                 cellProductItem.HorizontalAlignment = Element.ALIGN_CENTER;
                 productsTable.AddCell(cellProductItem);
 
                 //qty
                 cellProductItem = new PdfPCell(new Phrase(_localizationService.GetResource("PDFInvoice.ProductQuantity", lang.Id), font));
-                cellProductItem.BackgroundColor = BaseColor.LIGHT_GRAY;
+                cellProductItem.BackgroundColor = BaseColor.LightGray;
                 cellProductItem.HorizontalAlignment = Element.ALIGN_CENTER;
                 productsTable.AddCell(cellProductItem);
 
                 //total
                 cellProductItem = new PdfPCell(new Phrase(_localizationService.GetResource("PDFInvoice.ProductTotal", lang.Id), font));
-                cellProductItem.BackgroundColor = BaseColor.LIGHT_GRAY;
+                cellProductItem.BackgroundColor = BaseColor.LightGray;
                 cellProductItem.HorizontalAlignment = Element.ALIGN_CENTER;
                 productsTable.AddCell(cellProductItem);
 
@@ -864,13 +864,13 @@ namespace Nop.Services.Common
 
                         //created on
                         cellOrderNote = new PdfPCell(new Phrase(_localizationService.GetResource("PDFInvoice.OrderNotes.CreatedOn", lang.Id), font));
-                        cellOrderNote.BackgroundColor = BaseColor.LIGHT_GRAY;
+                        cellOrderNote.BackgroundColor = BaseColor.LightGray;
                         cellOrderNote.HorizontalAlignment = Element.ALIGN_CENTER;
                         notesTable.AddCell(cellOrderNote);
 
                         //note
                         cellOrderNote = new PdfPCell(new Phrase(_localizationService.GetResource("PDFInvoice.OrderNotes.Note", lang.Id), font));
-                        cellOrderNote.BackgroundColor = BaseColor.LIGHT_GRAY;
+                        cellOrderNote.BackgroundColor = BaseColor.LightGray;
                         cellOrderNote.HorizontalAlignment = Element.ALIGN_CENTER;
                         notesTable.AddCell(cellOrderNote);
 
@@ -998,7 +998,7 @@ namespace Nop.Services.Common
 
             if (_pdfSettings.LetterPageSizeEnabled)
             {
-                pageSize = PageSize.LETTER;
+                pageSize = PageSize.Letter;
             }
 
             var doc = new Document(pageSize);
@@ -1008,7 +1008,7 @@ namespace Nop.Services.Common
             //fonts
             var titleFont = GetFont();
             titleFont.SetStyle(Font.BOLD);
-            titleFont.Color = BaseColor.BLACK;
+            titleFont.Color = BaseColor.Black;
             var font = GetFont();
             var attributesFont = GetFont();
             attributesFont.SetStyle(Font.ITALIC);
@@ -1105,19 +1105,19 @@ namespace Nop.Services.Common
 
                 //product name
                 var cell = new PdfPCell(new Phrase(_localizationService.GetResource("PDFPackagingSlip.ProductName", lang.Id),font));
-                cell.BackgroundColor = BaseColor.LIGHT_GRAY;
+                cell.BackgroundColor = BaseColor.LightGray;
                 cell.HorizontalAlignment = Element.ALIGN_CENTER;
                 productsTable.AddCell(cell);
 
                 //SKU
                 cell = new PdfPCell(new Phrase(_localizationService.GetResource("PDFPackagingSlip.SKU", lang.Id), font));
-                cell.BackgroundColor = BaseColor.LIGHT_GRAY;
+                cell.BackgroundColor = BaseColor.LightGray;
                 cell.HorizontalAlignment = Element.ALIGN_CENTER;
                 productsTable.AddCell(cell);
 
                 //qty
                 cell = new PdfPCell(new Phrase(_localizationService.GetResource("PDFPackagingSlip.QTY", lang.Id), font));
-                cell.BackgroundColor = BaseColor.LIGHT_GRAY;
+                cell.BackgroundColor = BaseColor.LightGray;
                 cell.HorizontalAlignment = Element.ALIGN_CENTER;
                 productsTable.AddCell(cell);
 
@@ -1198,7 +1198,7 @@ namespace Nop.Services.Common
 
             if (_pdfSettings.LetterPageSizeEnabled)
             {
-                pageSize = PageSize.LETTER;
+                pageSize = PageSize.Letter;
             }
 
             var doc = new Document(pageSize);
@@ -1208,7 +1208,7 @@ namespace Nop.Services.Common
             //fonts
             var titleFont = GetFont();
             titleFont.SetStyle(Font.BOLD);
-            titleFont.Color = BaseColor.BLACK;
+            titleFont.Color = BaseColor.Black;
             var font = GetFont();
 
             int productNumber = 1;

@@ -1,5 +1,4 @@
-﻿using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using NUnit.Framework;
 
@@ -13,22 +12,20 @@ namespace Nop.Data.Tests
         [SetUp]
         public virtual void SetUp()
         {
-            //TODO fix compilation warning (below)
-            #pragma warning disable 0618
-            Database.DefaultConnectionFactory = new SqlCeConnectionFactory("System.Data.SqlServerCe.4.0");
-            context = new NopObjectContext(GetTestDbName());
-            context.Database.Delete();
-            context.Database.Create();
+            var options = new DbContextOptionsBuilder<NopObjectContext>()
+                .UseInMemoryDatabase(databaseName: "NopTestDb_" + System.Guid.NewGuid().ToString("N"))
+                .Options;
+            context = new NopObjectContext(options);
         }
 
-        protected string GetTestDbName()
+        [TearDown]
+        public virtual void TearDown()
         {
-            var testDbName = "Data Source=" + System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + @"\\Nop.Data.Tests.Db.sdf;Persist Security Info=False";
-            return testDbName;
-        }        
-        
+            context?.Dispose();
+        }
+
         /// <summary>
-        /// Persistance test helper
+        /// Persistence test helper
         /// </summary>
         /// <typeparam name="T">Entity type</typeparam>
         /// <param name="entity">Entity</param>
@@ -43,7 +40,10 @@ namespace Nop.Data.Tests
             if (disposeContext)
             {
                 context.Dispose();
-                context = new NopObjectContext(GetTestDbName());
+                var options = new DbContextOptionsBuilder<NopObjectContext>()
+                    .UseInMemoryDatabase(databaseName: "NopTestDb_Reload")
+                    .Options;
+                context = new NopObjectContext(options);
             }
 
             var fromDb = context.Set<T>().Find(id);

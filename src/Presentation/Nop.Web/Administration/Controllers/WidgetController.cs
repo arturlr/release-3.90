@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Routing;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Cms;
 using Nop.Core.Domain.Cms;
@@ -45,12 +46,12 @@ namespace Nop.Admin.Controllers
         
         #region Methods
         
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-        public virtual ActionResult List()
+        public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageWidgets))
                 return AccessDeniedView();
@@ -59,7 +60,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult List(DataSourceRequest command)
+        public virtual IActionResult List(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageWidgets))
                 return AccessDeniedKendoGridJson();
@@ -83,7 +84,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult WidgetUpdate([Bind(Exclude = "ConfigurationRouteValues")] WidgetModel model)
+        public virtual IActionResult WidgetUpdate(WidgetModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageWidgets))
                 return AccessDeniedView();
@@ -117,7 +118,7 @@ namespace Nop.Admin.Controllers
             return new NullJsonResult();
         }
         
-        public virtual ActionResult ConfigureWidget(string systemName)
+        public virtual IActionResult ConfigureWidget(string systemName)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageWidgets))
                 return AccessDeniedView();
@@ -137,8 +138,8 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
-        public virtual ActionResult WidgetsByZone(string widgetZone)
+        
+        public virtual IActionResult WidgetsByZone(string widgetZone)
         {
             //model
             var model = new List<RenderWidgetModel>();

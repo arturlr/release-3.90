@@ -1,3 +1,4 @@
+using Nop.Web.MVC.Tests;
 ﻿using System.Globalization;
 using System.Threading;
 using Nop.Tests;

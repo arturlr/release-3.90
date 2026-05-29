@@ -22,7 +22,7 @@ using Nop.Services.Stores;
 using Nop.Services.Tax;
 using Nop.Services.Vendors;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.ExportImport
 {
@@ -52,23 +52,23 @@ namespace Nop.Services.Tests.ExportImport
         [SetUp]
         public new void SetUp()
         {
-            _storeService = MockRepository.GenerateMock<IStoreService>();
-            _categoryService = MockRepository.GenerateMock<ICategoryService>();
-            _manufacturerService = MockRepository.GenerateMock<IManufacturerService>();
-            _customerService = MockRepository.GenerateMock<ICustomerService>();
-            _productAttributeService = MockRepository.GenerateMock<IProductAttributeService>();
-            _pictureService = MockRepository.GenerateMock<IPictureService>();
-            _newsLetterSubscriptionService = MockRepository.GenerateMock<INewsLetterSubscriptionService>();
+            _storeService = Substitute.For<IStoreService>();
+            _categoryService = Substitute.For<ICategoryService>();
+            _manufacturerService = Substitute.For<IManufacturerService>();
+            _customerService = Substitute.For<ICustomerService>();
+            _productAttributeService = Substitute.For<IProductAttributeService>();
+            _pictureService = Substitute.For<IPictureService>();
+            _newsLetterSubscriptionService = Substitute.For<INewsLetterSubscriptionService>();
             _productEditorSettings = new ProductEditorSettings();
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _vendorService = MockRepository.GenerateMock<IVendorService>();
-            _productTemplateService = MockRepository.GenerateMock<IProductTemplateService>();
-            _dateRangeService = MockRepository.GenerateMock<IDateRangeService>();
-            _taxCategoryService = MockRepository.GenerateMock<ITaxCategoryService>();
-            _measureService = MockRepository.GenerateMock<IMeasureService>();
+            _workContext = Substitute.For<IWorkContext>();
+            _vendorService = Substitute.For<IVendorService>();
+            _productTemplateService = Substitute.For<IProductTemplateService>();
+            _dateRangeService = Substitute.For<IDateRangeService>();
+            _taxCategoryService = Substitute.For<ITaxCategoryService>();
+            _measureService = Substitute.For<IMeasureService>();
             _catalogSettings=new CatalogSettings();
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
-            _customerAttributeFormatter = MockRepository.GenerateMock<ICustomerAttributeFormatter>();
+            _genericAttributeService = Substitute.For<IGenericAttributeService>();
+            _customerAttributeFormatter = Substitute.For<ICustomerAttributeFormatter>();
             _orderSettings = new OrderSettings();
 
 

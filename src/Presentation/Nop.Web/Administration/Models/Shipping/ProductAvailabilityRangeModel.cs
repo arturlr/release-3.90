@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Validators.Shipping;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Localization;
@@ -8,7 +7,6 @@ using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Shipping
 {
-    [Validator(typeof(ProductAvailabilityRangeValidator))]
     public partial class ProductAvailabilityRangeModel : BaseNopEntityModel, ILocalizedModel<ProductAvailabilityRangeLocalizedModel>
     {
         public ProductAvailabilityRangeModel()
@@ -17,7 +15,7 @@ namespace Nop.Admin.Models.Shipping
         }
 
         [NopResourceDisplayName("Admin.Configuration.Shipping.ProductAvailabilityRanges.Fields.Name")]
-        [AllowHtml]
+        
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Shipping.ProductAvailabilityRanges.Fields.DisplayOrder")]
@@ -31,7 +29,7 @@ namespace Nop.Admin.Models.Shipping
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Shipping.ProductAvailabilityRanges.Fields.Name")]
-        [AllowHtml]
+        
         public string Name { get; set; }
     }
 }

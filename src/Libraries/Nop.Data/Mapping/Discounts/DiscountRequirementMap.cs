@@ -1,18 +1,22 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Discounts;
 
 namespace Nop.Data.Mapping.Discounts
 {
     public partial class DiscountRequirementMap : NopEntityTypeConfiguration<DiscountRequirement>
     {
-        public DiscountRequirementMap()
+        public override void Configure(EntityTypeBuilder<DiscountRequirement> builder)
         {
-            this.ToTable("DiscountRequirement");
-            this.HasKey(requirement => requirement.Id);
+            builder.ToTable("DiscountRequirement");
+            builder.HasKey(requirement => requirement.Id);
 
-            this.Ignore(requirement => requirement.InteractionType);
-            this.HasMany(requirement => requirement.ChildRequirements)
-                .WithOptional()
-                .HasForeignKey(requirement => requirement.ParentId);
+            builder.Ignore(requirement => requirement.InteractionType);
+
+            builder.HasMany(requirement => requirement.ChildRequirements)
+                .WithOne()
+                .HasForeignKey(requirement => requirement.ParentId)
+                .IsRequired(false);
         }
     }
 }

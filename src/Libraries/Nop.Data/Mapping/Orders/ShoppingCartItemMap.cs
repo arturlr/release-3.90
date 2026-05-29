@@ -1,29 +1,33 @@
-﻿using Nop.Core.Domain.Orders;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Nop.Core.Domain.Orders;
 
 namespace Nop.Data.Mapping.Orders
 {
     public partial class ShoppingCartItemMap : NopEntityTypeConfiguration<ShoppingCartItem>
     {
-        public ShoppingCartItemMap()
+        public override void Configure(EntityTypeBuilder<ShoppingCartItem> builder)
         {
-            this.ToTable("ShoppingCartItem");
-            this.HasKey(sci => sci.Id);
+            builder.ToTable("ShoppingCartItem");
+            builder.HasKey(sci => sci.Id);
 
-            this.Property(sci => sci.CustomerEnteredPrice).HasPrecision(18, 4);
+            builder.Property(sci => sci.CustomerEnteredPrice).HasPrecision(18, 4);
 
-            this.Ignore(sci => sci.ShoppingCartType);
-            this.Ignore(sci => sci.IsFreeShipping);
-            this.Ignore(sci => sci.IsShipEnabled);
-            this.Ignore(sci => sci.AdditionalShippingCharge);
-            this.Ignore(sci => sci.IsTaxExempt);
+            builder.Ignore(sci => sci.ShoppingCartType);
+            builder.Ignore(sci => sci.IsFreeShipping);
+            builder.Ignore(sci => sci.IsShipEnabled);
+            builder.Ignore(sci => sci.AdditionalShippingCharge);
+            builder.Ignore(sci => sci.IsTaxExempt);
 
-            this.HasRequired(sci => sci.Customer)
+            builder.HasOne(sci => sci.Customer)
                 .WithMany(c => c.ShoppingCartItems)
-                .HasForeignKey(sci => sci.CustomerId);
+                .HasForeignKey(sci => sci.CustomerId)
+                .IsRequired();
 
-            this.HasRequired(sci => sci.Product)
+            builder.HasOne(sci => sci.Product)
                 .WithMany()
-                .HasForeignKey(sci => sci.ProductId);
+                .HasForeignKey(sci => sci.ProductId)
+                .IsRequired();
         }
     }
 }

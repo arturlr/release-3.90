@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Web;
+using System.Net;
 using Nop.Core;
 using Nop.Core.Domain;
 using Nop.Core.Domain.Blogs;
@@ -440,7 +440,7 @@ namespace Nop.Services.Messages
                 //product name
                 string productName = product.GetLocalized(x => x.Name, languageId);
 
-                sb.AppendLine("<td style=\"padding: 0.6em 0.4em;text-align: left;\">" + HttpUtility.HtmlEncode(productName));
+                sb.AppendLine("<td style=\"padding: 0.6em 0.4em;text-align: left;\">" + WebUtility.HtmlEncode(productName));
                 //add download link
                 if (_downloadService.IsDownloadAllowed(orderItem))
                 {
@@ -482,7 +482,7 @@ namespace Nop.Services.Messages
                     if (!String.IsNullOrEmpty(sku))
                     {
                         sb.AppendLine("<br />");
-                        sb.AppendLine(string.Format(_localizationService.GetResource("Messages.Order.Product(s).SKU", languageId), HttpUtility.HtmlEncode(sku)));
+                        sb.AppendLine(string.Format(_localizationService.GetResource("Messages.Order.Product(s).SKU", languageId), WebUtility.HtmlEncode(sku)));
                     }
                 }
                 sb.AppendLine("</td>");
@@ -705,7 +705,7 @@ namespace Nop.Services.Messages
                 var gcuhC = order.GiftCardUsageHistory;
                 foreach (var gcuh in gcuhC)
                 {
-                    string giftCardText = String.Format(_localizationService.GetResource("Messages.Order.GiftCardInfo", languageId), HttpUtility.HtmlEncode(gcuh.GiftCard.GiftCardCouponCode));
+                    string giftCardText = String.Format(_localizationService.GetResource("Messages.Order.GiftCardInfo", languageId), WebUtility.HtmlEncode(gcuh.GiftCard.GiftCardCouponCode));
                     string giftCardAmount = _priceFormatter.FormatPrice(-(_currencyService.ConvertCurrency(gcuh.UsedValue, order.CurrencyRate)), true, order.CustomerCurrencyCode, false, language);
                     sb.AppendLine(string.Format("<tr style=\"text-align:right;\"><td>&nbsp;</td><td colspan=\"2\" style=\"background-color: {0};padding:0.6em 0.4 em;\"><strong>{1}</strong></td> <td style=\"background-color: {0};padding:0.6em 0.4 em;\"><strong>{2}</strong></td></tr>", _templatesSettings.Color3, giftCardText, giftCardAmount));
                 }
@@ -764,7 +764,7 @@ namespace Nop.Services.Messages
                 //product name
                 string productName = product.GetLocalized(x => x.Name, languageId);
 
-                sb.AppendLine("<td style=\"padding: 0.6em 0.4em;text-align: left;\">" + HttpUtility.HtmlEncode(productName));
+                sb.AppendLine("<td style=\"padding: 0.6em 0.4em;text-align: left;\">" + WebUtility.HtmlEncode(productName));
                 //attributes
                 if (!String.IsNullOrEmpty(orderItem.AttributeDescription))
                 {
@@ -788,7 +788,7 @@ namespace Nop.Services.Messages
                     if (!String.IsNullOrEmpty(sku))
                     {
                         sb.AppendLine("<br />");
-                        sb.AppendLine(string.Format(_localizationService.GetResource("Messages.Order.Product(s).SKU", languageId), HttpUtility.HtmlEncode(sku)));
+                        sb.AppendLine(string.Format(_localizationService.GetResource("Messages.Order.Product(s).SKU", languageId), WebUtility.HtmlEncode(sku)));
                     }
                 }
                 sb.AppendLine("</td>");
@@ -906,7 +906,7 @@ namespace Nop.Services.Messages
             {
                 foreach (var item in customValues)
                 {
-                    sbCustomValues.AppendFormat("{0}: {1}", HttpUtility.HtmlEncode(item.Key), HttpUtility.HtmlEncode(item.Value != null ? item.Value.ToString() : string.Empty));
+                    sbCustomValues.AppendFormat("{0}: {1}", WebUtility.HtmlEncode(item.Key), WebUtility.HtmlEncode(item.Value != null ? item.Value.ToString() : string.Empty));
                     sbCustomValues.Append("<br />");
                 }
             }
@@ -1080,9 +1080,9 @@ namespace Nop.Services.Messages
 
             //note: we do not use SEO friendly URLS because we can get errors caused by having .(dot) in the URL (from the email address)
             //TODO add a method for getting URL (use routing because it handles all SEO friendly URLs)
-            var passwordRecoveryUrl = string.Format("{0}passwordrecovery/confirm?token={1}&email={2}", GetStoreUrl(), customer.GetAttribute<string>(SystemCustomerAttributeNames.PasswordRecoveryToken), HttpUtility.UrlEncode(customer.Email));
-            var accountActivationUrl = string.Format("{0}customer/activation?token={1}&email={2}", GetStoreUrl(), customer.GetAttribute<string>(SystemCustomerAttributeNames.AccountActivationToken), HttpUtility.UrlEncode(customer.Email));
-            var emailRevalidationUrl = string.Format("{0}customer/revalidateemail?token={1}&email={2}", GetStoreUrl(), customer.GetAttribute<string>(SystemCustomerAttributeNames.EmailRevalidationToken), HttpUtility.UrlEncode(customer.Email));
+            var passwordRecoveryUrl = string.Format("{0}passwordrecovery/confirm?token={1}&email={2}", GetStoreUrl(), customer.GetAttribute<string>(SystemCustomerAttributeNames.PasswordRecoveryToken), WebUtility.UrlEncode(customer.Email));
+            var accountActivationUrl = string.Format("{0}customer/activation?token={1}&email={2}", GetStoreUrl(), customer.GetAttribute<string>(SystemCustomerAttributeNames.AccountActivationToken), WebUtility.UrlEncode(customer.Email));
+            var emailRevalidationUrl = string.Format("{0}customer/revalidateemail?token={1}&email={2}", GetStoreUrl(), customer.GetAttribute<string>(SystemCustomerAttributeNames.EmailRevalidationToken), WebUtility.UrlEncode(customer.Email));
             var wishlistUrl = string.Format("{0}wishlist/{1}", GetStoreUrl(), customer.CustomerGuid);
 
             tokens.Add(new Token("Customer.PasswordRecoveryURL", passwordRecoveryUrl, true));

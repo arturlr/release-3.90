@@ -1,10 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
 using Autofac;
-using Autofac.Integration.Mvc;
-using AutoMapper;
+using Autofac.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core.Configuration;
 using Nop.Core.Infrastructure.DependencyManagement;
 using Nop.Core.Infrastructure.Mapper;
@@ -12,87 +14,120 @@ using Nop.Core.Infrastructure.Mapper;
 namespace Nop.Core.Infrastructure
 {
     /// <summary>
-    /// Engine
+    /// Represents the Nop engine that provides access to the application's services
     /// </summary>
     public class NopEngine : IEngine
     {
         #region Fields
 
-        private ContainerManager _containerManager;
+        private IServiceProvider _serviceProvider;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Gets the service provider
+        /// </summary>
+        public IServiceProvider ServiceProvider => _serviceProvider;
 
         #endregion
 
         #region Utilities
 
         /// <summary>
+        /// Get IServiceProvider
+        /// </summary>
+        /// <returns>IServiceProvider</returns>
+        protected IServiceProvider GetServiceProvider()
+        {
+            // Try to get the current HttpContext service provider for scoped services
+            if (ServiceProvider == null)
+                return null;
+
+            var accessor = ServiceProvider.GetService<IHttpContextAccessor>();
+            var context = accessor?.HttpContext;
+            return context?.RequestServices ?? ServiceProvider;
+        }
+
+        /// <summary>
         /// Run startup tasks
         /// </summary>
         protected virtual void RunStartupTasks()
         {
-            var typeFinder = _containerManager.Resolve<ITypeFinder>();
+            var typeFinder = Resolve<ITypeFinder>();
             var startUpTaskTypes = typeFinder.FindClassesOfType<IStartupTask>();
             var startUpTasks = new List<IStartupTask>();
+
             foreach (var startUpTaskType in startUpTaskTypes)
                 startUpTasks.Add((IStartupTask)Activator.CreateInstance(startUpTaskType));
-            //sort
-            startUpTasks = startUpTasks.AsQueryable().OrderBy(st => st.Order).ToList();
+
+            // Sort by order
+            startUpTasks = startUpTasks.OrderBy(st => st.Order).ToList();
+
             foreach (var startUpTask in startUpTasks)
                 startUpTask.Execute();
         }
 
         /// <summary>
-        /// Register dependencies
+        /// Register dependencies using Autofac
         /// </summary>
-        /// <param name="config">Config</param>
-        protected virtual void RegisterDependencies(NopConfig config)
+        /// <param name="services">Service collection</param>
+        /// <param name="typeFinder">Type finder</param>
+        /// <param name="nopConfig">Nop configuration</param>
+        protected virtual void RegisterDependencies(IServiceCollection services, ITypeFinder typeFinder, NopConfig nopConfig)
         {
+            // Create an Autofac container builder
             var builder = new ContainerBuilder();
-            
-            //dependencies
-            var typeFinder = new WebAppTypeFinder();
-            builder.RegisterInstance(config).As<NopConfig>().SingleInstance();
+
+            // Register engine and config
             builder.RegisterInstance(this).As<IEngine>().SingleInstance();
             builder.RegisterInstance(typeFinder).As<ITypeFinder>().SingleInstance();
+            builder.RegisterInstance(nopConfig).As<NopConfig>().SingleInstance();
 
-            //register dependencies provided by other assemblies
+            // Find dependency registrars provided by other assemblies
             var drTypes = typeFinder.FindClassesOfType<IDependencyRegistrar>();
             var drInstances = new List<IDependencyRegistrar>();
             foreach (var drType in drTypes)
-                drInstances.Add((IDependencyRegistrar) Activator.CreateInstance(drType));
-            //sort
-            drInstances = drInstances.AsQueryable().OrderBy(t => t.Order).ToList();
+                drInstances.Add((IDependencyRegistrar)Activator.CreateInstance(drType));
+
+            // Sort
+            drInstances = drInstances.OrderBy(t => t.Order).ToList();
+
+            // Register all dependencies
             foreach (var dependencyRegistrar in drInstances)
-                dependencyRegistrar.Register(builder, typeFinder, config);
+                dependencyRegistrar.Register(builder, typeFinder, nopConfig);
 
+            // Populate Autofac container from IServiceCollection
+            builder.Populate(services);
+
+            // Build the container and create the service provider
             var container = builder.Build();
-            this._containerManager = new ContainerManager(container);
-
-            //set dependency resolver
-            DependencyResolver.SetResolver(new AutofacDependencyResolver(container));
+            _serviceProvider = new AutofacServiceProvider(container);
         }
 
         /// <summary>
-        /// Register mapping
+        /// Register and configure AutoMapper
         /// </summary>
-        /// <param name="config">Config</param>
-        protected virtual void RegisterMapperConfiguration(NopConfig config)
+        /// <param name="services">Service collection</param>
+        /// <param name="typeFinder">Type finder</param>
+        protected virtual void RegisterMapperConfiguration(IServiceCollection services, ITypeFinder typeFinder)
         {
-            //dependencies
-            var typeFinder = new WebAppTypeFinder();
-
-            //register mapper configurations provided by other assemblies
+            // Find mapper configurations provided by other assemblies
             var mcTypes = typeFinder.FindClassesOfType<IMapperConfiguration>();
             var mcInstances = new List<IMapperConfiguration>();
             foreach (var mcType in mcTypes)
                 mcInstances.Add((IMapperConfiguration)Activator.CreateInstance(mcType));
-            //sort
-            mcInstances = mcInstances.AsQueryable().OrderBy(t => t.Order).ToList();
-            //get configurations
-            var configurationActions = new List<Action<IMapperConfigurationExpression>>();
-            foreach (var mc in mcInstances)
-                configurationActions.Add(mc.GetConfiguration());
-            //register
-            AutoMapperConfiguration.Init(configurationActions);
+
+            // Sort
+            mcInstances = mcInstances.OrderBy(t => t.Order).ToList();
+
+            // Get Profile instances and initialize (AutoMapper 13+ pattern)
+            var profiles = mcInstances
+                .Select(mc => mc.GetProfile())
+                .ToList();
+
+            AutoMapperConfiguration.Init(profiles);
         }
 
         #endregion
@@ -100,65 +135,104 @@ namespace Nop.Core.Infrastructure
         #region Methods
 
         /// <summary>
-        /// Initialize components and plugins in the nop environment.
+        /// Configure services for the application
         /// </summary>
-        /// <param name="config">Config</param>
-        public void Initialize(NopConfig config)
+        /// <param name="services">Service collection</param>
+        /// <param name="configuration">Application configuration</param>
+        public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
-            //register dependencies
-            RegisterDependencies(config);
+            // Bind NopConfig from configuration
+            var nopConfig = new NopConfig();
+            configuration.GetSection("Nop").Bind(nopConfig);
 
-            //register mapper configurations
-            RegisterMapperConfiguration(config);
+            // Create type finder
+            var typeFinder = new WebAppTypeFinder();
 
-            //startup tasks
-            if (!config.IgnoreStartupTasks)
+            // Register mapper configurations
+            RegisterMapperConfiguration(services, typeFinder);
+
+            // Register dependencies
+            RegisterDependencies(services, typeFinder, nopConfig);
+
+            // Run startup tasks
+            if (!nopConfig.IgnoreStartupTasks)
             {
                 RunStartupTasks();
             }
+        }
 
+        /// <summary>
+        /// Configure the HTTP request pipeline
+        /// </summary>
+        /// <param name="application">Application builder</param>
+        public void ConfigureRequestPipeline(IApplicationBuilder application)
+        {
+            // Update service provider to use the app's built provider
+            _serviceProvider = application.ApplicationServices;
         }
 
         /// <summary>
         /// Resolve dependency
         /// </summary>
-        /// <typeparam name="T">T</typeparam>
-        /// <returns></returns>
+        /// <typeparam name="T">Type of resolved service</typeparam>
+        /// <returns>Resolved service</returns>
         public T Resolve<T>() where T : class
-		{
-            return ContainerManager.Resolve<T>();
-		}
+        {
+            return (T)Resolve(typeof(T));
+        }
 
         /// <summary>
-        ///  Resolve dependency
+        /// Resolve dependency
         /// </summary>
-        /// <param name="type">Type</param>
-        /// <returns></returns>
+        /// <param name="type">Type of resolved service</param>
+        /// <returns>Resolved service</returns>
         public object Resolve(Type type)
         {
-            return ContainerManager.Resolve(type);
+            var sp = GetServiceProvider();
+            return sp?.GetService(type);
         }
-        
+
         /// <summary>
-        /// Resolve dependencies
+        /// Resolve all implementations of a service
         /// </summary>
-        /// <typeparam name="T">T</typeparam>
-        /// <returns></returns>
+        /// <typeparam name="T">Type of resolved services</typeparam>
+        /// <returns>Collection of resolved services</returns>
         public T[] ResolveAll<T>()
         {
-            return ContainerManager.ResolveAll<T>();
+            var sp = GetServiceProvider();
+            return sp?.GetServices<T>()?.ToArray() ?? Array.Empty<T>();
         }
 
-		#endregion
-
-        #region Properties
-
         /// <summary>
-        /// Container manager
+        /// Resolve unregistered service
         /// </summary>
-        public virtual ContainerManager ContainerManager
+        /// <param name="type">Type of service</param>
+        /// <returns>Resolved service</returns>
+        public object ResolveUnregistered(Type type)
         {
-            get { return _containerManager; }
+            Exception innerException = null;
+            var constructors = type.GetConstructors();
+            foreach (var constructor in constructors)
+            {
+                try
+                {
+                    var parameters = constructor.GetParameters();
+                    var parameterInstances = new List<object>();
+                    foreach (var parameter in parameters)
+                    {
+                        var service = Resolve(parameter.ParameterType);
+                        if (service == null)
+                            throw new NopException("Unknown dependency");
+                        parameterInstances.Add(service);
+                    }
+                    return Activator.CreateInstance(type, parameterInstances.ToArray());
+                }
+                catch (Exception ex)
+                {
+                    innerException = ex;
+                }
+            }
+            throw new NopException("No constructor was found that had all the dependencies satisfied.", innerException);
         }
 
         #endregion

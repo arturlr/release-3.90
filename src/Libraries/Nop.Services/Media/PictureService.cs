@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using ImageResizer;
+using SkiaSharp;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Catalog;
@@ -17,6 +16,16 @@ using Nop.Services.Seo;
 
 namespace Nop.Services.Media
 {
+    /// <summary>
+    /// Simple size struct to replace System.Drawing.Size
+    /// </summary>
+    public struct Size
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public Size(int width, int height) { Width = width; Height = height; }
+    }
+
     /// <summary>
     /// Picture service
     /// </summary>
@@ -401,20 +410,24 @@ namespace Nop.Services.Media
                 var thumbFilePath = GetThumbLocalPath(thumbFileName);
                 if (!GeneratedThumbExists(thumbFilePath, thumbFileName))
                 {
-                    using (var b = new Bitmap(filePath))
+                    using (var bitmap = SKBitmap.Decode(filePath))
                     {
-                        using (var destStream = new MemoryStream())
+                        if (bitmap != null)
                         {
-                            var newSize = CalculateDimensions(b.Size, targetSize);
-                            ImageBuilder.Current.Build(b, destStream, new ResizeSettings
+                            var newSize = CalculateDimensions(new Size(bitmap.Width, bitmap.Height), targetSize);
+                            using (var resized = bitmap.Resize(new SKImageInfo(newSize.Width, newSize.Height), SKFilterQuality.High))
                             {
-                                Width = newSize.Width,
-                                Height = newSize.Height,
-                                Scale = ScaleMode.Both,
-                                Quality = _mediaSettings.DefaultImageQuality
-                            });
-                            var destBinary = destStream.ToArray();
-                            SaveThumb(thumbFilePath, thumbFileName, "", destBinary);
+                                if (resized != null)
+                                {
+                                    using (var image = SKImage.FromBitmap(resized))
+                                    using (var destStream = new MemoryStream())
+                                    {
+                                        image.Encode(SKEncodedImageFormat.Png, _mediaSettings.DefaultImageQuality).SaveTo(destStream);
+                                        var destBinary = destStream.ToArray();
+                                        SaveThumb(thumbFilePath, thumbFileName, "", destBinary);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -521,13 +534,12 @@ namespace Nop.Services.Media
                         {
                             using (var stream = new MemoryStream(pictureBinary))
                             {
-                                Bitmap b = null;
+                                SKBitmap b = null;
                                 try
                                 {
-                                    //try-catch to ensure that picture binary is really OK. Otherwise, we can get "Parameter is not valid" exception if binary is corrupted for some reasons
-                                    b = new Bitmap(stream);
+                                    b = SKBitmap.Decode(stream);
                                 }
-                                catch (ArgumentException exc)
+                                catch (Exception exc)
                                 {
                                     _logger.Error(string.Format("Error generating picture thumb. ID={0}", picture.Id),
                                         exc);
@@ -539,19 +551,24 @@ namespace Nop.Services.Media
                                     return url;
                                 }
 
-                                using (var destStream = new MemoryStream())
+                                var newSize = CalculateDimensions(new Size(b.Width, b.Height), targetSize);
+                                using (var resized = b.Resize(new SKImageInfo(newSize.Width, newSize.Height), SKFilterQuality.High))
                                 {
-                                    var newSize = CalculateDimensions(b.Size, targetSize);
-                                    ImageBuilder.Current.Build(b, destStream, new ResizeSettings
+                                    if (resized != null)
                                     {
-                                        Width = newSize.Width,
-                                        Height = newSize.Height,
-                                        Scale = ScaleMode.Both,
-                                        Quality = _mediaSettings.DefaultImageQuality
-                                    });
-                                    pictureBinaryResized = destStream.ToArray();
-                                    b.Dispose();
+                                        using (var image = SKImage.FromBitmap(resized))
+                                        using (var destStream = new MemoryStream())
+                                        {
+                                            image.Encode(SKEncodedImageFormat.Jpeg, _mediaSettings.DefaultImageQuality).SaveTo(destStream);
+                                            pictureBinaryResized = destStream.ToArray();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        pictureBinaryResized = pictureBinary.ToArray();
+                                    }
                                 }
+                                b.Dispose();
                             }
                         }
                         else
@@ -796,15 +813,28 @@ namespace Nop.Services.Media
         /// <returns>Picture binary or throws an exception</returns>
         public virtual byte[] ValidatePicture(byte[] pictureBinary, string mimeType)
         {
-            using (var destStream = new MemoryStream())
+            using (var bitmap = SKBitmap.Decode(pictureBinary))
             {
-                ImageBuilder.Current.Build(pictureBinary, destStream, new ResizeSettings
+                if (bitmap == null)
+                    return pictureBinary;
+
+                var maxSize = _mediaSettings.MaximumImageSize;
+                if (bitmap.Width <= maxSize && bitmap.Height <= maxSize)
+                    return pictureBinary;
+
+                var newSize = CalculateDimensions(new Size(bitmap.Width, bitmap.Height), maxSize);
+                using (var resized = bitmap.Resize(new SKImageInfo(newSize.Width, newSize.Height), SKFilterQuality.High))
                 {
-                    MaxWidth = _mediaSettings.MaximumImageSize,
-                    MaxHeight = _mediaSettings.MaximumImageSize,
-                    Quality = _mediaSettings.DefaultImageQuality
-                });
-                return destStream.ToArray();
+                    if (resized == null)
+                        return pictureBinary;
+
+                    using (var image = SKImage.FromBitmap(resized))
+                    using (var destStream = new MemoryStream())
+                    {
+                        image.Encode(SKEncodedImageFormat.Jpeg, _mediaSettings.DefaultImageQuality).SaveTo(destStream);
+                        return destStream.ToArray();
+                    }
+                }
             }
         }
 
@@ -867,12 +897,12 @@ namespace Nop.Services.Media
 
                 int pageIndex = 0;
                 const int pageSize = 400;
-                var originalProxyCreationEnabled = _dbContext.ProxyCreationEnabled;
+                // ProxyCreationEnabled not available in EF Core
                 try
                 {
                     //we set this property for performance optimization
                     //it could be critical if you we have several thousand pictures
-                    _dbContext.ProxyCreationEnabled = false;
+                    // EF Core does not use proxy creation by default
 
                     while (true)
                     {
@@ -920,7 +950,7 @@ namespace Nop.Services.Media
                 }
                 finally
                 {
-                    _dbContext.ProxyCreationEnabled = originalProxyCreationEnabled;
+                    // No proxy creation to restore in EF Core
                 }
             }
         }

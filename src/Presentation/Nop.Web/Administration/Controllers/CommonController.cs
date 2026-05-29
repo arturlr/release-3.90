@@ -6,9 +6,9 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
-using System.Web;
-using System.Web.Configuration;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Common;
 using Nop.Core;
@@ -59,7 +59,7 @@ namespace Nop.Admin.Controllers
         private readonly ISettingService _settingService;
         private readonly IStoreService _storeService;
         private readonly CatalogSettings _catalogSettings;
-        private readonly HttpContextBase _httpContext;
+        private readonly HttpContext _httpContext;
         private readonly IMaintenanceService _maintenanceService;
 
         #endregion
@@ -86,7 +86,7 @@ namespace Nop.Admin.Controllers
             ISettingService settingService,
             IStoreService storeService,
             CatalogSettings catalogSettings,
-            HttpContextBase httpContext,
+            HttpContext httpContext,
             IMaintenanceService maintenanceService)
         {
             this._paymentService = paymentService;
@@ -163,7 +163,7 @@ namespace Nop.Admin.Controllers
 
         #region Methods
 
-        public virtual ActionResult SystemInfo()
+        public virtual IActionResult SystemInfo()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
@@ -190,19 +190,17 @@ namespace Nop.Admin.Controllers
             model.UtcTime = DateTime.UtcNow;
             model.CurrentUserTime = _dateTimeHelper.ConvertToUserTime(DateTime.Now);
             model.HttpHost = _webHelper.ServerVariables("HTTP_HOST");
-            foreach (var key in _httpContext.Request.ServerVariables.AllKeys)
+            foreach (var key in new string[] { "SERVER_NAME", "SERVER_PORT", "HTTP_HOST" })
             {
-                if (key.StartsWith("ALL_")) continue;
-
                 model.ServerVariables.Add(new SystemInfoModel.ServerVariableModel
                 {
                     Name = key,
-                    Value = _httpContext.Request.ServerVariables[key]
+                    Value = "" // ServerVariables not available in ASP.NET Core
                 });
             }
             //Environment.GetEnvironmentVariable("USERNAME");
 
-            var trustLevel = CommonHelper.GetTrustLevel();
+            var trustLevel = "Full"; // Trust levels not applicable in ASP.NET Core
 
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -214,7 +212,7 @@ namespace Nop.Admin.Controllers
                 //ensure no exception is thrown
                 try
                 {
-                    var canGetLocation = trustLevel >= AspNetHostingPermissionLevel.High && !assembly.IsDynamic;
+                    var canGetLocation = !assembly.IsDynamic; // Trust levels not applicable in ASP.NET Core
                     loadedAssembly.Location = canGetLocation ? assembly.Location : null;
                     loadedAssembly.IsDebug = IsDebugAssembly(assembly);
                     loadedAssembly.BuildDate = canGetLocation ? (DateTime?)GetBuildDate(assembly, TimeZoneInfo.Local) : null;
@@ -226,7 +224,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult Warnings()
+        public virtual IActionResult Warnings()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
@@ -455,10 +453,10 @@ namespace Nop.Admin.Controllers
             //machine key
             try
             {
-                var machineKeySection = ConfigurationManager.GetSection("system.web/machineKey") as MachineKeySection;
+                object machineKeySection = null; // MachineKey not used in ASP.NET Core
                 var machineKeySpecified = machineKeySection != null &&
-                    !String.IsNullOrEmpty(machineKeySection.DecryptionKey) &&
-                    !machineKeySection.DecryptionKey.StartsWith("AutoGenerate", StringComparison.InvariantCultureIgnoreCase);
+                    !String.IsNullOrEmpty("") &&
+                    !"".StartsWith("AutoGenerate", StringComparison.InvariantCultureIgnoreCase);
 
                 if (!machineKeySpecified)
                 {
@@ -485,7 +483,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
         
-        public virtual ActionResult Maintenance()
+        public virtual IActionResult Maintenance()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
@@ -499,7 +497,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Maintenance")]
         [FormValueRequired("delete-guests")]
-        public virtual ActionResult MaintenanceDeleteGuests(MaintenanceModel model)
+        public virtual IActionResult MaintenanceDeleteGuests(MaintenanceModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
@@ -517,7 +515,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Maintenance")]
         [FormValueRequired("delete-abondoned-carts")]
-        public virtual ActionResult MaintenanceDeleteAbandonedCarts(MaintenanceModel model)
+        public virtual IActionResult MaintenanceDeleteAbandonedCarts(MaintenanceModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
@@ -530,7 +528,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Maintenance")]
         [FormValueRequired("delete-exported-files")]
-        public virtual ActionResult MaintenanceDeleteFiles(MaintenanceModel model)
+        public virtual IActionResult MaintenanceDeleteFiles(MaintenanceModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
@@ -543,7 +541,7 @@ namespace Nop.Admin.Controllers
 
 
             model.DeleteExportedFiles.NumberOfDeletedFiles = 0;
-            string path = Path.Combine(this.Request.PhysicalApplicationPath, "content\\files\\exportimport");
+            string path = Path.Combine(CommonHelper.MapPath("~/"), "content\\files\\exportimport");
             foreach (var fullPath in Directory.GetFiles(path))
             {
                 try
@@ -570,7 +568,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult BackupFiles(DataSourceRequest command)
+        public virtual IActionResult BackupFiles(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedKendoGridJson();
@@ -590,7 +588,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Maintenance")]
         [FormValueRequired("backup-database")]
-        public virtual ActionResult BackupDatabase(MaintenanceModel model)
+        public virtual IActionResult BackupDatabase(MaintenanceModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
@@ -610,7 +608,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Maintenance")]
         [FormValueRequired("backupFileName", "action")]
-        public virtual ActionResult BackupAction(MaintenanceModel model)
+        public virtual IActionResult BackupAction(MaintenanceModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
@@ -646,8 +644,8 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
-        public virtual ActionResult LanguageSelector()
+        
+        public virtual IActionResult LanguageSelector()
         {
             var model = new LanguageSelectorModel();
             model.CurrentLanguage = _workContext.WorkingLanguage.ToModel();
@@ -657,7 +655,7 @@ namespace Nop.Admin.Controllers
                 .ToList();
             return PartialView(model);
         }
-        public virtual ActionResult SetLanguage(int langid, string returnUrl = "")
+        public virtual IActionResult SetLanguage(int langid, string returnUrl = "")
         {
             var language = _languageService.GetLanguageById(langid);
             if (language != null)
@@ -675,12 +673,12 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ClearCache(string returnUrl = "")
+        public virtual IActionResult ClearCache(string returnUrl = "")
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
 
-            var cacheManager = EngineContext.Current.ContainerManager.Resolve<ICacheManager>("nop_cache_static");
+            var cacheManager = EngineContext.Current.Resolve<ICacheManager>();
             cacheManager.Clear();
 
             //home page
@@ -693,7 +691,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult RestartApplication(string returnUrl = "")
+        public virtual IActionResult RestartApplication(string returnUrl = "")
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
@@ -711,7 +709,7 @@ namespace Nop.Admin.Controllers
         }
 
 
-        public virtual ActionResult SeNames()
+        public virtual IActionResult SeNames()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
@@ -720,7 +718,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
         [HttpPost]
-        public virtual ActionResult SeNames(DataSourceRequest command, UrlRecordListModel model)
+        public virtual IActionResult SeNames(DataSourceRequest command, UrlRecordListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedKendoGridJson();
@@ -788,7 +786,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
         [HttpPost]
-        public virtual ActionResult DeleteSelectedSeNames(ICollection<int> selectedIds)
+        public virtual IActionResult DeleteSelectedSeNames(ICollection<int> selectedIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
@@ -802,8 +800,8 @@ namespace Nop.Admin.Controllers
         }
 
 
-        [ChildActionOnly]
-        public virtual ActionResult PopularSearchTermsReport()
+        
+        public virtual IActionResult PopularSearchTermsReport()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return Content("");
@@ -811,7 +809,7 @@ namespace Nop.Admin.Controllers
             return PartialView();
         }
         [HttpPost]
-        public virtual ActionResult PopularSearchTermsReport(DataSourceRequest command)
+        public virtual IActionResult PopularSearchTermsReport(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return AccessDeniedKendoGridJson();
@@ -831,8 +829,8 @@ namespace Nop.Admin.Controllers
 
 
         //action displaying notification (warning) to a store owner that "limit per store" feature is ignored
-        [ChildActionOnly]
-        public virtual ActionResult MultistoreDisabledWarning()
+        
+        public virtual IActionResult MultistoreDisabledWarning()
         {
             //default setting
             bool enabled = _catalogSettings.IgnoreStoreLimitations;
@@ -857,8 +855,8 @@ namespace Nop.Admin.Controllers
             return PartialView();
         }
         //action displaying notification (warning) to a store owner that "ACL rules" feature is ignored
-        [ChildActionOnly]
-        public virtual ActionResult AclDisabledWarning()
+        
+        public virtual IActionResult AclDisabledWarning()
         {
             //default setting
             bool enabled = _catalogSettings.IgnoreAcl;
@@ -884,20 +882,20 @@ namespace Nop.Admin.Controllers
         }
 
         //action displaying notification (warning) to a store owner that entered SE URL already exists
-        [ValidateInput(false)]
-        public virtual ActionResult UrlReservedWarning(string entityId, string entityName, string seName)
+        
+        public virtual IActionResult UrlReservedWarning(string entityId, string entityName, string seName)
         {
             if (string.IsNullOrEmpty(seName))
-                return Json(new { Result = string.Empty }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = string.Empty });
 
             int parsedEntityId;
             int.TryParse(entityId, out parsedEntityId);
             var validatedSeName = SeoExtensions.ValidateSeName(parsedEntityId, entityName, seName, null, false);
 
             if (seName.Equals(validatedSeName, StringComparison.InvariantCultureIgnoreCase))
-                return Json(new { Result = string.Empty }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = string.Empty });
 
-            return Json(new { Result = string.Format(_localizationService.GetResource("Admin.System.Warnings.URL.Reserved"), validatedSeName) }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = string.Format(_localizationService.GetResource("Admin.System.Warnings.URL.Reserved"), validatedSeName) });
         }
 
         #endregion

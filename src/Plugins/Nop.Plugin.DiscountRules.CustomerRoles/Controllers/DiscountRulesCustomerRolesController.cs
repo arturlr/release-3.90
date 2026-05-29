@@ -1,6 +1,7 @@
+using Microsoft.AspNetCore.Mvc.Rendering;
 ﻿using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core.Domain.Discounts;
 using Nop.Plugin.DiscountRules.CustomerRoles.Models;
 using Nop.Services.Configuration;
@@ -30,7 +31,7 @@ namespace Nop.Plugin.DiscountRules.CustomerRoles.Controllers
             this._permissionService = permissionService;
         }
 
-        public ActionResult Configure(int discountId, int? discountRequirementId)
+        public IActionResult Configure(int discountId, int? discountRequirementId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageDiscounts))
                 return Content("Access denied");
@@ -67,7 +68,7 @@ namespace Nop.Plugin.DiscountRules.CustomerRoles.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult Configure(int discountId, int? discountRequirementId, int customerRoleId)
+        public IActionResult Configure(int discountId, int? discountRequirementId, int customerRoleId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageDiscounts))
                 return Content("Access denied");
@@ -97,7 +98,7 @@ namespace Nop.Plugin.DiscountRules.CustomerRoles.Controllers
 
                 _settingService.SetSetting(string.Format("DiscountRequirement.MustBeAssignedToCustomerRole-{0}", discountRequirement.Id), customerRoleId);
             }
-            return Json(new { Result = true, NewRequirementId = discountRequirement.Id }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = true, NewRequirementId = discountRequirement.Id });
         }
     }
 }

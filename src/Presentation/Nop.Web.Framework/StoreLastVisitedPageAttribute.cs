@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Customers;
@@ -10,20 +10,16 @@ namespace Nop.Web.Framework
 {
     public class StoreLastVisitedPageAttribute : ActionFilterAttribute
     {
-        public override void OnActionExecuting(ActionExecutingContext filterContext)
+        public override void OnActionExecuting(ActionExecutingContext context)
         {
             if (!DataSettingsHelper.DatabaseIsInstalled())
                 return;
 
-            if (filterContext == null || filterContext.HttpContext == null || filterContext.HttpContext.Request == null)
-                return;
-
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
+            if (context == null || context.HttpContext == null || context.HttpContext.Request == null)
                 return;
 
             //only GET requests
-            if (!String.Equals(filterContext.HttpContext.Request.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(context.HttpContext.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
                 return;
 
             var customerSettings = EngineContext.Current.Resolve<CustomerSettings>();

@@ -1,12 +1,13 @@
+using Microsoft.AspNetCore.Mvc.Rendering;
 ﻿using System.Collections.Generic;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using Microsoft.AspNetCore.Mvc;
+
 using Nop.Core.Domain.Forums;
 using Nop.Web.Validators.Boards;
 
 namespace Nop.Web.Models.Boards
 {
-    [Validator(typeof(EditForumTopicValidator))]
+    
     public partial class EditForumTopicModel
     {
         public EditForumTopicModel()
@@ -24,9 +25,9 @@ namespace Nop.Web.Models.Boards
 
         public int TopicTypeId { get; set; }
         public EditorType ForumEditor { get; set; }
-        [AllowHtml]
+        
         public string Subject { get; set; }
-        [AllowHtml]
+        
         public string Text { get; set; }
         
         public bool IsCustomerAllowedToSetTopicPriority { get; set; }

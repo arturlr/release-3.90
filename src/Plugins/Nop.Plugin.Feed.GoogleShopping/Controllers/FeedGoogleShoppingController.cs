@@ -1,8 +1,9 @@
+using Microsoft.AspNetCore.Mvc.Rendering;
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Stores;
 using Nop.Core.Plugins;
@@ -63,8 +64,7 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
             this._permissionService = permissionService;
         }
 
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             var model = new FeedGoogleShoppingModel();
             model.ProductPictureSize = _googleShoppingSettings.ProductPictureSize;
@@ -89,7 +89,7 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
             //file paths
             foreach (var store in _storeService.GetAllStores())
             {
-                var localFilePath = System.IO.Path.Combine(HttpRuntime.AppDomainAppPath, "content\\files\\exportimport", store.Id + "-" + _googleShoppingSettings.StaticFileName);
+                var localFilePath = System.IO.Path.Combine(AppContext.BaseDirectory, "content\\files\\exportimport", store.Id + "-" + _googleShoppingSettings.StaticFileName);
                 if (System.IO.File.Exists(localFilePath))
                     model.GeneratedFiles.Add(new FeedGoogleShoppingModel.GeneratedFileModel
                     {
@@ -102,9 +102,8 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
         }
 
         [HttpPost]
-        [ChildActionOnly]
         [FormValueRequired("save")]
-        public ActionResult Configure(FeedGoogleShoppingModel model)
+        public IActionResult Configure(FeedGoogleShoppingModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -128,9 +127,8 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
         }
 
         [HttpPost, ActionName("Configure")]
-        [ChildActionOnly]
         [FormValueRequired("generate")]
-        public ActionResult GenerateFeed(FeedGoogleShoppingModel model)
+        public IActionResult GenerateFeed(FeedGoogleShoppingModel model)
         {
             try
             {
@@ -166,7 +164,7 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult GoogleProductList(DataSourceRequest command)
+        public IActionResult GoogleProductList(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
                 return ErrorForKendoGridJson("Access denied");
@@ -208,7 +206,7 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult GoogleProductUpdate(FeedGoogleShoppingModel.GoogleProductModel model)
+        public IActionResult GoogleProductUpdate(FeedGoogleShoppingModel.GoogleProductModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
                 return Content("Access denied");

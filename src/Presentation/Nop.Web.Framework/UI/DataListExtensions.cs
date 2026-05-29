@@ -1,58 +1,41 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Web;
-using System.Web.Mvc;
-using System.Web.WebPages;
+using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Web.Framework.UI
 {
     public static class DataListExtensions
     {
-        public static IHtmlString DataList<T>(this HtmlHelper helper, IEnumerable<T> items, int columns,
-            Func<T, HelperResult> template) 
-            where T : class
+        public static IHtmlContent DataList<T>(this IHtmlHelper html,
+            IEnumerable<T> data, int columns, Func<T, IHtmlContent> template)
         {
-            if (items == null)
-                return new HtmlString("");
+            if (data == null)
+                return HtmlString.Empty;
 
             var sb = new StringBuilder();
             sb.Append("<table>");
-
             int cellIndex = 0;
-
-            foreach (T item in items)
+            foreach (var item in data)
             {
-                if (cellIndex == 0)
-                    sb.Append("<tr>");
-
-                sb.Append("<td");
-                sb.Append(">");
-                
-                sb.Append(template(item).ToHtmlString());
+                if (cellIndex == 0) sb.Append("<tr>");
+                sb.Append("<td>");
+                using (var writer = new System.IO.StringWriter())
+                {
+                    template(item).WriteTo(writer, System.Text.Encodings.Web.HtmlEncoder.Default);
+                    sb.Append(writer.ToString());
+                }
                 sb.Append("</td>");
-
                 cellIndex++;
-
-                if (cellIndex == columns)
-                {
-                    cellIndex = 0;
-                    sb.Append("</tr>");
-                }
+                if (cellIndex >= columns) { sb.Append("</tr>"); cellIndex = 0; }
             }
-
-            if (cellIndex != 0)
+            if (cellIndex > 0)
             {
-                for (; cellIndex < columns; cellIndex++)
-                {
-                    sb.Append("<td>&nbsp;</td>");
-                }
-
+                for (int i = cellIndex; i < columns; i++) sb.Append("<td></td>");
                 sb.Append("</tr>");
             }
-
             sb.Append("</table>");
-
             return new HtmlString(sb.ToString());
         }
     }

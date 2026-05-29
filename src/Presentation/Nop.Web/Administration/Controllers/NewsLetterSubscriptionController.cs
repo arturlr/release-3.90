@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Http;
 ﻿using System;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Messages;
 using Nop.Core;
@@ -48,12 +50,12 @@ namespace Nop.Admin.Controllers
             this._importManager = importManager;
 		}
 
-		public virtual ActionResult Index()
+		public virtual IActionResult Index()
 		{
 			return RedirectToAction("List");
 		}
 
-		public virtual ActionResult List()
+		public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageNewsletterSubscribers))
                 return AccessDeniedView();
@@ -91,7 +93,7 @@ namespace Nop.Admin.Controllers
 		}
 
 		[HttpPost]
-		public virtual ActionResult SubscriptionList(DataSourceRequest command, NewsLetterSubscriptionListModel model)
+		public virtual IActionResult SubscriptionList(DataSourceRequest command, NewsLetterSubscriptionListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageNewsletterSubscribers))
                 return AccessDeniedKendoGridJson();
@@ -128,7 +130,7 @@ namespace Nop.Admin.Controllers
 		}
 
         [HttpPost]
-        public virtual ActionResult SubscriptionUpdate([Bind(Exclude = "CreatedOn")] NewsLetterSubscriptionModel model)
+        public virtual IActionResult SubscriptionUpdate(NewsLetterSubscriptionModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageNewsletterSubscribers))
                 return AccessDeniedView();
@@ -147,7 +149,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult SubscriptionDelete(int id)
+        public virtual IActionResult SubscriptionDelete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageNewsletterSubscribers))
                 return AccessDeniedView();
@@ -162,7 +164,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("List")]
         [FormValueRequired("exportcsv")]
-		public virtual ActionResult ExportCsv(NewsLetterSubscriptionListModel model)
+		public virtual IActionResult ExportCsv(NewsLetterSubscriptionListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageNewsletterSubscribers))
                 return AccessDeniedView();
@@ -188,17 +190,17 @@ namespace Nop.Admin.Controllers
 		}
 
         [HttpPost]
-        public virtual ActionResult ImportCsv(FormCollection form)
+        public virtual IActionResult ImportCsv(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageNewsletterSubscribers))
                 return AccessDeniedView();
 
             try
             {
-                var file = Request.Files["importcsvfile"];
-                if (file != null && file.ContentLength > 0)
+                var file = Request.Form.Files["importcsvfile"];
+                if (file != null && file.Length > 0)
                 {
-                    int count = _importManager.ImportNewsletterSubscribersFromTxt(file.InputStream);
+                    int count = _importManager.ImportNewsletterSubscribersFromTxt(file.OpenReadStream());
                     SuccessNotification(String.Format(_localizationService.GetResource("Admin.Promotions.NewsLetterSubscriptions.ImportEmailsSuccess"), count));
                     return RedirectToAction("List");
                 }

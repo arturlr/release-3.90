@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -60,18 +60,18 @@ namespace Nop.Admin.Models.Orders
         public int ProductId { get; set; }
 
         [NopResourceDisplayName("Admin.Orders.List.BillingEmail")]
-        [AllowHtml]
+        
         public string BillingEmail { get; set; }
 
         [NopResourceDisplayName("Admin.Orders.List.BillingLastName")]
-        [AllowHtml]
+        
         public string BillingLastName { get; set; }
 
         [NopResourceDisplayName("Admin.Orders.List.BillingCountry")]
         public int BillingCountryId { get; set; }
 
         [NopResourceDisplayName("Admin.Orders.List.OrderNotes")]
-        [AllowHtml]
+        
         public string OrderNotes { get; set; }
 
         [NopResourceDisplayName("Admin.Orders.List.GoDirectlyToNumber")]

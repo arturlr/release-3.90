@@ -6,7 +6,7 @@ using Nop.Core.Infrastructure.DependencyManagement;
 using Nop.Services.Catalog;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Catalog
 {
@@ -18,14 +18,11 @@ namespace Nop.Services.Tests.Catalog
         [SetUp]
         public new void SetUp()
         {
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workContext.Expect(w => w.WorkingCurrency).Return(new Currency { RoundingType = RoundingType.Rounding001 });
+            _workContext = Substitute.For<IWorkContext>();
+            _workContext.WorkingCurrency.Returns(new Currency { RoundingType = RoundingType.Rounding001 });
             
-            var nopEngine = MockRepository.GenerateMock<NopEngine>();
-            var containe = MockRepository.GenerateMock<IContainer>();
-            var containerManager = MockRepository.GenerateMock<ContainerManager>(containe);
-            nopEngine.Expect(x => x.ContainerManager).Return(containerManager);
-            containerManager.Expect(x => x.Resolve<IWorkContext>()).Return(_workContext);
+            var nopEngine = Substitute.For<NopEngine>();
+            nopEngine.Resolve<IWorkContext>().Returns(_workContext);
             EngineContext.Replace(nopEngine);
         }
 

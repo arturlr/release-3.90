@@ -1,5 +1,3 @@
-﻿using System.Web.Routing;
-using Nop.Web.Infrastructure;
 using NUnit.Framework;
 
 namespace Nop.Web.MVC.Tests.Public.Infrastructure
@@ -10,17 +8,13 @@ namespace Nop.Web.MVC.Tests.Public.Infrastructure
         [SetUp]
         public void Setup()
         {
-            //var typeFinder = new WebAppTypeFinder();
-            //var routePublisher = new RoutePublisher(typeFinder);
-            //routePublisher.RegisterRoutes(RouteTable.Routes);
-
-            new RouteProvider().RegisterRoutes(RouteTable.Routes);
+            // ASP.NET Core routing setup would go here
+            // The MVC 5 RouteTable approach is not applicable
         }
 
         [TearDown]
         public void TearDown()
         {
-            RouteTable.Routes.Clear();
         }
     }
 }

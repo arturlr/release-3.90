@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Plugin.Widgets.NivoSlider.Infrastructure.Cache;
@@ -54,8 +54,7 @@ namespace Nop.Plugin.Widgets.NivoSlider.Controllers
         }
 
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             //load settings for a chosen store scope
             var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
@@ -101,8 +100,7 @@ namespace Nop.Plugin.Widgets.NivoSlider.Controllers
 
         [HttpPost]
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure(ConfigurationModel model)
+        public IActionResult Configure(ConfigurationModel model)
         {
             //load settings for a chosen store scope
             var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
@@ -178,8 +176,7 @@ namespace Nop.Plugin.Widgets.NivoSlider.Controllers
             return Configure();
         }
 
-        [ChildActionOnly]
-        public ActionResult PublicInfo(string widgetZone, object additionalData = null)
+        public IActionResult PublicInfo(string widgetZone, object additionalData = null)
         {
             var nivoSliderSettings = _settingService.LoadSetting<NivoSliderSettings>(_storeContext.CurrentStore.Id);
 
