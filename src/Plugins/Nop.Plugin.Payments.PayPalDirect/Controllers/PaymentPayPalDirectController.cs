@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
@@ -120,8 +122,7 @@ namespace Nop.Plugin.Payments.PayPalDirect.Controllers
         #region Methods
 
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             //load settings for a chosen store scope
             var storeScope = GetActiveStoreScopeConfiguration(_storeService, _workContext);
@@ -157,8 +158,7 @@ namespace Nop.Plugin.Payments.PayPalDirect.Controllers
         [HttpPost, ActionName("Configure")]
         [FormValueRequired("save")]
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure(ConfigurationModel model)
+        public IActionResult Configure(ConfigurationModel model)
         {
             if (!ModelState.IsValid)
                 return Configure();
@@ -200,8 +200,7 @@ namespace Nop.Plugin.Payments.PayPalDirect.Controllers
         [HttpPost, ActionName("Configure")]
         [FormValueRequired("createwebhook")]
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult GetWebhookId(ConfigurationModel model)
+        public IActionResult GetWebhookId(ConfigurationModel model)
         {
             var payPalDirectPaymentSettings = _settingService.LoadSetting<PayPalDirectPaymentSettings>();
             payPalDirectPaymentSettings.WebhookId = CreateWebHook();
@@ -213,8 +212,7 @@ namespace Nop.Plugin.Payments.PayPalDirect.Controllers
             return Configure();
         }
 
-        [ChildActionOnly]
-        public ActionResult PaymentInfo()
+        public IActionResult PaymentInfo()
         {
             var model = new PaymentInfoModel();
 
@@ -264,7 +262,7 @@ namespace Nop.Plugin.Payments.PayPalDirect.Controllers
         }
 
         [NonAction]
-        public override IList<string> ValidatePaymentForm(FormCollection form)
+        public override IList<string> ValidatePaymentForm(IFormCollection form)
         {
             var warnings = new List<string>();
 
@@ -285,7 +283,7 @@ namespace Nop.Plugin.Payments.PayPalDirect.Controllers
         }
 
         [NonAction]
-        public override ProcessPaymentRequest GetPaymentInfo(FormCollection form)
+        public override ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
         {
             return new ProcessPaymentRequest
             { 
@@ -298,7 +296,7 @@ namespace Nop.Plugin.Payments.PayPalDirect.Controllers
         }
 
         [HttpPost]
-        public ActionResult WebhookEventsHandler()
+        public IActionResult WebhookEventsHandler()
         {
             var storeScope = GetActiveStoreScopeConfiguration(_storeService, _workContext);
             var payPalDirectPaymentSettings = _settingService.LoadSetting<PayPalDirectPaymentSettings>(storeScope);
@@ -306,7 +304,7 @@ namespace Nop.Plugin.Payments.PayPalDirect.Controllers
             try
             {
                 var requestBody = string.Empty;
-                using (var stream = new StreamReader(Request.InputStream))
+                using (var stream = new StreamReader(Request.Body))
                 {
                     requestBody = stream.ReadToEnd();
                 }
@@ -316,7 +314,7 @@ namespace Nop.Plugin.Payments.PayPalDirect.Controllers
                 if (!WebhookEvent.ValidateReceivedEvent(apiContext, Request.Headers, requestBody, payPalDirectPaymentSettings.WebhookId))
                 {
                     _logger.Error("PayPal error: webhook event was not validated");
-                    return new HttpStatusCodeResult(HttpStatusCode.OK);
+                    return new StatusCodeResult((int)HttpStatusCode.OK);
                 }
 
                 var webhook = JsonFormatter.ConvertFromJson<WebhookEvent>(requestBody);
@@ -414,7 +412,7 @@ namespace Nop.Plugin.Payments.PayPalDirect.Controllers
                     }
                 }
 
-                return new HttpStatusCodeResult(HttpStatusCode.OK);
+                return new StatusCodeResult((int)HttpStatusCode.OK);
             }
             catch (PayPal.PayPalException exc)
             {
@@ -433,7 +431,7 @@ namespace Nop.Plugin.Payments.PayPalDirect.Controllers
                 else
                     _logger.Error(exc.InnerException != null ? exc.InnerException.Message : exc.Message);
 
-                return new HttpStatusCodeResult(HttpStatusCode.OK);
+                return new StatusCodeResult((int)HttpStatusCode.OK);
             }
         }
 

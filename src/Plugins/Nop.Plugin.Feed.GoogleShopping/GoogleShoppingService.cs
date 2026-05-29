@@ -4,8 +4,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Web;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using System.Xml;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
@@ -107,7 +107,7 @@ namespace Nop.Plugin.Feed.GoogleShopping
             //http://www.atensoftware.com/p90.php?q=182
 
             if (isHtmlEncoded)
-                input = HttpUtility.HtmlDecode(input);
+                input = System.Net.WebUtility.HtmlDecode(input);
 
             input = input.Replace("¼", "");
             input = input.Replace("½", "");
@@ -122,7 +122,7 @@ namespace Nop.Plugin.Feed.GoogleShopping
             //input = input.Replace("°", "");
             
             if (isHtmlEncoded)
-                input = HttpUtility.HtmlEncode(input);
+                input = System.Net.WebUtility.HtmlEncode(input);
 
             return input;
         }
@@ -644,7 +644,7 @@ namespace Nop.Plugin.Feed.GoogleShopping
         {
             if (store == null)
                 throw new ArgumentNullException("store");
-            string filePath = Path.Combine(HttpRuntime.AppDomainAppPath, "content\\files\\exportimport", store.Id + "-" + _googleShoppingSettings.StaticFileName);
+            string filePath = Path.Combine(AppContext.BaseDirectory, "content\\files\\exportimport", store.Id + "-" + _googleShoppingSettings.StaticFileName);
             using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
             {
                 GenerateFeed(fs, store);

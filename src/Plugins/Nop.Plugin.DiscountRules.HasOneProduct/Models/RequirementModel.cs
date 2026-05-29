@@ -1,5 +1,6 @@
+using Microsoft.AspNetCore.Mvc.Rendering;
 ﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -28,7 +29,6 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct.Models
             }
 
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductName")]
-            [AllowHtml]
             public string SearchProductName { get; set; }
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchCategory")]
             public int SearchCategoryId { get; set; }

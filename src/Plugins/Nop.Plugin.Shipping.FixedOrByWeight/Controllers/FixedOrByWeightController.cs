@@ -1,8 +1,9 @@
+using Microsoft.AspNetCore.Mvc.Rendering;
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
 using Nop.Plugin.Shipping.FixedOrByWeight.Domain;
@@ -67,17 +68,8 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
             this._measureSettings = measureSettings;
         }
 
-        protected override void Initialize(System.Web.Routing.RequestContext requestContext)
-        {
-            //little hack here
-            //always set culture to 'en-US' (Telerik has a bug related to editing decimal values in other cultures). Like currently it's done for admin area in Global.asax.cs
-            CommonHelper.SetTelerikCulture();
 
-            base.Initialize(requestContext);
-        }
-
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             var model = new ConfigurationModel
             {
@@ -89,7 +81,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult Configure(ConfigurationModel model)
+        public IActionResult Configure(ConfigurationModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return Content("Access denied");
@@ -102,7 +94,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
         }
 
         [HttpPost]
-        public ActionResult SaveMode(bool value)
+        public IActionResult SaveMode(bool value)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return Content("Access denied");
@@ -114,13 +106,13 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
             return Json(new
             {
                 Result = true
-            }, JsonRequestBehavior.AllowGet);
+            });
         }
 
         #region Fixed rate
 
         [HttpPost]
-        public ActionResult FixedShippingRateList(DataSourceRequest command)
+        public IActionResult FixedShippingRateList(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return ErrorForKendoGridJson("Access denied");
@@ -145,7 +137,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult UpdateFixedShippingRate(FixedRateModel model)
+        public IActionResult UpdateFixedShippingRate(FixedRateModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return Content("Access denied");
@@ -171,7 +163,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult RateByWeightList(DataSourceRequest command)
+        public IActionResult RateByWeightList(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return ErrorForKendoGridJson("Access denied");
@@ -239,10 +231,10 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
             return Json(gridModel);
         }
 
-        public ActionResult AddRateByWeighPopup()
+        public IActionResult AddRateByWeighPopup()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.Path.Value + Request.QueryString.Value });
 
             var model = new ShippingByWeightModel
             {
@@ -280,10 +272,10 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
         
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult AddRateByWeighPopup(string btnId, string formId, ShippingByWeightModel model)
+        public IActionResult AddRateByWeighPopup(string btnId, string formId, ShippingByWeightModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.Path.Value + Request.QueryString.Value });
 
             var sbw = new ShippingByWeightRecord
             {
@@ -309,10 +301,10 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
             return View("~/Plugins/Shipping.FixedOrByWeight/Views/AddRateByWeightPopup.cshtml", model);
         }
         
-        public ActionResult EditRateByWeighPopup(int id)
+        public IActionResult EditRateByWeighPopup(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.Path.Value + Request.QueryString.Value });
 
             var sbw = _shippingByWeightService.GetById(id);
             if (sbw == null)
@@ -374,10 +366,10 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult EditRateByWeighPopup(string btnId, string formId, ShippingByWeightModel model)
+        public IActionResult EditRateByWeighPopup(string btnId, string formId, ShippingByWeightModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.Path.Value + Request.QueryString.Value });
 
             var sbw = _shippingByWeightService.GetById(model.Id);
             if (sbw == null)
@@ -407,7 +399,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult DeleteRateByWeigh(int id)
+        public IActionResult DeleteRateByWeigh(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return Content("Access denied");

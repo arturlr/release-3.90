@@ -6,8 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Web.Routing;
-using System.Web.Services.Protocols;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Shipping;
@@ -638,15 +637,15 @@ namespace Nop.Plugin.Shipping.Fedex
 
                         // Get discounted rates if option is selected
                         if (_fedexSettings.ApplyDiscounts &
-                            (shipmentDetail.ShipmentRateDetail.RateType == ReturnedRateType.PAYOR_ACCOUNT_PACKAGE ||
-                            shipmentDetail.ShipmentRateDetail.RateType == ReturnedRateType.PAYOR_ACCOUNT_SHIPMENT))
+                            (shipmentDetail.ShipmentRateDetail.RateType == RatedRateType.PAYOR_ACCOUNT_PACKAGE ||
+                            shipmentDetail.ShipmentRateDetail.RateType == RatedRateType.PAYOR_ACCOUNT_SHIPMENT))
                         {
                             decimal amount = ConvertChargeToPrimaryCurrency(shipmentDetail.ShipmentRateDetail.TotalNetCharge, requestedShipmentCurrency);
                             shippingOption.Rate = amount + _fedexSettings.AdditionalHandlingCharge;
                             break;
                         }
-                        else if (shipmentDetail.ShipmentRateDetail.RateType == ReturnedRateType.PAYOR_LIST_PACKAGE ||
-                            shipmentDetail.ShipmentRateDetail.RateType == ReturnedRateType.PAYOR_LIST_SHIPMENT) // Get List Rates (not discount rates)
+                        else if (shipmentDetail.ShipmentRateDetail.RateType == RatedRateType.PAYOR_LIST_PACKAGE ||
+                            shipmentDetail.ShipmentRateDetail.RateType == RatedRateType.PAYOR_LIST_SHIPMENT) // Get List Rates (not discount rates)
                         {
                             decimal amount = ConvertChargeToPrimaryCurrency(shipmentDetail.ShipmentRateDetail.TotalNetCharge, requestedShipmentCurrency);
                             shippingOption.Rate = amount + _fedexSettings.AdditionalHandlingCharge;

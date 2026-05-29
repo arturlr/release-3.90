@@ -1,31 +1,18 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Web.Framework.Mvc.Routes;
 
 namespace Nop.Plugin.Pickup.PickupInStore
 {
     public partial class RouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
         {
-            routes.MapRoute("Plugin.Pickup.PickupInStore.Create",
-                 "Plugins/PickupInStore/Create",
-                 new { controller = "PickupInStore", action = "Create", },
-                 new[] { "Nop.Plugin.Pickup.PickupInStore.Controllers" }
-            );
-
-            routes.MapRoute("Plugin.Pickup.PickupInStore.Edit",
-                 "Plugins/PickupInStore/Edit",
-                 new { controller = "PickupInStore", action = "Edit" },
-                 new[] { "Nop.Plugin.Pickup.PickupInStore.Controllers" }
-            );
+            // Endpoint routing is configured via attribute routing in .NET Core
         }
+
         public int Priority
         {
-            get
-            {
-                return 0;
-            }
+            get { return 0; }
         }
     }
 }

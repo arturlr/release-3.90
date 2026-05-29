@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Http;
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
@@ -68,8 +69,7 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
         }
         
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             //load settings for a chosen store scope
             var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
@@ -109,8 +109,7 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
 
         [HttpPost]
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure(ConfigurationModel model)
+        public IActionResult Configure(ConfigurationModel model)
         {
             if (!ModelState.IsValid)
                 return Configure();
@@ -156,38 +155,35 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
         }
 
         //action displaying notification (warning) to a store owner about inaccurate PayPal rounding
-        [ValidateInput(false)]
-        public ActionResult RoundingWarning(bool passProductNamesAndTotals)
+        public IActionResult RoundingWarning(bool passProductNamesAndTotals)
         {
             //prices and total aren't rounded, so display warning
             if (passProductNamesAndTotals && !_shoppingCartSettings.RoundPricesDuringCalculation)
-                return Json(new { Result = _localizationService.GetResource("Plugins.Payments.PayPalStandard.RoundingWarning") }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = _localizationService.GetResource("Plugins.Payments.PayPalStandard.RoundingWarning") });
 
-            return Json(new { Result = string.Empty }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = string.Empty });
         }
 
-        [ChildActionOnly]
-        public ActionResult PaymentInfo()
+        public IActionResult PaymentInfo()
         {
             return View("~/Plugins/Payments.PayPalStandard/Views/PaymentInfo.cshtml");
         }
 
         [NonAction]
-        public override IList<string> ValidatePaymentForm(FormCollection form)
+        public override IList<string> ValidatePaymentForm(IFormCollection form)
         {
             var warnings = new List<string>();
             return warnings;
         }
 
         [NonAction]
-        public override ProcessPaymentRequest GetPaymentInfo(FormCollection form)
+        public override ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
         {
             var paymentInfo = new ProcessPaymentRequest();
             return paymentInfo;
         }
 
-        [ValidateInput(false)]
-        public ActionResult PDTHandler(FormCollection form)
+        public IActionResult PDTHandler(IFormCollection form)
         {
             var tx = _webHelper.QueryString<string>("tx");
             Dictionary<string, string> values;
@@ -335,10 +331,9 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
             }
         }
 
-        [ValidateInput(false)]
-        public ActionResult IPNHandler()
+        public IActionResult IPNHandler()
         {
-            byte[] param = Request.BinaryRead(Request.ContentLength);
+            using var reader = new System.IO.StreamReader(Request.Body); byte[] param = Encoding.ASCII.GetBytes(reader.ReadToEndAsync().GetAwaiter().GetResult());
             string strRequest = Encoding.ASCII.GetString(param);
             Dictionary<string, string> values;
 
@@ -628,7 +623,7 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
             return Content("");
         }
 
-        public ActionResult CancelOrder(FormCollection form)
+        public IActionResult CancelOrder(IFormCollection form)
         {
             if (_payPalStandardPaymentSettings.ReturnFromPayPalWithoutPaymentRedirectsToOrderDetailsPage)
             {
