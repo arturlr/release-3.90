@@ -20,22 +20,15 @@
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
 
     <!-- AutoMapper (Profile-based, no static API) -->
-    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <PackageReference Include="AutoMapper" Version="16.1.1" />
 
-    <!-- Caching -->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.0" />
+    <!-- Caching - Redis (IMemoryCache is included via FrameworkReference) -->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
     <PackageReference Include="RedLock.net" Version="2.3.2" />
 
     <!-- Serialization -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-
-    <!-- Configuration & Hosting -->
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
   </ItemGroup>
 
 </Project>

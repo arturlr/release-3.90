@@ -13,7 +13,7 @@ namespace Nop.Core.Infrastructure.Mapper
         private static IMapper _mapper;
 
         /// <summary>
-        /// Initialize mapper with Profile instances (AutoMapper 13+ pattern)
+        /// Initialize mapper with Profile instances (AutoMapper 16+ pattern)
         /// </summary>
         /// <param name="profiles">List of AutoMapper profiles</param>
         public static void Init(List<Profile> profiles)
@@ -25,7 +25,7 @@ namespace Nop.Core.Infrastructure.Mapper
             {
                 foreach (var profile in profiles)
                     cfg.AddProfile(profile);
-            });
+            }, loggerFactory: null);
 
             _mapper = _mapperConfiguration.CreateMapper();
         }
