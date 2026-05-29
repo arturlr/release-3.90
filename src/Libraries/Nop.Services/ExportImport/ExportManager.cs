@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -165,7 +164,7 @@ namespace Nop.Services.ExportImport
         protected virtual void SetCaptionStyle(ExcelStyle style)
         {
             style.Fill.PatternType = ExcelFillStyle.Solid;
-            style.Fill.BackgroundColor.SetColor(Color.FromArgb(184, 204, 228));
+            style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(184, 204, 228));
             style.Font.Bold = true;
         }
 

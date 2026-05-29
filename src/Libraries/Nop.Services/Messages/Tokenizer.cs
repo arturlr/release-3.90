@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Dynamic;
+using System.Linq.Dynamic.Core;
+using System.Net;
 using System.Text.RegularExpressions;
-using System.Web;
 using Nop.Core.Domain.Messages;
 
 namespace Nop.Services.Messages
@@ -91,7 +91,7 @@ namespace Nop.Services.Messages
                 {
                     //do not encode URLs
                     if (htmlEncode && !token.NeverHtmlEncoded)
-                        tokenValue = HttpUtility.HtmlEncode(tokenValue);
+                        tokenValue = WebUtility.HtmlEncode(tokenValue.ToString());
                 }
 
                 template = Replace(template, string.Format(@"%{0}%", token.Key), tokenValue.ToString());
@@ -136,7 +136,7 @@ namespace Nop.Services.Messages
                     {
                         //replace tokens (string values are wrap in quotes)
                         var conditionString = ReplaceTokens(statement.Condition, tokens, stringWithQuotes: true);
-                        conditionIsMet = new[] { statement }.Where(conditionString).Any();
+                        conditionIsMet = new[] { statement }.AsQueryable().Where(conditionString).Any();
                     }
                     catch { }
 

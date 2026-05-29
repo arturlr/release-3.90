@@ -1,22 +1,19 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Infrastructure;
 using Nop.Services.Localization;
 
 namespace Nop.Services
 {
-    /// <summary>
-    /// Extensions
-    /// </summary>
     public static class Extensions
     {
         public static SelectList ToSelectList<TEnum>(this TEnum enumObj,
            bool markCurrentAsSelected = true, int[] valuesToExclude = null, bool useLocalization = true) where TEnum : struct
         {
-            if (!typeof(TEnum).IsEnum) throw new ArgumentException("An Enumeration type is required.", "enumObj");
+            if (!typeof(TEnum).IsEnum) throw new ArgumentException("An Enumeration type is required.", nameof(enumObj));
 
             var localizationService = EngineContext.Current.Resolve<ILocalizationService>();
             var workContext = EngineContext.Current.Resolve<IWorkContext>();

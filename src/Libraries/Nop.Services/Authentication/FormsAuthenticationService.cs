@@ -1,143 +1,76 @@
 using System;
-using System.Web;
-using System.Web.Security;
+using Microsoft.AspNetCore.Http;
 using Nop.Core.Domain.Customers;
 using Nop.Services.Customers;
 
 namespace Nop.Services.Authentication
 {
-    /// <summary>
-    /// Authentication service
-    /// </summary>
     public partial class FormsAuthenticationService : IAuthenticationService
     {
-        #region Fields
-
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ICustomerService _customerService;
         private readonly CustomerSettings _customerSettings;
-        private readonly TimeSpan _expirationTimeSpan;
-
         private Customer _cachedCustomer;
 
-        #endregion
+        private const string CustomerCookieName = ".Nop.Customer";
 
-        #region Ctor
-
-        /// <summary>
-        /// Ctor
-        /// </summary>
-        /// <param name="httpContext">HTTP context</param>
-        /// <param name="customerService">Customer service</param>
-        /// <param name="customerSettings">Customer settings</param>
-        public FormsAuthenticationService(HttpContextBase httpContext,
+        public FormsAuthenticationService(IHttpContextAccessor httpContextAccessor,
             ICustomerService customerService, CustomerSettings customerSettings)
         {
-            this._httpContext = httpContext;
-            this._customerService = customerService;
-            this._customerSettings = customerSettings;
-            this._expirationTimeSpan = FormsAuthentication.Timeout;
+            _httpContextAccessor = httpContextAccessor;
+            _customerService = customerService;
+            _customerSettings = customerSettings;
         }
 
-        #endregion
-
-        #region Utilities
-
-        /// <summary>
-        /// Get authenticated customer
-        /// </summary>
-        /// <param name="ticket">Ticket</param>
-        /// <returns>Customer</returns>
-        protected virtual Customer GetAuthenticatedCustomerFromTicket(FormsAuthenticationTicket ticket)
-        {
-            if (ticket == null)
-                throw new ArgumentNullException("ticket");
-
-            var usernameOrEmail = ticket.UserData;
-
-            if (String.IsNullOrWhiteSpace(usernameOrEmail))
-                return null;
-            var customer = _customerSettings.UsernamesEnabled
-                ? _customerService.GetCustomerByUsername(usernameOrEmail)
-                : _customerService.GetCustomerByEmail(usernameOrEmail);
-            return customer;
-        }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Sign in
-        /// </summary>
-        /// <param name="customer">Customer</param>
-        /// <param name="createPersistentCookie">A value indicating whether to create a persistent cookie</param>
         public virtual void SignIn(Customer customer, bool createPersistentCookie)
         {
-            var now = DateTime.UtcNow.ToLocalTime();
-
-            var ticket = new FormsAuthenticationTicket(
-                1 /*version*/,
-                _customerSettings.UsernamesEnabled ? customer.Username : customer.Email,
-                now,
-                now.Add(_expirationTimeSpan),
-                createPersistentCookie,
-                _customerSettings.UsernamesEnabled ? customer.Username : customer.Email,
-                FormsAuthentication.FormsCookiePath);
-
-            var encryptedTicket = FormsAuthentication.Encrypt(ticket);
-
-            var cookie = new HttpCookie(FormsAuthentication.FormsCookieName, encryptedTicket);
-            cookie.HttpOnly = true;
-            if (ticket.IsPersistent)
+            var usernameOrEmail = _customerSettings.UsernamesEnabled ? customer.Username : customer.Email;
+            
+            var cookieOptions = new CookieOptions
             {
-                cookie.Expires = ticket.Expiration;
-            }
-            cookie.Secure = FormsAuthentication.RequireSSL;
-            cookie.Path = FormsAuthentication.FormsCookiePath;
-            if (FormsAuthentication.CookieDomain != null)
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Lax
+            };
+            
+            if (createPersistentCookie)
             {
-                cookie.Domain = FormsAuthentication.CookieDomain;
+                cookieOptions.Expires = DateTime.UtcNow.AddDays(365);
             }
 
-            _httpContext.Response.Cookies.Add(cookie);
+            _httpContextAccessor.HttpContext?.Response.Cookies.Append(CustomerCookieName, usernameOrEmail, cookieOptions);
             _cachedCustomer = customer;
         }
 
-        /// <summary>
-        /// Sign out
-        /// </summary>
         public virtual void SignOut()
         {
             _cachedCustomer = null;
-            FormsAuthentication.SignOut();
+            _httpContextAccessor.HttpContext?.Response.Cookies.Delete(CustomerCookieName);
         }
 
-        /// <summary>
-        /// Get authenticated customer
-        /// </summary>
-        /// <returns>Customer</returns>
         public virtual Customer GetAuthenticatedCustomer()
         {
             if (_cachedCustomer != null)
                 return _cachedCustomer;
 
-            if (_httpContext == null ||
-                _httpContext.Request == null ||
-                !_httpContext.Request.IsAuthenticated ||
-                !(_httpContext.User.Identity is FormsIdentity))
-            {
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
                 return null;
-            }
 
-            var formsIdentity = (FormsIdentity)_httpContext.User.Identity;
-            var customer = GetAuthenticatedCustomerFromTicket(formsIdentity.Ticket);
-            if (customer != null && customer.Active && !customer.RequireReLogin && !customer.Deleted  && customer.IsRegistered())
+            if (!httpContext.Request.Cookies.TryGetValue(CustomerCookieName, out var usernameOrEmail))
+                return null;
+
+            if (string.IsNullOrWhiteSpace(usernameOrEmail))
+                return null;
+
+            var customer = _customerSettings.UsernamesEnabled
+                ? _customerService.GetCustomerByUsername(usernameOrEmail)
+                : _customerService.GetCustomerByEmail(usernameOrEmail);
+
+            if (customer != null && customer.Active && !customer.RequireReLogin && !customer.Deleted && customer.IsRegistered())
                 _cachedCustomer = customer;
+
             return _cachedCustomer;
         }
-
-        #endregion
-
     }
 }

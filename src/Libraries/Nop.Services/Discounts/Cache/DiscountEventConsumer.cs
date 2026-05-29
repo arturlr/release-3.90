@@ -80,7 +80,7 @@ namespace Nop.Services.Discounts.Cache
         public DiscountEventConsumer()
         {
             //TODO inject static cache manager using constructor
-            this._cacheManager = EngineContext.Current.ContainerManager.Resolve<ICacheManager>("nop_cache_static");
+            this._cacheManager = EngineContext.Current.Resolve<ICacheManager>();
         }
 
         //discounts

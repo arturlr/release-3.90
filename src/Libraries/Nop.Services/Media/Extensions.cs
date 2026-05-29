@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Media;
 using Nop.Services.Catalog;
@@ -18,13 +18,11 @@ namespace Nop.Services.Media
         /// </summary>
         /// <param name="postedFile">Posted file</param>
         /// <returns>Download binary array</returns>
-        public static byte[] GetDownloadBits(this HttpPostedFileBase postedFile)
+        public static byte[] GetDownloadBits(this IFormFile postedFile)
         {
-            Stream fs = postedFile.InputStream;
-            int size = postedFile.ContentLength;
-            var binary = new byte[size];
-            fs.Read(binary, 0, size);
-            return binary;
+            using var ms = new MemoryStream();
+            postedFile.CopyTo(ms);
+            return ms.ToArray();
         }
 
         /// <summary>
@@ -32,13 +30,11 @@ namespace Nop.Services.Media
         /// </summary>
         /// <param name="postedFile">Posted file</param>
         /// <returns>Picture binary array</returns>
-        public static byte[] GetPictureBits(this HttpPostedFileBase postedFile)
+        public static byte[] GetPictureBits(this IFormFile postedFile)
         {
-            Stream fs = postedFile.InputStream;
-            int size = postedFile.ContentLength;
-            var img = new byte[size];
-            fs.Read(img, 0, size);
-            return img;
+            using var ms = new MemoryStream();
+            postedFile.CopyTo(ms);
+            return ms.ToArray();
         }
 
         /// <summary>
