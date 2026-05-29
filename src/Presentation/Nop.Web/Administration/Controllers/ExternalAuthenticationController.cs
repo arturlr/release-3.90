@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Routing;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.ExternalAuthentication;
 using Nop.Core.Domain.Customers;
@@ -45,7 +46,7 @@ namespace Nop.Admin.Controllers
 
         #region Methods
 
-        public virtual ActionResult Methods()
+        public virtual IActionResult Methods()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageExternalAuthenticationMethods))
                 return AccessDeniedView();
@@ -54,7 +55,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Methods(DataSourceRequest command)
+        public virtual IActionResult Methods(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageExternalAuthenticationMethods))
                 return AccessDeniedKendoGridJson();
@@ -78,7 +79,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult MethodUpdate([Bind(Exclude = "ConfigurationRouteValues")] AuthenticationMethodModel model)
+        public virtual IActionResult MethodUpdate(AuthenticationMethodModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageExternalAuthenticationMethods))
                 return AccessDeniedView();
@@ -111,7 +112,7 @@ namespace Nop.Admin.Controllers
             return new NullJsonResult();
         }
 
-        public virtual ActionResult ConfigureMethod(string systemName)
+        public virtual IActionResult ConfigureMethod(string systemName)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageExternalAuthenticationMethods))
                 return AccessDeniedView();

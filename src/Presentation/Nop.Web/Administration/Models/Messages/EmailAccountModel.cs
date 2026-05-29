@@ -1,36 +1,34 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Validators.Messages;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Messages
 {
-    [Validator(typeof(EmailAccountValidator))]
     public partial class EmailAccountModel : BaseNopEntityModel
     {
         [NopResourceDisplayName("Admin.Configuration.EmailAccounts.Fields.Email")]
-        [AllowHtml]
+        
         public string Email { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.EmailAccounts.Fields.DisplayName")]
-        [AllowHtml]
+        
         public string DisplayName { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.EmailAccounts.Fields.Host")]
-        [AllowHtml]
+        
         public string Host { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.EmailAccounts.Fields.Port")]
         public int Port { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.EmailAccounts.Fields.Username")]
-        [AllowHtml]
+        
         public string Username { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.EmailAccounts.Fields.Password")]
-        [AllowHtml]
+        
         [DataType(DataType.Password)]
         [NoTrim]
         public string Password { get; set; }
@@ -46,7 +44,7 @@ namespace Nop.Admin.Models.Messages
 
 
         [NopResourceDisplayName("Admin.Configuration.EmailAccounts.Fields.SendTestEmailTo")]
-        [AllowHtml]
+        
         public string SendTestEmailTo { get; set; }
 
     }

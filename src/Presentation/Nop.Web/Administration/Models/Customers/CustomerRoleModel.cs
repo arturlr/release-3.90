@@ -1,21 +1,19 @@
 ﻿using System.Collections.Generic;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Validators.Customers;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Customers
 {
-    [Validator(typeof(CustomerRoleValidator))]
     public partial class CustomerRoleModel : BaseNopEntityModel
     {
         [NopResourceDisplayName("Admin.Customers.CustomerRoles.Fields.Name")]
-        [AllowHtml]
+        
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Customers.CustomerRoles.Fields.FreeShipping")]
-        [AllowHtml]
+        
         public bool FreeShipping { get; set; }
 
         [NopResourceDisplayName("Admin.Customers.CustomerRoles.Fields.TaxExempt")]
@@ -54,7 +52,7 @@ namespace Nop.Admin.Models.Customers
             }
 
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductName")]
-            [AllowHtml]
+            
             public string SearchProductName { get; set; }
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchCategory")]
             public int SearchCategoryId { get; set; }

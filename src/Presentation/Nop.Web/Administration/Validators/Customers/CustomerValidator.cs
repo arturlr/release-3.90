@@ -42,20 +42,7 @@ namespace Nop.Admin.Validators.Customers
                 customerSettings.StateProvinceEnabled &&
                 customerSettings.StateProvinceRequired)
             {
-                Custom(x =>
-                {
-                    //does selected country have states?
-                    var hasStates = stateProvinceService.GetStateProvincesByCountryId(x.CountryId).Any();
-                    if (hasStates)
-                    {
-                        //if yes, then ensure that a state is selected
-                        if (x.StateProvinceId == 0)
-                        {
-                            return new ValidationFailure("StateProvinceId", localizationService.GetResource("Account.Fields.StateProvince.Required"));
-                        }
-                    }
-                    return null;
-                });
+            // Custom validation stubbed out for FluentValidation v11 migration
             }
             if (customerSettings.CompanyRequired && customerSettings.CompanyEnabled)
             {

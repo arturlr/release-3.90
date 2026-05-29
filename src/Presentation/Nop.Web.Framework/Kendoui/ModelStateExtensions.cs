@@ -6,7 +6,7 @@ namespace Nop.Web.Framework.Kendoui
 {
     public static class ModelStateExtensions
     {
-        private static Dictionary<string, object> SerializeErrors(this ModelStateDictionary modelState)
+        public static Dictionary<string, object> SerializeErrors(this ModelStateDictionary modelState)
         {
             return modelState.Where(entry => entry.Value.Errors.Any())
                 .ToDictionary(

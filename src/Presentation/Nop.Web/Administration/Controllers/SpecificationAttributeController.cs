@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Catalog;
 using Nop.Core.Domain.Catalog;
@@ -77,12 +78,12 @@ namespace Nop.Admin.Controllers
         #region Specification attributes
 
         //list
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-        public virtual ActionResult List()
+        public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedView();
@@ -91,7 +92,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult List(DataSourceRequest command)
+        public virtual IActionResult List(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedKendoGridJson();
@@ -108,7 +109,7 @@ namespace Nop.Admin.Controllers
         }
         
         //create
-        public virtual ActionResult Create()
+        public virtual IActionResult Create()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedView();
@@ -120,7 +121,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult Create(SpecificationAttributeModel model, bool continueEditing)
+        public virtual IActionResult Create(SpecificationAttributeModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedView();
@@ -151,7 +152,7 @@ namespace Nop.Admin.Controllers
         }
 
         //edit
-        public virtual ActionResult Edit(int id)
+        public virtual IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedView();
@@ -172,7 +173,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult Edit(SpecificationAttributeModel model, bool continueEditing)
+        public virtual IActionResult Edit(SpecificationAttributeModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedView();
@@ -210,7 +211,7 @@ namespace Nop.Admin.Controllers
 
         //delete
         [HttpPost]
-        public virtual ActionResult Delete(int id)
+        public virtual IActionResult Delete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedView();
@@ -235,7 +236,7 @@ namespace Nop.Admin.Controllers
 
         //list
         [HttpPost]
-        public virtual ActionResult OptionList(int specificationAttributeId, DataSourceRequest command)
+        public virtual IActionResult OptionList(int specificationAttributeId, DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedKendoGridJson();
@@ -263,7 +264,7 @@ namespace Nop.Admin.Controllers
         }
 
         //create
-        public virtual ActionResult OptionCreatePopup(int specificationAttributeId)
+        public virtual IActionResult OptionCreatePopup(int specificationAttributeId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedView();
@@ -276,7 +277,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult OptionCreatePopup(string btnId, string formId, SpecificationAttributeOptionModel model)
+        public virtual IActionResult OptionCreatePopup(string btnId, string formId, SpecificationAttributeOptionModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedView();
@@ -307,7 +308,7 @@ namespace Nop.Admin.Controllers
         }
 
         //edit
-        public virtual ActionResult OptionEditPopup(int id)
+        public virtual IActionResult OptionEditPopup(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedView();
@@ -330,7 +331,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult OptionEditPopup(string btnId, string formId, SpecificationAttributeOptionModel model)
+        public virtual IActionResult OptionEditPopup(string btnId, string formId, SpecificationAttributeOptionModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedView();
@@ -363,7 +364,7 @@ namespace Nop.Admin.Controllers
 
         //delete
         [HttpPost]
-        public virtual ActionResult OptionDelete(int id, int specificationAttributeId)
+        public virtual IActionResult OptionDelete(int id, int specificationAttributeId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAttributes))
                 return AccessDeniedView();
@@ -379,8 +380,8 @@ namespace Nop.Admin.Controllers
 
 
         //ajax
-        [AcceptVerbs(HttpVerbs.Get)]
-        public virtual ActionResult GetOptionsByAttributeId(string attributeId)
+        [HttpGet]
+        public virtual IActionResult GetOptionsByAttributeId(string attributeId)
         {
             //do not make any permission validation here 
             //because this method could be used on some other pages (such as product editing)
@@ -394,7 +395,7 @@ namespace Nop.Admin.Controllers
             var options = _specificationAttributeService.GetSpecificationAttributeOptionsBySpecificationAttribute(Convert.ToInt32(attributeId));
             var result = (from o in options
                           select new { id = o.Id, name = o.Name }).ToList();
-            return Json(result, JsonRequestBehavior.AllowGet);
+            return Json(result);
         }
 
         #endregion

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -25,7 +25,7 @@ namespace Nop.Admin.Models.Orders
         public DateTime? EndDate { get; set; }
 
         [NopResourceDisplayName("Admin.Orders.Shipments.List.TrackingNumber")]
-        [AllowHtml]
+        
         public string TrackingNumber { get; set; }
         
         public IList<SelectListItem> AvailableCountries { get; set; }
@@ -37,7 +37,7 @@ namespace Nop.Admin.Models.Orders
         public int StateProvinceId { get; set; }
 
         [NopResourceDisplayName("Admin.Orders.Shipments.List.City")]
-        [AllowHtml]
+        
         public string City { get; set; }
 
         [NopResourceDisplayName("Admin.Orders.Shipments.List.LoadNotShipped")]

@@ -1,18 +1,16 @@
-﻿using System.Web.Mvc;
-using FluentValidation.Attributes;
+﻿using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Validators.Polls;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Polls
 {
-    [Validator(typeof(PollAnswerValidator))]
     public partial class PollAnswerModel : BaseNopEntityModel
     {
         public int PollId { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Polls.Answers.Fields.Name")]
-        [AllowHtml]
+        
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Polls.Answers.Fields.NumberOfVotes")]

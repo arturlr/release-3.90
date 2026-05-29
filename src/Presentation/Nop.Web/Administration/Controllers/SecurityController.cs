@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Http;
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Models.Customers;
 using Nop.Admin.Models.Security;
 using Nop.Core;
@@ -42,7 +44,7 @@ namespace Nop.Admin.Controllers
 
         #region Methods
 
-        public virtual ActionResult AccessDenied(string pageUrl)
+        public virtual IActionResult AccessDenied(string pageUrl)
         {
             var currentCustomer = _workContext.CurrentCustomer;
             if (currentCustomer == null || currentCustomer.IsGuest())
@@ -57,7 +59,7 @@ namespace Nop.Admin.Controllers
             return View();
         }
 
-        public virtual ActionResult Permissions()
+        public virtual IActionResult Permissions()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAcl))
                 return AccessDeniedView();
@@ -96,7 +98,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ActionName("Permissions")]
-        public virtual ActionResult PermissionsSave(FormCollection form)
+        public virtual IActionResult PermissionsSave(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAcl))
                 return AccessDeniedView();
@@ -108,7 +110,7 @@ namespace Nop.Admin.Controllers
             foreach (var cr in customerRoles)
             {
                 string formKey = "allow_" + cr.Id;
-                var permissionRecordSystemNamesToRestrict = form[formKey] != null ? form[formKey].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>();
+                var permissionRecordSystemNamesToRestrict = form[formKey].ToString() != null ? form[formKey].ToString().Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>();
 
                 foreach (var pr in permissionRecords)
                 {
