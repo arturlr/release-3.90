@@ -10,7 +10,7 @@ using Nop.Services.Configuration;
 using Nop.Services.Helpers;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Helpers
 {
@@ -28,14 +28,14 @@ namespace Nop.Services.Tests.Helpers
         [SetUp]
         public new void SetUp()
         {
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
-            _settingService = MockRepository.GenerateMock<ISettingService>();
+            _genericAttributeService = Substitute.For<IGenericAttributeService>();
+            _settingService = Substitute.For<ISettingService>();
 
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
+            _workContext = Substitute.For<IWorkContext>();
 
             _store = new Store { Id = 1 };
-            _storeContext = MockRepository.GenerateMock<IStoreContext>();
-            _storeContext.Expect(x => x.CurrentStore).Return(_store);
+            _storeContext = Substitute.For<IStoreContext>();
+            _storeContext.CurrentStore.Returns(_store);
 
             _dateTimeSettings = new DateTimeSettings
             {
@@ -74,8 +74,7 @@ namespace Nop.Services.Tests.Helpers
                 Id = 10,
             };
 
-            _genericAttributeService.Expect(x => x.GetAttributesForEntity(customer.Id, "Customer"))
-                .Return(new List<GenericAttribute>
+            _genericAttributeService.GetAttributesForEntity(customer.Id, "Customer").Returns(new List<GenericAttribute>
                             {
                                 new GenericAttribute
                                     {
@@ -102,8 +101,7 @@ namespace Nop.Services.Tests.Helpers
                 Id = 10,
             };
 
-            _genericAttributeService.Expect(x => x.GetAttributesForEntity(customer.Id, "Customer"))
-                .Return(new List<GenericAttribute>
+            _genericAttributeService.GetAttributesForEntity(customer.Id, "Customer").Returns(new List<GenericAttribute>
                             {
                                 new GenericAttribute
                                     {

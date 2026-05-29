@@ -6,7 +6,7 @@ using Nop.Services.Customers;
 using Nop.Services.Events;
 using Nop.Services.Messages;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Messages 
 {
@@ -22,11 +22,11 @@ namespace Nop.Services.Tests.Messages
         [SetUp]
         public new void SetUp()
         {
-            _eventPublisher = MockRepository.GenerateStub<IEventPublisher>();
-            _newsLetterSubscriptionRepository = MockRepository.GenerateMock<IRepository<NewsLetterSubscription>>();
-            _customerRepository = MockRepository.GenerateMock<IRepository<Customer>>();
-            _customerService = MockRepository.GenerateMock<ICustomerService>();
-            _dbContext = MockRepository.GenerateStub<IDbContext>();
+            _eventPublisher = Substitute.For<IEventPublisher>();
+            _newsLetterSubscriptionRepository = Substitute.For<IRepository<NewsLetterSubscription>>();
+            _customerRepository = Substitute.For<IRepository<Customer>>();
+            _customerService = Substitute.For<ICustomerService>();
+            _dbContext = Substitute.For<IDbContext>();
         }
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace Nop.Services.Tests.Messages
             var subscription = new NewsLetterSubscription { Active = true, Email = "test@test.com" };
             service.InsertNewsLetterSubscription(subscription, true);
 
-            _eventPublisher.AssertWasCalled(x => x.Publish(new EmailSubscribedEvent(subscription)));
+            _eventPublisher.Received().Publish(new EmailSubscribedEvent(subscription));
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace Nop.Services.Tests.Messages
             var subscription = new NewsLetterSubscription { Active = true, Email = "test@test.com" };
             service.DeleteNewsLetterSubscription(subscription, true);
 
-            _eventPublisher.AssertWasCalled(x => x.Publish(new EmailUnsubscribedEvent(subscription)));
+            _eventPublisher.Received().Publish(new EmailUnsubscribedEvent(subscription));
         }
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace Nop.Services.Tests.Messages
         {
             //Prepare the original result
             var originalSubscription = new NewsLetterSubscription { Active = true, Email = "test@test.com" };
-            _newsLetterSubscriptionRepository.Stub(m => m.GetById(Arg<object>.Is.Anything)).Return(originalSubscription);
+            _newsLetterSubscriptionRepository.GetById(Arg.Any<object>()).Returns(originalSubscription);
 
             var service = new NewsLetterSubscriptionService(_dbContext, _newsLetterSubscriptionRepository,
                 _customerRepository, _eventPublisher, _customerService);
@@ -76,8 +76,8 @@ namespace Nop.Services.Tests.Messages
             var subscription = new NewsLetterSubscription { Active = true, Email = "test@somenewdomain.com" };
             service.UpdateNewsLetterSubscription(subscription, true);
 
-            _eventPublisher.AssertWasCalled(x => x.Publish(new EmailUnsubscribedEvent(originalSubscription)));
-            _eventPublisher.AssertWasCalled(x => x.Publish(new EmailSubscribedEvent(subscription)));
+            _eventPublisher.Received().Publish(new EmailUnsubscribedEvent(originalSubscription));
+            _eventPublisher.Received().Publish(new EmailSubscribedEvent(subscription));
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace Nop.Services.Tests.Messages
         {
             //Prepare the original result
             var originalSubscription = new NewsLetterSubscription { Active = false, Email = "test@test.com" };
-            _newsLetterSubscriptionRepository.Stub(m => m.GetById(Arg<object>.Is.Anything)).Return(originalSubscription);
+            _newsLetterSubscriptionRepository.GetById(Arg.Any<object>()).Returns(originalSubscription);
 
             var service = new NewsLetterSubscriptionService(_dbContext, _newsLetterSubscriptionRepository,
                 _customerRepository, _eventPublisher, _customerService);
@@ -98,7 +98,7 @@ namespace Nop.Services.Tests.Messages
 
             service.UpdateNewsLetterSubscription(subscription, true);
 
-            _eventPublisher.AssertWasCalled(x => x.Publish(new EmailSubscribedEvent(subscription)));
+            _eventPublisher.Received().Publish(new EmailSubscribedEvent(subscription));
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace Nop.Services.Tests.Messages
 
             service.InsertNewsLetterSubscription(new NewsLetterSubscription { Email = "test@test.com" });
 
-            _eventPublisher.AssertWasCalled(x => x.EntityInserted(Arg<NewsLetterSubscription>.Is.Anything));
+            _eventPublisher.Received().EntityInserted(Arg.Any<NewsLetterSubscription>());
         }
 
         /// <summary>
@@ -125,13 +125,13 @@ namespace Nop.Services.Tests.Messages
             //Prepare the original result
             var originalSubscription = new NewsLetterSubscription { Active = false, Email = "test@test.com" };
 
-            _newsLetterSubscriptionRepository.Stub(m => m.GetById(Arg<object>.Is.Anything)).Return(originalSubscription);
+            _newsLetterSubscriptionRepository.GetById(Arg.Any<object>()).Returns(originalSubscription);
             var service = new NewsLetterSubscriptionService(_dbContext, _newsLetterSubscriptionRepository,
                 _customerRepository, _eventPublisher, _customerService);
 
             service.UpdateNewsLetterSubscription(new NewsLetterSubscription { Email = "test@test.com" });
 
-            _eventPublisher.AssertWasCalled(x => x.EntityUpdated(Arg<NewsLetterSubscription>.Is.Anything));
+            _eventPublisher.Received().EntityUpdated(Arg.Any<NewsLetterSubscription>());
         }
     }
 }

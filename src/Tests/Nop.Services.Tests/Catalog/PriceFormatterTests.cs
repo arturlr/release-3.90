@@ -19,7 +19,7 @@ using Nop.Services.Localization;
 using Nop.Services.Stores;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Catalog
 {
@@ -40,8 +40,8 @@ namespace Nop.Services.Tests.Catalog
         {
             var cacheManager = new NopNullCache();
 
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workContext.Expect(w => w.WorkingCurrency).Return(new Currency { RoundingType = RoundingType.Rounding001 });
+            _workContext = Substitute.For<IWorkContext>();
+            _workContext.WorkingCurrency.Returns(new Currency { RoundingType = RoundingType.Rounding001 });
 
             _currencySettings = new CurrencySettings();
             var currency1 = new Currency
@@ -68,10 +68,10 @@ namespace Nop.Services.Tests.Catalog
                 CreatedOnUtc = DateTime.UtcNow,
                 UpdatedOnUtc= DateTime.UtcNow
             };            
-            _currencyRepo = MockRepository.GenerateMock<IRepository<Currency>>();
-            _currencyRepo.Expect(x => x.Table).Return(new List<Currency> { currency1, currency2 }.AsQueryable());
+            _currencyRepo = Substitute.For<IRepository<Currency>>();
+            _currencyRepo.Table.Returns(new List<Currency> { currency1, currency2 }.AsQueryable());
 
-            _storeMappingService = MockRepository.GenerateMock<IStoreMappingService>();
+            _storeMappingService = Substitute.For<IStoreMappingService>();
 
             var pluginFinder = new PluginFinder();
             _currencyService = new CurrencyService(cacheManager, _currencyRepo, _storeMappingService,
@@ -79,18 +79,15 @@ namespace Nop.Services.Tests.Catalog
 
             _taxSettings = new TaxSettings();
 
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _localizationService.Expect(x => x.GetResource("Products.InclTaxSuffix", 1, false)).Return("{0} incl tax");
-            _localizationService.Expect(x => x.GetResource("Products.ExclTaxSuffix", 1, false)).Return("{0} excl tax");
+            _localizationService = Substitute.For<ILocalizationService>();
+            _localizationService.GetResource("Products.InclTaxSuffix", 1, false).Returns("{0} incl tax");
+            _localizationService.GetResource("Products.ExclTaxSuffix", 1, false).Returns("{0} excl tax");
             
             _priceFormatter = new PriceFormatter(_workContext, _currencyService,_localizationService, 
                 _taxSettings, _currencySettings);
 
-            var nopEngine = MockRepository.GenerateMock<NopEngine>();
-            var containe = MockRepository.GenerateMock<IContainer>();
-            var containerManager = MockRepository.GenerateMock<ContainerManager>(containe);
-            nopEngine.Expect(x => x.ContainerManager).Return(containerManager);
-            containerManager.Expect(x => x.Resolve<IWorkContext>()).Return(_workContext);
+            var nopEngine = Substitute.For<NopEngine>();
+            nopEngine.Resolve<IWorkContext>().Returns(_workContext);
             EngineContext.Replace(nopEngine);
         }
 

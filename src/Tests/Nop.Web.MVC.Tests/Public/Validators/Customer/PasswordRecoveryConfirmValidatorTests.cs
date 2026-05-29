@@ -1,3 +1,4 @@
+using Nop.Web.MVC.Tests;
 ﻿using FluentValidation.TestHelper;
 using Nop.Core.Domain.Customers;
 using Nop.Web.Models.Customer;

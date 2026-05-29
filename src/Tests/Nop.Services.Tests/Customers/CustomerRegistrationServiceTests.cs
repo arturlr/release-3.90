@@ -19,7 +19,7 @@ using Nop.Services.Security;
 using Nop.Services.Stores;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Customers
 {
@@ -65,7 +65,7 @@ namespace Nop.Services.Tests.Customers
             };
 
             _encryptionService = new EncryptionService(_securitySettings);
-            _customerRepo = MockRepository.GenerateMock<IRepository<Customer>>();
+            _customerRepo = Substitute.For<IRepository<Customer>>();
             var customer1 = new Customer
             {
                 Id = 1,
@@ -109,9 +109,9 @@ namespace Nop.Services.Tests.Customers
                 Email = "notregistered@test.com",
                 Active = true
             };
-            _customerRepo.Expect(x => x.Table).Return(new List<Customer> { customer1, customer2, customer3, customer4, customer5 }.AsQueryable());
+            _customerRepo.Table.Returns(new List<Customer> { customer1, customer2, customer3, customer4, customer5 }.AsQueryable());
 
-            _customerPasswordRepo = MockRepository.GenerateMock<IRepository<CustomerPassword>>();
+            _customerPasswordRepo = Substitute.For<IRepository<CustomerPassword>>();
             string saltKey = _encryptionService.CreateSaltKey(5);
             string password = _encryptionService.CreatePasswordHash("password", saltKey);
             var password1 = new CustomerPassword
@@ -150,25 +150,25 @@ namespace Nop.Services.Tests.Customers
                 Password = "password",
                 CreatedOnUtc = DateTime.UtcNow
             };
-            _customerPasswordRepo.Expect(x => x.Table).Return(new[] { password1, password2, password3, password4, password5 }.AsQueryable());
+            _customerPasswordRepo.Table.Returns(new[] { password1, password2, password3, password4, password5 }.AsQueryable());
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = Substitute.For<IEventPublisher>();
+// NSubstitute: void method - no setup needed
 
-            _storeService = MockRepository.GenerateMock<IStoreService>();
-            _customerRoleRepo = MockRepository.GenerateMock<IRepository<CustomerRole>>();
-            _genericAttributeRepo = MockRepository.GenerateMock<IRepository<GenericAttribute>>();
-            _orderRepo = MockRepository.GenerateMock<IRepository<Order>>();
-            _forumPostRepo = MockRepository.GenerateMock<IRepository<ForumPost>>();
-            _forumTopicRepo = MockRepository.GenerateMock<IRepository<ForumTopic>>();
+            _storeService = Substitute.For<IStoreService>();
+            _customerRoleRepo = Substitute.For<IRepository<CustomerRole>>();
+            _genericAttributeRepo = Substitute.For<IRepository<GenericAttribute>>();
+            _orderRepo = Substitute.For<IRepository<Order>>();
+            _forumPostRepo = Substitute.For<IRepository<ForumPost>>();
+            _forumTopicRepo = Substitute.For<IRepository<ForumTopic>>();
 
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
-            _newsLetterSubscriptionService = MockRepository.GenerateMock<INewsLetterSubscriptionService>();
-            _rewardPointService = MockRepository.GenerateMock<IRewardPointService>();
+            _genericAttributeService = Substitute.For<IGenericAttributeService>();
+            _newsLetterSubscriptionService = Substitute.For<INewsLetterSubscriptionService>();
+            _rewardPointService = Substitute.For<IRewardPointService>();
 
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workflowMessageService = MockRepository.GenerateMock<IWorkflowMessageService>();
+            _localizationService = Substitute.For<ILocalizationService>();
+            _workContext = Substitute.For<IWorkContext>();
+            _workflowMessageService = Substitute.For<IWorkflowMessageService>();
 
             _customerService = new CustomerService(new NopNullCache(), _customerRepo, _customerPasswordRepo, _customerRoleRepo,
                 _genericAttributeRepo, _orderRepo, _forumPostRepo, _forumTopicRepo,

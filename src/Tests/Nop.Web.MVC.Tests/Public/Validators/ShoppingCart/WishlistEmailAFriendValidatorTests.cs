@@ -1,3 +1,4 @@
+using Nop.Web.MVC.Tests;
 ﻿using FluentValidation.TestHelper;
 using Nop.Web.Models.ShoppingCart;
 using Nop.Web.Validators.ShoppingCart;

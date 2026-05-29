@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using Nop.Core;
 using Nop.Core.Caching;
@@ -63,17 +62,9 @@ namespace Nop.Services.Tests.Configuration
 
         public override IList<Setting> GetAllSettings()
         {
+            // In .NET Core, ConfigurationManager is not available
+            // Return empty settings for test purposes
             var settings = new List<Setting>();
-            var appSettings = ConfigurationManager.AppSettings;
-            foreach (var setting in appSettings.AllKeys)
-            {
-                settings.Add(new Setting
-                                 {
-                                     Name = setting.ToLowerInvariant(),
-                                     Value = appSettings[setting]
-                                 });
-            }
-
             return settings;
         }
 

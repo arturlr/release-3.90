@@ -17,7 +17,7 @@ using Nop.Services.Orders;
 using Nop.Services.Shipping;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Shipping
 {
@@ -47,27 +47,27 @@ namespace Nop.Services.Tests.Shipping
             _shippingSettings.UseCubeRootMethod = true;
             _shippingSettings.ConsiderAssociatedProductsDimensions = true;
 
-            _shippingMethodRepository = MockRepository.GenerateMock<IRepository<ShippingMethod>>();
-            _warehouseRepository = MockRepository.GenerateMock<IRepository<Warehouse>>();
+            _shippingMethodRepository = Substitute.For<IRepository<ShippingMethod>>();
+            _warehouseRepository = Substitute.For<IRepository<Warehouse>>();
             _logger = new NullLogger();
-            _productAttributeParser = MockRepository.GenerateMock<IProductAttributeParser>();
-            _checkoutAttributeParser = MockRepository.GenerateMock<ICheckoutAttributeParser>();
+            _productAttributeParser = Substitute.For<IProductAttributeParser>();
+            _checkoutAttributeParser = Substitute.For<ICheckoutAttributeParser>();
 
             var cacheManager = new NopNullCache();
 
             var pluginFinder = new PluginFinder();
-            _productService = MockRepository.GenerateMock<IProductService>();
+            _productService = Substitute.For<IProductService>();
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = Substitute.For<IEventPublisher>();
+// NSubstitute: void method - no setup needed
 
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _addressService = MockRepository.GenerateMock<IAddressService>();
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
+            _localizationService = Substitute.For<ILocalizationService>();
+            _addressService = Substitute.For<IAddressService>();
+            _genericAttributeService = Substitute.For<IGenericAttributeService>();
 
             _store = new Store { Id = 1 };
-            _storeContext = MockRepository.GenerateMock<IStoreContext>();
-            _storeContext.Expect(x => x.CurrentStore).Return(_store);
+            _storeContext = Substitute.For<IStoreContext>();
+            _storeContext.CurrentStore.Returns(_store);
 
             _shoppingCartSettings = new ShoppingCartSettings();
             _shippingService = new ShippingService(_shippingMethodRepository,

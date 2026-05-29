@@ -1,3 +1,5 @@
+using Nop.Web.MVC.Tests;
+using FluentValidation.TestHelper;
 ﻿using Nop.Web.Validators.Catalog;
 using NUnit.Framework;
 

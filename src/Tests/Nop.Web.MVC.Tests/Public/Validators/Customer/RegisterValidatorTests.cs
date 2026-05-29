@@ -1,10 +1,11 @@
+using Nop.Web.MVC.Tests;
 ﻿using FluentValidation.TestHelper;
 using Nop.Core.Domain.Customers;
 using Nop.Services.Directory;
 using Nop.Web.Models.Customer;
 using Nop.Web.Validators.Customer;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Web.MVC.Tests.Public.Validators.Customer
 {
@@ -19,7 +20,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         public new void Setup()
         {
             _customerSettings = new CustomerSettings();
-            _stateProvinceService = MockRepository.GenerateMock<IStateProvinceService>();
+            _stateProvinceService = Substitute.For<IStateProvinceService>();
             _validator = new RegisterValidator(_localizationService, _stateProvinceService, _customerSettings);
         }
         

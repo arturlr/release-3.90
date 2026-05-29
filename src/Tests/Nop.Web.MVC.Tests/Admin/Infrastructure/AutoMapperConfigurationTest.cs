@@ -1,4 +1,3 @@
-﻿using System;
 using System.Collections.Generic;
 using AutoMapper;
 using Nop.Admin.Infrastructure.Mapper;
@@ -13,10 +12,9 @@ namespace Nop.Web.MVC.Tests.Admin.Infrastructure
         [Test]
         public void Configuration_is_valid()
         {
-            var configurationActions = new List<Action<IMapperConfigurationExpression>>();
-            var adminMapper = new AdminMapperConfiguration();
-            configurationActions.Add(adminMapper.GetConfiguration());
-            AutoMapperConfiguration.Init(configurationActions);
+            var profiles = new List<Profile>();
+            profiles.Add(new AdminProfile());
+            AutoMapperConfiguration.Init(profiles);
             AutoMapperConfiguration.MapperConfiguration.AssertConfigurationIsValid();
         }
     }

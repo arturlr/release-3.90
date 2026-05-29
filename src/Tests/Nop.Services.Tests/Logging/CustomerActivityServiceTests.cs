@@ -8,7 +8,7 @@ using Nop.Core.Domain.Logging;
 using Nop.Services.Logging;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Logging
 {
@@ -71,12 +71,12 @@ namespace Nop.Services.Tests.Logging
                 Customer = _customer2
             };
             _cacheManager = new NopNullCache();
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _webHelper = MockRepository.GenerateMock<IWebHelper>();
-            _activityLogRepository = MockRepository.GenerateMock<IRepository<ActivityLog>>();
-            _activityLogTypeRepository = MockRepository.GenerateMock<IRepository<ActivityLogType>>();
-            _activityLogTypeRepository.Expect(x => x.Table).Return(new List<ActivityLogType> { _activityType1, _activityType2 }.AsQueryable());
-            _activityLogRepository.Expect(x => x.Table).Return(new List<ActivityLog> { _activity1, _activity2 }.AsQueryable());
+            _workContext = Substitute.For<IWorkContext>();
+            _webHelper = Substitute.For<IWebHelper>();
+            _activityLogRepository = Substitute.For<IRepository<ActivityLog>>();
+            _activityLogTypeRepository = Substitute.For<IRepository<ActivityLogType>>();
+            _activityLogTypeRepository.Table.Returns(new List<ActivityLogType> { _activityType1, _activityType2 }.AsQueryable());
+            _activityLogRepository.Table.Returns(new List<ActivityLog> { _activity1, _activity2 }.AsQueryable());
             _customerActivityService = new CustomerActivityService(_cacheManager, _activityLogRepository, _activityLogTypeRepository, _workContext, null, null, null, _webHelper);
         }
 

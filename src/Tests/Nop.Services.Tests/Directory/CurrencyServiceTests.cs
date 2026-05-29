@@ -10,7 +10,7 @@ using Nop.Services.Events;
 using Nop.Services.Stores;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using NSubstitute;
 
 namespace Nop.Services.Tests.Directory
 {
@@ -70,13 +70,13 @@ namespace Nop.Services.Tests.Directory
                 UpdatedOnUtc = DateTime.UtcNow,
                 RoundingType = RoundingType.Rounding001
             };
-            _currencyRepository = MockRepository.GenerateMock<IRepository<Currency>>();
-            _currencyRepository.Expect(x => x.Table).Return(new List<Currency> { currencyUSD, currencyEUR, currencyRUR }.AsQueryable());
-            _currencyRepository.Expect(x => x.GetById(currencyUSD.Id)).Return(currencyUSD);
-            _currencyRepository.Expect(x => x.GetById(currencyEUR.Id)).Return(currencyEUR);
-            _currencyRepository.Expect(x => x.GetById(currencyRUR.Id)).Return(currencyRUR);
+            _currencyRepository = Substitute.For<IRepository<Currency>>();
+            _currencyRepository.Table.Returns(new List<Currency> { currencyUSD, currencyEUR, currencyRUR }.AsQueryable());
+            _currencyRepository.GetById(currencyUSD.Id).Returns(currencyUSD);
+            _currencyRepository.GetById(currencyEUR.Id).Returns(currencyEUR);
+            _currencyRepository.GetById(currencyRUR.Id).Returns(currencyRUR);
 
-            _storeMappingService = MockRepository.GenerateMock<IStoreMappingService>();
+            _storeMappingService = Substitute.For<IStoreMappingService>();
 
             var cacheManager = new NopNullCache();
             
@@ -84,8 +84,8 @@ namespace Nop.Services.Tests.Directory
             _currencySettings.PrimaryStoreCurrencyId = currencyUSD.Id;
             _currencySettings.PrimaryExchangeRateCurrencyId = currencyEUR.Id;
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = Substitute.For<IEventPublisher>();
+// NSubstitute: void method - no setup needed
             
             var pluginFinder = new PluginFinder();
             _currencyService = new CurrencyService(cacheManager,
