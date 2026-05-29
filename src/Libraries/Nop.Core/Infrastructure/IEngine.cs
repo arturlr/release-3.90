@@ -1,6 +1,7 @@
-﻿using System;
-using Nop.Core.Configuration;
-using Nop.Core.Infrastructure.DependencyManagement;
+using System;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Nop.Core.Infrastructure
 {
@@ -13,35 +14,49 @@ namespace Nop.Core.Infrastructure
     public interface IEngine
     {
         /// <summary>
-        /// Container manager
+        /// Configure services for the application (called during startup)
         /// </summary>
-        ContainerManager ContainerManager { get; }
-        
+        /// <param name="services">Service collection</param>
+        /// <param name="configuration">Application configuration</param>
+        void ConfigureServices(IServiceCollection services, IConfiguration configuration);
+
         /// <summary>
-        /// Initialize components and plugins in the nop environment.
+        /// Configure the HTTP request pipeline (called during startup)
         /// </summary>
-        /// <param name="config">Config</param>
-        void Initialize(NopConfig config);
+        /// <param name="application">Application builder</param>
+        void ConfigureRequestPipeline(IApplicationBuilder application);
 
         /// <summary>
         /// Resolve dependency
         /// </summary>
-        /// <typeparam name="T">T</typeparam>
-        /// <returns></returns>
+        /// <typeparam name="T">Type of resolved service</typeparam>
+        /// <returns>Resolved service</returns>
         T Resolve<T>() where T : class;
 
         /// <summary>
-        ///  Resolve dependency
+        /// Resolve dependency
         /// </summary>
-        /// <param name="type">Type</param>
-        /// <returns></returns>
+        /// <param name="type">Type of resolved service</param>
+        /// <returns>Resolved service</returns>
         object Resolve(Type type);
 
         /// <summary>
-        /// Resolve dependencies
+        /// Resolve all implementations of a service
         /// </summary>
-        /// <typeparam name="T">T</typeparam>
-        /// <returns></returns>
+        /// <typeparam name="T">Type of resolved services</typeparam>
+        /// <returns>Collection of resolved services</returns>
         T[] ResolveAll<T>();
+
+        /// <summary>
+        /// Resolve unregistered service by attempting constructor injection
+        /// </summary>
+        /// <param name="type">Type of service</param>
+        /// <returns>Resolved service</returns>
+        object ResolveUnregistered(Type type);
+
+        /// <summary>
+        /// Gets the service provider
+        /// </summary>
+        IServiceProvider ServiceProvider { get; }
     }
 }

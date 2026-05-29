@@ -1,25 +1,41 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Caching;
+using System.Text.RegularExpressions;
+using System.Threading;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Nop.Core.Caching
 {
     /// <summary>
     /// Represents a manager for caching between HTTP requests (long term caching)
+    /// Uses Microsoft.Extensions.Caching.Memory (IMemoryCache)
     /// </summary>
     public partial class MemoryCacheManager : ICacheManager
     {
-        /// <summary>
-        /// Cache object
-        /// </summary>
-        protected ObjectCache Cache
+        #region Fields
+
+        private readonly IMemoryCache _memoryCache;
+
+        // Track all keys for pattern-based removal and clear operations
+        private readonly ConcurrentDictionary<string, bool> _allKeys;
+        private static readonly ReaderWriterLockSlim _locker = new ReaderWriterLockSlim();
+
+        #endregion
+
+        #region Ctor
+
+        public MemoryCacheManager(IMemoryCache memoryCache)
         {
-            get
-            {
-                return MemoryCache.Default;
-            }
+            _memoryCache = memoryCache;
+            _allKeys = new ConcurrentDictionary<string, bool>();
         }
-        
+
+        #endregion
+
+        #region Methods
+
         /// <summary>
         /// Gets or sets the value associated with the specified key.
         /// </summary>
@@ -28,7 +44,7 @@ namespace Nop.Core.Caching
         /// <returns>The value associated with the specified key.</returns>
         public virtual T Get<T>(string key)
         {
-            return (T)Cache[key];
+            return _memoryCache.Get<T>(key);
         }
 
         /// <summary>
@@ -36,15 +52,18 @@ namespace Nop.Core.Caching
         /// </summary>
         /// <param name="key">key</param>
         /// <param name="data">Data</param>
-        /// <param name="cacheTime">Cache time</param>
+        /// <param name="cacheTime">Cache time in minutes</param>
         public virtual void Set(string key, object data, int cacheTime)
         {
             if (data == null)
                 return;
 
-            var policy = new CacheItemPolicy();
-            policy.AbsoluteExpiration = DateTime.Now + TimeSpan.FromMinutes(cacheTime);
-            Cache.Add(new CacheItem(key, data), policy);
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromMinutes(cacheTime))
+                .RegisterPostEvictionCallback(PostEviction);
+
+            _memoryCache.Set(key, data, cacheEntryOptions);
+            _allKeys.TryAdd(key, true);
         }
 
         /// <summary>
@@ -54,16 +73,17 @@ namespace Nop.Core.Caching
         /// <returns>Result</returns>
         public virtual bool IsSet(string key)
         {
-            return (Cache.Contains(key));
+            return _memoryCache.TryGetValue(key, out _);
         }
 
         /// <summary>
         /// Removes the value with the specified key from the cache
         /// </summary>
-        /// <param name="key">/key</param>
+        /// <param name="key">key</param>
         public virtual void Remove(string key)
         {
-            Cache.Remove(key);
+            _memoryCache.Remove(key);
+            _allKeys.TryRemove(key, out _);
         }
 
         /// <summary>
@@ -72,7 +92,13 @@ namespace Nop.Core.Caching
         /// <param name="pattern">pattern</param>
         public virtual void RemoveByPattern(string pattern)
         {
-            this.RemoveByPattern(pattern, Cache.Select(p => p.Key));
+            var regex = new Regex(pattern, RegexOptions.Singleline | RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            var keysToRemove = _allKeys.Keys.Where(k => regex.IsMatch(k)).ToList();
+
+            foreach (var key in keysToRemove)
+            {
+                Remove(key);
+            }
         }
 
         /// <summary>
@@ -80,8 +106,10 @@ namespace Nop.Core.Caching
         /// </summary>
         public virtual void Clear()
         {
-            foreach (var item in Cache)
-                Remove(item.Key);
+            foreach (var key in _allKeys.Keys.ToList())
+            {
+                Remove(key);
+            }
         }
 
         /// <summary>
@@ -89,6 +117,22 @@ namespace Nop.Core.Caching
         /// </summary>
         public virtual void Dispose()
         {
+            // IMemoryCache is managed by DI container, don't dispose here
         }
+
+        #endregion
+
+        #region Utilities
+
+        private void PostEviction(object key, object value, EvictionReason reason, object state)
+        {
+            // If entry was evicted (expired, capacity), remove from our tracking dictionary
+            if (reason != EvictionReason.Removed && reason != EvictionReason.Replaced)
+            {
+                _allKeys.TryRemove(key.ToString(), out _);
+            }
+        }
+
+        #endregion
     }
 }

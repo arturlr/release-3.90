@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using AutoMapper;
 
@@ -11,20 +11,20 @@ namespace Nop.Core.Infrastructure.Mapper
     {
         private static MapperConfiguration _mapperConfiguration;
         private static IMapper _mapper;
-        
+
         /// <summary>
-        /// Initialize mapper
+        /// Initialize mapper with Profile instances (AutoMapper 13+ pattern)
         /// </summary>
-        /// <param name="configurationActions">Configuration actions</param>
-        public static void Init(List<Action<IMapperConfigurationExpression>> configurationActions)
+        /// <param name="profiles">List of AutoMapper profiles</param>
+        public static void Init(List<Profile> profiles)
         {
-            if (configurationActions == null)
-                throw new ArgumentNullException("configurationActions");
+            if (profiles == null)
+                throw new ArgumentNullException(nameof(profiles));
 
             _mapperConfiguration = new MapperConfiguration(cfg =>
             {
-                foreach (var ca in configurationActions)
-                    ca(cfg);
+                foreach (var profile in profiles)
+                    cfg.AddProfile(profile);
             });
 
             _mapper = _mapperConfiguration.CreateMapper();
@@ -35,20 +35,15 @@ namespace Nop.Core.Infrastructure.Mapper
         /// </summary>
         public static IMapper Mapper
         {
-            get
-            {
-                return _mapper;
-            }
+            get { return _mapper; }
         }
+
         /// <summary>
         /// Mapper configuration
         /// </summary>
         public static MapperConfiguration MapperConfiguration
         {
-            get
-            {
-                return _mapperConfiguration;
-            }
+            get { return _mapperConfiguration; }
         }
     }
 }

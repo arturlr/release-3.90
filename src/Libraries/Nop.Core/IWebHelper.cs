@@ -1,9 +1,7 @@
-using System.Web;
-
 namespace Nop.Core
 {
     /// <summary>
-    /// Represents a common helper
+    /// Represents a common web helper
     /// </summary>
     public partial interface IWebHelper
     {
@@ -16,22 +14,22 @@ namespace Nop.Core
         /// <summary>
         /// Get context IP address
         /// </summary>
-        /// <returns>URL referrer</returns>
+        /// <returns>IP address string</returns>
         string GetCurrentIpAddress();
 
         /// <summary>
-        /// Gets this page name
+        /// Gets this page URL
         /// </summary>
         /// <param name="includeQueryString">Value indicating whether to include query strings</param>
-        /// <returns>Page name</returns>
+        /// <returns>Page URL</returns>
         string GetThisPageUrl(bool includeQueryString);
 
         /// <summary>
-        /// Gets this page name
+        /// Gets this page URL
         /// </summary>
         /// <param name="includeQueryString">Value indicating whether to include query strings</param>
         /// <param name="useSsl">Value indicating whether to get SSL protected page</param>
-        /// <returns>Page name</returns>
+        /// <returns>Page URL</returns>
         string GetThisPageUrl(bool includeQueryString, bool useSsl);
 
         /// <summary>
@@ -39,7 +37,7 @@ namespace Nop.Core
         /// </summary>
         /// <returns>true - secured, false - not secured</returns>
         bool IsCurrentConnectionSecured();
-        
+
         /// <summary>
         /// Gets server variable by name
         /// </summary>
@@ -70,20 +68,8 @@ namespace Nop.Core
         /// <summary>
         /// Returns true if the requested resource is one of the typical resources that needn't be processed by the cms engine.
         /// </summary>
-        /// <param name="request">HTTP Request</param>
         /// <returns>True if the request targets a static resource file.</returns>
-        /// <remarks>
-        /// These are the file extensions considered to be static resources:
-        /// .css
-        ///	.gif
-        /// .png 
-        /// .jpg
-        /// .jpeg
-        /// .js
-        /// .axd
-        /// .ashx
-        /// </remarks>
-        bool IsStaticResource(HttpRequest request);        
+        bool IsStaticResource();
 
         /// <summary>
         /// Modifies query string
@@ -101,11 +87,11 @@ namespace Nop.Core
         /// <param name="queryString">Query string to remove</param>
         /// <returns>New url</returns>
         string RemoveQueryString(string url, string queryString);
-        
+
         /// <summary>
         /// Gets query string value by name
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Returned value type</typeparam>
         /// <param name="name">Parameter name</param>
         /// <returns>Query string value</returns>
         T QueryString<T>(string name);
@@ -113,10 +99,8 @@ namespace Nop.Core
         /// <summary>
         /// Restart application domain
         /// </summary>
-        /// <param name="makeRedirect">A value indicating whether we should made redirection after restart</param>
-        /// <param name="redirectUrl">Redirect URL; empty string if you want to redirect to the current page URL</param>
-        void RestartAppDomain(bool makeRedirect = false, string redirectUrl = "");
-        
+        void RestartAppDomain();
+
         /// <summary>
         /// Gets a value that indicates whether the client is being redirected to a new location
         /// </summary>

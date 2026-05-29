@@ -1,8 +1,10 @@
 using System;
+using System.Linq;
+using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Nop.Core.Configuration;
-using Nop.Core.Infrastructure;
 using StackExchange.Redis;
 
 namespace Nop.Core.Caching
@@ -15,6 +17,7 @@ namespace Nop.Core.Caching
     public partial class RedisCacheManager : ICacheManager
     {
         #region Fields
+
         private readonly IRedisConnectionWrapper _connectionWrapper;
         private readonly IDatabase _db;
         private readonly ICacheManager _perRequestCacheManager;
@@ -23,16 +26,16 @@ namespace Nop.Core.Caching
 
         #region Ctor
 
-        public RedisCacheManager(NopConfig config, IRedisConnectionWrapper connectionWrapper)
+        public RedisCacheManager(ICacheManager perRequestCacheManager,
+            IRedisConnectionWrapper connectionWrapper,
+            NopConfig config)
         {
-            if (String.IsNullOrEmpty(config.RedisCachingConnectionString))
+            if (string.IsNullOrEmpty(config.RedisCachingConnectionString))
                 throw new Exception("Redis connection string is empty");
 
-            // ConnectionMultiplexer.Connect should only be called once and shared between callers
-            this._connectionWrapper = connectionWrapper;
-
-            this._db = _connectionWrapper.GetDatabase();
-            this._perRequestCacheManager = EngineContext.Current.Resolve<ICacheManager>();
+            _connectionWrapper = connectionWrapper;
+            _db = _connectionWrapper.GetDatabase();
+            _perRequestCacheManager = perRequestCacheManager;
         }
 
         #endregion
@@ -41,9 +44,13 @@ namespace Nop.Core.Caching
 
         protected virtual byte[] Serialize(object item)
         {
-            var jsonString = JsonConvert.SerializeObject(item);
+            var jsonString = JsonConvert.SerializeObject(item, new JsonSerializerSettings
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
             return Encoding.UTF8.GetBytes(jsonString);
         }
+
         protected virtual T Deserialize<T>(byte[] serializedObject)
         {
             if (serializedObject == null)
@@ -65,17 +72,15 @@ namespace Nop.Core.Caching
         /// <returns>The value associated with the specified key.</returns>
         public virtual T Get<T>(string key)
         {
-            //little performance workaround here:
-            //we use "PerRequestCacheManager" to cache a loaded object in memory for the current HTTP request.
-            //this way we won't connect to Redis server 500 times per HTTP request (e.g. each time to load a locale or setting)
+            // Performance optimization: use per-request cache to avoid hitting Redis repeatedly
             if (_perRequestCacheManager.IsSet(key))
                 return _perRequestCacheManager.Get<T>(key);
 
             var rValue = _db.StringGet(key);
             if (!rValue.HasValue)
                 return default(T);
-            var result = Deserialize<T>(rValue);
 
+            var result = Deserialize<T>(rValue);
             _perRequestCacheManager.Set(key, result, 0);
             return result;
         }
@@ -85,7 +90,7 @@ namespace Nop.Core.Caching
         /// </summary>
         /// <param name="key">key</param>
         /// <param name="data">Data</param>
-        /// <param name="cacheTime">Cache time</param>
+        /// <param name="cacheTime">Cache time in minutes</param>
         public virtual void Set(string key, object data, int cacheTime)
         {
             if (data == null)
@@ -104,9 +109,6 @@ namespace Nop.Core.Caching
         /// <returns>Result</returns>
         public virtual bool IsSet(string key)
         {
-            //little performance workaround here:
-            //we use "PerRequestCacheManager" to cache a loaded object in memory for the current HTTP request.
-            //this way we won't connect to Redis server 500 times per HTTP request (e.g. each time to load a locale or setting)
             if (_perRequestCacheManager.IsSet(key))
                 return true;
 
@@ -116,7 +118,7 @@ namespace Nop.Core.Caching
         /// <summary>
         /// Removes the value with the specified key from the cache
         /// </summary>
-        /// <param name="key">/key</param>
+        /// <param name="key">key</param>
         public virtual void Remove(string key)
         {
             _db.KeyDelete(key);
@@ -146,11 +148,6 @@ namespace Nop.Core.Caching
             foreach (var ep in _connectionWrapper.GetEndPoints())
             {
                 var server = _connectionWrapper.GetServer(ep);
-                //we can use the code below (commented)
-                //but it requires administration permission - ",allowAdmin=true"
-                //server.FlushDatabase();
-
-                //that's why we simply interate through all elements now
                 var keys = server.Keys(database: _db.Database);
                 foreach (var key in keys)
                     Remove(key);
@@ -162,11 +159,8 @@ namespace Nop.Core.Caching
         /// </summary>
         public virtual void Dispose()
         {
-            //if (_connectionWrapper != null)
-            //    _connectionWrapper.Dispose();
         }
 
         #endregion
-
     }
 }
