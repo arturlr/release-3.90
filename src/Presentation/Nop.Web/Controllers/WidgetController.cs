@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Web.Factories;
 
 namespace Nop.Web.Controllers
@@ -23,8 +23,8 @@ namespace Nop.Web.Controllers
 
         #region Methods
 
-        [ChildActionOnly]
-        public virtual ActionResult WidgetsByZone(string widgetZone, object additionalData = null)
+        [NonAction] // Was ChildActionOnly
+        public virtual IActionResult WidgetsByZone(string widgetZone, object additionalData = null)
         {
             var model = _widgetModelFactory.GetRenderWidgetModels(widgetZone, additionalData);
 

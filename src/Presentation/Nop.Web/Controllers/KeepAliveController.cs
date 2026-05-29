@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace Nop.Web.Controllers
 {
@@ -6,7 +6,7 @@ namespace Nop.Web.Controllers
     //they can create guest account(s), etc
     public partial class KeepAliveController : Controller
     {
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return Content("I am alive!");
         }

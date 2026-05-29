@@ -1,17 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
-using System.Web;
 using System.Xml;
-using Nop.Core;
+using Microsoft.AspNetCore.Http;
 using Nop.Core.Infrastructure;
 
 namespace Nop.Web.Infrastructure.Installation
 {
     /// <summary>
-    /// Localization service for installation process
+    /// Localization service for installation
     /// </summary>
     public partial class InstallationLocalizationService : IInstallationLocalizationService
     {
@@ -26,67 +24,48 @@ namespace Nop.Web.Infrastructure.Installation
         private IList<InstallationLanguage> _availableLanguages;
 
         /// <summary>
-        /// Get locale resource value
-        /// </summary>
-        /// <param name="resourceName">Resource name</param>
-        /// <returns>Resource value</returns>
-        public string GetResource(string resourceName)
-        {
-            var language = GetCurrentLanguage();
-            if (language == null)
-                return resourceName;
-            var resourceValue = language.Resources
-                .Where(r => r.Name.Equals(resourceName, StringComparison.InvariantCultureIgnoreCase))
-                .Select(r => r.Value)
-                .FirstOrDefault();
-            if (String.IsNullOrEmpty(resourceValue))
-                //return name
-                return resourceName;
-
-            return resourceValue;
-        }
-
-        /// <summary>
-        /// Get current language for the installation page
+        /// Get the current language for the installation page
         /// </summary>
         /// <returns>Current language</returns>
         public virtual InstallationLanguage GetCurrentLanguage()
         {
-            var httpContext = EngineContext.Current.Resolve<HttpContextBase>();
+            var httpContextAccessor = EngineContext.Current.Resolve<IHttpContextAccessor>();
+            var httpContext = httpContextAccessor?.HttpContext;
 
             var cookieLanguageCode = "";
-            var cookie = httpContext.Request.Cookies[LanguageCookieName];
-            if (cookie != null && !String.IsNullOrEmpty(cookie.Value))
-                cookieLanguageCode = cookie.Value;
+            if (httpContext != null)
+            {
+                httpContext.Request.Cookies.TryGetValue(LanguageCookieName, out cookieLanguageCode);
+            }
 
-            //ensure it's available (it could be delete since the previous installation)
             var availableLanguages = GetAvailableLanguages();
 
             var language = availableLanguages
-                .FirstOrDefault(l => l.Code.Equals(cookieLanguageCode, StringComparison.InvariantCultureIgnoreCase));
+                .FirstOrDefault(l => l.Code.Equals(cookieLanguageCode ?? "", StringComparison.InvariantCultureIgnoreCase));
             if (language != null)
                 return language;
 
-            //let's find by current browser culture
-            if (httpContext.Request.UserLanguages != null)
+            // Try browser language
+            if (httpContext != null)
             {
-                var userLanguage = httpContext.Request.UserLanguages.FirstOrDefault();
-                if (!String.IsNullOrEmpty(userLanguage))
+                var acceptLanguage = httpContext.Request.Headers["Accept-Language"].ToString();
+                if (!string.IsNullOrEmpty(acceptLanguage))
                 {
-                    //right. we do "StartsWith" (not "Equals") because we have shorten codes (not full culture names)
-                    language = availableLanguages
-                        .FirstOrDefault(l => userLanguage.StartsWith(l.Code, StringComparison.InvariantCultureIgnoreCase));
+                    var userLanguage = acceptLanguage.Split(',').FirstOrDefault();
+                    if (!string.IsNullOrEmpty(userLanguage))
+                    {
+                        language = availableLanguages
+                            .FirstOrDefault(l => userLanguage.StartsWith(l.Code, StringComparison.InvariantCultureIgnoreCase));
+                    }
                 }
             }
             if (language != null)
                 return language;
 
-            //let's return the default one
             language = availableLanguages.FirstOrDefault(l => l.IsDefault);
             if (language != null)
                 return language;
 
-            //return any available language
             language = availableLanguages.FirstOrDefault();
             return language;
         }
@@ -97,51 +76,50 @@ namespace Nop.Web.Infrastructure.Installation
         /// <param name="languageCode">Language code</param>
         public virtual void SaveCurrentLanguage(string languageCode)
         {
-            var httpContext = EngineContext.Current.Resolve<HttpContextBase>();
-
-            var cookie = new HttpCookie(LanguageCookieName);
-            cookie.HttpOnly = true;
-            cookie.Value = languageCode;
-            cookie.Expires = DateTime.Now.AddHours(24);
-            httpContext.Response.Cookies.Remove(LanguageCookieName);
-            httpContext.Response.Cookies.Add(cookie);
+            var httpContextAccessor = EngineContext.Current.Resolve<IHttpContextAccessor>();
+            var httpContext = httpContextAccessor?.HttpContext;
+            if (httpContext != null)
+            {
+                httpContext.Response.Cookies.Append(LanguageCookieName, languageCode, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Expires = DateTime.Now.AddHours(24)
+                });
+            }
         }
 
         /// <summary>
         /// Get a list of available languages
         /// </summary>
-        /// <returns>Available installation languages</returns>
+        /// <returns>Result</returns>
         public virtual IList<InstallationLanguage> GetAvailableLanguages()
         {
             if (_availableLanguages == null)
             {
                 _availableLanguages = new List<InstallationLanguage>();
-                foreach (var filePath in Directory.EnumerateFiles(CommonHelper.MapPath("~/App_Data/Localization/Installation/"), "*.xml"))
+                var webHelper = EngineContext.Current.Resolve<Nop.Core.IWebHelper>();
+                foreach (var filePath in Directory.EnumerateFiles(
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data", "Localization", "Installation"), "*.xml"))
                 {
-                    var xmlDocument = new XmlDocument();
-                    xmlDocument.Load(filePath);
+                    var xmlDoc = new XmlDocument();
+                    xmlDoc.Load(filePath);
 
-
-                    //get language code
                     var languageCode = "";
-                    //we file name format: installation.{languagecode}.xml
-                    var r = new Regex(Regex.Escape("installation.") + "(.*?)" + Regex.Escape(".xml"));
-                    var matches = r.Matches(Path.GetFileName(filePath));
-                    foreach (Match match in matches)
-                        languageCode = match.Groups[1].Value;
+                    var languageName = "";
+                    var isDefaultAttribute = xmlDoc.SelectSingleNode(@"//Language/@IsDefault");
+                    var isRightToLeftAttribute = xmlDoc.SelectSingleNode(@"//Language/@IsRightToLeft");
 
-                    //get language friendly name
-                    var languageName = xmlDocument.SelectSingleNode(@"//Language").Attributes["Name"].InnerText.Trim();
+                    var codeNode = xmlDoc.SelectSingleNode(@"//Language/@Code");
+                    if (codeNode != null)
+                        languageCode = codeNode.Value;
 
-                    //is default
-                    var isDefaultAttribute = xmlDocument.SelectSingleNode(@"//Language").Attributes["IsDefault"];
-                    var isDefault = isDefaultAttribute != null && Convert.ToBoolean(isDefaultAttribute.InnerText.Trim());
+                    var nameNode = xmlDoc.SelectSingleNode(@"//Language/@Name");
+                    if (nameNode != null)
+                        languageName = nameNode.Value;
 
-                    //is default
-                    var isRightToLeftAttribute = xmlDocument.SelectSingleNode(@"//Language").Attributes["IsRightToLeft"];
-                    var isRightToLeft = isRightToLeftAttribute != null && Convert.ToBoolean(isRightToLeftAttribute.InnerText.Trim());
+                    var isDefault = isDefaultAttribute != null && Convert.ToBoolean(isDefaultAttribute.Value);
+                    var isRightToLeft = isRightToLeftAttribute != null && Convert.ToBoolean(isRightToLeftAttribute.Value);
 
-                    //create language
                     var language = new InstallationLanguage
                     {
                         Code = languageCode,
@@ -149,21 +127,18 @@ namespace Nop.Web.Infrastructure.Installation
                         IsDefault = isDefault,
                         IsRightToLeft = isRightToLeft,
                     };
-                    //load resources
-                    foreach (XmlNode resNode in xmlDocument.SelectNodes(@"//Language/LocaleResource"))
+
+                    // Load resources
+                    foreach (XmlNode resNode in xmlDoc.SelectNodes(@"//Language/LocaleResource"))
                     {
                         var resNameAttribute = resNode.Attributes["Name"];
                         var resValueNode = resNode.SelectSingleNode("Value");
 
                         if (resNameAttribute == null)
-                            throw new NopException("All installation resources must have an attribute Name=\"Value\".");
-                        var resourceName = resNameAttribute.Value.Trim();
-                        if (string.IsNullOrEmpty(resourceName))
-                            throw new NopException("All installation resource attributes 'Name' must have a value.'");
+                            continue;
 
-                        if (resValueNode == null)
-                            throw new NopException("All installation resources must have an element \"Value\".");
-                        var resourceValue = resValueNode.InnerText.Trim();
+                        var resourceName = resNameAttribute.Value.Trim();
+                        var resourceValue = resValueNode != null ? resValueNode.InnerText.Trim() : "";
 
                         language.Resources.Add(new InstallationLocaleResource
                         {
@@ -173,11 +148,30 @@ namespace Nop.Web.Infrastructure.Installation
                     }
 
                     _availableLanguages.Add(language);
-                    _availableLanguages = _availableLanguages.OrderBy(l => l.Name).ToList();
-
                 }
+
+                _availableLanguages = _availableLanguages.OrderBy(l => l.Name).ToList();
             }
             return _availableLanguages;
+        }
+
+        /// <summary>
+        /// Get a locale resource value
+        /// </summary>
+        /// <param name="resourceName">Resource name</param>
+        /// <returns>Resource value</returns>
+        public virtual string GetResource(string resourceName)
+        {
+            var language = GetCurrentLanguage();
+            if (language == null)
+                return resourceName;
+
+            var resource = language.Resources.FirstOrDefault(r =>
+                r.Name.Equals(resourceName, StringComparison.InvariantCultureIgnoreCase));
+            if (resource == null)
+                return resourceName;
+
+            return resource.Value;
         }
     }
 }
