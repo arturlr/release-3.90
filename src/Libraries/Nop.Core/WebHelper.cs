@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Web;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
 
@@ -17,7 +18,9 @@ namespace Nop.Core
     {
         #region Fields 
 
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IHostApplicationLifetime _hostApplicationLifetime;
+        private readonly IConfiguration _configuration;
         private readonly string[] _staticFileExtensions;
 
         #endregion
@@ -27,10 +30,16 @@ namespace Nop.Core
         /// <summary>
         /// Ctor
         /// </summary>
-        /// <param name="httpContext">HTTP context</param>
-        public WebHelper(HttpContextBase httpContext)
+        /// <param name="httpContextAccessor">HTTP context accessor</param>
+        /// <param name="hostApplicationLifetime">Host application lifetime</param>
+        /// <param name="configuration">Configuration</param>
+        public WebHelper(IHttpContextAccessor httpContextAccessor,
+            IHostApplicationLifetime hostApplicationLifetime,
+            IConfiguration configuration)
         {
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
+            this._hostApplicationLifetime = hostApplicationLifetime;
+            this._configuration = configuration;
             this._staticFileExtensions = new[] { ".axd", ".ashx", ".bmp", ".css", ".gif", ".htm", ".html", ".ico", ".jpeg", ".jpg", ".js", ".png", ".rar", ".zip" };
         }
 
@@ -38,7 +47,7 @@ namespace Nop.Core
 
         #region Utilities
 
-        protected virtual Boolean IsRequestAvailable(HttpContextBase httpContext)
+        protected virtual bool IsRequestAvailable(HttpContext httpContext)
         {
             if (httpContext == null)
                 return false;
@@ -48,19 +57,19 @@ namespace Nop.Core
                 if (httpContext.Request == null)
                     return false;
             }
-            catch (HttpException)
+            catch (Exception)
             {
                 return false;
             }
 
             return true;
         }
+
         protected virtual bool TryWriteWebConfig()
         {
             try
             {
-                // In medium trust, "UnloadAppDomain" is not supported. Touch web.config
-                // to force an AppDomain restart.
+                // Touch web.config to force an application restart.
                 File.SetLastWriteTimeUtc(CommonHelper.MapPath("~/web.config"), DateTime.UtcNow);
                 return true;
             }
@@ -103,9 +112,23 @@ namespace Nop.Core
         {
             string referrerUrl = string.Empty;
 
+            var httpContext = _httpContextAccessor.HttpContext;
             //URL referrer is null in some case (for example, in IE 8)
-            if (IsRequestAvailable(_httpContext) && _httpContext.Request.UrlReferrer != null)
-                referrerUrl = _httpContext.Request.UrlReferrer.PathAndQuery;
+            if (IsRequestAvailable(httpContext))
+            {
+                var referrer = httpContext.Request.Headers["Referer"].FirstOrDefault();
+                if (!string.IsNullOrEmpty(referrer))
+                {
+                    if (Uri.TryCreate(referrer, UriKind.Absolute, out var referrerUri))
+                    {
+                        referrerUrl = referrerUri.PathAndQuery;
+                    }
+                    else
+                    {
+                        referrerUrl = referrer;
+                    }
+                }
+            }
 
             return referrerUrl;
         }
@@ -116,44 +139,45 @@ namespace Nop.Core
         /// <returns>URL referrer</returns>
         public virtual string GetCurrentIpAddress()
         {
-            if (!IsRequestAvailable(_httpContext))
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (!IsRequestAvailable(httpContext))
                 return string.Empty;
 
             var result = "";
             try
             {
-                if (_httpContext.Request.Headers != null)
+                if (httpContext.Request.Headers != null)
                 {
                     //The X-Forwarded-For (XFF) HTTP header field is a de facto standard
                     //for identifying the originating IP address of a client
                     //connecting to a web server through an HTTP proxy or load balancer.
                     var forwardedHttpHeader = "X-FORWARDED-FOR";
-                    if (!String.IsNullOrEmpty(ConfigurationManager.AppSettings["ForwardedHTTPheader"]))
+                    if (!string.IsNullOrEmpty(_configuration["ForwardedHTTPheader"]))
                     {
                         //but in some cases server use other HTTP header
                         //in these cases an administrator can specify a custom Forwarded HTTP header
                         //e.g. CF-Connecting-IP, X-FORWARDED-PROTO, etc
-                        forwardedHttpHeader = ConfigurationManager.AppSettings["ForwardedHTTPheader"];
+                        forwardedHttpHeader = _configuration["ForwardedHTTPheader"];
                     }
 
                     //it's used for identifying the originating IP address of a client connecting to a web server
                     //through an HTTP proxy or load balancer. 
-                    string xff = _httpContext.Request.Headers.AllKeys
+                    string xff = httpContext.Request.Headers.Keys
                         .Where(x => forwardedHttpHeader.Equals(x, StringComparison.InvariantCultureIgnoreCase))
-                        .Select(k => _httpContext.Request.Headers[k])
+                        .Select(k => (string)httpContext.Request.Headers[k])
                         .FirstOrDefault();
 
                     //if you want to exclude private IP addresses, then see http://stackoverflow.com/questions/2577496/how-can-i-get-the-clients-ip-address-in-asp-net-mvc
-                    if (!String.IsNullOrEmpty(xff))
+                    if (!string.IsNullOrEmpty(xff))
                     {
                         string lastIp = xff.Split(new[] { ',' }).FirstOrDefault();
                         result = lastIp;
                     }
                 }
 
-                if (String.IsNullOrEmpty(result) && _httpContext.Request.UserHostAddress != null)
+                if (string.IsNullOrEmpty(result) && httpContext.Connection.RemoteIpAddress != null)
                 {
-                    result = _httpContext.Request.UserHostAddress;
+                    result = httpContext.Connection.RemoteIpAddress.ToString();
                 }
             }
             catch 
@@ -165,7 +189,7 @@ namespace Nop.Core
             if (result == "::1")
                 result = "127.0.0.1";
             //remove port
-            if (!String.IsNullOrEmpty(result))
+            if (!string.IsNullOrEmpty(result))
             {
                 int index = result.IndexOf(":", StringComparison.InvariantCultureIgnoreCase);
                 if (index > 0)
@@ -194,14 +218,22 @@ namespace Nop.Core
         /// <returns>Page name</returns>
         public virtual string GetThisPageUrl(bool includeQueryString, bool useSsl)
         {
-            if (!IsRequestAvailable(_httpContext))
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (!IsRequestAvailable(httpContext))
                 return string.Empty;
             
             //get the host considering using SSL
             var url = GetStoreHost(useSsl).TrimEnd('/');
 
             //get full URL with or without query string
-            url += includeQueryString ? _httpContext.Request.RawUrl : _httpContext.Request.Path;
+            if (includeQueryString)
+            {
+                url += httpContext.Request.Path.ToString() + httpContext.Request.QueryString.ToString();
+            }
+            else
+            {
+                url += httpContext.Request.Path.ToString();
+            }
 
             return url.ToLowerInvariant();
         }
@@ -213,25 +245,26 @@ namespace Nop.Core
         public virtual bool IsCurrentConnectionSecured()
         {
             bool useSsl = false;
-            if (IsRequestAvailable(_httpContext))
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (IsRequestAvailable(httpContext))
             {
-                //when your hosting uses a load balancer on their server then the Request.IsSecureConnection is never got set to true
+                //when your hosting uses a load balancer on their server then the Request.IsHttps is never got set to true
 
                 //1. use HTTP_CLUSTER_HTTPS?
-                if (!string.IsNullOrEmpty(ConfigurationManager.AppSettings["Use_HTTP_CLUSTER_HTTPS"]) &&
-                   Convert.ToBoolean(ConfigurationManager.AppSettings["Use_HTTP_CLUSTER_HTTPS"]))
+                if (!string.IsNullOrEmpty(_configuration["Use_HTTP_CLUSTER_HTTPS"]) &&
+                   Convert.ToBoolean(_configuration["Use_HTTP_CLUSTER_HTTPS"]))
                 {
                     useSsl = ServerVariables("HTTP_CLUSTER_HTTPS") == "on";
                 }
                 //2. use HTTP_X_FORWARDED_PROTO?
-                else if (!string.IsNullOrEmpty(ConfigurationManager.AppSettings["Use_HTTP_X_FORWARDED_PROTO"]) &&
-                   Convert.ToBoolean(ConfigurationManager.AppSettings["Use_HTTP_X_FORWARDED_PROTO"]))
+                else if (!string.IsNullOrEmpty(_configuration["Use_HTTP_X_FORWARDED_PROTO"]) &&
+                   Convert.ToBoolean(_configuration["Use_HTTP_X_FORWARDED_PROTO"]))
                 {
                     useSsl = string.Equals(ServerVariables("HTTP_X_FORWARDED_PROTO"), "https", StringComparison.OrdinalIgnoreCase);
                 }
                 else
                 {
-                    useSsl = _httpContext.Request.IsSecureConnection;
+                    useSsl = httpContext.Request.IsHttps;
                 }
             }
 
@@ -249,14 +282,46 @@ namespace Nop.Core
 
             try
             {
-                if (!IsRequestAvailable(_httpContext))
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (!IsRequestAvailable(httpContext))
                     return result;
 
-                //put this method is try-catch 
-                //as described here http://www.nopcommerce.com/boards/t/21356/multi-store-roadmap-lets-discuss-update-done.aspx?p=6#90196
-                if (_httpContext.Request.ServerVariables[name] != null)
+                //In ASP.NET Core, server variables are accessed via headers or connection info.
+                //Map common server variable names to their ASP.NET Core equivalents.
+                if (name.Equals("HTTP_HOST", StringComparison.OrdinalIgnoreCase))
                 {
-                    result = _httpContext.Request.ServerVariables[name];
+                    result = httpContext.Request.Host.ToString();
+                }
+                else if (name.Equals("HTTP_X_FORWARDED_PROTO", StringComparison.OrdinalIgnoreCase))
+                {
+                    result = httpContext.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? string.Empty;
+                }
+                else if (name.Equals("HTTP_CLUSTER_HTTPS", StringComparison.OrdinalIgnoreCase))
+                {
+                    result = httpContext.Request.Headers["X-Cluster-Https"].FirstOrDefault() ?? string.Empty;
+                }
+                else if (name.Equals("REMOTE_ADDR", StringComparison.OrdinalIgnoreCase))
+                {
+                    result = httpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+                }
+                else if (name.Equals("SERVER_NAME", StringComparison.OrdinalIgnoreCase))
+                {
+                    result = httpContext.Request.Host.Host;
+                }
+                else if (name.Equals("SERVER_PORT", StringComparison.OrdinalIgnoreCase))
+                {
+                    result = (httpContext.Request.Host.Port ?? (httpContext.Request.IsHttps ? 443 : 80)).ToString();
+                }
+                else if (name.StartsWith("HTTP_", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Convert HTTP_HEADER_NAME to Header-Name format
+                    var headerName = name.Substring(5).Replace("_", "-");
+                    result = httpContext.Request.Headers[headerName].FirstOrDefault() ?? string.Empty;
+                }
+                else
+                {
+                    // Try as a header directly
+                    result = httpContext.Request.Headers[name].FirstOrDefault() ?? string.Empty;
                 }
             }
             catch
@@ -275,7 +340,7 @@ namespace Nop.Core
         {
             var result = "";
             var httpHost = ServerVariables("HTTP_HOST");
-            if (!String.IsNullOrEmpty(httpHost))
+            if (!string.IsNullOrEmpty(httpHost))
             {
                 result = "http://" + httpHost;
                 if (!result.EndsWith("/"))
@@ -293,7 +358,7 @@ namespace Nop.Core
                 if (currentStore == null)
                     throw new Exception("Current store cannot be loaded");
 
-                if (String.IsNullOrWhiteSpace(httpHost))
+                if (string.IsNullOrWhiteSpace(httpHost))
                 {
                     //HTTP_HOST variable is not available.
                     //This scenario is possible only when HttpContext is not available (for example, running in a schedule task)
@@ -305,7 +370,7 @@ namespace Nop.Core
 
                 if (useSsl)
                 {
-                    result = !String.IsNullOrWhiteSpace(currentStore.SecureUrl) ?
+                    result = !string.IsNullOrWhiteSpace(currentStore.SecureUrl) ?
                         //Secure URL specified. 
                         //So a store owner don't want it to be detected automatically.
                         //In this case let's use the specified secure URL
@@ -316,7 +381,7 @@ namespace Nop.Core
                 }
                 else
                 {
-                    if (currentStore.SslEnabled && !String.IsNullOrWhiteSpace(currentStore.SecureUrl))
+                    if (currentStore.SslEnabled && !string.IsNullOrWhiteSpace(currentStore.SecureUrl))
                     {
                         //SSL is enabled in this store and secure URL is specified.
                         //So a store owner don't want it to be detected automatically.
@@ -361,13 +426,16 @@ namespace Nop.Core
         /// <returns>Store location</returns>
         public virtual string GetStoreLocation(bool useSsl)
         {
-            //return HostingEnvironment.ApplicationVirtualPath;
-
             string result = GetStoreHost(useSsl);
             if (result.EndsWith("/"))
                 result = result.Substring(0, result.Length - 1);
-            if (IsRequestAvailable(_httpContext))
-                result = result + _httpContext.Request.ApplicationPath;
+
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (IsRequestAvailable(httpContext))
+            {
+                result = result + httpContext.Request.PathBase.ToString();
+            }
+
             if (!result.EndsWith("/"))
                 result += "/";
 
@@ -390,17 +458,31 @@ namespace Nop.Core
         /// .axd
         /// .ashx
         /// </remarks>
-        public virtual bool IsStaticResource(HttpRequest request)
+        public virtual bool IsStaticResource(string url)
         {
-            if (request == null)
-                throw new ArgumentNullException("request");
+            if (string.IsNullOrEmpty(url))
+                return false;
 
-            string path = request.Path;
-            string extension = VirtualPathUtility.GetExtension(path);
+            string path = url;
+            // If it's a full URL, extract the path portion
+            if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    path = new Uri(url).AbsolutePath;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
 
-            if (extension == null) return false;
+            string extension = Path.GetExtension(path);
 
-            return _staticFileExtensions.Contains(extension);
+            if (string.IsNullOrEmpty(extension))
+                return false;
+
+            return _staticFileExtensions.Contains(extension.ToLowerInvariant());
         }
 
         /// <summary>
@@ -582,10 +664,11 @@ namespace Nop.Core
         public virtual T QueryString<T>(string name)
         {
             string queryParam = null;
-            if (IsRequestAvailable(_httpContext) && _httpContext.Request.QueryString[name] != null)
-                queryParam = _httpContext.Request.QueryString[name];
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (IsRequestAvailable(httpContext) && httpContext.Request.Query.ContainsKey(name))
+                queryParam = httpContext.Request.Query[name];
 
-            if (!String.IsNullOrEmpty(queryParam))
+            if (!string.IsNullOrEmpty(queryParam))
                 return CommonHelper.To<T>(queryParam);
 
             return default(T);
@@ -598,43 +681,17 @@ namespace Nop.Core
         /// <param name="redirectUrl">Redirect URL; empty string if you want to redirect to the current page URL</param>
         public virtual void RestartAppDomain(bool makeRedirect = false, string redirectUrl = "")
         {
-            if (CommonHelper.GetTrustLevel() > AspNetHostingPermissionLevel.Medium)
-            {
-                //full trust
-                HttpRuntime.UnloadAppDomain();
+            // In .NET Core, we use IHostApplicationLifetime to stop the application.
+            // The hosting environment (e.g., IIS, systemd, Docker) is responsible for restarting.
+            _hostApplicationLifetime.StopApplication();
 
-                TryWriteGlobalAsax();
-            }
-            else
+            // If making a redirect, set the response before the app stops.
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext != null && makeRedirect)
             {
-                //medium trust
-                bool success = TryWriteWebConfig();
-                if (!success)
-                {
-                    throw new NopException("nopCommerce needs to be restarted due to a configuration change, but was unable to do so." + Environment.NewLine +
-                        "To prevent this issue in the future, a change to the web server configuration is required:" + Environment.NewLine +
-                        "- run the application in a full trust environment, or" + Environment.NewLine +
-                        "- give the application write access to the 'web.config' file.");
-                }
-                success = TryWriteGlobalAsax();
-
-                if (!success)
-                {
-                    throw new NopException("nopCommerce needs to be restarted due to a configuration change, but was unable to do so." + Environment.NewLine +
-                        "To prevent this issue in the future, a change to the web server configuration is required:" + Environment.NewLine +
-                        "- run the application in a full trust environment, or" + Environment.NewLine +
-                        "- give the application write access to the 'Global.asax' file.");
-                }
-            }
-
-            // If setting up extensions/modules requires an AppDomain restart, it's very unlikely the
-            // current request can be processed correctly.  So, we redirect to the same URL, so that the
-            // new request will come to the newly started AppDomain.
-            if (_httpContext != null && makeRedirect)
-            {
-                if (String.IsNullOrEmpty(redirectUrl))
+                if (string.IsNullOrEmpty(redirectUrl))
                     redirectUrl = GetThisPageUrl(true);
-                _httpContext.Response.Redirect(redirectUrl, true /*endResponse*/);
+                httpContext.Response.Redirect(redirectUrl);
             }
         }
 
@@ -645,8 +702,16 @@ namespace Nop.Core
         {
             get
             {
-                var response = _httpContext.Response;
-                return response.IsRequestBeingRedirected;
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (httpContext == null)
+                    return false;
+
+                var response = httpContext.Response;
+                //ASP.NET Core uses status codes 301, 302, 307, 308 for redirects
+                return response.StatusCode == StatusCodes.Status301MovedPermanently
+                    || response.StatusCode == StatusCodes.Status302Found
+                    || response.StatusCode == StatusCodes.Status307TemporaryRedirect
+                    || response.StatusCode == StatusCodes.Status308PermanentRedirect;
             }
         }
 
@@ -657,13 +722,21 @@ namespace Nop.Core
         {
             get
             {
-                if (_httpContext.Items["nop.IsPOSTBeingDone"] == null)
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (httpContext == null)
                     return false;
-                return Convert.ToBoolean(_httpContext.Items["nop.IsPOSTBeingDone"]);
+
+                if (httpContext.Items["nop.IsPOSTBeingDone"] == null)
+                    return false;
+                return Convert.ToBoolean(httpContext.Items["nop.IsPOSTBeingDone"]);
             }
             set
             {
-                _httpContext.Items["nop.IsPOSTBeingDone"] = value;
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (httpContext != null)
+                {
+                    httpContext.Items["nop.IsPOSTBeingDone"] = value;
+                }
             }
         }
 

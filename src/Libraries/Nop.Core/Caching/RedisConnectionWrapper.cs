@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Nop.Core.Configuration;
-using RedLock;
+using RedLockNet;
+using RedLockNet.SERedis;
+using RedLockNet.SERedis.Configuration;
 using StackExchange.Redis;
 
 namespace Nop.Core.Caching
@@ -18,7 +21,7 @@ namespace Nop.Core.Caching
         private readonly Lazy<string> _connectionString;
 
         private volatile ConnectionMultiplexer _connection;
-        private volatile RedisLockFactory _redisLockFactory;
+        private volatile RedLockFactory _redisLockFactory;
         private readonly object _lock = new object();
 
         #endregion
@@ -74,7 +77,7 @@ namespace Nop.Core.Caching
         /// Create instance of RedisLockFactory
         /// </summary>
         /// <returns>RedisLockFactory</returns>
-        protected RedisLockFactory CreateRedisLockFactory()
+        protected RedLockFactory CreateRedisLockFactory()
         {
             //get password and value whether to use ssl from connection string
             var password = string.Empty;
@@ -92,13 +95,25 @@ namespace Nop.Core.Caching
                 }
             }
 
-            //create RedisLockFactory for using Redlock distributed lock algorithm
-            return new RedisLockFactory(GetEndPoints().Select(endPoint => new RedisLockEndPoint
+            //create RedisLockFactory for using Redlock distributed lock algorithm using RedLock.net 2.x API
+            var endPoints = GetEndPoints();
+            var redLockEndPoints = new List<RedLockMultiplexer>();
+            foreach (var endPoint in endPoints)
             {
-                EndPoint = endPoint,
-                Password = password,
-                Ssl = useSsl
-            }));
+                var configOptions = new ConfigurationOptions
+                {
+                    Ssl = useSsl,
+                    EndPoints = { endPoint }
+                };
+                if (!string.IsNullOrEmpty(password))
+                {
+                    configOptions.Password = password;
+                }
+                var multiplexer = ConnectionMultiplexer.Connect(configOptions);
+                redLockEndPoints.Add(new RedLockMultiplexer(multiplexer));
+            }
+
+            return RedLockFactory.Create(redLockEndPoints);
         }
 
         #endregion
@@ -157,8 +172,8 @@ namespace Nop.Core.Caching
         /// <returns>True if lock was acquired and action was performed; otherwise false</returns>
         public bool PerformActionWithLock(string resource, TimeSpan expirationTime, Action action)
         {
-            //use RedLock library
-            using (var redisLock = _redisLockFactory.Create(resource, expirationTime))
+            //use RedLock.net 2.x library
+            using (var redisLock = _redisLockFactory.CreateLock(resource, expirationTime))
             {
                 //ensure that lock is acquired
                 if (!redisLock.IsAcquired)

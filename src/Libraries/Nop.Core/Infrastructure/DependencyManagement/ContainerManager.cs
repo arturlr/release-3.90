@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
 using Autofac;
 using Autofac.Core.Lifetime;
-using Autofac.Integration.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace Nop.Core.Infrastructure.DependencyManagement
 {
@@ -197,8 +196,22 @@ namespace Nop.Core.Infrastructure.DependencyManagement
         {
             try
             {
-                if (HttpContext.Current != null)
-                    return AutofacDependencyResolver.Current.RequestLifetimeScope;
+                //try to get the request lifetime scope via IHttpContextAccessor
+                if (_container.IsRegistered<IHttpContextAccessor>())
+                {
+                    var httpContextAccessor = _container.Resolve<IHttpContextAccessor>();
+                    var httpContext = httpContextAccessor.HttpContext;
+                    if (httpContext != null)
+                    {
+                        var requestServices = httpContext.RequestServices;
+                        if (requestServices != null)
+                        {
+                            var lifetimeScope = requestServices.GetService(typeof(ILifetimeScope)) as ILifetimeScope;
+                            if (lifetimeScope != null)
+                                return lifetimeScope;
+                        }
+                    }
+                }
 
                 //when such lifetime scope is returned, you should be sure that it'll be disposed once used (e.g. in schedule tasks)
                 return Container.BeginLifetimeScope(MatchingScopeLifetimeTags.RequestLifetimeScopeTag);

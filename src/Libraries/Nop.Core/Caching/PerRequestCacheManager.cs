@@ -1,6 +1,7 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 
 namespace Nop.Core.Caching
 {
@@ -9,26 +10,23 @@ namespace Nop.Core.Caching
     /// </summary>
     public partial class PerRequestCacheManager : ICacheManager
     {
-        private readonly HttpContextBase _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         /// <summary>
         /// Ctor
         /// </summary>
-        /// <param name="context">Context</param>
-        public PerRequestCacheManager(HttpContextBase context)
+        /// <param name="httpContextAccessor">HTTP context accessor</param>
+        public PerRequestCacheManager(IHttpContextAccessor httpContextAccessor)
         {
-            this._context = context;
+            this._httpContextAccessor = httpContextAccessor;
         }
         
         /// <summary>
         /// Creates a new instance of the NopRequestCache class
         /// </summary>
-        protected virtual IDictionary GetItems()
+        protected virtual IDictionary<object, object> GetItems()
         {
-            if (_context != null)
-                return _context.Items;
-
-            return null;
+            return _httpContextAccessor.HttpContext?.Items;
         }
 
         /// <summary>
@@ -43,7 +41,10 @@ namespace Nop.Core.Caching
             if (items == null)
                 return default(T);
 
-            return (T)items[key];
+            if (items.TryGetValue(key, out var value))
+                return (T)value;
+
+            return default(T);
         }
 
         /// <summary>
@@ -60,7 +61,7 @@ namespace Nop.Core.Caching
 
             if (data != null)
             {
-                if (items.Contains(key))
+                if (items.ContainsKey(key))
                     items[key] = data;
                 else
                     items.Add(key, data);
@@ -77,8 +78,8 @@ namespace Nop.Core.Caching
             var items = GetItems();
             if (items == null)
                 return false;
-            
-            return (items[key] != null);
+
+            return items.ContainsKey(key) && items[key] != null;
         }
 
         /// <summary>
@@ -104,7 +105,7 @@ namespace Nop.Core.Caching
             if (items == null)
                 return;
 
-            this.RemoveByPattern(pattern, items.Keys.Cast<object>().Select(p => p.ToString()));
+            this.RemoveByPattern(pattern, items.Keys.Select(p => p.ToString()));
         }
 
         /// <summary>

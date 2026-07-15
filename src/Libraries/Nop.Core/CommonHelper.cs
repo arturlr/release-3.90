@@ -9,8 +9,6 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Web;
-using System.Web.Hosting;
 
 namespace Nop.Core
 {
@@ -87,7 +85,10 @@ namespace Nop.Core
         public static int GenerateRandomInteger(int min = 0, int max = int.MaxValue)
         {
             var randomNumberBuffer = new byte[10];
-            new RNGCryptoServiceProvider().GetBytes(randomNumberBuffer);
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(randomNumberBuffer);
+            }
             return new Random(BitConverter.ToInt32(randomNumberBuffer, 0)).Next(min, max);
         }
 
@@ -175,40 +176,17 @@ namespace Nop.Core
             return true;
         }
 
-        private static AspNetHostingPermissionLevel? _trustLevel;
         /// <summary>
-        /// Finds the trust level of the running application (http://blogs.msdn.com/dmitryr/archive/2007/01/23/finding-out-the-current-trust-level-in-asp-net.aspx)
+        /// Gets the trust level of the running application.
+        /// In .NET Core, Code Access Security (CAS) does not exist;
+        /// the application always runs with full trust.
         /// </summary>
-        /// <returns>The current trust level.</returns>
-        public static AspNetHostingPermissionLevel GetTrustLevel()
+        /// <returns>Always returns full trust (equivalent to Unrestricted).</returns>
+        public static int GetTrustLevel()
         {
-            if (!_trustLevel.HasValue)
-            {
-                //set minimum
-                _trustLevel = AspNetHostingPermissionLevel.None;
-
-                //determine maximum
-                foreach (AspNetHostingPermissionLevel trustLevel in new[] {
-                                AspNetHostingPermissionLevel.Unrestricted,
-                                AspNetHostingPermissionLevel.High,
-                                AspNetHostingPermissionLevel.Medium,
-                                AspNetHostingPermissionLevel.Low,
-                                AspNetHostingPermissionLevel.Minimal
-                            })
-                {
-                    try
-                    {
-                        new AspNetHostingPermission(trustLevel).Demand();
-                        _trustLevel = trustLevel;
-                        break; //we've set the highest permission we can
-                    }
-                    catch (System.Security.SecurityException)
-                    {
-                        continue;
-                    }
-                }
-            }
-            return _trustLevel.Value;
+            // In .NET Core/5+, there is no CAS. Applications always run with full trust.
+            // Return the numeric value equivalent to AspNetHostingPermissionLevel.Unrestricted (300)
+            return 300;
         }
 
         /// <summary>
@@ -342,15 +320,10 @@ namespace Nop.Core
         /// <returns>The physical path. E.g. "c:\inetpub\wwwroot\bin"</returns>
         public static string MapPath(string path)
         {
-            if (HostingEnvironment.IsHosted)
-            {
-                //hosted
-                return HostingEnvironment.MapPath(path);
-            }
+            string baseDirectory = AppContext.BaseDirectory;
 
-            //not hosted. For example, run in unit tests
-            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            path = path.Replace("~/", "").TrimStart('/').Replace('/', '\\');
+            //remove the tilde and leading slash from virtual path
+            path = path.Replace("~/", "").TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
             return Path.Combine(baseDirectory, path);
         }        
     }

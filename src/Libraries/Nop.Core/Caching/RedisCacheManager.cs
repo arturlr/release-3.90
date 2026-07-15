@@ -74,7 +74,7 @@ namespace Nop.Core.Caching
             var rValue = _db.StringGet(key);
             if (!rValue.HasValue)
                 return default(T);
-            var result = Deserialize<T>(rValue);
+            var result = Deserialize<T>((byte[])rValue);
 
             _perRequestCacheManager.Set(key, result, 0);
             return result;

@@ -1,20 +1,18 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Threading;
-using System.Web;
-using System.Web.Compilation;
+using Microsoft.Extensions.Configuration;
 using Nop.Core.ComponentModel;
 using Nop.Core.Plugins;
 
 //Contributor: Umbraco (http://www.umbraco.com). Thanks a lot! 
 //SEE THIS POST for full details of what this does - http://shazwazza.com/post/Developing-a-plugin-framework-in-ASPNET-with-medium-trust.aspx
 
-[assembly: PreApplicationStartMethod(typeof(PluginManager), "Initialize")]
 namespace Nop.Core.Plugins
 {
     /// <summary>
@@ -53,7 +51,8 @@ namespace Nop.Core.Plugins
         /// <summary>
         /// Initialize
         /// </summary>
-        public static void Initialize()
+        /// <param name="configuration">Optional configuration instance for reading app settings</param>
+        public static void Initialize(IConfiguration configuration = null)
         {
             using (new WriteLockDisposable(Locker))
             {
@@ -65,8 +64,15 @@ namespace Nop.Core.Plugins
                 var referencedPlugins = new List<PluginDescriptor>();
                 var incompatiblePlugins = new List<string>();
 
-                _clearShadowDirectoryOnStartup = !String.IsNullOrEmpty(ConfigurationManager.AppSettings["ClearPluginsShadowDirectoryOnStartup"]) &&
-                   Convert.ToBoolean(ConfigurationManager.AppSettings["ClearPluginsShadowDirectoryOnStartup"]);
+                _clearShadowDirectoryOnStartup = false;
+                if (configuration != null)
+                {
+                    var clearSetting = configuration["ClearPluginsShadowDirectoryOnStartup"];
+                    if (!string.IsNullOrEmpty(clearSetting))
+                    {
+                        _clearShadowDirectoryOnStartup = Convert.ToBoolean(clearSetting);
+                    }
+                }
 
                 try
                 {
@@ -295,15 +301,6 @@ namespace Nop.Core.Plugins
         /// <returns>Result</returns>
         private static bool IsAlreadyLoaded(FileInfo fileInfo)
         {
-            //compare full assembly name
-            //var fileAssemblyName = AssemblyName.GetAssemblyName(fileInfo.FullName);
-            //foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
-            //{
-            //    if (a.FullName.Equals(fileAssemblyName.FullName, StringComparison.InvariantCultureIgnoreCase))
-            //        return true;
-            //}
-            //return false;
-
             //do not compare the full assembly name, just filename
             try
             {
@@ -325,7 +322,7 @@ namespace Nop.Core.Plugins
         }
 
         /// <summary>
-        /// Perform file deply
+        /// Perform file deploy
         /// </summary>
         /// <param name="plug">Plugin file info</param>
         /// <returns>Assembly</returns>
@@ -334,76 +331,25 @@ namespace Nop.Core.Plugins
             if (plug.Directory == null || plug.Directory.Parent == null)
                 throw new InvalidOperationException("The plugin directory for the " + plug.Name + " file exists in a folder outside of the allowed nopCommerce folder hierarchy");
 
-            FileInfo shadowCopiedPlug;
+            //In .NET Core, we shadow copy to the bin folder and load using AssemblyLoadContext
+            var shadowCopyPlugFolder = Directory.CreateDirectory(_shadowCopyFolder.FullName);
+            var shadowCopiedPlug = ShadowCopyFile(plug, shadowCopyPlugFolder);
 
-            if (CommonHelper.GetTrustLevel() != AspNetHostingPermissionLevel.Unrestricted)
-            {
-                //all plugins will need to be copied to ~/Plugins/bin/
-                //this is absolutely required because all of this relies on probingPaths being set statically in the web.config
-                
-                //were running in med trust, so copy to custom bin folder
-                var shadowCopyPlugFolder = Directory.CreateDirectory(_shadowCopyFolder.FullName);
-                shadowCopiedPlug = InitializeMediumTrust(plug, shadowCopyPlugFolder);
-            }
-            else
-            {
-                var directory = AppDomain.CurrentDomain.DynamicDirectory;
-                Debug.WriteLine(plug.FullName + " to " + directory);
-                //were running in full trust so copy to standard dynamic folder
-                shadowCopiedPlug = InitializeFullTrust(plug, new DirectoryInfo(directory));
-            }
+            //Load the assembly using AssemblyLoadContext
+            var shadowCopiedAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(shadowCopiedPlug.FullName);
 
-            //we can now register the plugin definition
-            var shadowCopiedAssembly = Assembly.Load(AssemblyName.GetAssemblyName(shadowCopiedPlug.FullName));
-
-            //add the reference to the build manager
-            Debug.WriteLine("Adding to BuildManager: '{0}'", shadowCopiedAssembly.FullName);
-            BuildManager.AddReferencedAssembly(shadowCopiedAssembly);
+            Debug.WriteLine("Loaded plugin assembly: '{0}'", shadowCopiedAssembly.FullName);
 
             return shadowCopiedAssembly;
         }
 
         /// <summary>
-        /// Used to initialize plugins when running in Full Trust
+        /// Shadow copies a plugin file to the shadow copy directory.
         /// </summary>
-        /// <param name="plug"></param>
-        /// <param name="shadowCopyPlugFolder"></param>
-        /// <returns></returns>
-        private static FileInfo InitializeFullTrust(FileInfo plug, DirectoryInfo shadowCopyPlugFolder)
-        {
-            var shadowCopiedPlug = new FileInfo(Path.Combine(shadowCopyPlugFolder.FullName, plug.Name));
-            try
-            {
-                File.Copy(plug.FullName, shadowCopiedPlug.FullName, true);
-            }
-            catch (IOException)
-            {
-                Debug.WriteLine(shadowCopiedPlug.FullName + " is locked, attempting to rename");
-                //this occurs when the files are locked,
-                //for some reason devenv locks plugin files some times and for another crazy reason you are allowed to rename them
-                //which releases the lock, so that it what we are doing here, once it's renamed, we can re-shadow copy
-                try
-                {
-                    var oldFile = shadowCopiedPlug.FullName + Guid.NewGuid().ToString("N") + ".old";
-                    File.Move(shadowCopiedPlug.FullName, oldFile);
-                }
-                catch (IOException exc)
-                {
-                    throw new IOException(shadowCopiedPlug.FullName + " rename failed, cannot initialize plugin", exc);
-                }
-                //ok, we've made it this far, now retry the shadow copy
-                File.Copy(plug.FullName, shadowCopiedPlug.FullName, true);
-            }
-            return shadowCopiedPlug;
-        }
-
-        /// <summary>
-        /// Used to initialize plugins when running in Medium Trust
-        /// </summary>
-        /// <param name="plug"></param>
-        /// <param name="shadowCopyPlugFolder"></param>
-        /// <returns></returns>
-        private static FileInfo InitializeMediumTrust(FileInfo plug, DirectoryInfo shadowCopyPlugFolder)
+        /// <param name="plug">The plugin file to copy.</param>
+        /// <param name="shadowCopyPlugFolder">The shadow copy destination directory.</param>
+        /// <returns>The shadow copied file info.</returns>
+        private static FileInfo ShadowCopyFile(FileInfo plug, DirectoryInfo shadowCopyPlugFolder)
         {
             var shouldCopy = true;
             var shadowCopiedPlug = new FileInfo(Path.Combine(shadowCopyPlugFolder.FullName, plug.Name));
@@ -422,8 +368,6 @@ namespace Nop.Core.Plugins
                 else
                 {
                     //delete an existing file
-
-                    //More info: http://www.nopcommerce.com/boards/t/11511/access-error-nopplugindiscountrulesbillingcountrydll.aspx?p=4#60838
                     Debug.WriteLine("New plugin found; Deleting the old file: '{0}'", shadowCopiedPlug.Name);
                     File.Delete(shadowCopiedPlug.FullName);
                 }

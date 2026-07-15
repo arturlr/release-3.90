@@ -1,4 +1,3 @@
-﻿using System.Configuration;
 using System.Runtime.CompilerServices;
 using Nop.Core.Configuration;
 
@@ -15,14 +14,13 @@ namespace Nop.Core.Infrastructure
         /// Initializes a static instance of the Nop factory.
         /// </summary>
         /// <param name="forceRecreate">Creates a new factory instance even though the factory has been previously initialized.</param>
+        /// <param name="config">NopConfig instance loaded from appsettings.json</param>
         [MethodImpl(MethodImplOptions.Synchronized)]
-        public static IEngine Initialize(bool forceRecreate)
+        public static IEngine Initialize(bool forceRecreate, NopConfig config)
         {
             if (Singleton<IEngine>.Instance == null || forceRecreate)
             {
                 Singleton<IEngine>.Instance = new NopEngine();
-
-                var config = ConfigurationManager.GetSection("NopConfig") as NopConfig;
                 Singleton<IEngine>.Instance.Initialize(config);
             }
             return Singleton<IEngine>.Instance;
@@ -51,7 +49,7 @@ namespace Nop.Core.Infrastructure
             {
                 if (Singleton<IEngine>.Instance == null)
                 {
-                    Initialize(false);
+                    Initialize(false, new NopConfig());
                 }
                 return Singleton<IEngine>.Instance;
             }

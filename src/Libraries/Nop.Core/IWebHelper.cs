@@ -1,4 +1,4 @@
-using System.Web;
+using Microsoft.AspNetCore.Http;
 
 namespace Nop.Core
 {
@@ -70,7 +70,7 @@ namespace Nop.Core
         /// <summary>
         /// Returns true if the requested resource is one of the typical resources that needn't be processed by the cms engine.
         /// </summary>
-        /// <param name="request">HTTP Request</param>
+        /// <param name="url">URL to check</param>
         /// <returns>True if the request targets a static resource file.</returns>
         /// <remarks>
         /// These are the file extensions considered to be static resources:
@@ -83,7 +83,7 @@ namespace Nop.Core
         /// .axd
         /// .ashx
         /// </remarks>
-        bool IsStaticResource(HttpRequest request);        
+        bool IsStaticResource(string url);        
 
         /// <summary>
         /// Modifies query string

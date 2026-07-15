@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Web;
+using System.Net.Http;
 using System.Xml;
 
 namespace Nop.Core.Plugins
@@ -12,6 +13,11 @@ namespace Nop.Core.Plugins
     /// </summary>
     public partial class OfficialFeedManager : IOfficialFeedManager
     {
+        private static readonly HttpClient _httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(5)
+        };
+
         private static string MakeUrl(string query, params object[] args)
         {
             var url = "http://www.nopcommerce.com/extensionsxml.aspx?" + query;
@@ -21,19 +27,15 @@ namespace Nop.Core.Plugins
 
         private static XmlDocument GetDocument(string feedQuery, params object[] args)
         {
-            var request = WebRequest.Create(MakeUrl(feedQuery, args));
-            request.Timeout = 5000;
-            using (var response = request.GetResponse())
+            var url = MakeUrl(feedQuery, args);
+            using (var response = _httpClient.GetAsync(url).GetAwaiter().GetResult())
             {
-                using (var dataStream = response.GetResponseStream())
-                using (var reader = new StreamReader(dataStream))
-                {
-                    string responseFromServer = reader.ReadToEnd();
+                response.EnsureSuccessStatusCode();
+                string responseFromServer = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
-                    var xmlDoc = new XmlDocument();
-                    xmlDoc.LoadXml(responseFromServer);
-                    return xmlDoc;
-                }
+                var xmlDoc = new XmlDocument();
+                xmlDoc.LoadXml(responseFromServer);
+                return xmlDoc;
             }
         }
 
@@ -84,7 +86,7 @@ namespace Nop.Core.Plugins
 
             //pageSize parameter is currently ignored by official site (set to 15)
             var xmlDoc = GetDocument("category={0}&version={1}&price={2}&pageIndex={3}&pageSize={4}&searchTerm={5}",
-                categoryId, versionId, price, pageIndex, pageSize, HttpUtility.UrlEncode(searchTerm));
+                categoryId, versionId, price, pageIndex, pageSize, WebUtility.UrlEncode(searchTerm));
 
             var list = xmlDoc.SelectNodes(@"//extensions/extension").Cast<XmlNode>().Select(node => new OfficialFeedPlugin
             {
