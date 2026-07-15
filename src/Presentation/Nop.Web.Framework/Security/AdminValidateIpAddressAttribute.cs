@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
 using Nop.Core.Domain.Security;
-using Nop.Core.Infrastructure;
 
 namespace Nop.Web.Framework.Security
 {
@@ -15,18 +15,15 @@ namespace Nop.Web.Framework.Security
             if (filterContext == null || filterContext.HttpContext == null)
                 return;
 
-            HttpRequestBase request = filterContext.HttpContext.Request;
+            var request = filterContext.HttpContext.Request;
             if (request == null)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
             bool ok = false;
-            var ipAddresses = EngineContext.Current.Resolve<SecuritySettings>().AdminAreaAllowedIpAddresses;
+            var ipAddresses = filterContext.HttpContext.RequestServices.GetService<SecuritySettings>().AdminAreaAllowedIpAddresses;
             if (ipAddresses != null && ipAddresses.Any())
             {
-                var webHelper = EngineContext.Current.Resolve<IWebHelper>();
+                var webHelper = filterContext.HttpContext.RequestServices.GetService<IWebHelper>();
                 foreach (string ip in ipAddresses)
                     if (ip.Equals(webHelper.GetCurrentIpAddress(), StringComparison.InvariantCultureIgnoreCase))
                     {
@@ -36,20 +33,16 @@ namespace Nop.Web.Framework.Security
             }
             else
             {
-                //no restrictions
                 ok = true;
             }
 
             if (!ok)
             {
-                //ensure that it's not 'Access denied' page
-                var webHelper = EngineContext.Current.Resolve<IWebHelper>();
+                var webHelper = filterContext.HttpContext.RequestServices.GetService<IWebHelper>();
                 var thisPageUrl = webHelper.GetThisPageUrl(false);
                 if (!thisPageUrl.StartsWith(string.Format("{0}admin/security/accessdenied", webHelper.GetStoreLocation()), StringComparison.InvariantCultureIgnoreCase))
                 {
-                    //redirect to 'Access denied' page
                     filterContext.Result = new RedirectResult(webHelper.GetStoreLocation() + "admin/security/accessdenied");
-                    //filterContext.Result = RedirectToAction("AccessDenied", "Security");
                 }
             }
         }

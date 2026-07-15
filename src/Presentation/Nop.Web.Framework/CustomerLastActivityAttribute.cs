@@ -1,8 +1,8 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
 using Nop.Core.Data;
-using Nop.Core.Infrastructure;
 using Nop.Services.Customers;
 
 namespace Nop.Web.Framework
@@ -17,21 +17,17 @@ namespace Nop.Web.Framework
             if (filterContext == null || filterContext.HttpContext == null || filterContext.HttpContext.Request == null)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
             //only GET requests
-            if (!String.Equals(filterContext.HttpContext.Request.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
+            if (!String.Equals(filterContext.HttpContext.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
                 return;
 
-            var workContext = EngineContext.Current.Resolve<IWorkContext>();
+            var workContext = filterContext.HttpContext.RequestServices.GetService<IWorkContext>();
             var customer = workContext.CurrentCustomer;
 
             //update last activity date
             if (customer.LastActivityDateUtc.AddMinutes(1.0) < DateTime.UtcNow)
             {
-                var customerService = EngineContext.Current.Resolve<ICustomerService>();
+                var customerService = filterContext.HttpContext.RequestServices.GetService<ICustomerService>();
                 customer.LastActivityDateUtc = DateTime.UtcNow;
                 customerService.UpdateCustomer(customer);
             }

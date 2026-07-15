@@ -1,9 +1,9 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Customers;
-using Nop.Core.Infrastructure;
 using Nop.Services.Common;
 
 namespace Nop.Web.Framework
@@ -18,24 +18,20 @@ namespace Nop.Web.Framework
             if (filterContext == null || filterContext.HttpContext == null || filterContext.HttpContext.Request == null)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
             //only GET requests
-            if (!String.Equals(filterContext.HttpContext.Request.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
+            if (!String.Equals(filterContext.HttpContext.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
                 return;
 
-            var customerSettings = EngineContext.Current.Resolve<CustomerSettings>();
+            var customerSettings = filterContext.HttpContext.RequestServices.GetService<CustomerSettings>();
             if (!customerSettings.StoreLastVisitedPage)
                 return;
 
-            var webHelper = EngineContext.Current.Resolve<IWebHelper>();
+            var webHelper = filterContext.HttpContext.RequestServices.GetService<IWebHelper>();
             var pageUrl = webHelper.GetThisPageUrl(true);
             if (!String.IsNullOrEmpty(pageUrl))
             {
-                var workContext = EngineContext.Current.Resolve<IWorkContext>();
-                var genericAttributeService = EngineContext.Current.Resolve<IGenericAttributeService>();
+                var workContext = filterContext.HttpContext.RequestServices.GetService<IWorkContext>();
+                var genericAttributeService = filterContext.HttpContext.RequestServices.GetService<IGenericAttributeService>();
 
                 var previousPageUrl = workContext.CurrentCustomer.GetAttribute<string>(SystemCustomerAttributeNames.LastVisitedPage);
                 if (!pageUrl.Equals(previousPageUrl))

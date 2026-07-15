@@ -1,10 +1,7 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Nop.Web.Framework.Events
 {
-    /// <summary>
-    /// Product search event
-    /// </summary>
     public class ProductSearchEvent
     {
         public string SearchTerm { get; set; }

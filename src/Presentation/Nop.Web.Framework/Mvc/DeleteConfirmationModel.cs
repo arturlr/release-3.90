@@ -1,4 +1,4 @@
-﻿namespace Nop.Web.Framework.Mvc
+namespace Nop.Web.Framework.Mvc
 {
     public class DeleteConfirmationModel : BaseNopEntityModel
     {

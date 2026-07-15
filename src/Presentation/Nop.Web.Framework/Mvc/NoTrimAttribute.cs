@@ -1,10 +1,8 @@
-﻿using System;
+using System;
 
 namespace Nop.Web.Framework.Mvc
 {
-    /// <summary>
-    /// Attribute indicating that entered values should not be trimmed
-    /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
     public class NoTrimAttribute : Attribute
     {
     }

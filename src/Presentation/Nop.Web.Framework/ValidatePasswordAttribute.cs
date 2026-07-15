@@ -1,8 +1,10 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
 using Nop.Core.Data;
-using Nop.Core.Infrastructure;
 using Nop.Services.Customers;
 
 namespace Nop.Web.Framework
@@ -13,7 +15,7 @@ namespace Nop.Web.Framework
     public class ValidatePasswordAttribute : ActionFilterAttribute
     {
         /// <summary>
-        /// Called by the ASP.NET MVC framework before the action method executes
+        /// Called by the ASP.NET Core MVC framework before the action method executes
         /// </summary>
         /// <param name="filterContext">The filter context</param>
         public override void OnActionExecuting(ActionExecutingContext filterContext)
@@ -21,15 +23,15 @@ namespace Nop.Web.Framework
             if (filterContext == null || filterContext.HttpContext == null || filterContext.HttpContext.Request == null)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
-            var actionName = filterContext.ActionDescriptor.ActionName;
+            var actionName = string.Empty;
+            if (filterContext.RouteData.Values.ContainsKey("action"))
+                actionName = filterContext.RouteData.Values["action"].ToString();
             if (string.IsNullOrEmpty(actionName) || actionName.Equals("ChangePassword", StringComparison.InvariantCultureIgnoreCase))
                 return;
 
-            var controllerName = filterContext.Controller.ToString();
+            var controllerName = string.Empty;
+            if (filterContext.RouteData.Values.ContainsKey("controller"))
+                controllerName = filterContext.RouteData.Values["controller"].ToString();
             if (string.IsNullOrEmpty(controllerName) || controllerName.Equals("Customer", StringComparison.InvariantCultureIgnoreCase))
                 return;
 
@@ -37,13 +39,12 @@ namespace Nop.Web.Framework
                 return;
 
             //get current customer
-            var customer = EngineContext.Current.Resolve<IWorkContext>().CurrentCustomer;
+            var customer = filterContext.HttpContext.RequestServices.GetService<IWorkContext>().CurrentCustomer;
 
             //check password expiration
             if (customer.PasswordIsExpired())
             {
-                var changePasswordUrl = new UrlHelper(filterContext.RequestContext).RouteUrl("CustomerChangePassword");
-                filterContext.Result = new RedirectResult(changePasswordUrl);
+                filterContext.Result = new RedirectToRouteResult("CustomerChangePassword", new RouteValueDictionary());
             }
         }
     }

@@ -1,41 +1,38 @@
-﻿using System.Web.Mvc;
-using Nop.Core.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Nop.Web.Framework.Security.Captcha
 {
     public class CaptchaValidatorAttribute : ActionFilterAttribute
     {
-        private const string CHALLENGE_FIELD_KEY = "recaptcha_challenge_field";
-        private const string RESPONSE_FIELD_KEY = "recaptcha_response_field";
         private const string G_RESPONSE_FIELD_KEY = "g-recaptcha-response";
 
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
             bool valid = false;
-            var captchaChallengeValue = filterContext.HttpContext.Request.Form[CHALLENGE_FIELD_KEY];
-            var captchaResponseValue = filterContext.HttpContext.Request.Form[RESPONSE_FIELD_KEY];
-            var gCaptchaResponseValue = filterContext.HttpContext.Request.Form[G_RESPONSE_FIELD_KEY];
-            if ((!string.IsNullOrEmpty(captchaChallengeValue) && !string.IsNullOrEmpty(captchaResponseValue)) || !string.IsNullOrEmpty(gCaptchaResponseValue))
+            var form = filterContext.HttpContext.Request.HasFormContentType
+                ? filterContext.HttpContext.Request.Form : null;
+
+            var gCaptchaResponseValue = form != null ? form[G_RESPONSE_FIELD_KEY].ToString() : null;
+            if (!string.IsNullOrEmpty(gCaptchaResponseValue))
             {
-                var captchaSettings = EngineContext.Current.Resolve<CaptchaSettings>();
+                var captchaSettings = filterContext.HttpContext.RequestServices.GetService<CaptchaSettings>();
                 if (captchaSettings.Enabled)
                 {
-                    var captchaValidtor = new GReCaptchaValidator(captchaSettings.ReCaptchaVersion)
+                    var captchaValidator = new GReCaptchaValidator(captchaSettings.ReCaptchaVersion)
                     {
                         SecretKey = captchaSettings.ReCaptchaPrivateKey,
-                        RemoteIp = filterContext.HttpContext.Request.UserHostAddress,
-                        Response = captchaResponseValue ?? gCaptchaResponseValue,
-                        Challenge = captchaChallengeValue
+                        RemoteIp = filterContext.HttpContext.Connection.RemoteIpAddress?.ToString(),
+                        Response = gCaptchaResponseValue,
+                        Challenge = string.Empty
                     };
 
-                    var recaptchaResponse = captchaValidtor.Validate();
+                    var recaptchaResponse = captchaValidator.Validate();
                     valid = recaptchaResponse.IsValid;
                 }
             }
 
-            //this will push the result value into a parameter in our Action  
-            filterContext.ActionParameters["captchaValid"] = valid;
-
+            filterContext.ActionArguments["captchaValid"] = valid;
             base.OnActionExecuting(filterContext);
         }
     }

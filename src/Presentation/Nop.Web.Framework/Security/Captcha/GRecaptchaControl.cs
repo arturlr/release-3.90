@@ -1,6 +1,7 @@
-﻿using System.Linq;
-using System.Web.Mvc;
-using System.Web.UI;
+using System.IO;
+using System.Linq;
+using System.Text;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Infrastructure;
 
@@ -8,8 +9,6 @@ namespace Nop.Web.Framework.Security.Captcha
 {
     public class GRecaptchaControl
     {
-        private const string RECAPTCHA_API_URL_HTTP_VERSION1 = "http://www.google.com/recaptcha/api/challenge?k={0}";
-        private const string RECAPTCHA_API_URL_HTTPS_VERSION1 = "https://www.google.com/recaptcha/api/challenge?k={0}";
         private const string RECAPTCHA_API_URL_VERSION2 = "https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit";
 
         public string Id { get; set; }
@@ -24,70 +23,43 @@ namespace Nop.Web.Framework.Security.Captcha
             _version = version;
         }
 
-        public void RenderControl(HtmlTextWriter writer)
+        public string RenderControlToString()
         {
             SetTheme();
+            var sb = new StringBuilder();
 
-            if (_version == ReCaptchaVersion.Version1)
+            if (_version == ReCaptchaVersion.Version2)
             {
-                var scriptCaptchaOptionsTag = new TagBuilder("script");
-                scriptCaptchaOptionsTag.Attributes.Add("type", MimeTypes.TextJavascript);
-                scriptCaptchaOptionsTag.InnerHtml =
-                    string.Format("var RecaptchaOptions = {{ theme: '{0}', tabindex: 0 }}; ", Theme);
-                writer.Write(scriptCaptchaOptionsTag.ToString(TagRenderMode.Normal));
-
-                var webHelper = EngineContext.Current.Resolve<IWebHelper>();
-                var scriptLoadApiTag = new TagBuilder("script");
-                var scriptSrc = webHelper.IsCurrentConnectionSecured() ? 
-                    string.Format(RECAPTCHA_API_URL_HTTPS_VERSION1, PublicKey) :
-                    string.Format(RECAPTCHA_API_URL_HTTP_VERSION1, PublicKey);
-                scriptLoadApiTag.Attributes.Add("src", scriptSrc);
-                writer.Write(scriptLoadApiTag.ToString(TagRenderMode.Normal));
+                sb.AppendFormat("<script type=\"{0}\">var onloadCallback = function() {{grecaptcha.render('{1}', {{'sitekey' : '{2}', 'theme' : '{3}' }});}};;</script>",
+                    MimeTypes.TextJavascript, Id, PublicKey, Theme);
+                sb.AppendFormat("<div id=\"{0}\"></div>", Id);
+                sb.AppendFormat("<script src=\"{0}\" async defer></script>",
+                    RECAPTCHA_API_URL_VERSION2 + (string.IsNullOrEmpty(Language) ? "" : string.Format("&hl={0}", Language)));
             }
-            else if (_version == ReCaptchaVersion.Version2)
+            else
             {
-                var scriptCallbackTag = new TagBuilder("script");
-                scriptCallbackTag.Attributes.Add("type", MimeTypes.TextJavascript);
-                scriptCallbackTag.InnerHtml = string.Format("var onloadCallback = function() {{grecaptcha.render('{0}', {{'sitekey' : '{1}', 'theme' : '{2}' }});}};", Id, PublicKey, Theme);
-                writer.Write(scriptCallbackTag.ToString(TagRenderMode.Normal));
-
-                var captchaTag = new TagBuilder("div");
-                captchaTag.Attributes.Add("id", Id);
-                writer.Write(captchaTag.ToString(TagRenderMode.Normal));
-
-                var scriptLoadApiTag = new TagBuilder("script");
-                scriptLoadApiTag.Attributes.Add("src", RECAPTCHA_API_URL_VERSION2 + (string.IsNullOrEmpty(Language) ? "" : string.Format("&hl={0}", Language)));
-                scriptLoadApiTag.Attributes.Add("async", null);
-                scriptLoadApiTag.Attributes.Add("defer", null);
-                writer.Write(scriptLoadApiTag.ToString(TagRenderMode.Normal));
+                // Version 1 is deprecated, render v2 instead
+                sb.AppendFormat("<script type=\"{0}\">var onloadCallback = function() {{grecaptcha.render('{1}', {{'sitekey' : '{2}', 'theme' : '{3}' }});}};;</script>",
+                    MimeTypes.TextJavascript, Id, PublicKey, Theme);
+                sb.AppendFormat("<div id=\"{0}\"></div>", Id);
+                sb.AppendFormat("<script src=\"{0}\" async defer></script>", RECAPTCHA_API_URL_VERSION2);
             }
+
+            return sb.ToString();
+        }
+
+        public void RenderControl(TextWriter writer)
+        {
+            writer.Write(RenderControlToString());
         }
 
         private void SetTheme()
         {
-            var themes = new[] {"white", "blackglass", "red", "clean", "light", "dark"};
+            var themes = new[] { "white", "blackglass", "red", "clean", "light", "dark" };
 
-            if (_version == ReCaptchaVersion.Version1)
+            if (_version == ReCaptchaVersion.Version2)
             {
-                switch (Theme.ToLower())
-                {
-                    case "light":
-                        Theme = "white";
-                        break;
-                    case "dark":
-                        Theme = "blackglass";
-                        break;
-                    default:
-                        if (!themes.Contains(Theme.ToLower()))
-                        {
-                            Theme = "white";
-                        }
-                        break;
-                }
-            }
-            else if (_version == ReCaptchaVersion.Version2)
-            {
-                switch (Theme.ToLower())
+                switch ((Theme ?? "").ToLower())
                 {
                     case "clean":
                     case "red":
@@ -98,12 +70,14 @@ namespace Nop.Web.Framework.Security.Captcha
                         Theme = "dark";
                         break;
                     default:
-                        if (!themes.Contains(Theme.ToLower()))
-                        {
+                        if (!themes.Contains((Theme ?? "").ToLower()))
                             Theme = "light";
-                        }
                         break;
                 }
+            }
+            else
+            {
+                Theme = Theme ?? "white";
             }
         }
     }

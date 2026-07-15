@@ -2,16 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Web;
 using Autofac;
 using Autofac.Builder;
 using Autofac.Core;
-using Autofac.Integration.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Configuration;
 using Nop.Core.Data;
-using Nop.Core.Fakes;
 using Nop.Core.Infrastructure;
 using Nop.Core.Infrastructure.DependencyManagement;
 using Nop.Core.Plugins;
@@ -70,41 +69,18 @@ namespace Nop.Web.Framework
         public virtual void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
             //HTTP context and other related stuff
-            builder.Register(c => 
-                //register FakeHttpContext when HttpContext is not available
-                HttpContext.Current != null ?
-                (new HttpContextWrapper(HttpContext.Current) as HttpContextBase) :
-                (new FakeHttpContext("~/") as HttpContextBase))
-                .As<HttpContextBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Request)
-                .As<HttpRequestBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Response)
-                .As<HttpResponseBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Server)
-                .As<HttpServerUtilityBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Session)
-                .As<HttpSessionStateBase>()
-                .InstancePerLifetimeScope();
+            builder.RegisterType<HttpContextAccessor>().As<IHttpContextAccessor>().SingleInstance();
 
             //web helper
             builder.RegisterType<WebHelper>().As<IWebHelper>().InstancePerLifetimeScope();
             //user agent helper
             builder.RegisterType<UserAgentHelper>().As<IUserAgentHelper>().InstancePerLifetimeScope();
 
-            
-            //controllers
-            builder.RegisterControllers(typeFinder.GetAssemblies().ToArray());
-
             //data layer
             var dataSettingsManager = new DataSettingsManager();
             var dataProviderSettings = dataSettingsManager.LoadSettings();
             builder.Register(c => dataSettingsManager.LoadSettings()).As<DataSettings>();
             builder.Register(x => new EfDataProviderManager(x.Resolve<DataSettings>())).As<BaseDataProviderManager>().InstancePerDependency();
-
 
             builder.Register(x => x.Resolve<BaseDataProviderManager>().LoadDataProvider()).As<IDataProvider>().InstancePerDependency();
 
@@ -114,16 +90,27 @@ namespace Nop.Web.Framework
                 var dataProvider = efDataProviderManager.LoadDataProvider();
                 dataProvider.InitConnectionFactory();
 
-                builder.Register<IDbContext>(c => new NopObjectContext(dataProviderSettings.DataConnectionString)).InstancePerLifetimeScope();
+                builder.Register<IDbContext>(c =>
+                {
+                    var optionsBuilder = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<NopObjectContext>();
+                    optionsBuilder.UseSqlServer(dataProviderSettings.DataConnectionString);
+                    return new NopObjectContext(optionsBuilder.Options);
+                }).InstancePerLifetimeScope();
             }
             else
             {
-                builder.Register<IDbContext>(c => new NopObjectContext(dataSettingsManager.LoadSettings().DataConnectionString)).InstancePerLifetimeScope();
+                builder.Register<IDbContext>(c =>
+                {
+                    var settings = dataSettingsManager.LoadSettings();
+                    var optionsBuilder = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<NopObjectContext>();
+                    optionsBuilder.UseSqlServer(settings.DataConnectionString);
+                    return new NopObjectContext(optionsBuilder.Options);
+                }).InstancePerLifetimeScope();
             }
 
 
             builder.RegisterGeneric(typeof(EfRepository<>)).As(typeof(IRepository<>)).InstancePerLifetimeScope();
-            
+
             //plugins
             builder.RegisterType<PluginFinder>().As<IPluginFinder>().InstancePerLifetimeScope();
             builder.RegisterType<OfficialFeedManager>().As<IOfficialFeedManager>().InstancePerLifetimeScope();
@@ -340,8 +327,8 @@ namespace Nop.Web.Framework
 
             builder.RegisterType<ExternalAuthorizer>().As<IExternalAuthorizer>().InstancePerLifetimeScope();
             builder.RegisterType<OpenAuthenticationService>().As<IOpenAuthenticationService>().InstancePerLifetimeScope();
-           
-                
+
+
             builder.RegisterType<RoutePublisher>().As<IRoutePublisher>().SingleInstance();
 
             //Register event consumers
@@ -379,7 +366,7 @@ namespace Nop.Web.Framework
 
         public IEnumerable<IComponentRegistration> RegistrationsFor(
                 Service service,
-                Func<Service, IEnumerable<IComponentRegistration>> registrations)
+                Func<Service, IEnumerable<ServiceRegistration>> registrations)
         {
             var ts = service as TypedService;
             if (ts != null && typeof(ISettings).IsAssignableFrom(ts.ServiceType))
@@ -395,12 +382,6 @@ namespace Nop.Web.Framework
                 .ForDelegate((c, p) =>
                 {
                     var currentStoreId = c.Resolve<IStoreContext>().CurrentStore.Id;
-                    //uncomment the code below if you want load settings per store only when you have two stores installed.
-                    //var currentStoreId = c.Resolve<IStoreService>().GetAllStores().Count > 1
-                    //    c.Resolve<IStoreContext>().CurrentStore.Id : 0;
-
-                    //although it's better to connect to your database and execute the following SQL:
-                    //DELETE FROM [Setting] WHERE [StoreId] > 0
                     return c.Resolve<ISettingService>().LoadSetting<TSettings>(currentStoreId);
                 })
                 .InstancePerLifetimeScope()

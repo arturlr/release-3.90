@@ -1,36 +1,67 @@
-﻿using System.ComponentModel;
+using System;
 using System.Linq;
-using System.Web.Mvc;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 
 namespace Nop.Web.Framework.Mvc
 {
-    public class NopModelBinder : DefaultModelBinder
+    public class NopModelBinder : IModelBinder
     {
-        public override object BindModel(ControllerContext controllerContext, ModelBindingContext bindingContext)
+        private readonly IModelBinder _fallbackBinder;
+
+        public NopModelBinder(IModelBinder fallbackBinder)
         {
-            var model = base.BindModel(controllerContext, bindingContext);
-            if (model is BaseNopModel)
-            {
-                ((BaseNopModel)model).BindModel(controllerContext, bindingContext);
-            }
-            return model;
+            _fallbackBinder = fallbackBinder;
         }
 
-        protected override void SetProperty(ControllerContext controllerContext, ModelBindingContext bindingContext,
-            PropertyDescriptor propertyDescriptor, object value)
+        public async Task BindModelAsync(ModelBindingContext bindingContext)
         {
-            //check if data type of value is System.String
-            if (propertyDescriptor.PropertyType == typeof(string))
+            await _fallbackBinder.BindModelAsync(bindingContext);
+
+            if (bindingContext.Result.IsModelSet)
             {
-                //developers can mark properties to be excluded from trimming with [NoTrim] attribute
-                if (propertyDescriptor.Attributes.Cast<object>().All(a => a.GetType() != typeof (NoTrimAttribute)))
+                var model = bindingContext.Result.Model;
+
+                // Trim string properties unless marked with [NoTrim]
+                if (model != null)
                 {
-                        var stringValue = (string)value;
-                        value = string.IsNullOrEmpty(stringValue) ? stringValue : stringValue.Trim();
+                    var properties = model.GetType().GetProperties()
+                        .Where(p => p.PropertyType == typeof(string) && p.CanRead && p.CanWrite);
+
+                    foreach (var prop in properties)
+                    {
+                        if (prop.GetCustomAttributes(typeof(NoTrimAttribute), true).Any())
+                            continue;
+
+                        var val = prop.GetValue(model) as string;
+                        if (!string.IsNullOrEmpty(val))
+                            prop.SetValue(model, val.Trim());
+                    }
+                }
+
+                // Call BindModel on BaseNopModel
+                if (model is BaseNopModel nopModel)
+                {
+                    nopModel.BindModel(bindingContext.ActionContext, bindingContext);
                 }
             }
+        }
+    }
 
-            base.SetProperty(controllerContext, bindingContext, propertyDescriptor, value);
+    public class NopModelBinderProvider : IModelBinderProvider
+    {
+        public IModelBinder GetBinder(ModelBinderProviderContext context)
+        {
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+
+            if (typeof(BaseNopModel).IsAssignableFrom(context.Metadata.ModelType))
+            {
+                return new NopModelBinder(new SimpleTypeModelBinder(context.Metadata.ModelType, null));
+            }
+
+            return null;
         }
     }
 }

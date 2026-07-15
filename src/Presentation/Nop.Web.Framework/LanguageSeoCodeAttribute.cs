@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Localization;
-using Nop.Core.Infrastructure;
 using Nop.Services.Localization;
 using Nop.Web.Framework.Localization;
 
@@ -21,40 +21,31 @@ namespace Nop.Web.Framework
             if (filterContext == null || filterContext.HttpContext == null)
                 return;
 
-            HttpRequestBase request = filterContext.HttpContext.Request;
+            var request = filterContext.HttpContext.Request;
             if (request == null)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
             //only GET requests
-            if (!String.Equals(request.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
+            if (!String.Equals(request.Method, "GET", StringComparison.OrdinalIgnoreCase))
                 return;
 
             if (!DataSettingsHelper.DatabaseIsInstalled())
                 return;
 
-            var localizationSettings = EngineContext.Current.Resolve<LocalizationSettings>();
+            var localizationSettings = filterContext.HttpContext.RequestServices.GetService<LocalizationSettings>();
             if (!localizationSettings.SeoFriendlyUrlsForLanguagesEnabled)
                 return;
-            
-            //ensure that this route is registered and localizable (LocalizedRoute in RouteProvider.cs)
-            if (filterContext.RouteData == null || filterContext.RouteData.Route == null || !(filterContext.RouteData.Route is LocalizedRoute))
-                return;
-
 
             //process current URL
-            var pageUrl = request.RawUrl;
-            string applicationPath = request.ApplicationPath;
+            var pageUrl = request.Path.Value + request.QueryString.Value;
+            string applicationPath = request.PathBase.Value ?? "/";
             if (pageUrl.IsLocalizedUrl(applicationPath, true))
             {
                 //already localized URL
                 //let's ensure that this language exists
                 var seoCode = pageUrl.GetLanguageSeoCodeFromUrl(applicationPath, true);
-                
-                var languageService = EngineContext.Current.Resolve<ILanguageService>();
+
+                var languageService = filterContext.HttpContext.RequestServices.GetService<ILanguageService>();
                 var language = languageService.GetAllLanguages()
                     .FirstOrDefault(l => seoCode.Equals(l.UniqueSeoCode, StringComparison.InvariantCultureIgnoreCase));
                 if (language != null && language.Published)
@@ -70,7 +61,7 @@ namespace Nop.Web.Framework
                 }
             }
             //add language code to URL
-            var workContext = EngineContext.Current.Resolve<IWorkContext>();
+            var workContext = filterContext.HttpContext.RequestServices.GetService<IWorkContext>();
             pageUrl = pageUrl.AddLanguageSeoCodeToRawUrl(applicationPath, workContext.WorkingLanguage);
             //301 (permanent) redirection
             filterContext.Result = new RedirectResult(pageUrl, true);

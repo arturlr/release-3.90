@@ -1,4 +1,4 @@
-﻿namespace Nop.Web.Framework.UI
+namespace Nop.Web.Framework.UI
 {
     public enum NotifyType
     {

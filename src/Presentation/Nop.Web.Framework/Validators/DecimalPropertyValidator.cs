@@ -1,26 +1,33 @@
-﻿using FluentValidation.Validators;
+using FluentValidation;
+using FluentValidation.Validators;
 using Nop.Services.Catalog;
 
 namespace Nop.Web.Framework.Validators
 {
-    public class DecimalPropertyValidator : PropertyValidator
+    public class DecimalPropertyValidator<T, TProperty> : PropertyValidator<T, TProperty>
     {
         private readonly decimal _maxValue;
 
-        protected override bool IsValid(PropertyValidatorContext context)
+        public override string Name => "DecimalPropertyValidator";
+
+        public DecimalPropertyValidator(decimal maxValue)
         {
-            decimal value;
-            if (decimal.TryParse(context.PropertyValue.ToString(), out value))
+            this._maxValue = maxValue;
+        }
+
+        public override bool IsValid(ValidationContext<T> context, TProperty value)
+        {
+            decimal decimalValue;
+            if (decimal.TryParse(value?.ToString(), out decimalValue))
             {
-                return RoundingHelper.RoundPrice(value) < _maxValue;
+                return RoundingHelper.RoundPrice(decimalValue) < _maxValue;
             }
             return false;
         }
 
-        public DecimalPropertyValidator(decimal maxValue) :
-            base("Decimal value is out of range")
+        protected override string GetDefaultMessageTemplate(string errorCode)
         {
-            this._maxValue = maxValue;
+            return "Decimal value is out of range";
         }
     }
 }

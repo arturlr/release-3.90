@@ -1,17 +1,18 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Customers;
-using Nop.Core.Infrastructure;
 
 namespace Nop.Web.Framework.Controllers
 {
     /// <summary>
     /// Attribute to ensure that users with "Vendor" customer role has appropriate vendor account associated (and active)
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, Inherited=true, AllowMultiple=true)]
-    public class AdminVendorValidation : FilterAttribute, IAuthorizationFilter
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, Inherited = true, AllowMultiple = true)]
+    public class AdminVendorValidation : Attribute, IAuthorizationFilter
     {
         private readonly bool _ignore;
 
@@ -20,7 +21,7 @@ namespace Nop.Web.Framework.Controllers
             this._ignore = ignore;
         }
 
-        public virtual void OnAuthorization(AuthorizationContext filterContext)
+        public virtual void OnAuthorization(AuthorizationFilterContext filterContext)
         {
             if (filterContext == null)
                 throw new ArgumentNullException("filterContext");
@@ -28,20 +29,16 @@ namespace Nop.Web.Framework.Controllers
             if (_ignore)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
             if (!DataSettingsHelper.DatabaseIsInstalled())
                 return;
 
-            var workContext = EngineContext.Current.Resolve<IWorkContext>();
+            var workContext = filterContext.HttpContext.RequestServices.GetService<IWorkContext>();
             if (!workContext.CurrentCustomer.IsVendor())
                 return;
 
             //ensure that this user has active vendor record associated
             if (workContext.CurrentVendor == null)
-                filterContext.Result = new HttpUnauthorizedResult();
+                filterContext.Result = new UnauthorizedResult();
         }
     }
 }

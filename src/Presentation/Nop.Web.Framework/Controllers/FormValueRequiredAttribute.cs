@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.ActionConstraints;
+using Microsoft.AspNetCore.Routing;
 
 namespace Nop.Web.Framework.Controllers
 {
@@ -15,11 +16,11 @@ namespace Nop.Web.Framework.Controllers
         private readonly FormValueRequirement _requirement;
         private readonly bool _validateNameOnly;
 
-        public FormValueRequiredAttribute(params string[] submitButtonNames):
+        public FormValueRequiredAttribute(params string[] submitButtonNames) :
             this(FormValueRequirement.Equal, submitButtonNames)
         {
         }
-        public FormValueRequiredAttribute(FormValueRequirement requirement, params string[] submitButtonNames):
+        public FormValueRequiredAttribute(FormValueRequirement requirement, params string[] submitButtonNames) :
             this(requirement, true, submitButtonNames)
         {
         }
@@ -31,8 +32,15 @@ namespace Nop.Web.Framework.Controllers
             this._requirement = requirement;
         }
 
-        public override bool IsValidForRequest(ControllerContext controllerContext, MethodInfo methodInfo)
+        public override bool IsValidForRequest(RouteContext routeContext, ActionDescriptor action)
         {
+            var form = routeContext.HttpContext.Request.HasFormContentType
+                ? routeContext.HttpContext.Request.Form
+                : null;
+
+            if (form == null)
+                return false;
+
             foreach (string buttonName in _submitButtonNames)
             {
                 try
@@ -44,14 +52,13 @@ namespace Nop.Web.Framework.Controllers
                                 if (_validateNameOnly)
                                 {
                                     //"name" only
-                                    if (controllerContext.HttpContext.Request.Form.AllKeys.Any(x => x.Equals(buttonName, StringComparison.InvariantCultureIgnoreCase)))
+                                    if (form.Keys.Any(x => x.Equals(buttonName, StringComparison.InvariantCultureIgnoreCase)))
                                         return true;
                                 }
                                 else
                                 {
                                     //validate "value"
-                                    //do not iterate because "Invalid request" exception can be thrown
-                                    string value = controllerContext.HttpContext.Request.Form[buttonName];
+                                    string value = form[buttonName];
                                     if (!String.IsNullOrEmpty(value))
                                         return true;
                                 }
@@ -62,16 +69,16 @@ namespace Nop.Web.Framework.Controllers
                                 if (_validateNameOnly)
                                 {
                                     //"name" only
-                                    if (controllerContext.HttpContext.Request.Form.AllKeys.Any(x => x.StartsWith(buttonName, StringComparison.InvariantCultureIgnoreCase)))
+                                    if (form.Keys.Any(x => x.StartsWith(buttonName, StringComparison.InvariantCultureIgnoreCase)))
                                         return true;
                                 }
                                 else
                                 {
                                     //validate "value"
-                                    foreach (var formValue in controllerContext.HttpContext.Request.Form.AllKeys)
+                                    foreach (var formValue in form.Keys)
                                         if (formValue.StartsWith(buttonName, StringComparison.InvariantCultureIgnoreCase))
-                                        { 
-                                            var value = controllerContext.HttpContext.Request.Form[formValue];
+                                        {
+                                            var value = form[formValue].ToString();
                                             if (!String.IsNullOrEmpty(value))
                                                 return true;
                                         }

@@ -1,9 +1,9 @@
-﻿using System;
-using System.Web;
+using System;
+using Microsoft.AspNetCore.Html;
 
 namespace Nop.Web.Framework.Localization
 {
-    public class LocalizedString : MarshalByRefObject, IHtmlString
+    public class LocalizedString : IHtmlContent
     {
         private readonly string _localized;
         private readonly string _scope;
@@ -55,9 +55,9 @@ namespace Nop.Web.Framework.Localization
             return _localized;
         }
 
-        public string ToHtmlString()
+        public void WriteTo(System.IO.TextWriter writer, System.Text.Encodings.Web.HtmlEncoder encoder)
         {
-            return _localized;
+            writer.Write(_localized);
         }
 
         public override int GetHashCode()
@@ -72,10 +72,8 @@ namespace Nop.Web.Framework.Localization
         {
             if (obj == null || obj.GetType() != GetType())
                 return false;
-
             var that = (LocalizedString)obj;
             return string.Equals(_localized, that._localized);
         }
-
     }
 }

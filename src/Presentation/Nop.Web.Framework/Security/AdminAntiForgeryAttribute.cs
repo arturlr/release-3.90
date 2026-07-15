@@ -1,25 +1,23 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core.Data;
 using Nop.Core.Domain.Security;
-using Nop.Core.Infrastructure;
 
 namespace Nop.Web.Framework.Security
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
-    public class AdminAntiForgeryAttribute : FilterAttribute, IAuthorizationFilter
+    public class AdminAntiForgeryAttribute : ActionFilterAttribute
     {
         private readonly bool _ignore;
 
-        /// <summary>
-        /// Anti-forgery security attribute
-        /// </summary>
-        /// <param name="ignore">Pass false in order to ignore this security validation</param>
         public AdminAntiForgeryAttribute(bool ignore = false)
         {
             this._ignore = ignore;
         }
-        public virtual void OnAuthorization(AuthorizationContext filterContext)
+
+        public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
             if (filterContext == null)
                 throw new ArgumentNullException("filterContext");
@@ -27,22 +25,18 @@ namespace Nop.Web.Framework.Security
             if (_ignore)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
-            //only POST requests
-            if (!String.Equals(filterContext.HttpContext.Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
+            if (!String.Equals(filterContext.HttpContext.Request.Method, "POST", StringComparison.OrdinalIgnoreCase))
                 return;
 
             if (!DataSettingsHelper.DatabaseIsInstalled())
                 return;
-            var securitySettings = EngineContext.Current.Resolve<SecuritySettings>();
+
+            var securitySettings = filterContext.HttpContext.RequestServices.GetService<SecuritySettings>();
             if (!securitySettings.EnableXsrfProtectionForAdminArea)
                 return;
-            
-            var validator = new ValidateAntiForgeryTokenAttribute();
-            validator.OnAuthorization(filterContext);
+
+            var antiforgery = filterContext.HttpContext.RequestServices.GetService<IAntiforgery>();
+            antiforgery.ValidateRequestAsync(filterContext.HttpContext).GetAwaiter().GetResult();
         }
     }
 }

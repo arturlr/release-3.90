@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web.Mvc;
-using Nop.Core.Infrastructure;
+using System;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Services.Security;
 
 namespace Nop.Web.Framework.Controllers
 {
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, Inherited=true, AllowMultiple=true)]
-    public class AdminAuthorizeAttribute : FilterAttribute, IAuthorizationFilter
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, Inherited = true, AllowMultiple = true)]
+    public class AdminAuthorizeAttribute : Attribute, IAuthorizationFilter
     {
         private readonly bool _dontValidate;
-
 
         public AdminAuthorizeAttribute()
             : this(false)
@@ -23,27 +21,12 @@ namespace Nop.Web.Framework.Controllers
             this._dontValidate = dontValidate;
         }
 
-        private void HandleUnauthorizedRequest(AuthorizationContext filterContext)
+        private void HandleUnauthorizedRequest(AuthorizationFilterContext filterContext)
         {
-            filterContext.Result = new HttpUnauthorizedResult();
+            filterContext.Result = new UnauthorizedResult();
         }
 
-        private IEnumerable<AdminAuthorizeAttribute> GetAdminAuthorizeAttributes(ActionDescriptor descriptor)
-        {
-            return descriptor.GetCustomAttributes(typeof(AdminAuthorizeAttribute), true)
-                .Concat(descriptor.ControllerDescriptor.GetCustomAttributes(typeof(AdminAuthorizeAttribute), true))
-                .OfType<AdminAuthorizeAttribute>();
-        }
-
-        private bool IsAdminPageRequested(AuthorizationContext filterContext)
-        {
-            var adminAttributes = GetAdminAuthorizeAttributes(filterContext.ActionDescriptor);
-            if (adminAttributes != null && adminAttributes.Any())
-                return true;
-            return false;
-        }
-
-        public void OnAuthorization(AuthorizationContext filterContext)
+        public void OnAuthorization(AuthorizationFilterContext filterContext)
         {
             if (_dontValidate)
                 return;
@@ -51,19 +34,13 @@ namespace Nop.Web.Framework.Controllers
             if (filterContext == null)
                 throw new ArgumentNullException("filterContext");
 
-            if (OutputCacheAttribute.IsChildActionCacheActive(filterContext))
-                throw new InvalidOperationException("You cannot use [AdminAuthorize] attribute when a child action cache is active");
-
-            if (IsAdminPageRequested(filterContext))
-            {
-                if (!this.HasAdminAccess())
-                    this.HandleUnauthorizedRequest(filterContext);
-            }
+            if (!this.HasAdminAccess(filterContext))
+                this.HandleUnauthorizedRequest(filterContext);
         }
 
-        public virtual bool HasAdminAccess()
+        public virtual bool HasAdminAccess(AuthorizationFilterContext filterContext)
         {
-            var permissionService = EngineContext.Current.Resolve<IPermissionService>();
+            var permissionService = filterContext.HttpContext.RequestServices.GetService<IPermissionService>();
             bool result = permissionService.Authorize(StandardPermissionProvider.AccessAdminPanel);
             return result;
         }

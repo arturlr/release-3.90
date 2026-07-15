@@ -1,13 +1,12 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Tax;
 using Nop.Core.Domain.Vendors;
-using Nop.Core.Fakes;
 using Nop.Services.Authentication;
 using Nop.Services.Common;
 using Nop.Services.Customers;
@@ -33,7 +32,7 @@ namespace Nop.Web.Framework
 
         #region Fields
 
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ICustomerService _customerService;
         private readonly IVendorService _vendorService;
         private readonly IStoreContext _storeContext;
@@ -58,7 +57,7 @@ namespace Nop.Web.Framework
 
         #region Ctor
 
-        public WebWorkContext(HttpContextBase httpContext,
+        public WebWorkContext(IHttpContextAccessor httpContextAccessor,
             ICustomerService customerService,
             IVendorService vendorService,
             IStoreContext storeContext,
@@ -66,13 +65,13 @@ namespace Nop.Web.Framework
             ILanguageService languageService,
             ICurrencyService currencyService,
             IGenericAttributeService genericAttributeService,
-            TaxSettings taxSettings, 
+            TaxSettings taxSettings,
             CurrencySettings currencySettings,
             LocalizationSettings localizationSettings,
             IUserAgentHelper userAgentHelper,
             IStoreMappingService storeMappingService)
         {
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._customerService = customerService;
             this._vendorService = vendorService;
             this._storeContext = storeContext;
@@ -91,43 +90,45 @@ namespace Nop.Web.Framework
 
         #region Utilities
 
-        protected virtual HttpCookie GetCustomerCookie()
+        protected virtual string GetCustomerCookieValue()
         {
-            if (_httpContext == null || _httpContext.Request == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null || httpContext.Request == null)
                 return null;
 
-            return _httpContext.Request.Cookies[CustomerCookieName];
+            return httpContext.Request.Cookies[CustomerCookieName];
         }
 
         protected virtual void SetCustomerCookie(Guid customerGuid)
         {
-            if (_httpContext != null && _httpContext.Response != null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext != null && httpContext.Response != null)
             {
-                var cookie = new HttpCookie(CustomerCookieName);
-                cookie.HttpOnly = true;
-                cookie.Value = customerGuid.ToString();
                 if (customerGuid == Guid.Empty)
                 {
-                    cookie.Expires = DateTime.Now.AddMonths(-1);
+                    httpContext.Response.Cookies.Delete(CustomerCookieName);
                 }
                 else
                 {
-                    int cookieExpires = 24*365; //TODO make configurable
-                    cookie.Expires = DateTime.Now.AddHours(cookieExpires);
+                    int cookieExpires = 24 * 365; //TODO make configurable
+                    var options = new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Expires = DateTime.Now.AddHours(cookieExpires)
+                    };
+                    httpContext.Response.Cookies.Append(CustomerCookieName, customerGuid.ToString(), options);
                 }
-
-                _httpContext.Response.Cookies.Remove(CustomerCookieName);
-                _httpContext.Response.Cookies.Add(cookie);
             }
         }
 
         protected virtual Language GetLanguageFromUrl()
         {
-            if (_httpContext == null || _httpContext.Request == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null || httpContext.Request == null)
                 return null;
 
-            string virtualPath = _httpContext.Request.AppRelativeCurrentExecutionFilePath;
-            string applicationPath = _httpContext.Request.ApplicationPath;
+            string virtualPath = httpContext.Request.Path.Value;
+            string applicationPath = httpContext.Request.PathBase.Value ?? "/";
             if (!virtualPath.IsLocalizedUrl(applicationPath, false))
                 return null;
 
@@ -148,14 +149,25 @@ namespace Nop.Web.Framework
 
         protected virtual Language GetLanguageFromBrowserSettings()
         {
-            if (_httpContext == null ||
-                _httpContext.Request == null ||
-                _httpContext.Request.UserLanguages == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null ||
+                httpContext.Request == null ||
+                !httpContext.Request.Headers.ContainsKey("Accept-Language"))
                 return null;
 
-            var userLanguage = _httpContext.Request.UserLanguages.FirstOrDefault();
+            var userLanguages = httpContext.Request.Headers["Accept-Language"].ToString();
+            if (String.IsNullOrEmpty(userLanguages))
+                return null;
+
+            // Get the first language from the Accept-Language header
+            var userLanguage = userLanguages.Split(',').FirstOrDefault()?.Trim();
             if (String.IsNullOrEmpty(userLanguage))
                 return null;
+
+            // Remove quality factor if present (e.g., "en-US;q=0.8" -> "en-US")
+            var semicolonIndex = userLanguage.IndexOf(';');
+            if (semicolonIndex > 0)
+                userLanguage = userLanguage.Substring(0, semicolonIndex);
 
             var language = _languageService
                 .GetAllLanguages()
@@ -183,7 +195,8 @@ namespace Nop.Web.Framework
                     return _cachedCustomer;
 
                 Customer customer = null;
-                if (_httpContext == null || _httpContext is FakeHttpContext)
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (httpContext == null)
                 {
                     //check whether request is made by a background task
                     //in this case return built-in customer record for background task
@@ -192,7 +205,6 @@ namespace Nop.Web.Framework
 
                 //check whether request is made by a search engine
                 //in this case return built-in customer record for search engines 
-                //or comment the following two lines of code in order to disable this functionality
                 if (customer == null || customer.Deleted || !customer.Active || customer.RequireReLogin)
                 {
                     if (_userAgentHelper.IsSearchEngine())
@@ -226,11 +238,11 @@ namespace Nop.Web.Framework
                 //load guest customer
                 if (customer == null || customer.Deleted || !customer.Active || customer.RequireReLogin)
                 {
-                    var customerCookie = GetCustomerCookie();
-                    if (customerCookie != null && !String.IsNullOrEmpty(customerCookie.Value))
+                    var customerCookieValue = GetCustomerCookieValue();
+                    if (!String.IsNullOrEmpty(customerCookieValue))
                     {
                         Guid customerGuid;
-                        if (Guid.TryParse(customerCookie.Value, out customerGuid))
+                        if (Guid.TryParse(customerCookieValue, out customerGuid))
                         {
                             var customerByCookie = _customerService.GetCustomerByGuid(customerGuid);
                             if (customerByCookie != null &&
@@ -308,7 +320,7 @@ namespace Nop.Web.Framework
             {
                 if (_cachedLanguage != null)
                     return _cachedLanguage;
-                
+
                 Language detectedLanguage = null;
                 if (_localizationSettings.SeoFriendlyUrlsForLanguagesEnabled)
                 {
@@ -319,7 +331,7 @@ namespace Nop.Web.Framework
                 {
                     //get language from browser settings
                     //but we do it only once
-                    if (!this.CurrentCustomer.GetAttribute<bool>(SystemCustomerAttributeNames.LanguageAutomaticallyDetected, 
+                    if (!this.CurrentCustomer.GetAttribute<bool>(SystemCustomerAttributeNames.LanguageAutomaticallyDetected,
                         _genericAttributeService, _storeContext.CurrentStore.Id))
                     {
                         detectedLanguage = GetLanguageFromBrowserSettings();
@@ -388,11 +400,11 @@ namespace Nop.Web.Framework
             {
                 if (_cachedCurrency != null)
                     return _cachedCurrency;
-                
+
                 //return primary store currency when we're in admin area/mode
                 if (this.IsAdmin)
                 {
-                    var primaryStoreCurrency =  _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId);
+                    var primaryStoreCurrency = _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId);
                     if (primaryStoreCurrency != null)
                     {
                         //cache
@@ -453,7 +465,7 @@ namespace Nop.Web.Framework
                 TaxDisplayType taxDisplayType;
                 if (_taxSettings.AllowCustomersToSelectTaxDisplayType && this.CurrentCustomer != null)
                 {
-                    taxDisplayType = (TaxDisplayType) this.CurrentCustomer.GetAttribute<int>(
+                    taxDisplayType = (TaxDisplayType)this.CurrentCustomer.GetAttribute<int>(
                         SystemCustomerAttributeNames.TaxDisplayTypeId,
                         _genericAttributeService,
                         _storeContext.CurrentStore.Id);
@@ -473,7 +485,7 @@ namespace Nop.Web.Framework
                 if (!_taxSettings.AllowCustomersToSelectTaxDisplayType)
                     return;
 
-                _genericAttributeService.SaveAttribute(this.CurrentCustomer, 
+                _genericAttributeService.SaveAttribute(this.CurrentCustomer,
                     SystemCustomerAttributeNames.TaxDisplayTypeId,
                     (int)value, _storeContext.CurrentStore.Id);
 
