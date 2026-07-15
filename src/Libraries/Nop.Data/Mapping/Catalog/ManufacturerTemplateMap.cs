@@ -1,15 +1,17 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Catalog;
 
 namespace Nop.Data.Mapping.Catalog
 {
     public partial class ManufacturerTemplateMap : NopEntityTypeConfiguration<ManufacturerTemplate>
     {
-        public ManufacturerTemplateMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<ManufacturerTemplate> builder)
         {
-            this.ToTable("ManufacturerTemplate");
-            this.HasKey(p => p.Id);
-            this.Property(p => p.Name).IsRequired().HasMaxLength(400);
-            this.Property(p => p.ViewPath).IsRequired().HasMaxLength(400);
+            builder.ToTable("ManufacturerTemplate");
+            builder.HasKey(p => p.Id);
+            builder.Property(p => p.Name).IsRequired().HasMaxLength(400);
+            builder.Property(p => p.ViewPath).IsRequired().HasMaxLength(400);
         }
     }
 }

@@ -1,25 +1,28 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Catalog;
 
 namespace Nop.Data.Mapping.Catalog
 {
     public partial class ProductAttributeValueMap : NopEntityTypeConfiguration<ProductAttributeValue>
     {
-        public ProductAttributeValueMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<ProductAttributeValue> builder)
         {
-            this.ToTable("ProductAttributeValue");
-            this.HasKey(pav => pav.Id);
-            this.Property(pav => pav.Name).IsRequired().HasMaxLength(400);
-            this.Property(pav => pav.ColorSquaresRgb).HasMaxLength(100);
+            builder.ToTable("ProductAttributeValue");
+            builder.HasKey(pav => pav.Id);
+            builder.Property(pav => pav.Name).IsRequired().HasMaxLength(400);
+            builder.Property(pav => pav.ColorSquaresRgb).HasMaxLength(100);
 
-            this.Property(pav => pav.PriceAdjustment).HasPrecision(18, 4);
-            this.Property(pav => pav.WeightAdjustment).HasPrecision(18, 4);
-            this.Property(pav => pav.Cost).HasPrecision(18, 4);
+            builder.Property(pav => pav.PriceAdjustment).HasPrecision(18, 4);
+            builder.Property(pav => pav.WeightAdjustment).HasPrecision(18, 4);
+            builder.Property(pav => pav.Cost).HasPrecision(18, 4);
 
-            this.Ignore(pav => pav.AttributeValueType);
+            builder.Ignore(pav => pav.AttributeValueType);
 
-            this.HasRequired(pav => pav.ProductAttributeMapping)
+            builder.HasOne(pav => pav.ProductAttributeMapping)
                 .WithMany(pam => pam.ProductAttributeValues)
-                .HasForeignKey(pav => pav.ProductAttributeMappingId);
+                .HasForeignKey(pav => pav.ProductAttributeMappingId)
+                .IsRequired();
         }
     }
 }

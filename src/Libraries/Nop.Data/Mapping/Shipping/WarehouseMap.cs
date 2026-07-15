@@ -1,14 +1,16 @@
-﻿using Nop.Core.Domain.Shipping;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Nop.Core.Domain.Shipping;
 
 namespace Nop.Data.Mapping.Shipping
 {
     public class WarehouseMap : NopEntityTypeConfiguration<Warehouse>
     {
-        public WarehouseMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<Warehouse> builder)
         {
-            this.ToTable("Warehouse");
-            this.HasKey(wh => wh.Id);
-            this.Property(wh => wh.Name).IsRequired().HasMaxLength(400);
+            builder.ToTable("Warehouse");
+            builder.HasKey(wh => wh.Id);
+            builder.Property(wh => wh.Name).IsRequired().HasMaxLength(400);
         }
     }
 }

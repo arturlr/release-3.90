@@ -1,27 +1,37 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Customers;
 
 namespace Nop.Data.Mapping.Customers
 {
     public partial class CustomerMap : NopEntityTypeConfiguration<Customer>
     {
-        public CustomerMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<Customer> builder)
         {
-            this.ToTable("Customer");
-            this.HasKey(c => c.Id);
-            this.Property(u => u.Username).HasMaxLength(1000);
-            this.Property(u => u.Email).HasMaxLength(1000);
-            this.Property(u => u.EmailToRevalidate).HasMaxLength(1000);
-            this.Property(u => u.SystemName).HasMaxLength(400);
-            
-            this.HasMany(c => c.CustomerRoles)
-                .WithMany()
-                .Map(m => m.ToTable("Customer_CustomerRole_Mapping"));
+            builder.ToTable("Customer");
+            builder.HasKey(c => c.Id);
+            builder.Property(u => u.Username).HasMaxLength(1000);
+            builder.Property(u => u.Email).HasMaxLength(1000);
+            builder.Property(u => u.EmailToRevalidate).HasMaxLength(1000);
+            builder.Property(u => u.SystemName).HasMaxLength(400);
 
-            this.HasMany(c => c.Addresses)
+            builder.HasMany(c => c.CustomerRoles)
                 .WithMany()
-                .Map(m => m.ToTable("CustomerAddresses"));
-            this.HasOptional(c => c.BillingAddress);
-            this.HasOptional(c => c.ShippingAddress);
+                .UsingEntity(j => j.ToTable("Customer_CustomerRole_Mapping"));
+
+            builder.HasMany(c => c.Addresses)
+                .WithMany()
+                .UsingEntity(j => j.ToTable("CustomerAddresses"));
+
+            builder.HasOne(c => c.BillingAddress)
+                .WithMany()
+                .HasForeignKey("BillingAddress_Id")
+                .IsRequired(false);
+
+            builder.HasOne(c => c.ShippingAddress)
+                .WithMany()
+                .HasForeignKey("ShippingAddress_Id")
+                .IsRequired(false);
         }
     }
 }

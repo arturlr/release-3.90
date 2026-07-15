@@ -1,14 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using System.Data.SqlClient;
 using System.IO;
 using System.Text;
+using Microsoft.Data.SqlClient;
 using Nop.Core;
 using Nop.Core.Data;
-using Nop.Data.Initializers;
 
 namespace Nop.Data
 {
@@ -22,10 +19,9 @@ namespace Nop.Data
             {
                 if (throwExceptionIfNonExists)
                     throw new ArgumentException(string.Format("Specified file doesn't exist - {0}", filePath));
-                
+
                 return new string[0];
             }
-
 
             var statements = new List<string>();
             using (var stream = File.OpenRead(filePath))
@@ -52,7 +48,7 @@ namespace Nop.Data
                 {
                     if (sb.Length > 0)
                         return sb.ToString();
-                    
+
                     return null;
                 }
 
@@ -74,10 +70,7 @@ namespace Nop.Data
         /// </summary>
         public virtual void InitConnectionFactory()
         {
-            var connectionFactory = new SqlConnectionFactory();
-            //TODO fix compilation warning (below)
-            #pragma warning disable 0618
-            Database.DefaultConnectionFactory = connectionFactory;
+            // EF Core does not use connection factories. Connection is configured via DbContextOptions.
         }
 
         /// <summary>
@@ -85,8 +78,8 @@ namespace Nop.Data
         /// </summary>
         public virtual void InitDatabase()
         {
-            InitConnectionFactory();
-            SetDatabaseInitializer();
+            // EF Core does not use connection factories or database initializers.
+            // Database creation is handled via EnsureCreated() or Migrations at startup.
         }
 
         /// <summary>
@@ -94,17 +87,8 @@ namespace Nop.Data
         /// </summary>
         public virtual void SetDatabaseInitializer()
         {
-            //pass some table names to ensure that we have nopCommerce 2.X installed
-            var tablesToValidate = new[] { "Customer", "Discount", "Order", "Product", "ShoppingCartItem" };
-
-            //custom commands (stored procedures, indexes)
-
-            var customCommands = new List<string>();
-            customCommands.AddRange(ParseCommands(CommonHelper.MapPath("~/App_Data/Install/SqlServer.Indexes.sql"), false));
-            customCommands.AddRange(ParseCommands(CommonHelper.MapPath("~/App_Data/Install/SqlServer.StoredProcedures.sql"), false));
-
-            var initializer = new CreateTablesIfNotExist<NopObjectContext>(tablesToValidate, customCommands.ToArray());
-            Database.SetInitializer(initializer);
+            // EF Core does not use database initializers.
+            // Database initialization is handled via EnsureCreated() or Migrations.
         }
 
         /// <summary>

@@ -1,13 +1,17 @@
-using System.Data.Entity.ModelConfiguration;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Nop.Data.Mapping
 {
-    public abstract class NopEntityTypeConfiguration<T> : EntityTypeConfiguration<T> where T : class
+    public abstract class NopEntityTypeConfiguration<T> : IEntityTypeConfiguration<T> where T : class
     {
-        protected NopEntityTypeConfiguration()
+        public void Configure(EntityTypeBuilder<T> builder)
         {
+            ConfigureEntity(builder);
             PostInitialize();
         }
+
+        protected abstract void ConfigureEntity(EntityTypeBuilder<T> builder);
 
         /// <summary>
         /// Developers can override this method in custom partial classes
@@ -15,7 +19,6 @@ namespace Nop.Data.Mapping
         /// </summary>
         protected virtual void PostInitialize()
         {
-            
         }
     }
 }

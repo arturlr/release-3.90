@@ -1,14 +1,16 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Catalog;
 
 namespace Nop.Data.Mapping.Catalog
 {
     public partial class SpecificationAttributeMap : NopEntityTypeConfiguration<SpecificationAttribute>
     {
-        public SpecificationAttributeMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<SpecificationAttribute> builder)
         {
-            this.ToTable("SpecificationAttribute");
-            this.HasKey(sa => sa.Id);
-            this.Property(sa => sa.Name).IsRequired();
+            builder.ToTable("SpecificationAttribute");
+            builder.HasKey(sa => sa.Id);
+            builder.Property(sa => sa.Name).IsRequired();
         }
     }
 }

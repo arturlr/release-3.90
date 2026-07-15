@@ -1,4 +1,5 @@
-﻿using Nop.Core;
+using Microsoft.EntityFrameworkCore;
+using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
 
@@ -14,7 +15,13 @@ namespace Nop.Data
                 var provider = EngineContext.Current.Resolve<IDataProvider>();
                 if (provider == null)
                     throw new NopException("No IDataProvider found");
-                provider.SetDatabaseInitializer();
+
+                // In EF Core, ensure the database exists and is created
+                var context = EngineContext.Current.Resolve<IDbContext>();
+                if (context is DbContext dbContext)
+                {
+                    dbContext.Database.EnsureCreated();
+                }
             }
         }
 

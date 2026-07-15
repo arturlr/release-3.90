@@ -1,13 +1,14 @@
-﻿using Nop.Core.Domain.Topics;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Nop.Core.Domain.Topics;
 
 namespace Nop.Data.Mapping.Topics
 {
     public class TopicMap : NopEntityTypeConfiguration<Topic>
     {
-        public TopicMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<Topic> builder)
         {
-            this.ToTable("Topic");
-            this.HasKey(t => t.Id);
-        }
+            builder.ToTable("Topic");
+            builder.HasKey(t => t.Id);        }
     }
 }

@@ -1,23 +1,28 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Customers;
 
 namespace Nop.Data.Mapping.Customers
 {
     public partial class RewardPointsHistoryMap : NopEntityTypeConfiguration<RewardPointsHistory>
     {
-        public RewardPointsHistoryMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<RewardPointsHistory> builder)
         {
-            this.ToTable("RewardPointsHistory");
-            this.HasKey(rph => rph.Id);
+            builder.ToTable("RewardPointsHistory");
+            builder.HasKey(rph => rph.Id);
 
-            this.Property(rph => rph.UsedAmount).HasPrecision(18, 4);
+            builder.Property(rph => rph.UsedAmount).HasPrecision(18, 4);
 
-            this.HasRequired(rph => rph.Customer)
+            builder.HasOne(rph => rph.Customer)
                 .WithMany()
-                .HasForeignKey(rph => rph.CustomerId);
+                .HasForeignKey(rph => rph.CustomerId)
+                .IsRequired();
 
-            this.HasOptional(rph => rph.UsedWithOrder)
-                .WithOptionalDependent(o => o.RedeemedRewardPointsEntry)
-                .WillCascadeOnDelete(false);
+            builder.HasOne(rph => rph.UsedWithOrder)
+                .WithOne(o => o.RedeemedRewardPointsEntry)
+                .HasForeignKey<Nop.Core.Domain.Orders.Order>(o => o.RewardPointsHistoryEntryId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -1,14 +1,15 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Orders;
 
 namespace Nop.Data.Mapping.Orders
 {
     public partial class ReturnRequestReasonMap : NopEntityTypeConfiguration<ReturnRequestReason>
     {
-        public ReturnRequestReasonMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<ReturnRequestReason> builder)
         {
-            this.ToTable("ReturnRequestReason");
-            this.HasKey(rrr => rrr.Id);
-            this.Property(rrr => rrr.Name).IsRequired().HasMaxLength(400);
-        }
+            builder.ToTable("ReturnRequestReason");
+            builder.HasKey(rrr => rrr.Id);
+            builder.Property(rrr => rrr.Name).IsRequired().HasMaxLength(400);        }
     }
 }

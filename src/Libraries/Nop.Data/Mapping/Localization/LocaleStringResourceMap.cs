@@ -1,20 +1,21 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Localization;
 
 namespace Nop.Data.Mapping.Localization
 {
     public partial class LocaleStringResourceMap : NopEntityTypeConfiguration<LocaleStringResource>
     {
-        public LocaleStringResourceMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<LocaleStringResource> builder)
         {
-            this.ToTable("LocaleStringResource");
-            this.HasKey(lsr => lsr.Id);
-            this.Property(lsr => lsr.ResourceName).IsRequired().HasMaxLength(200);
-            this.Property(lsr => lsr.ResourceValue).IsRequired();
+            builder.ToTable("LocaleStringResource");
+            builder.HasKey(lsr => lsr.Id);
+            builder.Property(lsr => lsr.ResourceName).IsRequired().HasMaxLength(200);
+            builder.Property(lsr => lsr.ResourceValue).IsRequired();
 
-
-            this.HasRequired(lsr => lsr.Language)
+            builder.HasOne(lsr => lsr.Language)
                 .WithMany(l => l.LocaleStringResources)
-                .HasForeignKey(lsr => lsr.LanguageId);
-        }
+                .HasForeignKey(lsr => lsr.LanguageId)
+                .IsRequired();        }
     }
 }

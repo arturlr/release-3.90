@@ -1,18 +1,20 @@
-﻿using Nop.Core.Domain.Forums;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Nop.Core.Domain.Forums;
 
 namespace Nop.Data.Mapping.Forums
 {
     public partial class ForumSubscriptionMap : NopEntityTypeConfiguration<ForumSubscription>
     {
-        public ForumSubscriptionMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<ForumSubscription> builder)
         {
-            this.ToTable("Forums_Subscription");
-            this.HasKey(fs => fs.Id);
+            builder.ToTable("Forums_Subscription");
+            builder.HasKey(fs => fs.Id);
 
-            this.HasRequired(fs => fs.Customer)
+            builder.HasOne(fs => fs.Customer)
                 .WithMany()
                 .HasForeignKey(fs => fs.CustomerId)
-                .WillCascadeOnDelete(false);
-        }
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);        }
     }
 }

@@ -1,23 +1,27 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Catalog;
 
 namespace Nop.Data.Mapping.Catalog
 {
     public partial class TierPriceMap : NopEntityTypeConfiguration<TierPrice>
     {
-        public TierPriceMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<TierPrice> builder)
         {
-            this.ToTable("TierPrice");
-            this.HasKey(tp => tp.Id);
-            this.Property(tp => tp.Price).HasPrecision(18, 4);
+            builder.ToTable("TierPrice");
+            builder.HasKey(tp => tp.Id);
+            builder.Property(tp => tp.Price).HasPrecision(18, 4);
 
-            this.HasRequired(tp => tp.Product)
+            builder.HasOne(tp => tp.Product)
                 .WithMany(p => p.TierPrices)
-                .HasForeignKey(tp => tp.ProductId);
+                .HasForeignKey(tp => tp.ProductId)
+                .IsRequired();
 
-            this.HasOptional(tp => tp.CustomerRole)
+            builder.HasOne(tp => tp.CustomerRole)
                 .WithMany()
                 .HasForeignKey(tp => tp.CustomerRoleId)
-                .WillCascadeOnDelete(true);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

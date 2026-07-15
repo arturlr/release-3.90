@@ -1,13 +1,15 @@
-﻿using Nop.Core.Domain.Common;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Nop.Core.Domain.Common;
 
 namespace Nop.Data.Mapping.Common
 {
     public partial class SearchTermMap : NopEntityTypeConfiguration<SearchTerm>
     {
-        public SearchTermMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<SearchTerm> builder)
         {
-            this.ToTable("SearchTerm");
-            this.HasKey(st => st.Id);
+            builder.ToTable("SearchTerm");
+            builder.HasKey(st => st.Id);
         }
     }
 }
