@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 using Nop.Core.Domain.Catalog;
 
 namespace Nop.Services.Catalog
@@ -13,7 +13,7 @@ namespace Nop.Services.Catalog
     {
         #region Fields
 
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IProductService _productService;
         private readonly CatalogSettings _catalogSettings;
 
@@ -24,13 +24,13 @@ namespace Nop.Services.Catalog
         /// <summary>
         /// Ctor
         /// </summary>
-        /// <param name="httpContext">HTTP context</param>
+        /// <param name="httpContextAccessor">HTTP context accessor</param>
         /// <param name="productService">Product service</param>
         /// <param name="catalogSettings">Catalog settings</param>
-        public RecentlyViewedProductsService(HttpContextBase httpContext, IProductService productService,
+        public RecentlyViewedProductsService(IHttpContextAccessor httpContextAccessor, IProductService productService,
             CatalogSettings catalogSettings)
         {
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._productService = productService;
             this._catalogSettings = catalogSettings;
         }
@@ -56,22 +56,24 @@ namespace Nop.Services.Catalog
         protected IList<int> GetRecentlyViewedProductsIds(int number)
         {
             var productIds = new List<int>();
-            var recentlyViewedCookie = _httpContext.Request.Cookies.Get("NopCommerce.RecentlyViewedProducts");
-            if (recentlyViewedCookie == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
                 return productIds;
-            string[] values = recentlyViewedCookie.Values.GetValues("RecentlyViewedProductIds");
-            if (values == null)
+
+            var cookieValue = httpContext.Request.Cookies["NopCommerce.RecentlyViewedProducts"];
+            if (string.IsNullOrEmpty(cookieValue))
                 return productIds;
-            foreach (string productId in values)
+
+            var values = cookieValue.Split(',');
+            foreach (var productId in values)
             {
-                int prodId = int.Parse(productId);
-                if (!productIds.Contains(prodId))
+                int prodId;
+                if (int.TryParse(productId, out prodId) && !productIds.Contains(prodId))
                 {
                     productIds.Add(prodId);
                     if (productIds.Count >= number)
                         break;
                 }
-
             }
 
             return productIds;
@@ -113,26 +115,24 @@ namespace Nop.Services.Catalog
                 if (oldProductId != productId)
                     newProductIds.Add(oldProductId);
 
-            var recentlyViewedCookie = _httpContext.Request.Cookies.Get("NopCommerce.RecentlyViewedProducts");
-            if (recentlyViewedCookie == null)
-            {
-                recentlyViewedCookie = new HttpCookie("NopCommerce.RecentlyViewedProducts");
-                recentlyViewedCookie.HttpOnly = true;
-            }
-            recentlyViewedCookie.Values.Clear();
             int maxProducts = _catalogSettings.RecentlyViewedProductsNumber;
             if (maxProducts <= 0)
                 maxProducts = 10;
-            int i = 1;
-            foreach (int newProductId in newProductIds)
+
+            var idsToStore = newProductIds.Take(maxProducts).ToList();
+            var cookieValue = string.Join(",", idsToStore);
+
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
+                return;
+
+            var cookieOptions = new CookieOptions
             {
-                recentlyViewedCookie.Values.Add("RecentlyViewedProductIds", newProductId.ToString());
-                if (i == maxProducts)
-                    break;
-                i++;
-            }
-            recentlyViewedCookie.Expires = DateTime.Now.AddDays(10.0);
-            _httpContext.Response.Cookies.Set(recentlyViewedCookie);
+                HttpOnly = true,
+                Expires = DateTimeOffset.Now.AddDays(10)
+            };
+
+            httpContext.Response.Cookies.Append("NopCommerce.RecentlyViewedProducts", cookieValue, cookieOptions);
         }
         
         #endregion

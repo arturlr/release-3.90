@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using System.Net;
+using Microsoft.AspNetCore.Http;
 using Nop.Core;
 using Nop.Core.Domain.Blogs;
 using Nop.Core.Domain.Catalog;
@@ -35,7 +36,7 @@ namespace Nop.Services.Messages
         private readonly CommonSettings _commonSettings;
         private readonly EmailAccountSettings _emailAccountSettings;
         private readonly IEventPublisher _eventPublisher;
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         #endregion
 
@@ -52,7 +53,7 @@ namespace Nop.Services.Messages
             CommonSettings commonSettings,
             EmailAccountSettings emailAccountSettings,
             IEventPublisher eventPublisher,
-            HttpContextBase httpContext)
+            IHttpContextAccessor httpContextAccessor)
         {
             this._messageTemplateService = messageTemplateService;
             this._queuedEmailService = queuedEmailService;
@@ -65,7 +66,7 @@ namespace Nop.Services.Messages
             this._commonSettings = commonSettings;
             this._emailAccountSettings = emailAccountSettings;
             this._eventPublisher = eventPublisher;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
         }
 
         #endregion
@@ -1729,7 +1730,7 @@ namespace Nop.Services.Messages
                 fromEmail = emailAccount.Email;
                 fromName = emailAccount.DisplayName;
                 body = string.Format("<strong>From</strong>: {0} - {1}<br /><br />{2}",
-                    _httpContext.Server.HtmlEncode(senderName), _httpContext.Server.HtmlEncode(senderEmail), body);
+                    WebUtility.HtmlEncode(senderName), WebUtility.HtmlEncode(senderEmail), body);
             }
             else
             {
@@ -1792,7 +1793,7 @@ namespace Nop.Services.Messages
                 fromEmail = emailAccount.Email;
                 fromName = emailAccount.DisplayName;
                 body = string.Format("<strong>From</strong>: {0} - {1}<br /><br />{2}",
-                    _httpContext.Server.HtmlEncode(senderName), _httpContext.Server.HtmlEncode(senderEmail), body);
+                    WebUtility.HtmlEncode(senderName), WebUtility.HtmlEncode(senderEmail), body);
             }
             else
             {

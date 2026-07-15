@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Web;
-using System.Web.WebPages;
+using System.Net;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Catalog;
@@ -148,7 +147,10 @@ namespace Nop.Services.ExportImport
 
         protected virtual string GetMimeTypeFromFilePath(string filePath)
         {
-            var mimeType = MimeMapping.GetMimeMapping(filePath);
+            var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+            string mimeType;
+            if (!provider.TryGetContentType(filePath, out mimeType))
+                mimeType = MimeTypes.ApplicationOctetStream;
 
             //little hack here because MimeMapping does not contain all mappings (e.g. PNG)
             if (mimeType == MimeTypes.ApplicationOctetStream)
@@ -447,7 +449,7 @@ namespace Nop.Services.ExportImport
                     { 
                         var categoryIds = worksheet.Cells[endRow, categoryCellNum].Value.Return(p => p.ToString(), string.Empty);
 
-                        if (!categoryIds.IsEmpty())
+                        if (!string.IsNullOrEmpty(categoryIds))
                             allCategoriesNames.AddRange(categoryIds.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()));
                     }
 
@@ -455,14 +457,14 @@ namespace Nop.Services.ExportImport
                     {
                         var sku = worksheet.Cells[endRow, skuCellNum].Value.Return(p => p.ToString(), string.Empty);
 
-                        if (!sku.IsEmpty())
+                        if (!string.IsNullOrEmpty(sku))
                             allSku.Add(sku);
                     }
 
                     if (manufacturerCellNum > 0)
                     { 
                         var manufacturerIds = worksheet.Cells[endRow, manufacturerCellNum].Value.Return(p => p.ToString(), string.Empty);
-                        if (!manufacturerIds.IsEmpty())
+                        if (!string.IsNullOrEmpty(manufacturerIds))
                             allManufacturersNames.AddRange(manufacturerIds.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()));
                     }
 

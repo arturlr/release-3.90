@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Web;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
 using Nop.Core.Domain.Catalog;
 
 namespace Nop.Services.Catalog
@@ -21,7 +22,7 @@ namespace Nop.Services.Catalog
         
         #region Fields
 
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IProductService _productService;
         private readonly CatalogSettings _catalogSettings;
 
@@ -32,13 +33,13 @@ namespace Nop.Services.Catalog
         /// <summary>
         /// Ctor
         /// </summary>
-        /// <param name="httpContext">HTTP context</param>
+        /// <param name="httpContextAccessor">HTTP context accessor</param>
         /// <param name="productService">Product service</param>
         /// <param name="catalogSettings">Catalog settings</param>
-        public CompareProductsService(HttpContextBase httpContext, IProductService productService,
+        public CompareProductsService(IHttpContextAccessor httpContextAccessor, IProductService productService,
             CatalogSettings catalogSettings)
         {
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._productService = productService;
             this._catalogSettings = catalogSettings;
         }
@@ -54,16 +55,20 @@ namespace Nop.Services.Catalog
         protected virtual List<int> GetComparedProductIds()
         {
             var productIds = new List<int>();
-            HttpCookie compareCookie = _httpContext.Request.Cookies.Get(COMPARE_PRODUCTS_COOKIE_NAME);
-            if (compareCookie == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
                 return productIds;
-            string[] values = compareCookie.Values.GetValues("CompareProductIds");
-            if (values == null)
+
+            var cookieValue = httpContext.Request.Cookies[COMPARE_PRODUCTS_COOKIE_NAME];
+            if (string.IsNullOrEmpty(cookieValue))
                 return productIds;
-            foreach (string productId in values)
+
+            // cookie value is comma-separated product IDs
+            var values = cookieValue.Split(',');
+            foreach (var productId in values)
             {
-                int prodId = int.Parse(productId);
-                if (!productIds.Contains(prodId))
+                int prodId;
+                if (int.TryParse(productId, out prodId) && !productIds.Contains(prodId))
                     productIds.Add(prodId);
             }
 
@@ -79,13 +84,11 @@ namespace Nop.Services.Catalog
         /// </summary>
         public virtual void ClearCompareProducts()
         {
-            var compareCookie = _httpContext.Request.Cookies.Get(COMPARE_PRODUCTS_COOKIE_NAME);
-            if (compareCookie != null)
-            {
-                compareCookie.Values.Clear();
-                compareCookie.Expires = DateTime.Now.AddYears(-1);
-                _httpContext.Response.Cookies.Set(compareCookie);
-            }
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
+                return;
+
+            httpContext.Response.Cookies.Delete(COMPARE_PRODUCTS_COOKIE_NAME);
         }
 
         /// <summary>
@@ -112,18 +115,10 @@ namespace Nop.Services.Catalog
         public virtual void RemoveProductFromCompareList(int productId)
         {
             var oldProductIds = GetComparedProductIds();
-            var newProductIds = new List<int>();
-            newProductIds.AddRange(oldProductIds);
+            var newProductIds = new List<int>(oldProductIds);
             newProductIds.Remove(productId);
 
-            var compareCookie = _httpContext.Request.Cookies.Get(COMPARE_PRODUCTS_COOKIE_NAME);
-            if (compareCookie == null)
-                return;
-            compareCookie.Values.Clear();
-            foreach (int newProductId in newProductIds)
-                compareCookie.Values.Add("CompareProductIds", newProductId.ToString());
-            compareCookie.Expires = DateTime.Now.AddDays(10.0);
-            _httpContext.Response.Cookies.Set(compareCookie);
+            SetCompareProductsCookie(newProductIds, _catalogSettings.CompareProductsNumber);
         }
 
         /// <summary>
@@ -139,23 +134,30 @@ namespace Nop.Services.Catalog
                 if (oldProductId != productId)
                     newProductIds.Add(oldProductId);
 
-            var compareCookie = _httpContext.Request.Cookies.Get(COMPARE_PRODUCTS_COOKIE_NAME);
-            if (compareCookie == null)
+            SetCompareProductsCookie(newProductIds, _catalogSettings.CompareProductsNumber);
+        }
+
+        /// <summary>
+        /// Sets the compare products cookie
+        /// </summary>
+        /// <param name="productIds">Product IDs</param>
+        /// <param name="maxProducts">Maximum number of products to store</param>
+        protected virtual void SetCompareProductsCookie(IList<int> productIds, int maxProducts)
+        {
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
+                return;
+
+            var idsToStore = productIds.Take(maxProducts).ToList();
+            var cookieValue = string.Join(",", idsToStore);
+
+            var cookieOptions = new CookieOptions
             {
-                compareCookie = new HttpCookie(COMPARE_PRODUCTS_COOKIE_NAME);
-                compareCookie.HttpOnly = true;
-            }
-            compareCookie.Values.Clear();
-            int i = 1;
-            foreach (int newProductId in newProductIds)
-            {
-                compareCookie.Values.Add("CompareProductIds", newProductId.ToString());
-                if (i == _catalogSettings.CompareProductsNumber)
-                    break;
-                i++;
-            }
-            compareCookie.Expires = DateTime.Now.AddDays(10.0);
-            _httpContext.Response.Cookies.Set(compareCookie);
+                HttpOnly = true,
+                Expires = DateTimeOffset.Now.AddDays(10)
+            };
+
+            httpContext.Response.Cookies.Append(COMPARE_PRODUCTS_COOKIE_NAME, cookieValue, cookieOptions);
         }
 
         #endregion

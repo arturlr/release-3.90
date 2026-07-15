@@ -2,7 +2,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Nop.Services.Authentication.External
 {
@@ -54,6 +54,6 @@ namespace Nop.Services.Authentication.External
         /// <summary>
         /// Result
         /// </summary>
-        public ActionResult Result { get; set; }
+        public IActionResult Result { get; set; }
     }
 }

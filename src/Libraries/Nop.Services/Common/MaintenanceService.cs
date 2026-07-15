@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
-using System.Web;
+using Microsoft.Data.SqlClient;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Common;
@@ -23,7 +22,6 @@ namespace Nop.Services.Common
         private readonly IDataProvider _dataProvider;
         private readonly IDbContext _dbContext;
         private readonly CommonSettings _commonSettings;
-        private readonly HttpContextBase _httpContext;
         #endregion
 
         #region Ctor
@@ -34,14 +32,12 @@ namespace Nop.Services.Common
         /// <param name="dataProvider">Data provider</param>
         /// <param name="dbContext">Database Context</param>
         /// <param name="commonSettings">Common settings</param>
-        /// <param name="httpContext">HTTP context</param>
         public MaintenanceService(IDataProvider dataProvider, IDbContext dbContext,
-            CommonSettings commonSettings, HttpContextBase httpContext)
+            CommonSettings commonSettings)
         {
             this._dataProvider = dataProvider;
             this._dbContext = dbContext;
             this._commonSettings = commonSettings;
-            this._httpContext = httpContext;
         }
 
         #endregion
@@ -50,7 +46,10 @@ namespace Nop.Services.Common
 
         protected virtual string GetBackupDirectoryPath()
         {
-            return string.Format("{0}Administration\\db_backups\\", _httpContext.Request.PhysicalApplicationPath);
+            var path = Path.Combine(AppContext.BaseDirectory, "Administration", "db_backups");
+            if (!System.IO.Directory.Exists(path))
+                System.IO.Directory.CreateDirectory(path);
+            return path + Path.DirectorySeparatorChar;
         }
 
         protected virtual void CheckBackupSupported()
