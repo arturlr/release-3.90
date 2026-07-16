@@ -1,4 +1,4 @@
-﻿@model CurrencySelectorModel
+@model CurrencySelectorModel
 @using Nop.Web.Models.Common;
 @using Nop.Core;
 @using Nop.Core.Infrastructure;
@@ -11,7 +11,7 @@
         var currencies = Model.AvailableCurrencies.Select(x => new SelectListItem
             {
                 Text = x.Name,
-                Value = webHelper.ModifyQueryString(Url.RouteUrl("ChangeCurrency", new { customercurrency = x.Id }), "returnurl=" + HttpUtility.UrlEncode(HttpContext.Current.Request.RawUrl), null),
+                Value = webHelper.ModifyQueryString(Url.RouteUrl("ChangeCurrency", new { customercurrency = x.Id }), "returnurl=" + HttpUtility.UrlEncode(Context.Request.Path + Context.Request.QueryString), null),
                 Selected = x.Id.Equals(Model.CurrentCurrencyId)
             });
     
