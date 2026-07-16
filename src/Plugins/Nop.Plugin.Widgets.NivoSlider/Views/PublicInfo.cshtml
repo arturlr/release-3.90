@@ -1,4 +1,5 @@
-﻿@model Nop.Plugin.Widgets.NivoSlider.Models.PublicInfoModel
+@model Nop.Plugin.Widgets.NivoSlider.Models.PublicInfoModel
+@using Microsoft.AspNetCore.Html
 @{
     Layout = "";
 
@@ -8,22 +9,22 @@
 }
 @using Nop.Web.Framework.UI
 
-@helper RenderSliderLine(string pictureUrl, string text, string link, string dataTransition = "")
-{
-    if (!string.IsNullOrEmpty(pictureUrl))
+@functions {
+    IHtmlContent RenderSliderLine(string pictureUrl, string text, string link, string dataTransition = "")
     {
-        if (!string.IsNullOrEmpty(link))
+        if (!string.IsNullOrEmpty(pictureUrl))
         {
-            <a href="@link">
-                <img src="@pictureUrl" data-thumb="@pictureUrl" data-transition="@dataTransition" alt="" title="@text" />
-            </a>
+            var imgTag = $"<img src=\"{System.Net.WebUtility.HtmlEncode(pictureUrl)}\" data-thumb=\"{System.Net.WebUtility.HtmlEncode(pictureUrl)}\" data-transition=\"{System.Net.WebUtility.HtmlEncode(dataTransition)}\" alt=\"\" title=\"{System.Net.WebUtility.HtmlEncode(text)}\" />";
+            if (!string.IsNullOrEmpty(link))
+            {
+                return new HtmlString($"<a href=\"{System.Net.WebUtility.HtmlEncode(link)}\">{imgTag}</a>");
+            }
+            return new HtmlString(imgTag);
         }
-        else
-        {
-            <img src="@pictureUrl" data-thumb="@pictureUrl" data-transition="@dataTransition" alt="" title="@text" />
-        }
+        return HtmlString.Empty;
     }
 }
+
 <div class="slider-wrapper theme-custom">
     <div id="nivo-slider" class="nivoSlider">
         @RenderSliderLine(Model.Picture1Url, Model.Text1, Model.Link1)

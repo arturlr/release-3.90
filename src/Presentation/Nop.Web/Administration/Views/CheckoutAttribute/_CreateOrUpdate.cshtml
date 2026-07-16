@@ -1,4 +1,4 @@
-﻿@model CheckoutAttributeModel
+@model CheckoutAttributeModel
 @using Nop.Core.Domain.Catalog;
 @using Nop.Services
 
@@ -30,11 +30,11 @@
                 }
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-values", @TabValues())
+                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(null), true)
+                @Html.RenderBootstrapTabContent("tab-values", @TabValues(null))
                 @if (Model.ConditionAllowed)
                 {
-                    @Html.RenderBootstrapTabContent("tab-condition", @TabCondition())
+                    @Html.RenderBootstrapTabContent("tab-condition", @TabCondition(null))
                 }
             </div>
         </div>
@@ -54,8 +54,7 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabInfo = @<text>
     <script type="text/javascript">
         $(document).ready(function() {
 
@@ -307,10 +306,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabValues()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabValues = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             @if (Model.Id > 0)
@@ -439,10 +436,8 @@
         </div>
     </div>
 
-}
-
-@helper TabCondition()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabCondition = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             @if (Model.Id > 0)
@@ -570,4 +565,4 @@
             }
         </div>
     </div>
-}
+</text>;}

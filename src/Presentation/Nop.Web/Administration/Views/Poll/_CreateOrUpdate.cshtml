@@ -1,4 +1,4 @@
-﻿@model PollModel
+@model PollModel
 
 @Html.ValidationSummary(true)
 @Html.HiddenFor(model => model.Id)
@@ -17,8 +17,8 @@
                 @Html.RenderBootstrapTabHeader("tab-answers", @T("Admin.ContentManagement.Polls.Answers"))
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-answers", @TabAnswers())
+                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(null), true)
+                @Html.RenderBootstrapTabContent("tab-answers", @TabAnswers(null))
             </div>
         </div>
     </div>
@@ -37,8 +37,7 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabInfo = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -126,10 +125,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabAnswers()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabAnswers = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             @if (Model.Id > 0)
@@ -255,4 +252,4 @@
             }
         </div>
     </div>
-}
+</text>;}

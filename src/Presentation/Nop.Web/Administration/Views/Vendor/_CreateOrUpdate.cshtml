@@ -1,4 +1,4 @@
-﻿@model VendorModel
+@model VendorModel
 
 @Html.ValidationSummary(false)
 @Html.HiddenFor(model => model.Id)
@@ -28,11 +28,11 @@
                 }
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo())
+                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(null), true)
+                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo(null))
                 @if (Model.Id > 0)
                 {
-                    @Html.RenderBootstrapTabContent("tab-vendor-notes", @TabVendorNotes())
+                    @Html.RenderBootstrapTabContent("tab-vendor-notes", @TabVendorNotes(null))
                 }
             </div>
         </div>
@@ -52,8 +52,7 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabInfo = @<text>
     <script type="text/javascript">
         $(document).ready(function() {
             $("#@Html.FieldIdFor(model => model.AllowCustomersToSelectPageSize)").click(togglePageSize);
@@ -226,10 +225,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabSeo()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabSeo = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -339,10 +336,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabVendorNotes()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabVendorNotes = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -480,4 +475,4 @@
             });
         });
     </script>
-}
+</text>;}

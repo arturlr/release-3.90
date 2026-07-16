@@ -1,4 +1,4 @@
-﻿@model LanguageModel
+@model LanguageModel
 @Html.ValidationSummary(true)
 @Html.HiddenFor(model => model.Id)
 
@@ -16,8 +16,8 @@
                 @Html.RenderBootstrapTabHeader("tab-resources", @T("Admin.Configuration.Languages.Resources"))
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-resources", @TabResources())
+                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(null), true)
+                @Html.RenderBootstrapTabContent("tab-resources", @TabResources(null))
             </div>
         </div>
     </div>
@@ -36,8 +36,7 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabInfo = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -181,9 +180,7 @@
             </div>
         </div>
     </div>
-}
-@helper TabResources()
-{
+</text>;}@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabResources = @<text>
     <div class="panel-group">
         <div class="panel panel-default panel-search">
             <div class="panel-body">
@@ -380,4 +377,4 @@
             </div>
         }
     </div>
-}
+</text>;}

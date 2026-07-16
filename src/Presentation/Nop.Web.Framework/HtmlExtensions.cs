@@ -144,6 +144,53 @@ namespace Nop.Web.Framework
             return tabName;
         }
 
+        public static void SetActiveMenuItemSystemName(this IHtmlHelper helper, string systemName)
+        {
+            var pageHeadBuilder = EngineContext.Current.Resolve<Nop.Web.Framework.UI.IPageHeadBuilder>();
+            pageHeadBuilder.SetActiveMenuItemSystemName(systemName);
+        }
+
+        public static string GetActiveMenuItemSystemName(this IHtmlHelper helper)
+        {
+            var pageHeadBuilder = EngineContext.Current.Resolve<Nop.Web.Framework.UI.IPageHeadBuilder>();
+            return pageHeadBuilder.GetActiveMenuItemSystemName();
+        }
+
+        /// <summary>
+        /// Renders a Bootstrap tab header (li element with anchor link).
+        /// </summary>
+        public static IHtmlContent RenderBootstrapTabHeader(this IHtmlHelper helper, string tabName, object title, bool isActive = false, string customCssClass = "")
+        {
+            var cssClass = isActive ? "active" : "";
+            if (!string.IsNullOrEmpty(customCssClass))
+                cssClass = string.IsNullOrEmpty(cssClass) ? customCssClass : cssClass + " " + customCssClass;
+
+            var sb = new StringBuilder();
+            sb.AppendFormat("<li class=\"{0}\">", cssClass);
+            sb.AppendFormat("<a data-tab-name=\"{0}\" href=\"#{0}\" data-toggle=\"tab\">{1}</a>", tabName, title);
+            sb.Append("</li>");
+            return new HtmlString(sb.ToString());
+        }
+
+        /// <summary>
+        /// Renders a Bootstrap tab content panel (div element wrapping the tab body).
+        /// </summary>
+        public static IHtmlContent RenderBootstrapTabContent(this IHtmlHelper helper, string tabName, IHtmlContent content, bool isActive = false, string customTabId = "")
+        {
+            var cssClass = isActive ? "tab-pane active" : "tab-pane";
+            var id = string.IsNullOrEmpty(customTabId) ? tabName : customTabId;
+
+            var sb = new StringBuilder();
+            sb.AppendFormat("<div class=\"{0}\" id=\"{1}\">", cssClass, id);
+            using (var writer = new StringWriter())
+            {
+                content.WriteTo(writer, System.Text.Encodings.Web.HtmlEncoder.Default);
+                sb.Append(writer.ToString());
+            }
+            sb.Append("</div>");
+            return new HtmlString(sb.ToString());
+        }
+
         #endregion
 
         #region Common extensions

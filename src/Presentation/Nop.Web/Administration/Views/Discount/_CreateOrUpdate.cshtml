@@ -1,4 +1,4 @@
-﻿@model DiscountModel
+@model DiscountModel
 
 @using Nop.Core.Domain.Discounts;
 @using Nop.Services
@@ -32,14 +32,14 @@
                 }
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-requirements", @TabRequirements())
-                @Html.RenderBootstrapTabContent("tab-applied-to-products", @TabAppliedToProducts())
-                @Html.RenderBootstrapTabContent("tab-applied-to-categories", @TabAppliedToCategories())
-                @Html.RenderBootstrapTabContent("tab-applied-to-manufacturers", @TabAppliedToManufacturers())
+                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(null), true)
+                @Html.RenderBootstrapTabContent("tab-requirements", @TabRequirements(null))
+                @Html.RenderBootstrapTabContent("tab-applied-to-products", @TabAppliedToProducts(null))
+                @Html.RenderBootstrapTabContent("tab-applied-to-categories", @TabAppliedToCategories(null))
+                @Html.RenderBootstrapTabContent("tab-applied-to-manufacturers", @TabAppliedToManufacturers(null))
                 @if (Model.Id > 0)
                 {
-                    @Html.RenderBootstrapTabContent("tab-history", @TabHistory())
+                    @Html.RenderBootstrapTabContent("tab-history", @TabHistory(null))
                 }
             </div>
         </div>
@@ -59,8 +59,7 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabInfo = @<text>
     <script type="text/javascript">
         $(document).ready(function() {
             $("#@Html.FieldIdFor(model => model.DiscountTypeId)").change(toggleDiscountType);
@@ -275,10 +274,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabRequirements()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabRequirements = @<text>
     <div class="panel-group">
         @if (Model.Id > 0)
         {
@@ -554,10 +551,8 @@
             </div>
         }
     </div>
-}
-
-@helper TabAppliedToProducts()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabAppliedToProducts = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             @if (Model.Id > 0)
@@ -669,10 +664,8 @@
             }
         </div>
     </div>
-}
-
-@helper TabAppliedToCategories()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabAppliedToCategories = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             @if (Model.Id > 0)
@@ -784,10 +777,8 @@
             }
         </div>
     </div>
-}
-
-@helper TabAppliedToManufacturers()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabAppliedToManufacturers = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             @if (Model.Id > 0)
@@ -899,13 +890,13 @@
             }
         </div>
     </div>
-}
-
-@helper TabHistory()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabHistory = @<text>
+    @{
     var defaultGridPageSize = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().DefaultGridPageSize;
     var gridPageSizes = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().GridPageSizes;
 
+    }
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -994,4 +985,4 @@
             </div>
         </div>
     </div>
-}
+</text>;}

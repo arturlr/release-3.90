@@ -1,4 +1,4 @@
-﻿@model OrderSettingsModel
+@model OrderSettingsModel
 
 @{
     //page title
@@ -40,8 +40,8 @@
                     @Html.RenderBootstrapTabHeader("tab-returnrequest", @T("Admin.Configuration.Settings.Order.ReturnRequestSettings"))
                 </ul>
                 <div class="tab-content">
-                    @Html.RenderBootstrapTabContent("tab-info", @TabOrderSettings(), true)
-                    @Html.RenderBootstrapTabContent("tab-returnrequest", @TabReturnRequestSettings())
+                    @Html.RenderBootstrapTabContent("tab-info", @TabOrderSettings(null), true)
+                    @Html.RenderBootstrapTabContent("tab-returnrequest", @TabReturnRequestSettings(null))
                 </div>
             </div>
         </div>
@@ -61,8 +61,7 @@
     <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 }
 
-@helper TabOrderSettings()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabOrderSettings = @<text>
     <script type="text/javascript">
         $(document).ready(function () {
             $("#@Html.FieldIdFor(model => model.OnePageCheckoutEnabled)").click(toggleOnePageCheckoutEnabled);
@@ -350,10 +349,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabReturnRequestSettings()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabReturnRequestSettings = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -430,4 +427,4 @@
         @Html.Partial("_ReturnRequestReasons")
         @Html.Partial("_ReturnRequestActions")
     </div>
-}
+</text>;}

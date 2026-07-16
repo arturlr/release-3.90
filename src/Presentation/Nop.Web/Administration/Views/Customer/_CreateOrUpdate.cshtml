@@ -1,4 +1,4 @@
-﻿@using Nop.Core.Domain.Orders;
+@using Nop.Core.Domain.Orders;
 @using Nop.Services.Stores
 @model CustomerModel
 
@@ -32,20 +32,20 @@
                 }
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
+                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(null), true)
                 @if (Model.Id > 0)
                 {
-                    @Html.RenderBootstrapTabContent("tab-orders", @TabOrders())
-                    @Html.RenderBootstrapTabContent("tab-address", @TabAddresses())
-                    @Html.RenderBootstrapTabContent("tab-cart", @TabCurrentShoppingCart())
-                    @Html.RenderBootstrapTabContent("tab-wishlist", @TabCurrentWishlist())
-                    @Html.RenderBootstrapTabContent("tab-activitylog", @TabActivityLog())
-                    @Html.RenderBootstrapTabContent("tab-impersonate", @TabImpersonate())
-                    @Html.RenderBootstrapTabContent("tab-backinstock", @TabBackInStockSubscriptions())
+                    @Html.RenderBootstrapTabContent("tab-orders", @TabOrders(null))
+                    @Html.RenderBootstrapTabContent("tab-address", @TabAddresses(null))
+                    @Html.RenderBootstrapTabContent("tab-cart", @TabCurrentShoppingCart(null))
+                    @Html.RenderBootstrapTabContent("tab-wishlist", @TabCurrentWishlist(null))
+                    @Html.RenderBootstrapTabContent("tab-activitylog", @TabActivityLog(null))
+                    @Html.RenderBootstrapTabContent("tab-impersonate", @TabImpersonate(null))
+                    @Html.RenderBootstrapTabContent("tab-backinstock", @TabBackInStockSubscriptions(null))
                 } 
                 @if (Model.DisplayRewardPointsHistory)
                 {
-                    @Html.RenderBootstrapTabContent("tab-rewardpoints", @TabRewardPoints())
+                    @Html.RenderBootstrapTabContent("tab-rewardpoints", @TabRewardPoints(null))
                 }
             </div>
         </div>
@@ -65,8 +65,7 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabInfo = @<text>
     if (Model.CountryEnabled && Model.StateProvinceEnabled)
     {
         <script type="text/javascript">
@@ -588,14 +587,14 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabOrders()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabOrders = @<text>
+    @{
     var defaultGridPageSize = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().DefaultGridPageSize;
     var gridPageSizes = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().GridPageSizes;
     var stores = EngineContext.Current.Resolve<IStoreService>().GetAllStores();
 
+    }
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -690,10 +689,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabAddresses()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabAddresses = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -791,12 +788,12 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabCurrentShoppingCart()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabCurrentShoppingCart = @<text>
+    @{
     var stores = EngineContext.Current.Resolve<IStoreService>().GetAllStores();
 
+    }
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -877,12 +874,12 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabCurrentWishlist()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabCurrentWishlist = @<text>
+    @{
     var stores = EngineContext.Current.Resolve<IStoreService>().GetAllStores();
 
+    }
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -963,13 +960,13 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabActivityLog()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabActivityLog = @<text>
+    @{
     var defaultGridPageSize = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().DefaultGridPageSize;
     var gridPageSizes = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().GridPageSizes;
 
+    }
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -1037,10 +1034,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabImpersonate()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabImpersonate = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -1055,14 +1050,14 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabBackInStockSubscriptions()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabBackInStockSubscriptions = @<text>
+    @{
     var defaultGridPageSize = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().DefaultGridPageSize;
     var gridPageSizes = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().GridPageSizes;
     var stores = EngineContext.Current.Resolve<IStoreService>().GetAllStores();
 
+    }
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -1129,14 +1124,14 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabRewardPoints()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabRewardPoints = @<text>
+    @{
 var defaultGridPageSize = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().DefaultGridPageSize;
 var gridPageSizes = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().GridPageSizes;
 var stores = EngineContext.Current.Resolve<IStoreService>().GetAllStores();
 
+    }
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -1283,4 +1278,4 @@ var stores = EngineContext.Current.Resolve<IStoreService>().GetAllStores();
             });
         });
     </script>
-}
+</text>;}

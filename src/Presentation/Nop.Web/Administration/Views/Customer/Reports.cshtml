@@ -1,4 +1,4 @@
-﻿@model CustomerReportsModel
+@model CustomerReportsModel
 
 @{
     //page title
@@ -33,9 +33,9 @@
                 @Html.RenderBootstrapTabHeader("tab-registeredcustomers", @T("Admin.Customers.Reports.RegisteredCustomers"))
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-ordertotal", @TabBestByOrderTotal(), true)
-                @Html.RenderBootstrapTabContent("tab-numberoforders", @TabBestByNumberOfOrders())
-                @Html.RenderBootstrapTabContent("tab-registeredcustomers", @TabRegisteredCustomers())
+                @Html.RenderBootstrapTabContent("tab-ordertotal", @TabBestByOrderTotal(null), true)
+                @Html.RenderBootstrapTabContent("tab-numberoforders", @TabBestByNumberOfOrders(null))
+                @Html.RenderBootstrapTabContent("tab-registeredcustomers", @TabRegisteredCustomers(null))
             </div>
         </div>
     </div>
@@ -53,22 +53,21 @@
 }
 
 
-@helper TabBestByOrderTotal()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabBestByOrderTotal = @<text>
+    @{
     var dataDictAttributes = new ViewDataDictionary();
     dataDictAttributes.TemplateInfo.HtmlFieldPrefix = "bestbyordertotal";
+    }
     @Html.Partial("_ReportBestCustomersByOrderTotal", Model.BestCustomersByOrderTotal, dataDictAttributes)
-}
-
-@helper TabBestByNumberOfOrders()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabBestByNumberOfOrders = @<text>
+    @{
     var dataDictAttributes = new ViewDataDictionary();
     dataDictAttributes.TemplateInfo.HtmlFieldPrefix = "bestbynumberoforders";
+    }
     @Html.Partial("_ReportBestCustomersByNumberOfOrders", Model.BestCustomersByOrderTotal, dataDictAttributes)
-}
-
-@helper TabRegisteredCustomers()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabRegisteredCustomers = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -76,4 +75,4 @@
             </div>
         </div>
     </div>
-}
+</text>;}

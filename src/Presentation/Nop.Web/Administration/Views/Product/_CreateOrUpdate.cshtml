@@ -1,4 +1,4 @@
-﻿@model ProductModel
+@model ProductModel
 
 @Html.ValidationSummary(false)
 @Html.HiddenFor(model => model.Id)
@@ -39,15 +39,15 @@
                 }
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo())
-                @Html.RenderBootstrapTabContent("tab-pictures", @TabPictures())
-                @Html.RenderBootstrapTabContent("tab-specification-attributes", @TabSpecificationAttributes())
-                @Html.RenderBootstrapTabContent("tab-product-attributes", @TabProductAttributes())
+                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(null), true)
+                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo(null))
+                @Html.RenderBootstrapTabContent("tab-pictures", @TabPictures(null))
+                @Html.RenderBootstrapTabContent("tab-specification-attributes", @TabSpecificationAttributes(null))
+                @Html.RenderBootstrapTabContent("tab-product-attributes", @TabProductAttributes(null))
                 @if (Model.Id > 0)
                 {
-                    @Html.RenderBootstrapTabContent("tab-purchased-with-orders", @TabPurchasedWithOrders())
-                    @Html.RenderBootstrapTabContent("tab-stock-quantity-history", @TabStockQuantityHistory())
+                    @Html.RenderBootstrapTabContent("tab-purchased-with-orders", @TabPurchasedWithOrders(null))
+                    @Html.RenderBootstrapTabContent("tab-stock-quantity-history", @TabStockQuantityHistory(null))
                 }
             </div>
         </div>
@@ -67,37 +67,24 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabInfo = @<text>
     @Html.Partial("_CreateOrUpdate.Info", Model)
-}
-
-@helper TabSeo()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabSeo = @<text>
     @Html.Partial("_CreateOrUpdate.SEO", Model)
-}
-
-@helper TabPictures()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabPictures = @<text>
     @Html.Partial("_CreateOrUpdate.Pictures", Model)
-}
-
-@helper TabProductAttributes()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabProductAttributes = @<text>
     @Html.Partial("_CreateOrUpdate.ProductAttributes", Model)
-}
-
-@helper TabSpecificationAttributes()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabSpecificationAttributes = @<text>
     @Html.Partial("_CreateOrUpdate.SpecificationAttributes", Model)
-}
-
-@helper TabPurchasedWithOrders()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabPurchasedWithOrders = @<text>
     @Html.Partial("_CreateOrUpdate.PurchasedWithOrders", Model)
-}
-
-@helper TabStockQuantityHistory()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabStockQuantityHistory = @<text>
     @Html.Partial("_CreateOrUpdate._StockQuantityHistory", Model)
-}
+</text>;}

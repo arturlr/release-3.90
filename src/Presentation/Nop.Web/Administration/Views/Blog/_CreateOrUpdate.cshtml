@@ -1,4 +1,4 @@
-﻿@model BlogPostModel
+@model BlogPostModel
 
 @using System.Text;
 @using Nop.Services.Blogs
@@ -19,8 +19,8 @@
                 @Html.RenderBootstrapTabHeader("tab-seo", @T("Admin.Common.SEO"))
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo())
+                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(null), true)
+                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo(null))
             </div>
         </div>
     </div>
@@ -46,8 +46,7 @@
     Html.AppendScriptParts("~/Administration/Scripts/tagEditor/jquery.caret.min.js");
 }
 
-@helper TabInfo()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabInfo = @<text>
     <script type="text/javascript">
         @{
             //TODO move to Model
@@ -193,10 +192,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabSeo()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabSeo = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -251,4 +248,4 @@
             </div>
         </div>
     </div>
-}
+</text>;}

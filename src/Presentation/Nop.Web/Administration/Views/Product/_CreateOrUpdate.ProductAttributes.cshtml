@@ -1,4 +1,4 @@
-﻿@model ProductModel
+@model ProductModel
 
 @using Nop.Core.Domain.Catalog
 @using Nop.Services
@@ -17,8 +17,8 @@
                     @Html.RenderBootstrapTabHeader("tab-attribute-combinations", @T("Admin.Catalog.Products.ProductAttributes.AttributeCombinations"))
                 </ul>
                 <div class="tab-content">
-                    @Html.RenderBootstrapTabContent("tab-attributes", @TabAttributes(), true, "tab-attributes")
-                    @Html.RenderBootstrapTabContent("tab-attribute-combinations", @TabAttributeCombinations())
+                    @Html.RenderBootstrapTabContent("tab-attributes", @TabAttributes(null), true, "tab-attributes")
+                    @Html.RenderBootstrapTabContent("tab-attribute-combinations", @TabAttributeCombinations(null))
                 </div>
             </div>
         }
@@ -41,8 +41,7 @@
     }
 </div>
 
-@helper TabAttributes()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabAttributes = @<text>
     <div class="panel panel-default">
         <div class="panel-body">
             <div id="productattributemappings-grid"></div>
@@ -289,10 +288,8 @@
             </script>
         </div>
     </div>
-}
-
-@helper TabAttributeCombinations()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabAttributeCombinations = @<text>
     <div class="panel panel-default">
         <div class="panel-body">
             <p>
@@ -494,4 +491,4 @@
             <button type="button" id="btnGenerateAllCombinations" class="btn bg-aqua">@T("Admin.Catalog.Products.ProductAttributes.AttributeCombinations.GenerateAll")</button>
         </div>
     </div>
-}
+</text>;}

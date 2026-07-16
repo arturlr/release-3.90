@@ -1,4 +1,4 @@
-﻿@model RecurringPaymentModel
+@model RecurringPaymentModel
 
 @using Nop.Core.Domain.Catalog;
 @using Nop.Services
@@ -20,8 +20,8 @@
                 @Html.RenderBootstrapTabHeader("tab-history", @T("Admin.RecurringPayments.History"))
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-history", @TabHistory())
+                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(null), true)
+                @Html.RenderBootstrapTabContent("tab-history", @TabHistory(null))
             </div>
         </div>
     </div>
@@ -40,8 +40,7 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabInfo = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -124,10 +123,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabHistory()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabHistory = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -244,4 +241,4 @@
             </div>
         </div>
     </div>
-}
+</text>;}

@@ -1,4 +1,4 @@
-﻿@model CustomerUserSettingsModel
+@model CustomerUserSettingsModel
 
 @using Nop.Core.Domain.Customers;
 @using Nop.Services
@@ -43,9 +43,9 @@
                     @Html.RenderBootstrapTabHeader("tab-addressformfields", @T("Admin.Configuration.Settings.CustomerUser.AddressFormFields"))
                 </ul>
                 <div class="tab-content">
-                    @Html.RenderBootstrapTabContent("tab-customer", @TabCustomerSettings(), true)
-                    @Html.RenderBootstrapTabContent("tab-customerformfields", @TabCustomerFormFields())
-                    @Html.RenderBootstrapTabContent("tab-addressformfields", @TabAddressFormFields())
+                    @Html.RenderBootstrapTabContent("tab-customer", @TabCustomerSettings(null), true)
+                    @Html.RenderBootstrapTabContent("tab-customerformfields", @TabCustomerFormFields(null))
+                    @Html.RenderBootstrapTabContent("tab-addressformfields", @TabAddressFormFields(null))
                 </div>
             </div>
         </div>
@@ -65,8 +65,7 @@
     <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 }
 
-@helper TabCustomerSettings()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabCustomerSettings = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -390,10 +389,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabCustomerFormFields()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabCustomerFormFields = @<text>
     <script type="text/javascript">
         $(document).ready(function () {
             $("#@Html.FieldIdFor(model => model.CustomerSettings.DateOfBirthEnabled)").click(toggleCustomerRequiredFormField);
@@ -752,10 +749,8 @@
         @*render custom customer attributes*@
         @Html.Action("ListBlock", "CustomerAttribute")
     </div>
-}
-
-@helper TabAddressFormFields()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabAddressFormFields = @<text>
     <script type="text/javascript">
         $(document).ready(function () {
             $("#@Html.FieldIdFor(model => model.AddressSettings.CountryEnabled)").click(toggleAddressCountryFormField);
@@ -990,4 +985,4 @@
         @*render custom address attributes*@
         @Html.Action("ListBlock", "AddressAttribute")
     </div>
-}
+</text>;}

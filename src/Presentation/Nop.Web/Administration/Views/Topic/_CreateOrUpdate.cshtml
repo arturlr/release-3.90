@@ -1,4 +1,4 @@
-﻿@model TopicModel
+@model TopicModel
 
 @Html.ValidationSummary(false)
 @Html.HiddenFor(model => model.Id)
@@ -24,8 +24,8 @@
                 @Html.RenderBootstrapTabHeader("tab-seo", @T("Admin.Common.SEO"), customCssClass: "advanced-setting")
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo())
+                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(null), true)
+                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo(null))
             </div>
         </div>
     </div>
@@ -44,8 +44,7 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabInfo = @<text>
     <script type="text/javascript">
         $(document).ready(function () {
             $("#@Html.FieldIdFor(model => model.IsPasswordProtected)").click(togglePassword);
@@ -300,10 +299,8 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabSeo()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabSeo = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -413,4 +410,4 @@
             </div>
         </div>
     </div>
-}
+</text>;}

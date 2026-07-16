@@ -1,4 +1,4 @@
-﻿@model AffiliateModel
+@model AffiliateModel
 @Html.ValidationSummary(false)
 @Html.HiddenFor(model => model.Id)
 
@@ -20,11 +20,11 @@
                 }
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
+                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(null), true)
                 @if (Model.Id > 0)
                 {
-                    @Html.RenderBootstrapTabContent("tab-customers", @TabCustomers())
-                    @Html.RenderBootstrapTabContent("tab-orders", @TabOrders())
+                    @Html.RenderBootstrapTabContent("tab-customers", @TabCustomers(null))
+                    @Html.RenderBootstrapTabContent("tab-orders", @TabOrders(null))
                 }
             </div>
         </div>
@@ -44,8 +44,7 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabInfo = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -99,13 +98,13 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabCustomers()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabCustomers = @<text>
+    @{
     var defaultGridPageSize = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().DefaultGridPageSize;
     var gridPageSizes = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().GridPageSizes;
 
+    }
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -174,9 +173,7 @@
             </div>
         </div>
     </div>
-}
-
-@helper TabOrders()
-{
+</text>;}
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabOrders = @<text>
     @Html.Action("AffiliatedOrderList", new { affiliateId = Model.Id })
-}
+</text>;}

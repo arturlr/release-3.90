@@ -1,4 +1,4 @@
-﻿@{
+@{
     Layout = "";
 
     Html.AddCssFileParts("~/Plugins/Feed.GoogleShopping/Content/styles.css");
@@ -24,13 +24,12 @@
             @Html.RenderBootstrapTabHeader("tab-override", @T("Plugins.Feed.GoogleShopping.Override"))
         </ul>
         <div class="tab-content">
-            @Html.RenderBootstrapTabContent("tab-general", @TabGeneral(), true)
-            @Html.RenderBootstrapTabContent("tab-override", @TabOverride())
+            @Html.RenderBootstrapTabContent("tab-general", @TabGeneral(null), true)
+            @Html.RenderBootstrapTabContent("tab-override", @TabOverride(null))
         </div>
     </div>
 }
-@helper TabGeneral()
-{
+@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabGeneral = @<text>
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -129,12 +128,12 @@
             </div>
         </div>
     </div>
-}
-@helper TabOverride()
-{
+</text>;}@{Func<dynamic, Microsoft.AspNetCore.Html.IHtmlContent> TabOverride = @<text>
+    @{
 var defaultGridPageSize = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().DefaultGridPageSize;
 var gridPageSizes = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().GridPageSizes;
 
+    }
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
@@ -322,4 +321,4 @@ var gridPageSizes = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAr
             </div>
         </div>
     </div>
-}
+</text>;}
