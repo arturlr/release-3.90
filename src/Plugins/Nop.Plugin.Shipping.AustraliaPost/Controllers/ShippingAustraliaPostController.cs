@@ -1,4 +1,5 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Plugin.Shipping.AustraliaPost.Models;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
@@ -21,9 +22,7 @@ namespace Nop.Plugin.Shipping.AustraliaPost.Controllers
             this._settingService = settingService;
             this._localizationService = localizationService;
         }
-
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             var model = new AustraliaPostShippingModel();
             model.ApiKey = _australiaPostSettings.ApiKey;
@@ -33,8 +32,7 @@ namespace Nop.Plugin.Shipping.AustraliaPost.Controllers
         }
 
         [HttpPost]
-        [ChildActionOnly]
-        public ActionResult Configure(AustraliaPostShippingModel model)
+        public IActionResult Configure(AustraliaPostShippingModel model)
         {
             if (!ModelState.IsValid)
             {

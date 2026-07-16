@@ -1,4 +1,5 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Plugins;
@@ -51,8 +52,7 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
         }
         
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageExternalAuthenticationMethods))
                 return Content("Access denied");
@@ -77,8 +77,7 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
 
         [HttpPost]
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure(ConfigurationModel model)
+        public IActionResult Configure(ConfigurationModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageExternalAuthenticationMethods))
                 return Content("Access denied");
@@ -107,15 +106,13 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
 
             return Configure();
         }
-
-        [ChildActionOnly]
-        public ActionResult PublicInfo()
+        public IActionResult PublicInfo()
         {
             return View("~/Plugins/ExternalAuth.Facebook/Views/PublicInfo.cshtml");
         }
 
         [NonAction]
-        private ActionResult LoginInternal(string returnUrl, bool verifyResponse)
+        private IActionResult LoginInternal(string returnUrl, bool verifyResponse)
         {
             var processor = _openAuthenticationService.LoadExternalAuthenticationMethodBySystemName("ExternalAuth.Facebook");
             if (processor == null ||
@@ -126,7 +123,7 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
                 throw new NopException("Facebook module cannot be loaded");
 
             var viewModel = new LoginModel();
-            TryUpdateModel(viewModel);
+            TryUpdateModelAsync(viewModel).GetAwaiter().GetResult();
 
             var result = _oAuthProviderFacebookAuthorizer.Authorize(returnUrl, verifyResponse);
             switch (result.AuthenticationStatus)
@@ -161,15 +158,15 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
             }
 
             if (result.Result != null) return result.Result;
-            return HttpContext.Request.IsAuthenticated ? new RedirectResult(!string.IsNullOrEmpty(returnUrl) ? returnUrl : "~/") : new RedirectResult(Url.LogOn(returnUrl));
+            return (HttpContext.User != null && HttpContext.User.Identity != null && HttpContext.User.Identity.IsAuthenticated) ? new RedirectResult(!string.IsNullOrEmpty(returnUrl) ? returnUrl : "~/") : new RedirectResult(Url.LogOn(returnUrl));
         }
         
-        public ActionResult Login(string returnUrl)
+        public IActionResult Login(string returnUrl)
         {
             return LoginInternal(returnUrl, false);
         }
 
-        public ActionResult LoginCallback(string returnUrl)
+        public IActionResult LoginCallback(string returnUrl)
         {
             return LoginInternal(returnUrl, true);
         }

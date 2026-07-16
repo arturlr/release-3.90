@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using Nop.Data;
 using Nop.Plugin.Pickup.PickupInStore.Domain;
@@ -15,47 +15,30 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
     {
         #region Ctor
 
-        public StorePickupPointObjectContext(string nameOrConnectionString) : base(nameOrConnectionString)
+        public StorePickupPointObjectContext(DbContextOptions<StorePickupPointObjectContext> options)
+            : base(options)
         {
-            //((IObjectContextAdapter) this).ObjectContext.ContextOptions.LazyLoadingEnabled = true;
         }
 
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Gets or sets a value indicating whether proxy creation setting is enabled (used in EF)
-        /// </summary>
-        public virtual bool ProxyCreationEnabled
+        public StorePickupPointObjectContext(string connectionString)
+            : base(GetOptions(connectionString))
         {
-            get { return this.Configuration.ProxyCreationEnabled; }
-            set { this.Configuration.ProxyCreationEnabled = value; }
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether auto detect changes setting is enabled (used in EF)
-        /// </summary>
-        public virtual bool AutoDetectChangesEnabled
+        private static DbContextOptions<StorePickupPointObjectContext> GetOptions(string connectionString)
         {
-            get { return this.Configuration.AutoDetectChangesEnabled; }
-            set { this.Configuration.AutoDetectChangesEnabled = value; }
+            return new DbContextOptionsBuilder<StorePickupPointObjectContext>()
+                .UseSqlServer(connectionString)
+                .Options;
         }
 
         #endregion
 
         #region Utilities
 
-        /// <summary>
-        /// Add entity to the configuration of the model for a derived context before it is locked down
-        /// </summary>
-        /// <param name="modelBuilder">The builder that defines the model for the context being created</param>
-        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Configurations.Add(new StorePickupPointMap());
-
-            //disable EdmMetadata generation
-            //modelBuilder.Conventions.Remove<IncludeMetadataConvention>();
+            modelBuilder.ApplyConfiguration(new StorePickupPointMap());
             base.OnModelCreating(modelBuilder);
         }
 
@@ -63,91 +46,76 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
 
         #region Methods
 
-        /// <summary>
-        /// Generates a data definition language script that creates schema objects
-        /// </summary>
-        /// <returns>A DDL script</returns>
         public string CreateDatabaseScript()
         {
-            return ((IObjectContextAdapter)this).ObjectContext.CreateDatabaseScript();
+            return Database.GenerateCreateScript();
         }
 
-        /// <summary>
-        /// Returns a System.Data.Entity.DbSet`1 instance for access to entities of the given type in the context and the underlying store
-        /// </summary>
-        /// <typeparam name="TEntity">The type entity for which a set should be returned</typeparam>
-        /// <returns>A set for the given entity type</returns>
-        public new IDbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
+        public new DbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
         {
             return base.Set<TEntity>();
         }
 
         /// <summary>
-        /// Install object context
+        /// Install
         /// </summary>
         public void Install()
         {
-            //create the table
-            Database.ExecuteSqlCommand(CreateDatabaseScript());
+            var dbScript = CreateDatabaseScript();
+            Database.ExecuteSqlRaw(dbScript);
             SaveChanges();
         }
 
         /// <summary>
-        /// Uninstall object context
+        /// Uninstall
         /// </summary>
         public void Uninstall()
         {
-            //drop the table
-            this.DropPluginTable(this.GetTableName<StorePickupPoint>());
+            Database.ExecuteSqlRaw("IF OBJECT_ID('StorePickupPoint', 'U') IS NOT NULL DROP TABLE [StorePickupPoint]");
         }
 
-        /// <summary>
-        /// Execute stores procedure and load a list of entities at the end
-        /// </summary>
-        /// <typeparam name="TEntity">Entity type</typeparam>
-        /// <param name="commandText">Command text</param>
-        /// <param name="parameters">Parameters</param>
-        /// <returns>Entities</returns>
         public IList<TEntity> ExecuteStoredProcedureList<TEntity>(string commandText, params object[] parameters) where TEntity : BaseEntity, new()
         {
-            throw new NotImplementedException();
+            return Set<TEntity>().FromSqlRaw(commandText, parameters).ToList();
         }
 
-        /// <summary>
-        /// Creates a raw SQL query that will return elements of the given generic type.  The type can be any type that has properties that match the names of the columns returned from the query, or can be a simple primitive type. The type does not have to be an entity type. The results of this query are never tracked by the context even if the type of object returned is an entity type.
-        /// </summary>
-        /// <typeparam name="TElement">The type of object returned by the query.</typeparam>
-        /// <param name="sql">The SQL query string.</param>
-        /// <param name="parameters">The parameters to apply to the SQL query string.</param>
-        /// <returns>Result</returns>
         public IEnumerable<TElement> SqlQuery<TElement>(string sql, params object[] parameters)
         {
-            throw new NotImplementedException();
+            return Database.SqlQueryRaw<TElement>(sql, parameters).ToList();
         }
 
-        /// <summary>
-        /// Executes the given DDL/DML command against the database.
-        /// </summary>
-        /// <param name="sql">The command string</param>
-        /// <param name="doNotEnsureTransaction">false - the transaction creation is not ensured; true - the transaction creation is ensured.</param>
-        /// <param name="timeout">Timeout value, in seconds. A null value indicates that the default value of the underlying provider will be used</param>
-        /// <param name="parameters">The parameters to apply to the command string.</param>
-        /// <returns>The result returned by the database after executing the command.</returns>
         public int ExecuteSqlCommand(string sql, bool doNotEnsureTransaction = false, int? timeout = null, params object[] parameters)
         {
-            throw new NotImplementedException();
+            if (timeout.HasValue)
+                Database.SetCommandTimeout(timeout.Value);
+
+            return Database.ExecuteSqlRaw(sql, parameters);
         }
 
-        /// <summary>
-        /// Detach an entity
-        /// </summary>
-        /// <param name="entity">Entity</param>
         public void Detach(object entity)
         {
             if (entity == null)
                 throw new ArgumentNullException("entity");
 
-            ((IObjectContextAdapter)this).ObjectContext.Detach(entity);
+            var entry = Entry(entity);
+            if (entry != null)
+                entry.State = EntityState.Detached;
+        }
+
+        #endregion
+
+        #region Properties
+
+        public virtual bool ProxyCreationEnabled
+        {
+            get { return false; }
+            set { /* EF Core does not use proxy creation in the same way */ }
+        }
+
+        public virtual bool AutoDetectChangesEnabled
+        {
+            get { return ChangeTracker.AutoDetectChangesEnabled; }
+            set { ChangeTracker.AutoDetectChangesEnabled = value; }
         }
 
         #endregion

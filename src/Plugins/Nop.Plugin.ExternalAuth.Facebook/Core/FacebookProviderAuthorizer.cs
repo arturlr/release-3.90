@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
-using System.Web;
-using System.Web.Mvc;
-using DotNetOpenAuth.AspNet;
-using DotNetOpenAuth.AspNet.Clients;
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json.Linq;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
@@ -22,9 +20,8 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Core
         private readonly IExternalAuthorizer _authorizer;
         private readonly ExternalAuthenticationSettings _externalAuthenticationSettings;
         private readonly FacebookExternalAuthSettings _facebookExternalAuthSettings;
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IWebHelper _webHelper;
-        private FacebookClient _facebookApplication;
 
         #endregion
 
@@ -33,13 +30,13 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Core
         public FacebookProviderAuthorizer(IExternalAuthorizer authorizer,
             ExternalAuthenticationSettings externalAuthenticationSettings,
             FacebookExternalAuthSettings facebookExternalAuthSettings,
-            HttpContextBase httpContext,
+            IHttpContextAccessor httpContextAccessor,
             IWebHelper webHelper)
         {
             this._authorizer = authorizer;
             this._externalAuthenticationSettings = externalAuthenticationSettings;
             this._facebookExternalAuthSettings = facebookExternalAuthSettings;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._webHelper = webHelper;
         }
 
@@ -49,83 +46,99 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Core
 
         private string RequestEmailFromFacebook(string accessToken)
         {
-            var request = WebRequest.Create("https://graph.facebook.com/me?fields=email&access_token=" + EscapeUriDataStringRfc3986(accessToken));
-            using (var response = request.GetResponse())
+            using (var httpClient = new HttpClient())
             {
-                using (var responseStream = response.GetResponseStream())
+                var response = httpClient.GetStringAsync(
+                    "https://graph.facebook.com/me?fields=email&access_token=" + EscapeUriDataStringRfc3986(accessToken))
+                    .GetAwaiter().GetResult();
+                var userInfo = JObject.Parse(response);
+                if (userInfo["email"] != null)
                 {
-                    using (var reader = new StreamReader(responseStream))
-                    {
-                        var responseFromServer = reader.ReadToEnd();
-                        var userInfo = JObject.Parse(responseFromServer);
-                        if (userInfo["email"] != null)
-                        {
-                            return userInfo["email"].ToString();
-                        }
-                    }
+                    return userInfo["email"].ToString();
                 }
             }
-
             return string.Empty;
         }
-        private FacebookClient FacebookApplication
+
+        private string ExchangeCodeForToken(string code)
         {
-            get { return _facebookApplication ?? (_facebookApplication = new FacebookClient(_facebookExternalAuthSettings.ClientKeyIdentifier, _facebookExternalAuthSettings.ClientSecret)); }
+            using (var httpClient = new HttpClient())
+            {
+                var tokenUrl = string.Format(
+                    "https://graph.facebook.com/v12.0/oauth/access_token?client_id={0}&redirect_uri={1}&client_secret={2}&code={3}",
+                    EscapeUriDataStringRfc3986(_facebookExternalAuthSettings.ClientKeyIdentifier),
+                    EscapeUriDataStringRfc3986(GenerateLocalCallbackUri().AbsoluteUri),
+                    EscapeUriDataStringRfc3986(_facebookExternalAuthSettings.ClientSecret),
+                    EscapeUriDataStringRfc3986(code));
+
+                var response = httpClient.GetStringAsync(tokenUrl).GetAwaiter().GetResult();
+                var tokenData = JObject.Parse(response);
+                if (tokenData["access_token"] != null)
+                {
+                    return tokenData["access_token"].ToString();
+                }
+            }
+            return null;
         }
 
         private AuthorizeState VerifyAuthentication(string returnUrl)
         {
-            var authResult = this.FacebookApplication.VerifyAuthentication(_httpContext, GenerateLocalCallbackUri());
+            var httpContext = _httpContextAccessor.HttpContext;
+            var code = httpContext.Request.Query["code"].FirstOrDefault();
 
-            if (authResult.IsSuccessful)
+            if (string.IsNullOrEmpty(code))
             {
-                if (!authResult.ExtraData.ContainsKey("id"))
-                    throw new Exception("Authentication result does not contain id data");
+                var state = new AuthorizeState(returnUrl, OpenAuthenticationStatus.Error);
+                var error = httpContext.Request.Query["error_description"].FirstOrDefault() ?? "Unknown error";
+                state.AddError(error);
+                return state;
+            }
 
-                if (!authResult.ExtraData.ContainsKey("accesstoken"))
-                    throw new Exception("Authentication result does not contain accesstoken data");
+            var accessToken = ExchangeCodeForToken(code);
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                var state = new AuthorizeState(returnUrl, OpenAuthenticationStatus.Error);
+                state.AddError("Failed to obtain access token from Facebook");
+                return state;
+            }
 
-                var parameters = new OAuthAuthenticationParameters(Provider.SystemName)
+            // Get user info
+            string userId = null;
+            string userName = null;
+            string email = null;
+            using (var httpClient = new HttpClient())
+            {
+                var meUrl = "https://graph.facebook.com/me?fields=id,name,email&access_token=" + EscapeUriDataStringRfc3986(accessToken);
+                var meResponse = httpClient.GetStringAsync(meUrl).GetAwaiter().GetResult();
+                var meData = JObject.Parse(meResponse);
+                userId = meData["id"]?.ToString();
+                userName = meData["name"]?.ToString();
+                email = meData["email"]?.ToString();
+            }
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                var state = new AuthorizeState(returnUrl, OpenAuthenticationStatus.Error);
+                state.AddError("Authentication result does not contain id data");
+                return state;
+            }
+
+            var parameters = new OAuthAuthenticationParameters(Provider.SystemName)
+            {
+                ExternalIdentifier = userId,
+                OAuthToken = accessToken,
+                OAuthAccessToken = userId,
+            };
+
+            if (_externalAuthenticationSettings.AutoRegisterEnabled)
+            {
+                var claims = new UserClaims();
+                claims.Contact = new ContactClaims();
+                claims.Contact.Email = email ?? RequestEmailFromFacebook(accessToken);
+                claims.Name = new NameClaims();
+                if (!string.IsNullOrEmpty(userName))
                 {
-                    ExternalIdentifier = authResult.ProviderUserId,
-                    OAuthToken = authResult.ExtraData["accesstoken"],
-                    OAuthAccessToken = authResult.ProviderUserId,
-                };
-
-                if (_externalAuthenticationSettings.AutoRegisterEnabled)
-                    ParseClaims(authResult, parameters);
-
-                var result = _authorizer.Authorize(parameters);
-
-                return new AuthorizeState(returnUrl, result);
-            }
-
-            var state = new AuthorizeState(returnUrl, OpenAuthenticationStatus.Error);
-            var error = authResult.Error != null ? authResult.Error.Message : "Unknown error";
-            state.AddError(error);
-            return state;
-        }
-
-        private void ParseClaims(AuthenticationResult authenticationResult, OAuthAuthenticationParameters parameters)
-        {
-            var claims = new UserClaims();
-            claims.Contact = new ContactClaims();
-            if (authenticationResult.ExtraData.ContainsKey("username"))
-            {
-                claims.Contact.Email = authenticationResult.ExtraData["username"];
-            }
-            else
-            {
-                //request email
-                claims.Contact.Email = RequestEmailFromFacebook(authenticationResult.ExtraData["accesstoken"]);
-            }
-            claims.Name = new NameClaims();
-            if (authenticationResult.ExtraData.ContainsKey("name"))
-            {
-                var name = authenticationResult.ExtraData["name"];
-                if (!String.IsNullOrEmpty(name))
-                {
-                    var nameSplit = name.Split(new [] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    var nameSplit = userName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     if (nameSplit.Length >= 2)
                     {
                         claims.Name.First = nameSplit[0];
@@ -136,15 +149,17 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Core
                         claims.Name.Last = nameSplit[0];
                     }
                 }
+                parameters.AddClaim(claims);
             }
 
-            parameters.AddClaim(claims);
+            var result = _authorizer.Authorize(parameters);
+            return new AuthorizeState(returnUrl, result);
         }
 
         private AuthorizeState RequestAuthentication()
         {
             var authUrl = GenerateServiceLoginUrl().AbsoluteUri;
-            return new AuthorizeState("", OpenAuthenticationStatus.RequiresRedirect) { Result = new RedirectResult(authUrl) };
+            return new AuthorizeState("", OpenAuthenticationStatus.RequiresRedirect) { Result = new Microsoft.AspNetCore.Mvc.RedirectResult(authUrl) };
         }
 
         private Uri GenerateLocalCallbackUri()
@@ -155,7 +170,6 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Core
 
         private Uri GenerateServiceLoginUrl()
         {
-            //code copied from DotNetOpenAuth.AspNet.Clients.FacebookClient file
             var builder = new UriBuilder("https://www.facebook.com/dialog/oauth");
             var args = new Dictionary<string, string>();
             args.Add("client_id", _facebookExternalAuthSettings.ClientKeyIdentifier);
@@ -163,11 +177,6 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Core
             args.Add("scope", "email");
             AppendQueryArgs(builder, args);
             return builder.Uri;
-
-            //var callBackUrl = GenerateLocalCallbackUri().AbsoluteUri;
-            //var authUrl = _webHelper.ModifyQueryString("https://www.facebook.com/dialog/oauth", "client_id=" + this._facebookExternalAuthSettings.ClientKeyIdentifier, null);
-            //authUrl = _webHelper.ModifyQueryString(authUrl, "redirect_uri=" + HttpUtility.UrlEncode(callBackUrl), null);
-            //return new Uri(authUrl);
         }
 
         private void AppendQueryArgs(UriBuilder builder, IEnumerable<KeyValuePair<string, string>> args)

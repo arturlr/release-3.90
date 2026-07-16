@@ -1,11 +1,12 @@
 using System;
+using System.Web;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
-using System.Web;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Orders;
@@ -40,7 +41,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
         #region Fields
 
         private readonly CurrencySettings _currencySettings;
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ICheckoutAttributeParser _checkoutAttributeParser;
         private readonly ICurrencyService _currencyService;
         private readonly IGenericAttributeService _genericAttributeService;
@@ -56,7 +57,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
         #region Ctor
 
         public PayPalStandardPaymentProcessor(CurrencySettings currencySettings,
-            HttpContextBase httpContext,
+            IHttpContextAccessor httpContext,
             ICheckoutAttributeParser checkoutAttributeParser,
             ICurrencyService currencyService,
             IGenericAttributeService genericAttributeService,
@@ -68,7 +69,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             PayPalStandardPaymentSettings paypalStandardPaymentSettings)
         {
             this._currencySettings = currencySettings;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContext;
             this._checkoutAttributeParser = checkoutAttributeParser;
             this._currencyService = currencyService;
             this._genericAttributeService = genericAttributeService;
@@ -117,7 +118,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             req.Method = WebRequestMethods.Http.Post;
             req.ContentType = MimeTypes.ApplicationXWwwFormUrlencoded;
             //now PayPal requires user-agent. otherwise, we can get 403 error
-            req.UserAgent = HttpContext.Current.Request.UserAgent;
+            req.UserAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
 
             string formContent = string.Format("cmd=_notify-synch&at={0}&tx={1}", _paypalStandardPaymentSettings.PdtToken, tx);
             req.ContentLength = formContent.Length;
@@ -161,7 +162,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             req.Method = WebRequestMethods.Http.Post;
             req.ContentType = MimeTypes.ApplicationXWwwFormUrlencoded;
             //now PayPal requires user-agent. otherwise, we can get 403 error
-            req.UserAgent = HttpContext.Current.Request.UserAgent;
+            req.UserAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
 
             var formContent = string.Format("cmd=_notify-validate&{0}", formString);
             req.ContentLength = formContent.Length;
@@ -407,7 +408,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             if (urlToRedirect.Length > 2048)
                 urlToRedirect = GenerationRedirectionUrl(postProcessPaymentRequest, false);
 
-            _httpContext.Response.Redirect(urlToRedirect);
+            _httpContextAccessor.HttpContext.Response.Redirect(urlToRedirect);
         }
 
         /// <summary>

@@ -1,24 +1,20 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Builder;
 using Nop.Web.Framework.Mvc.Routes;
 
 namespace Nop.Plugin.ExternalAuth.Facebook
 {
     public partial class RouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
         {
-            routes.MapRoute("Plugin.ExternalAuth.Facebook.Login",
+            endpointRouteBuilder.MapControllerRoute("Plugin.ExternalAuth.Facebook.Login",
                  "Plugins/ExternalAuthFacebook/Login",
-                 new { controller = "ExternalAuthFacebook", action = "Login" },
-                 new[] { "Nop.Plugin.ExternalAuth.Facebook.Controllers" }
-            );
+                 new { controller = "ExternalAuthFacebook", action = "Login" });
 
-            routes.MapRoute("Plugin.ExternalAuth.Facebook.LoginCallback",
+            endpointRouteBuilder.MapControllerRoute("Plugin.ExternalAuth.Facebook.LoginCallback",
                  "Plugins/ExternalAuthFacebook/LoginCallback",
-                 new { controller = "ExternalAuthFacebook", action = "LoginCallback" },
-                 new[] { "Nop.Plugin.ExternalAuth.Facebook.Controllers" }
-            );
+                 new { controller = "ExternalAuthFacebook", action = "LoginCallback" });
         }
         public int Priority
         {

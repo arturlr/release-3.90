@@ -1,4 +1,4 @@
-﻿//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Contributor(s): mb, New York. 
 //------------------------------------------------------------------------------
 
@@ -6,8 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Web.Routing;
-using System.Web.Services.Protocols;
+using System.Net.Http;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Shipping;
@@ -854,10 +854,10 @@ namespace Nop.Plugin.Shipping.Fedex
                     return response;
                 }
             }
-            catch (SoapException e)
+            catch (HttpRequestException e)
             {
-                Debug.WriteLine(e.Detail.InnerText);
-                response.AddError(e.Detail.InnerText);
+                Debug.WriteLine(e.Message);
+                response.AddError(e.Message);
                 return response;
             }
             catch (Exception e)

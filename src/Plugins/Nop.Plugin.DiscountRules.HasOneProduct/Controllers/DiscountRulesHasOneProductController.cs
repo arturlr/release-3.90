@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Discounts;
@@ -57,7 +58,7 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct.Controllers
             this._productService = productService;
         }
 
-        public ActionResult Configure(int discountId, int? discountRequirementId)
+        public IActionResult Configure(int discountId, int? discountRequirementId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageDiscounts))
                 return Content("Access denied");
@@ -88,7 +89,7 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult Configure(int discountId, int? discountRequirementId, string productIds)
+        public IActionResult Configure(int discountId, int? discountRequirementId, string productIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageDiscounts))
                 return Content("Access denied");
@@ -118,10 +119,10 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct.Controllers
 
                 _settingService.SetSetting(string.Format("DiscountRequirement.RestrictedProductIds-{0}", discountRequirement.Id), productIds);
             }
-            return Json(new { Result = true, NewRequirementId = discountRequirement.Id }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = true, NewRequirementId = discountRequirement.Id });
         }
 
-        public ActionResult ProductAddPopup(string btnId, string productIdsInput)
+        public IActionResult ProductAddPopup(string btnId, string productIdsInput)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return Content("Access denied");
@@ -164,7 +165,7 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult ProductAddPopupList(DataSourceRequest command, RequirementModel.AddProductModel model)
+        public IActionResult ProductAddPopupList(DataSourceRequest command, RequirementModel.AddProductModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return ErrorForKendoGridJson("Access denied");
@@ -199,9 +200,8 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct.Controllers
         }
 
         [HttpPost]
-        [ValidateInput(false)]
         [AdminAntiForgery]
-        public ActionResult LoadProductFriendlyNames(string productIds)
+        public IActionResult LoadProductFriendlyNames(string productIds)
         {
             var result = "";
 

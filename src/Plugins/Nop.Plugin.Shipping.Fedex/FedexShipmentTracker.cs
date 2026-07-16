@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Web.Services.Protocols;
+using System.Net.Http;
+using Nop.Plugin.Shipping.Fedex.RateServiceWebReference;
 using Nop.Services.Logging;
 using Nop.Services.Shipping.Tracking;
 
@@ -155,12 +156,12 @@ namespace Nop.Plugin.Shipping.Fedex
 
                 //result.AddRange(trackResponse.Shipment.SelectMany(c => c.Package[0].Activity.Select(x => ToStatusEvent(x))).ToList());
             }
-            catch (SoapException ex)
+            catch (HttpRequestException ex)
             {
                 var sb = new StringBuilder();
-                sb.AppendFormat("SoapException Message= {0}.", ex.Message);
-                sb.AppendFormat("SoapException Category:Code:Message= {0}.", ex.Detail.LastChild.InnerText);
-                //sb.AppendFormat("SoapException XML String for all= {0}.", ex.Detail.LastChild.OuterXml);
+                sb.AppendFormat("HttpRequestException Message= {0}.", ex.Message);
+                sb.AppendFormat("HttpRequestException Category:Code:Message= {0}.", ex.Message);
+                //sb.AppendFormat("HttpRequestException XML String for all= {0}.", ex.Detail.LastChild.OuterXml);
                 _logger.Error(string.Format("Error while getting Fedex shipment tracking info - {0}", trackingNumber), new Exception(sb.ToString()));
             }
             catch (Exception exc)

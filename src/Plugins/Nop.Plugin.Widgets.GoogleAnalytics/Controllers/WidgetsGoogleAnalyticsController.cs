@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Plugin.Widgets.GoogleAnalytics.Models;
@@ -55,8 +57,7 @@ namespace Nop.Plugin.Widgets.GoogleAnalytics.Controllers
         }
 
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             //load settings for a chosen store scope
             var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
@@ -87,8 +88,7 @@ namespace Nop.Plugin.Widgets.GoogleAnalytics.Controllers
 
         [HttpPost]
         [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure(ConfigurationModel model)
+        public IActionResult Configure(ConfigurationModel model)
         {
             //load settings for a chosen store scope
             var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
@@ -117,12 +117,10 @@ namespace Nop.Plugin.Widgets.GoogleAnalytics.Controllers
 
             return Configure();
         }
-
-        [ChildActionOnly]
-        public ActionResult PublicInfo(string widgetZone, object additionalData = null)
+        public IActionResult PublicInfo(string widgetZone, object additionalData = null)
         {
             string globalScript = "";
-            var routeData = ((System.Web.UI.Page)this.HttpContext.CurrentHandler).RouteData;
+            var routeData = HttpContext.GetRouteData();
 
             try
             {

@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Data.Mapping;
 using Nop.Plugin.Feed.GoogleShopping.Domain;
 
@@ -5,10 +7,10 @@ namespace Nop.Plugin.Feed.GoogleShopping.Data
 {
     public partial class GoogleProductRecordMap : NopEntityTypeConfiguration<GoogleProductRecord>
     {
-        public GoogleProductRecordMap()
+        protected override void ConfigureEntity(EntityTypeBuilder<GoogleProductRecord> builder)
         {
-            this.ToTable("GoogleProduct");
-            this.HasKey(x => x.Id);
+            builder.ToTable("GoogleProduct");
+            builder.HasKey(x => x.Id);
         }
     }
 }

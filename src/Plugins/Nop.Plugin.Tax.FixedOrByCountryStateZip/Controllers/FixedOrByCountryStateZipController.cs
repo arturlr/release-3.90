@@ -1,5 +1,6 @@
-﻿using System.Linq;
-using System.Web.Mvc;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Plugin.Tax.FixedOrByCountryStateZip.Domain;
 using Nop.Plugin.Tax.FixedOrByCountryStateZip.Models;
@@ -47,17 +48,12 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
             this._countryStateZipSettings = countryStateZipSettings;
         }
 
-        protected override void Initialize(System.Web.Routing.RequestContext requestContext)
+        public override void OnActionExecuting(Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext context)
         {
-            //little hack here
-            //always set culture to 'en-US' (Telerik has a bug related to editing decimal values in other cultures). Like currently it's done for admin area in Global.asax.cs
             CommonHelper.SetTelerikCulture();
-
-            base.Initialize(requestContext);
+            base.OnActionExecuting(context);
         }
-
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             var taxCategories = _taxCategoryService.GetAllTaxCategories();
             if (!taxCategories.Any())
@@ -90,7 +86,7 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
         }
 
         [HttpPost]
-        public ActionResult SaveMode(bool value)
+        public IActionResult SaveMode(bool value)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return Content("Access denied");
@@ -102,7 +98,7 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
             return Json(new
             {
                 Result = true
-            }, JsonRequestBehavior.AllowGet);
+            });
         }
 
         #region Fixed tax
@@ -115,7 +111,7 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
         }
 
         [HttpPost]
-        public ActionResult FixedRatesList(DataSourceRequest command)
+        public IActionResult FixedRatesList(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return ErrorForKendoGridJson("Access denied");
@@ -137,7 +133,7 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
         }
 
         [HttpPost]
-        public ActionResult FixedRateUpdate(FixedTaxRateModel model)
+        public IActionResult FixedRateUpdate(FixedTaxRateModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return Content("Access denied");
@@ -156,7 +152,7 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult RatesByCountryStateZipList(DataSourceRequest command)
+        public IActionResult RatesByCountryStateZipList(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return ErrorForKendoGridJson("Access denied");
@@ -203,7 +199,7 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult AddRateByCountryStateZip(ConfigurationModel model)
+        public IActionResult AddRateByCountryStateZip(ConfigurationModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return Content("Access denied");
@@ -224,7 +220,7 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult UpdateRateByCountryStateZip(CountryStateZipModel model)
+        public IActionResult UpdateRateByCountryStateZip(CountryStateZipModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return Content("Access denied");
@@ -239,7 +235,7 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult DeleteRateByCountryStateZip(int id)
+        public IActionResult DeleteRateByCountryStateZip(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return Content("Access denied");

@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -20,23 +21,19 @@ namespace Nop.Plugin.Widgets.GoogleAnalytics.Models
         public bool ZoneId_OverrideForStore { get; set; }
 
         [NopResourceDisplayName("Plugins.Widgets.GoogleAnalytics.GoogleId")]
-        [AllowHtml]
         public string GoogleId { get; set; }
         public bool GoogleId_OverrideForStore { get; set; }
 
         [NopResourceDisplayName("Plugins.Widgets.GoogleAnalytics.TrackingScript")]
-        [AllowHtml]
         //tracking code
         public string TrackingScript { get; set; }
         public bool TrackingScript_OverrideForStore { get; set; }
 
         [NopResourceDisplayName("Plugins.Widgets.GoogleAnalytics.EcommerceScript")]
-        [AllowHtml]
         public string EcommerceScript { get; set; }
         public bool EcommerceScript_OverrideForStore { get; set; }
 
         [NopResourceDisplayName("Plugins.Widgets.GoogleAnalytics.EcommerceDetailScript")]
-        [AllowHtml]
         public string EcommerceDetailScript { get; set; }
         public bool EcommerceDetailScript_OverrideForStore { get; set; }
 

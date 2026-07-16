@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Directory;
 using Nop.Plugin.Pickup.PickupInStore.Domain;
@@ -56,9 +57,7 @@ namespace Nop.Plugin.Pickup.PickupInStore.Controllers
         #endregion
 
         #region Methods
-
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return Content("Access denied");
@@ -68,7 +67,7 @@ namespace Nop.Plugin.Pickup.PickupInStore.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult List(DataSourceRequest command)
+        public IActionResult List(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return ErrorForKendoGridJson("Access denied");
@@ -95,7 +94,7 @@ namespace Nop.Plugin.Pickup.PickupInStore.Controllers
             });
         }
 
-        public ActionResult Create()
+        public IActionResult Create()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return Content("Access denied");
@@ -126,7 +125,7 @@ namespace Nop.Plugin.Pickup.PickupInStore.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult Create(string btnId, string formId, StorePickupPointModel model)
+        public IActionResult Create(string btnId, string formId, StorePickupPointModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return Content("Access denied");
@@ -160,7 +159,7 @@ namespace Nop.Plugin.Pickup.PickupInStore.Controllers
             return View("~/Plugins/Pickup.PickupInStore/Views/Create.cshtml", model);
         }
 
-        public ActionResult Edit(int id)
+        public IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return Content("Access denied");
@@ -216,7 +215,7 @@ namespace Nop.Plugin.Pickup.PickupInStore.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult Edit(string btnId, string formId, StorePickupPointModel model)
+        public IActionResult Edit(string btnId, string formId, StorePickupPointModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return Content("Access denied");
@@ -253,7 +252,7 @@ namespace Nop.Plugin.Pickup.PickupInStore.Controllers
 
         [HttpPost]
         [AdminAntiForgery]
-        public ActionResult Delete(int id)
+        public IActionResult Delete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return Content("Access denied");

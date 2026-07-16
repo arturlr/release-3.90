@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Routing;
+using System;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Shipping;

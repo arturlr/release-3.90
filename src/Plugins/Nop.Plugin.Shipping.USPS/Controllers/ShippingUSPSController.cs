@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Plugin.Shipping.USPS.Domain;
 using Nop.Plugin.Shipping.USPS.Models;
 using Nop.Services.Configuration;
@@ -24,9 +25,7 @@ namespace Nop.Plugin.Shipping.USPS.Controllers
             this._settingService = settingService;
             this._localizationService = localizationService;
         }
-
-        [ChildActionOnly]
-        public ActionResult Configure()
+        public IActionResult Configure()
         {
             var model = new USPSShippingModel();
             model.Url = _uspsSettings.Url;
@@ -73,8 +72,7 @@ namespace Nop.Plugin.Shipping.USPS.Controllers
         }
 
         [HttpPost]
-        [ChildActionOnly]
-        public ActionResult Configure(USPSShippingModel model)
+        public IActionResult Configure(USPSShippingModel model)
         {
             if (!ModelState.IsValid)
             {
