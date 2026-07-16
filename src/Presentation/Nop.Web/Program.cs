@@ -17,6 +17,9 @@ using Nop.Web.Framework.Themes;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Set web root to current directory (nopCommerce serves static files from Content/, Scripts/, Themes/)
+builder.Environment.WebRootPath = builder.Environment.ContentRootPath;
+
 // Add configuration
 builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
 
@@ -25,7 +28,8 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
 // Add services
 builder.Services.AddControllersWithViews()
-    .AddNewtonsoftJson();
+    .AddNewtonsoftJson()
+    .AddRazorRuntimeCompilation();
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSession();
@@ -56,11 +60,8 @@ builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 
 var app = builder.Build();
 
-// Configure middleware pipeline
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error");
-}
+// Configure middleware pipeline - always show detailed errors for now
+app.UseDeveloperExceptionPage();
 
 app.UseStaticFiles();
 app.UseRouting();
