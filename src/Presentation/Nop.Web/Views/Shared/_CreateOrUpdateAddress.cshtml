@@ -1,4 +1,4 @@
-﻿@model AddressModel
+@model AddressModel
 @using Nop.Web.Models.Common;
 @if (Model.CountryEnabled && Model.StateProvinceEnabled)
 {
@@ -33,20 +33,20 @@
 @Html.HiddenFor(model => model.Id)
 <div class="edit-address">
     <div class="inputs">
-        @Html.LabelFor(model => model.FirstName, new { }, ":")
+        @Html.LabelFor(model => model.FirstName, new { })
             @Html.EditorFor(model => model.FirstName)
         @Html.RequiredHint()
         @Html.ValidationMessageFor(model => model.FirstName)
     </div>
     <div class="inputs">
-        @Html.LabelFor(model => model.LastName, new { }, ":")
+        @Html.LabelFor(model => model.LastName, new { })
             @Html.EditorFor(model => model.LastName)
         @Html.RequiredHint()
         @Html.ValidationMessageFor(model => model.LastName)
 
     </div>
     <div class="inputs">
-        @Html.LabelFor(model => model.Email, new { }, ":")
+        @Html.LabelFor(model => model.Email, new { })
             @Html.EditorFor(model => model.Email)
         @Html.RequiredHint()
         @Html.ValidationMessageFor(model => model.Email)
@@ -54,7 +54,7 @@
     @if (Model.CompanyEnabled)
     {
         <div class="inputs">
-            @Html.LabelFor(model => model.Company, new { }, ":")
+            @Html.LabelFor(model => model.Company, new { })
                 @Html.EditorFor(model => model.Company)
             @if (Model.CompanyRequired)
             {
@@ -66,7 +66,7 @@
     @if (Model.CountryEnabled)
     {
         <div class="inputs">
-            @Html.LabelFor(model => model.CountryId, new { }, ":")
+            @Html.LabelFor(model => model.CountryId, new { })
                 @Html.DropDownListFor(model => model.CountryId, Model.AvailableCountries)
             @Html.RequiredHint()
             @Html.ValidationMessageFor(model => model.CountryId)
@@ -76,7 +76,7 @@
     @if (Model.CountryEnabled && Model.StateProvinceEnabled)
     {
         <div class="inputs">
-            @Html.LabelFor(model => model.StateProvinceId, new { }, ":")
+            @Html.LabelFor(model => model.StateProvinceId, new { })
                 @Html.DropDownListFor(model => model.StateProvinceId, Model.AvailableStates)
             <span id="states-loading-progress" style="display: none;" class="please-wait">@T("Common.Wait...")</span>
             @Html.ValidationMessageFor(model => model.StateProvinceId)
@@ -85,7 +85,7 @@
     @if (Model.CityEnabled)
     {
         <div class="inputs">
-            @Html.LabelFor(model => model.City, new { }, ":")
+            @Html.LabelFor(model => model.City, new { })
                 @Html.EditorFor(model => model.City)
 
             @if (Model.CityRequired)
@@ -98,7 +98,7 @@
     @if (Model.StreetAddressEnabled)
     {
         <div class="inputs">
-            @Html.LabelFor(model => model.Address1, new { }, ":")
+            @Html.LabelFor(model => model.Address1, new { })
                 @Html.EditorFor(model => model.Address1)
             @if (Model.StreetAddressRequired)
             {
@@ -110,7 +110,7 @@
     @if (Model.StreetAddress2Enabled)
     {
         <div class="inputs">
-            @Html.LabelFor(model => model.Address2, new { }, ":")
+            @Html.LabelFor(model => model.Address2, new { })
                 @Html.EditorFor(model => model.Address2)
             @if (Model.StreetAddress2Required)
             {
@@ -122,7 +122,7 @@
     @if (Model.ZipPostalCodeEnabled)
     {
         <div class="inputs">
-            @Html.LabelFor(model => model.ZipPostalCode, new { }, ":")
+            @Html.LabelFor(model => model.ZipPostalCode, new { })
                 @Html.EditorFor(model => model.ZipPostalCode)
             @if (Model.ZipPostalCodeRequired)
             {
@@ -134,7 +134,7 @@
     @if (Model.PhoneEnabled)
     {
         <div class="inputs">
-            @Html.LabelFor(model => model.PhoneNumber, new { }, ":")
+            @Html.LabelFor(model => model.PhoneNumber, new { })
                 @Html.EditorFor(model => model.PhoneNumber)
             @if (Model.PhoneRequired)
             {
@@ -146,7 +146,7 @@
     @if (Model.FaxEnabled)
     {
         <div class="inputs">
-            @Html.LabelFor(model => model.FaxNumber, new { }, ":")
+            @Html.LabelFor(model => model.FaxNumber, new { })
                 @Html.EditorFor(model => model.FaxNumber)
             @if (Model.FaxRequired)
             {
@@ -160,3 +160,4 @@
         @Html.Partial("_AddressAttributes", Model.CustomAddressAttributes)
     }
 </div>
+

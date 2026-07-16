@@ -1,4 +1,4 @@
-﻿@model VendorInfoModel
+@model VendorInfoModel
 @using Nop.Web.Models.Customer
 @using Nop.Web.Models.Vendors
 @{
@@ -32,24 +32,24 @@
             <div class="fieldset">
                 <div class="form-fields">
                     <div class="inputs">
-                        @Html.LabelFor(model => model.Name, new {}, ":")
+                        @Html.LabelFor(model => model.Name, new { })
                         @Html.EditorFor(model => model.Name)
                         @Html.RequiredHint()
                         @Html.ValidationMessageFor(model => model.Name)
                     </div>
                     <div class="inputs">
-                        @Html.LabelFor(model => model.Email, new {}, ":")
+                        @Html.LabelFor(model => model.Email, new { })
                         @Html.EditorFor(model => model.Email)
                         @Html.RequiredHint()
                         @Html.ValidationMessageFor(model => model.Email)
                     </div>
                     <div class="inputs">
-                        @Html.LabelFor(model => model.Description, new {}, ":")
+                        @Html.LabelFor(model => model.Description, new { })
                         @Html.TextAreaFor(model => model.Description)
                         @Html.ValidationMessageFor(model => model.Description)
                     </div>
                     <div class="inputs">
-                        @Html.LabelFor(model => model.PictureUrl, new { }, ":")
+                        @Html.LabelFor(model => model.PictureUrl, new { })
                         <input name="uploadedFile" type="file" />
                         @if (!String.IsNullOrEmpty(Model.PictureUrl))
                         {

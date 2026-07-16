@@ -1,4 +1,4 @@
-﻿@model SubmitReturnRequestModel
+@model SubmitReturnRequestModel
 @using Nop.Web.Models.Order;
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
@@ -92,7 +92,7 @@
                                 Value = x.Id.ToString()
                             }).ToList();
                         }
-                        @Html.LabelFor(model => model.ReturnRequestReasonId, new {}, ":")
+                        @Html.LabelFor(model => model.ReturnRequestReasonId, new { })
                         @Html.DropDownListFor(model => model.ReturnRequestReasonId, reasonsSelectList, new {@class = "return-reasons"})
                     </div>
                     <div class="inputs">
@@ -103,7 +103,7 @@
                                 Value = x.Id.ToString()
                             }).ToList();
                         }
-                        @Html.LabelFor(model => model.ReturnRequestActionId, new { }, ":")
+                        @Html.LabelFor(model => model.ReturnRequestActionId, new { })
                         @Html.DropDownListFor(model => model.ReturnRequestActionId, actionsSelectList, new { @class = "return-actions" })
                     </div>
                     @if (Model.AllowFiles)
@@ -119,7 +119,7 @@
                         var allowedFileExtensions = string.Join(", ", allowedFileExtensionsList.Select(x => "'" + x.Trim() + "'").ToList());
                         var controlId = @Html.FieldIdFor(model => model.UploadedFileGuid);
                         <div class="inputs return-request-file">
-                            @Html.LabelFor(model => model.UploadedFileGuid, new { }, ":")
+                            @Html.LabelFor(model => model.UploadedFileGuid, new { })
                             <input id="@(controlId)" name="@(controlId)" type="hidden" />
                             
                             @*fine uploader container*@
@@ -178,7 +178,7 @@
                         </div>
                     }
                     <div class="inputs">
-                        @Html.LabelFor(model => model.Comments, new { }, ":")
+                        @Html.LabelFor(model => model.Comments, new { })
                         @Html.TextAreaFor(model => model.Comments, new { @class = "comment" })
                         @Html.ValidationMessageFor(model => model.Comments)
                     </div>
@@ -191,3 +191,4 @@
         }
     </div>
 </div>
+
