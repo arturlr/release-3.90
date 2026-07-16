@@ -126,43 +126,19 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
 
-// Named routes for SEO-friendly URL generation (used by Url.RouteUrl in views)
-app.MapControllerRoute("Product", "{SeName}", new { controller = "Product", action = "ProductDetails" });
-app.MapControllerRoute("Category", "{SeName}", new { controller = "Catalog", action = "Category" });
-app.MapControllerRoute("Manufacturer", "{SeName}", new { controller = "Catalog", action = "Manufacturer" });
-app.MapControllerRoute("Vendor", "{SeName}", new { controller = "Catalog", action = "Vendor" });
-app.MapControllerRoute("NewsItem", "{SeName}", new { controller = "News", action = "NewsItem" });
-app.MapControllerRoute("BlogPost", "{SeName}", new { controller = "Blog", action = "BlogPost" });
-app.MapControllerRoute("Topic", "{SeName}", new { controller = "Topic", action = "TopicDetails" });
-
-// Account routes
-app.MapControllerRoute("Login", "login", new { controller = "Customer", action = "Login" });
-app.MapControllerRoute("Logout", "logout", new { controller = "Customer", action = "Logout" });
-app.MapControllerRoute("Register", "register", new { controller = "Customer", action = "Register" });
-app.MapControllerRoute("CustomerInfo", "customer/info", new { controller = "Customer", action = "Info" });
-app.MapControllerRoute("CustomerAddresses", "customer/addresses", new { controller = "Customer", action = "Addresses" });
-app.MapControllerRoute("CustomerOrders", "customer/orders", new { controller = "Order", action = "CustomerOrders" });
-
-// Shopping routes
-app.MapControllerRoute("ShoppingCart", "cart", new { controller = "ShoppingCart", action = "Cart" });
-app.MapControllerRoute("Wishlist", "wishlist", new { controller = "ShoppingCart", action = "Wishlist" });
-app.MapControllerRoute("Checkout", "checkout", new { controller = "Checkout", action = "Index" });
-app.MapControllerRoute("ContactUs", "contactus", new { controller = "Common", action = "ContactUs" });
-app.MapControllerRoute("Sitemap", "sitemap", new { controller = "Common", action = "Sitemap" });
-app.MapControllerRoute("HomePage", "", new { controller = "Home", action = "Index" });
-
-// Catalog routes
-app.MapControllerRoute("ProductSearch", "search", new { controller = "Catalog", action = "Search" });
-app.MapControllerRoute("NewProducts", "newproducts", new { controller = "Product", action = "NewProducts" });
-app.MapControllerRoute("RecentlyViewedProducts", "recentlyviewedproducts", new { controller = "Product", action = "RecentlyViewedProducts" });
-app.MapControllerRoute("CompareProducts", "compareproducts", new { controller = "Product", action = "CompareProducts" });
-app.MapControllerRoute("ManufacturerList", "manufacturer/all", new { controller = "Catalog", action = "ManufacturerAll" });
-app.MapControllerRoute("VendorList", "vendor/all", new { controller = "Catalog", action = "VendorAll" });
-
-// Blog/News/Forums
-app.MapControllerRoute("Blog", "blog", new { controller = "Blog", action = "List" });
-app.MapControllerRoute("NewsArchive", "news", new { controller = "News", action = "List" });
-app.MapControllerRoute("Boards", "boards", new { controller = "Boards", action = "Index" });
+// Register all routes from IRouteProvider implementations
+var typeFinder = new WebAppTypeFinder();
+var routeProviderTypes = typeFinder.FindClassesOfType<Nop.Web.Framework.Mvc.Routes.IRouteProvider>();
+var routeProviders = new List<Nop.Web.Framework.Mvc.Routes.IRouteProvider>();
+foreach (var providerType in routeProviderTypes)
+{
+    try { routeProviders.Add((Nop.Web.Framework.Mvc.Routes.IRouteProvider)Activator.CreateInstance(providerType)); }
+    catch { }
+}
+foreach (var provider in routeProviders.OrderByDescending(p => p.Priority))
+{
+    provider.RegisterRoutes(app);
+}
 
 // Admin area route
 app.MapControllerRoute(
