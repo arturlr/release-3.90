@@ -1,6 +1,9 @@
+using System;
+using System.Linq;
 using System.Net;
 using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core.Infrastructure;
 
 namespace Nop.Web.Framework.UI
@@ -174,15 +177,156 @@ namespace Nop.Web.Framework.UI
 
         /// <summary>
         /// Replacement for MVC5's Html.Action() which rendered a child action inline.
-        /// In ASP.NET Core, this renders partial views via Html.PartialAsync pattern.
-        /// The method invokes the action on the specified controller and returns the rendered HTML.
+        /// This implementation creates a sub-request to invoke the controller action and captures the output.
         /// </summary>
         public static IHtmlContent Action(this IHtmlHelper html, string actionName, string controllerName, object routeValues = null)
         {
-            // Html.Action() child actions don't exist in ASP.NET Core.
-            // This compatibility shim returns empty content. The proper ASP.NET Core approach  
-            // is ViewComponents, but converting 100+ child action calls requires a separate pass.
-            // The page renders correctly without these sections (they are supplemental content blocks).
+            try
+            {
+                var httpContext = html.ViewContext.HttpContext;
+                var services = httpContext.RequestServices;
+                
+                // Get the controller factory and create the controller
+                var actionDescriptorCollectionProvider = services.GetService(
+                    typeof(Microsoft.AspNetCore.Mvc.Infrastructure.IActionDescriptorCollectionProvider)) 
+                    as Microsoft.AspNetCore.Mvc.Infrastructure.IActionDescriptorCollectionProvider;
+                
+                if (actionDescriptorCollectionProvider == null)
+                    return new HtmlString("");
+
+                // Find the matching action descriptor
+                var actionDescriptor = actionDescriptorCollectionProvider.ActionDescriptors.Items
+                    .OfType<Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor>()
+                    .FirstOrDefault(d => 
+                        d.ActionName.Equals(actionName, StringComparison.OrdinalIgnoreCase) && 
+                        d.ControllerName.Equals(controllerName, StringComparison.OrdinalIgnoreCase));
+
+                if (actionDescriptor == null)
+                    return new HtmlString("");
+
+                // Create the controller
+                var controllerFactory = services.GetService(typeof(Microsoft.AspNetCore.Mvc.Controllers.IControllerFactory)) 
+                    as Microsoft.AspNetCore.Mvc.Controllers.IControllerFactory;
+                
+                if (controllerFactory == null)
+                    return new HtmlString("");
+
+                var routeDataCopy = new Microsoft.AspNetCore.Routing.RouteData(html.ViewContext.RouteData);
+                routeDataCopy.Values["controller"] = controllerName;
+                routeDataCopy.Values["action"] = actionName;
+                
+                // Add route values if provided
+                if (routeValues != null)
+                {
+                    foreach (var prop in routeValues.GetType().GetProperties())
+                    {
+                        routeDataCopy.Values[prop.Name] = prop.GetValue(routeValues);
+                    }
+                }
+
+                var actionContext = new Microsoft.AspNetCore.Mvc.ActionContext(httpContext, routeDataCopy, actionDescriptor);
+                var controllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext(actionContext);
+                
+                var controller = controllerFactory.CreateController(controllerContext);
+                if (controller is Microsoft.AspNetCore.Mvc.Controller mvcController)
+                {
+                    mvcController.ControllerContext = controllerContext;
+                    
+                    // Invoke the action method
+                    var methodInfo = actionDescriptor.MethodInfo;
+                    var parameters = methodInfo.GetParameters();
+                    var args = new object[parameters.Length];
+                    for (int i = 0; i < parameters.Length; i++)
+                    {
+                        // Try to get from route values
+                        if (routeDataCopy.Values.TryGetValue(parameters[i].Name, out var val))
+                            args[i] = val;
+                        else if (parameters[i].HasDefaultValue)
+                            args[i] = parameters[i].DefaultValue;
+                        else
+                            args[i] = parameters[i].ParameterType.IsValueType ? Activator.CreateInstance(parameters[i].ParameterType) : null;
+                    }
+
+                    var result = methodInfo.Invoke(controller, args);
+                    
+                    // Handle the result
+                    if (result is Microsoft.AspNetCore.Mvc.ViewResult viewResult)
+                    {
+                        // Render the view to string
+                        var viewEngine = services.GetService(typeof(Microsoft.AspNetCore.Mvc.ViewEngines.ICompositeViewEngine)) 
+                            as Microsoft.AspNetCore.Mvc.ViewEngines.ICompositeViewEngine;
+                        
+                        var viewName = viewResult.ViewName ?? actionName;
+                        var findResult = viewEngine.FindView(actionContext, viewName, false);
+                        if (!findResult.Success)
+                            findResult = viewEngine.GetView(null, $"~/Views/{controllerName}/{viewName}.cshtml", false);
+                        
+                        if (findResult.Success)
+                        {
+                            using (var writer = new System.IO.StringWriter())
+                            {
+                                var viewData = viewResult.ViewData ?? new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(html.ViewContext.ViewData);
+                                if (viewResult.Model != null)
+                                    viewData.Model = viewResult.Model;
+                                    
+                                var viewContext = new Microsoft.AspNetCore.Mvc.Rendering.ViewContext(
+                                    actionContext,
+                                    findResult.View,
+                                    viewData,
+                                    viewResult.TempData ?? html.ViewContext.TempData,
+                                    writer,
+                                    new Microsoft.AspNetCore.Mvc.ViewFeatures.HtmlHelperOptions());
+                                findResult.View.RenderAsync(viewContext).GetAwaiter().GetResult();
+                                return new HtmlString(writer.ToString());
+                            }
+                        }
+                    }
+                    else if (result is Microsoft.AspNetCore.Mvc.PartialViewResult partialResult)
+                    {
+                        var viewEngine = services.GetService(typeof(Microsoft.AspNetCore.Mvc.ViewEngines.ICompositeViewEngine)) 
+                            as Microsoft.AspNetCore.Mvc.ViewEngines.ICompositeViewEngine;
+                        
+                        var viewName = partialResult.ViewName ?? actionName;
+                        var findResult = viewEngine.FindView(actionContext, viewName, false);
+                        if (!findResult.Success)
+                            findResult = viewEngine.GetView(null, $"~/Views/{controllerName}/{viewName}.cshtml", false);
+                        
+                        if (findResult.Success)
+                        {
+                            using (var writer = new System.IO.StringWriter())
+                            {
+                                var viewData = partialResult.ViewData ?? new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(html.ViewContext.ViewData);
+                                if (partialResult.Model != null)
+                                    viewData.Model = partialResult.Model;
+                                    
+                                var viewContext = new Microsoft.AspNetCore.Mvc.Rendering.ViewContext(
+                                    actionContext,
+                                    findResult.View,
+                                    viewData,
+                                    partialResult.TempData ?? html.ViewContext.TempData,
+                                    writer,
+                                    new Microsoft.AspNetCore.Mvc.ViewFeatures.HtmlHelperOptions());
+                                findResult.View.RenderAsync(viewContext).GetAwaiter().GetResult();
+                                return new HtmlString(writer.ToString());
+                            }
+                        }
+                    }
+                    else if (result is Microsoft.AspNetCore.Mvc.ContentResult contentResult)
+                    {
+                        return new HtmlString(contentResult.Content ?? "");
+                    }
+                    else if (result is Microsoft.AspNetCore.Mvc.EmptyResult)
+                    {
+                        return new HtmlString("");
+                    }
+                }
+                
+                controllerFactory.ReleaseController(controllerContext, controller);
+            }
+            catch
+            {
+                // If child action rendering fails, return empty content rather than crashing the page
+            }
             return new HtmlString("");
         }
     }
