@@ -330,13 +330,5 @@ namespace Nop.Web.Framework.UI
             }
             return new HtmlString("");
         }
-
-        /// <summary>
-        /// Creates a Pager instance for paginated views.
-        /// </summary>
-        public static Pager Pager(this IHtmlHelper html, IPageableModel model)
-        {
-            return new Pager(model, html.ViewContext);
-        }
     }
 }
