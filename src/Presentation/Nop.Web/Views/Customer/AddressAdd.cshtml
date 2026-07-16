@@ -1,4 +1,4 @@
-﻿@model CustomerAddressEditModel
+@model CustomerAddressEditModel
 @using Nop.Web.Models.Customer;
 @{
     Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
@@ -31,7 +31,7 @@
                 </div>
             }
             @{
-            var dataDictAddress = new ViewDataDictionary();
+            var dataDictAddress = new ViewDataDictionary(ViewData);
             //Merge ModelState (required for validation)
             dataDictAddress.ModelState.Merge(ViewData.ModelState);
             dataDictAddress.TemplateInfo.HtmlFieldPrefix = "Address";
@@ -43,3 +43,4 @@
         </div>
     </div>
 }
+

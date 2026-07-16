@@ -33,6 +33,11 @@ namespace Nop.Web.Framework.UI.Paging
         }
 
         public Pager QueryParam(string value) { this.pageQueryName = value; return this; }
+
+        public bool IsEmpty()
+        {
+            return model == null || model.TotalPages <= 1;
+        }
         public Pager ShowTotalSummary(bool value) { this.showTotalSummary = value; return this; }
         public Pager ShowPagerItems(bool value) { this.showPagerItems = value; return this; }
         public Pager ShowFirst(bool value) { this.showFirst = value; return this; }

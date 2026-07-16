@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.DependencyInjection;
 using Nop.Core.Infrastructure;
+using Nop.Web.Framework.UI.Paging;
 
 namespace Nop.Web.Framework.UI
 {
@@ -328,6 +329,14 @@ namespace Nop.Web.Framework.UI
                 // If child action rendering fails, return empty content rather than crashing the page
             }
             return new HtmlString("");
+        }
+
+        /// <summary>
+        /// Creates a Pager instance for paginated views.
+        /// </summary>
+        public static Pager Pager(this IHtmlHelper html, IPageableModel model)
+        {
+            return new Pager(model, html.ViewContext);
         }
     }
 }

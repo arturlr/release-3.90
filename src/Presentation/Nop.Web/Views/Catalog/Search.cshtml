@@ -1,4 +1,4 @@
-﻿@model SearchModel
+@model SearchModel
 @{
     Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
 
@@ -97,7 +97,7 @@
         </div>
         @if (Model.Products.Count > 0)
         {
-            @Html.Partial("_CatalogSelectors", Model.PagingFilteringContext, new ViewDataDictionary())
+            @Html.Partial("_CatalogSelectors", Model.PagingFilteringContext, new ViewDataDictionary(ViewData))
         }
         @Html.Widget("productsearch_page_before_results")
         <div class="search-results">
@@ -140,3 +140,5 @@
         @Html.Widget("productsearch_page_after_results")
     </div>
 </div>
+
+

@@ -1,4 +1,4 @@
-﻿@model CheckoutBillingAddressModel
+@model CheckoutBillingAddressModel
 @using Nop.Web.Models.Checkout;
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
@@ -150,7 +150,7 @@
                             <div class="message-error">@validationSummary</div>
                         }
                         @{
-                            var dataDictAddress = new ViewDataDictionary();
+                            var dataDictAddress = new ViewDataDictionary(ViewData);
                             //Merge ModelState (required for validation)
                             dataDictAddress.ModelState.Merge(ViewData.ModelState);
                             dataDictAddress.TemplateInfo.HtmlFieldPrefix = "NewAddress";
@@ -172,3 +172,5 @@
         </div>
     </div>
 </div>
+
+

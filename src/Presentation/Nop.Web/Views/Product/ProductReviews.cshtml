@@ -1,4 +1,4 @@
-﻿@model ProductReviewsModel
+@model ProductReviewsModel
 @using Nop.Web.Models.Catalog;
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
@@ -120,7 +120,7 @@
                                     <span>@review.WrittenOnStr</span>
                                 </span>
                             </div>
-                            @Html.Partial("_ProductReviewHelpfulness", review.Helpfulness, new ViewDataDictionary())
+                            @Html.Partial("_ProductReviewHelpfulness", review.Helpfulness, new ViewDataDictionary(ViewData))
                             @Html.Widget("productreviews_page_inside_review", review.Id)
                             @if (!String.IsNullOrEmpty(review.ReplyText))
                             {
@@ -141,3 +141,5 @@
         @Html.Widget("productreviews_page_bottom", Model.ProductId)
     </div>
 </div>
+
+

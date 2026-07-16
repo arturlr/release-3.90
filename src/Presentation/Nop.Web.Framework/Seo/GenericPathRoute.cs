@@ -6,14 +6,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
-using Nop.Services.Events;
 using Nop.Services.Seo;
-using Nop.Web.Framework.Localization;
 
 namespace Nop.Web.Framework.Seo
 {
     /// <summary>
     /// Provides SEO friendly URL routing as ASP.NET Core middleware.
+    /// Intercepts requests with SEO-friendly slugs and rewrites them to the appropriate controller action.
     /// </summary>
     public class GenericPathRouteMiddleware
     {
@@ -33,102 +32,91 @@ namespace Nop.Web.Framework.Seo
                 return;
             }
 
-            var slug = context.GetRouteValue("generic_se_name") as string;
-            if (string.IsNullOrEmpty(slug))
+            var path = context.Request.Path.Value;
+            
+            // Skip empty paths, paths with extensions (static files), and multi-segment paths
+            if (string.IsNullOrEmpty(path) || path == "/")
             {
                 await _next(context);
                 return;
             }
 
-            var urlRecordService = context.RequestServices.GetService<IUrlRecordService>();
-            var urlRecord = urlRecordService.GetBySlugCached(slug);
-
-            if (urlRecord == null)
+            // Remove leading slash
+            var slug = path.TrimStart('/');
+            
+            // Skip if it contains slashes (multi-segment - let normal routing handle it)
+            // But allow single-segment paths like /electronics, /build-your-own-computer
+            if (slug.Contains('/'))
             {
-                // Route to PageNotFound
-                context.GetRouteData().Values["controller"] = "Common";
-                context.GetRouteData().Values["action"] = "PageNotFound";
                 await _next(context);
                 return;
             }
 
-            if (!urlRecord.IsActive)
+            // Skip if it has a file extension (static file)
+            if (slug.Contains('.'))
             {
-                var activeSlug = urlRecordService.GetActiveSlug(urlRecord.EntityId, urlRecord.EntityName, urlRecord.LanguageId);
-                if (string.IsNullOrWhiteSpace(activeSlug))
+                await _next(context);
+                return;
+            }
+
+            // Skip known controller names
+            var lowerSlug = slug.ToLowerInvariant();
+            if (lowerSlug == "admin" || lowerSlug == "install" || lowerSlug == "keepalive")
+            {
+                await _next(context);
+                return;
+            }
+
+            try
+            {
+                var urlRecordService = EngineContext.Current.Resolve<IUrlRecordService>();
+                var urlRecord = urlRecordService.GetBySlug(slug);
+
+                if (urlRecord == null || !urlRecord.IsActive)
                 {
-                    context.GetRouteData().Values["controller"] = "Common";
-                    context.GetRouteData().Values["action"] = "PageNotFound";
                     await _next(context);
                     return;
                 }
 
-                var webHelper = context.RequestServices.GetService<IWebHelper>();
-                context.Response.StatusCode = 301;
-                context.Response.Headers["Location"] = string.Format("{0}{1}", webHelper.GetStoreLocation(), activeSlug);
-                return;
-            }
+                // Rewrite the path based on entity type
+                string newPath = null;
+                switch (urlRecord.EntityName.ToLowerInvariant())
+                {
+                    case "product":
+                        newPath = $"/Product/ProductDetails?productId={urlRecord.EntityId}";
+                        break;
+                    case "category":
+                        newPath = $"/Catalog/Category?categoryId={urlRecord.EntityId}";
+                        break;
+                    case "manufacturer":
+                        newPath = $"/Catalog/Manufacturer?manufacturerId={urlRecord.EntityId}";
+                        break;
+                    case "vendor":
+                        newPath = $"/Catalog/Vendor?vendorId={urlRecord.EntityId}";
+                        break;
+                    case "newsitem":
+                        newPath = $"/News/NewsItem?newsItemId={urlRecord.EntityId}";
+                        break;
+                    case "blogpost":
+                        newPath = $"/Blog/BlogPost?blogPostId={urlRecord.EntityId}";
+                        break;
+                    case "topic":
+                        newPath = $"/Topic/TopicDetails?topicId={urlRecord.EntityId}";
+                        break;
+                }
 
-            var workContext = context.RequestServices.GetService<IWorkContext>();
-            var slugForCurrentLanguage = SeoExtensions.GetSeName(urlRecord.EntityId, urlRecord.EntityName, workContext.WorkingLanguage.Id);
-            if (!String.IsNullOrEmpty(slugForCurrentLanguage) &&
-                !slugForCurrentLanguage.Equals(slug, StringComparison.InvariantCultureIgnoreCase))
-            {
-                var webHelper = context.RequestServices.GetService<IWebHelper>();
-                context.Response.StatusCode = 302;
-                context.Response.Headers["Location"] = string.Format("{0}{1}", webHelper.GetStoreLocation(), slugForCurrentLanguage);
-                return;
+                if (newPath != null)
+                {
+                    // Split path and query
+                    var parts = newPath.Split('?');
+                    context.Request.Path = parts[0];
+                    if (parts.Length > 1)
+                        context.Request.QueryString = new QueryString("?" + parts[1]);
+                }
             }
-
-            var routeData = context.GetRouteData();
-            switch (urlRecord.EntityName.ToLowerInvariant())
+            catch
             {
-                case "product":
-                    routeData.Values["controller"] = "Product";
-                    routeData.Values["action"] = "ProductDetails";
-                    routeData.Values["productid"] = urlRecord.EntityId;
-                    routeData.Values["SeName"] = urlRecord.Slug;
-                    break;
-                case "category":
-                    routeData.Values["controller"] = "Catalog";
-                    routeData.Values["action"] = "Category";
-                    routeData.Values["categoryid"] = urlRecord.EntityId;
-                    routeData.Values["SeName"] = urlRecord.Slug;
-                    break;
-                case "manufacturer":
-                    routeData.Values["controller"] = "Catalog";
-                    routeData.Values["action"] = "Manufacturer";
-                    routeData.Values["manufacturerid"] = urlRecord.EntityId;
-                    routeData.Values["SeName"] = urlRecord.Slug;
-                    break;
-                case "vendor":
-                    routeData.Values["controller"] = "Catalog";
-                    routeData.Values["action"] = "Vendor";
-                    routeData.Values["vendorid"] = urlRecord.EntityId;
-                    routeData.Values["SeName"] = urlRecord.Slug;
-                    break;
-                case "newsitem":
-                    routeData.Values["controller"] = "News";
-                    routeData.Values["action"] = "NewsItem";
-                    routeData.Values["newsItemId"] = urlRecord.EntityId;
-                    routeData.Values["SeName"] = urlRecord.Slug;
-                    break;
-                case "blogpost":
-                    routeData.Values["controller"] = "Blog";
-                    routeData.Values["action"] = "BlogPost";
-                    routeData.Values["blogPostId"] = urlRecord.EntityId;
-                    routeData.Values["SeName"] = urlRecord.Slug;
-                    break;
-                case "topic":
-                    routeData.Values["controller"] = "Topic";
-                    routeData.Values["action"] = "TopicDetails";
-                    routeData.Values["topicId"] = urlRecord.EntityId;
-                    routeData.Values["SeName"] = urlRecord.Slug;
-                    break;
-                default:
-                    EngineContext.Current.Resolve<IEventPublisher>()
-                        .Publish(new CustomUrlRecordEntityNameRequested(routeData, urlRecord));
-                    break;
+                // If URL resolution fails, let normal routing handle it
             }
 
             await _next(context);

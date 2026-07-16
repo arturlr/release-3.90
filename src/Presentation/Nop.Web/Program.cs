@@ -117,13 +117,14 @@ app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
         builder.Environment.ContentRootPath),
     ServeUnknownFileTypes = true
 });
+
+// Use the generic path route middleware for SEO-friendly URLs (BEFORE routing)
+app.UseMiddleware<Nop.Web.Framework.Seo.GenericPathRouteMiddleware>();
+
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
-
-// Use the generic path route middleware for SEO-friendly URLs
-app.UseMiddleware<Nop.Web.Framework.Seo.GenericPathRouteMiddleware>();
 
 app.MapControllerRoute(
     name: "default",

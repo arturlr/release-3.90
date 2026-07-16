@@ -219,7 +219,7 @@
            }
            @if (Model.IsEditable)
            {
-               @Html.Partial("_CheckoutAttributes", Model.CheckoutAttributes, new ViewDataDictionary())
+               @Html.Partial("_CheckoutAttributes", Model.CheckoutAttributes, new ViewDataDictionary(ViewData))
            }
            @if (!String.IsNullOrEmpty(Model.CheckoutAttributeInfo))
            {
@@ -320,3 +320,4 @@
    }
    @Html.Widget("order_summary_content_after")
 </div>
+
