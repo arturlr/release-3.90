@@ -55,7 +55,7 @@ namespace Nop.Web.Factories
         private readonly ITopicService _topicService;
         private readonly IEventPublisher _eventPublisher;
         private readonly ISearchTermService _searchTermService;
-        private readonly HttpContext _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly MediaSettings _mediaSettings;
         private readonly CatalogSettings _catalogSettings;
         private readonly VendorSettings _vendorSettings;
@@ -89,7 +89,7 @@ namespace Nop.Web.Factories
             ITopicService topicService,
             IEventPublisher eventPublisher,
             ISearchTermService searchTermService,
-            HttpContext httpContext,
+            IHttpContextAccessor httpContextAccessor,
             MediaSettings mediaSettings,
             CatalogSettings catalogSettings,
             VendorSettings vendorSettings,
@@ -119,7 +119,7 @@ namespace Nop.Web.Factories
             this._topicService = topicService;
             this._eventPublisher = eventPublisher;
             this._searchTermService = searchTermService;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._mediaSettings = mediaSettings;
             this._catalogSettings = catalogSettings;
             this._vendorSettings = vendorSettings;
@@ -1346,7 +1346,7 @@ namespace Nop.Web.Factories
             try
             {
                 // only search if query string search keyword is set (used to avoid searching or displaying search term min length error message on /search page load)
-                isSearchTermSpecified = !string.IsNullOrEmpty(_httpContext.Request.Query["q"]);
+                isSearchTermSpecified = !string.IsNullOrEmpty(_httpContextAccessor.HttpContext?.Request.Query["q"]);
             }
             catch
             {
