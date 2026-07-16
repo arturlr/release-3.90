@@ -135,6 +135,12 @@ app.MapControllerRoute("NewsItem", "{SeName}", new { controller = "News", action
 app.MapControllerRoute("BlogPost", "{SeName}", new { controller = "Blog", action = "BlogPost" });
 app.MapControllerRoute("Topic", "{SeName}", new { controller = "Topic", action = "TopicDetails" });
 
+// Admin area route
+app.MapControllerRoute(
+    name: "admin",
+    pattern: "Admin/{controller=Home}/{action=Index}/{id?}",
+    defaults: new { area = "Admin" });
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
