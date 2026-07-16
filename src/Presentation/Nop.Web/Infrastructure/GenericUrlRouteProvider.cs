@@ -1,65 +1,38 @@
-﻿using System.Web.Routing;
-using Nop.Web.Framework.Localization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Nop.Web.Framework.Mvc.Routes;
-using Nop.Web.Framework.Seo;
 
 namespace Nop.Web.Infrastructure
 {
     public partial class GenericUrlRouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
         {
             //generic URLs
-            routes.MapGenericPathRoute("GenericUrl",
-                                       "{generic_se_name}",
-                                       new {controller = "Common", action = "GenericUrl"},
-                                       new[] {"Nop.Web.Controllers"});
+            endpointRouteBuilder.MapControllerRoute("GenericUrl", "{generic_se_name}",
+                new { controller = "Common", action = "GenericUrl" });
 
             //define this routes to use in UI views (in case if you want to customize some of them later)
-            routes.MapLocalizedRoute("Product",
-                                     "{SeName}",
-                                     new { controller = "Product", action = "ProductDetails" },
-                                     new[] {"Nop.Web.Controllers"});
+            endpointRouteBuilder.MapControllerRoute("Product", "{SeName}",
+                new { controller = "Product", action = "ProductDetails" });
 
-            routes.MapLocalizedRoute("Category",
-                            "{SeName}",
-                            new { controller = "Catalog", action = "Category" },
-                            new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("Category", "{SeName}",
+                new { controller = "Catalog", action = "Category" });
 
-            routes.MapLocalizedRoute("Manufacturer",
-                            "{SeName}",
-                            new { controller = "Catalog", action = "Manufacturer" },
-                            new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("Manufacturer", "{SeName}",
+                new { controller = "Catalog", action = "Manufacturer" });
 
-            routes.MapLocalizedRoute("Vendor",
-                            "{SeName}",
-                            new { controller = "Catalog", action = "Vendor" },
-                            new[] { "Nop.Web.Controllers" });
-            
-            routes.MapLocalizedRoute("NewsItem",
-                            "{SeName}",
-                            new { controller = "News", action = "NewsItem" },
-                            new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("Vendor", "{SeName}",
+                new { controller = "Catalog", action = "Vendor" });
 
-            routes.MapLocalizedRoute("BlogPost",
-                            "{SeName}",
-                            new { controller = "Blog", action = "BlogPost" },
-                            new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("NewsItem", "{SeName}",
+                new { controller = "News", action = "NewsItem" });
 
-            routes.MapLocalizedRoute("Topic",
-                            "{SeName}",
-                            new { controller = "Topic", action = "TopicDetails" },
-                            new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("BlogPost", "{SeName}",
+                new { controller = "Blog", action = "BlogPost" });
 
-
-
-            //the last route. it's used when none of registered routes could be used for the current request
-            //but in this case we cannot process non-registered routes (/controller/action)
-            //routes.MapLocalizedRoute(
-            //    "PageNotFound-Wildchar",
-            //    "{*url}",
-            //    new { controller = "Common", action = "PageNotFound" },
-            //    new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("Topic", "{SeName}",
+                new { controller = "Topic", action = "TopicDetails" });
         }
 
         public int Priority

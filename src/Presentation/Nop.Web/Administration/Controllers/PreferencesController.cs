@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Services.Common;
 
@@ -28,7 +28,7 @@ namespace Nop.Admin.Controllers
         #region Methods
 
         [HttpPost]
-        public virtual ActionResult SavePreference(string name, bool value)
+        public virtual IActionResult SavePreference(string name, bool value)
         {
             //permission validation is not required here
             if (string.IsNullOrEmpty(name))
@@ -39,7 +39,7 @@ namespace Nop.Admin.Controllers
             return Json(new
             {
                 Result = true
-            }, JsonRequestBehavior.AllowGet);
+            });
         }
 
         #endregion

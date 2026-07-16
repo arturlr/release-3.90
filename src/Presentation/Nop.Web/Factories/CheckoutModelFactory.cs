@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
@@ -434,7 +434,7 @@ namespace Nop.Web.Factories
             var model = new CheckoutPaymentInfoModel();
             string actionName;
             string controllerName;
-            RouteValueDictionary routeValues;
+            Microsoft.AspNetCore.Routing.RouteValueDictionary routeValues;
             paymentMethod.GetPaymentInfoRoute(out actionName, out controllerName, out routeValues);
             model.PaymentInfoActionName = actionName;
             model.PaymentInfoControllerName = controllerName;

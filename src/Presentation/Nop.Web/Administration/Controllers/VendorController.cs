@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Vendors;
 using Nop.Core.Domain.Directory;
@@ -185,12 +186,12 @@ namespace Nop.Admin.Controllers
         #region Vendors
 
         //list
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-        public virtual ActionResult List()
+        public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageVendors))
                 return AccessDeniedView();
@@ -200,7 +201,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult List(DataSourceRequest command, VendorListModel model)
+        public virtual IActionResult List(DataSourceRequest command, VendorListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageVendors))
                 return AccessDeniedKendoGridJson();
@@ -221,7 +222,7 @@ namespace Nop.Admin.Controllers
         }
 
         //create
-        public virtual ActionResult Create()
+        public virtual IActionResult Create()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageVendors))
                 return AccessDeniedView();
@@ -244,7 +245,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
-        public virtual ActionResult Create(VendorModel model, bool continueEditing)
+        public virtual IActionResult Create(VendorModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageVendors))
                 return AccessDeniedView();
@@ -297,7 +298,7 @@ namespace Nop.Admin.Controllers
 
 
         //edit
-        public virtual ActionResult Edit(int id)
+        public virtual IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageVendors))
                 return AccessDeniedView();
@@ -324,7 +325,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult Edit(VendorModel model, bool continueEditing)
+        public virtual IActionResult Edit(VendorModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageVendors))
                 return AccessDeniedView();
@@ -407,7 +408,7 @@ namespace Nop.Admin.Controllers
 
         //delete
         [HttpPost]
-        public virtual ActionResult Delete(int id)
+        public virtual IActionResult Delete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageVendors))
                 return AccessDeniedView();
@@ -440,7 +441,7 @@ namespace Nop.Admin.Controllers
         #region Vendor notes
 
         [HttpPost]
-        public virtual ActionResult VendorNotesSelect(int vendorId, DataSourceRequest command)
+        public virtual IActionResult VendorNotesSelect(int vendorId, DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageVendors))
                 return AccessDeniedKendoGridJson();
@@ -470,16 +471,14 @@ namespace Nop.Admin.Controllers
 
             return Json(gridModel);
         }
-
-        [ValidateInput(false)]
-        public virtual ActionResult VendorNoteAdd(int vendorId, string message)
+        public virtual IActionResult VendorNoteAdd(int vendorId, string message)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageVendors))
                 return AccessDeniedView();
 
             var vendor = _vendorService.GetVendorById(vendorId);
             if (vendor == null)
-                return Json(new { Result = false }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = false });
 
             var vendorNote = new VendorNote
             {
@@ -489,11 +488,11 @@ namespace Nop.Admin.Controllers
             vendor.VendorNotes.Add(vendorNote);
             _vendorService.UpdateVendor(vendor);
 
-            return Json(new { Result = true }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = true });
         }
 
         [HttpPost]
-        public virtual ActionResult VendorNoteDelete(int id, int vendorId)
+        public virtual IActionResult VendorNoteDelete(int id, int vendorId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageVendors))
                 return AccessDeniedView();

@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Linq;
 using System.Security.Principal;
 using System.Threading;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Configuration;
@@ -172,13 +173,13 @@ namespace Nop.Web.Controllers
 
         #region Methods
 
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             if (DataSettingsHelper.DatabaseIsInstalled())
                 return RedirectToRoute("HomePage");
 
             //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
+            //this.Server.ScriptTimeout = 300; // Not available in ASP.NET Core
 
 
             var model = new InstallModel
@@ -210,13 +211,13 @@ namespace Nop.Web.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Index(InstallModel model)
+        public virtual IActionResult Index(InstallModel model)
         {
             if (DataSettingsHelper.DatabaseIsInstalled())
                 return RedirectToRoute("HomePage");
 
             //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
+            //this.Server.ScriptTimeout = 300; // Not available in ASP.NET Core
 
             if (model.DatabaseConnectionString != null)
                 model.DatabaseConnectionString = model.DatabaseConnectionString.Trim();
@@ -436,7 +437,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        public virtual ActionResult ChangeLanguage(string language)
+        public virtual IActionResult ChangeLanguage(string language)
         {
             if (DataSettingsHelper.DatabaseIsInstalled())
                 return RedirectToRoute("HomePage");
@@ -448,7 +449,7 @@ namespace Nop.Web.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult RestartInstall()
+        public virtual IActionResult RestartInstall()
         {
             if (DataSettingsHelper.DatabaseIsInstalled())
                 return RedirectToRoute("HomePage");

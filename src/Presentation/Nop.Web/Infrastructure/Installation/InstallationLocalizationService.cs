@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Web;
 using System.Xml;
+using Microsoft.AspNetCore.Http;
 using Nop.Core;
 using Nop.Core.Infrastructure;
 
@@ -24,6 +24,13 @@ namespace Nop.Web.Infrastructure.Installation
         /// Available languages
         /// </summary>
         private IList<InstallationLanguage> _availableLanguages;
+
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public InstallationLocalizationService(IHttpContextAccessor httpContextAccessor)
+        {
+            this._httpContextAccessor = httpContextAccessor;
+        }
 
         /// <summary>
         /// Get locale resource value
@@ -52,12 +59,13 @@ namespace Nop.Web.Infrastructure.Installation
         /// <returns>Current language</returns>
         public virtual InstallationLanguage GetCurrentLanguage()
         {
-            var httpContext = EngineContext.Current.Resolve<HttpContextBase>();
+            var httpContext = _httpContextAccessor.HttpContext;
 
             var cookieLanguageCode = "";
-            var cookie = httpContext.Request.Cookies[LanguageCookieName];
-            if (cookie != null && !String.IsNullOrEmpty(cookie.Value))
-                cookieLanguageCode = cookie.Value;
+            if (httpContext != null && httpContext.Request.Cookies.ContainsKey(LanguageCookieName))
+            {
+                cookieLanguageCode = httpContext.Request.Cookies[LanguageCookieName];
+            }
 
             //ensure it's available (it could be delete since the previous installation)
             var availableLanguages = GetAvailableLanguages();
@@ -68,14 +76,18 @@ namespace Nop.Web.Infrastructure.Installation
                 return language;
 
             //let's find by current browser culture
-            if (httpContext.Request.UserLanguages != null)
+            if (httpContext != null)
             {
-                var userLanguage = httpContext.Request.UserLanguages.FirstOrDefault();
-                if (!String.IsNullOrEmpty(userLanguage))
+                var userLanguages = httpContext.Request.GetTypedHeaders().AcceptLanguage;
+                if (userLanguages != null && userLanguages.Count > 0)
                 {
-                    //right. we do "StartsWith" (not "Equals") because we have shorten codes (not full culture names)
-                    language = availableLanguages
-                        .FirstOrDefault(l => userLanguage.StartsWith(l.Code, StringComparison.InvariantCultureIgnoreCase));
+                    var userLanguage = userLanguages.First().Value.Value;
+                    if (!String.IsNullOrEmpty(userLanguage))
+                    {
+                        //right. we do "StartsWith" (not "Equals") because we have shorten codes (not full culture names)
+                        language = availableLanguages
+                            .FirstOrDefault(l => userLanguage.StartsWith(l.Code, StringComparison.InvariantCultureIgnoreCase));
+                    }
                 }
             }
             if (language != null)
@@ -97,14 +109,17 @@ namespace Nop.Web.Infrastructure.Installation
         /// <param name="languageCode">Language code</param>
         public virtual void SaveCurrentLanguage(string languageCode)
         {
-            var httpContext = EngineContext.Current.Resolve<HttpContextBase>();
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
+                return;
 
-            var cookie = new HttpCookie(LanguageCookieName);
-            cookie.HttpOnly = true;
-            cookie.Value = languageCode;
-            cookie.Expires = DateTime.Now.AddHours(24);
-            httpContext.Response.Cookies.Remove(LanguageCookieName);
-            httpContext.Response.Cookies.Add(cookie);
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.Now.AddHours(24)
+            };
+            httpContext.Response.Cookies.Delete(LanguageCookieName);
+            httpContext.Response.Cookies.Append(LanguageCookieName, languageCode, cookieOptions);
         }
 
         /// <summary>
@@ -116,7 +131,11 @@ namespace Nop.Web.Infrastructure.Installation
             if (_availableLanguages == null)
             {
                 _availableLanguages = new List<InstallationLanguage>();
-                foreach (var filePath in Directory.EnumerateFiles(CommonHelper.MapPath("~/App_Data/Localization/Installation/"), "*.xml"))
+                var localizationPath = Path.Combine(System.AppContext.BaseDirectory, "App_Data", "Localization", "Installation");
+                if (!Directory.Exists(localizationPath))
+                    return _availableLanguages;
+
+                foreach (var filePath in Directory.EnumerateFiles(localizationPath, "*.xml"))
                 {
                     var xmlDocument = new XmlDocument();
                     xmlDocument.Load(filePath);

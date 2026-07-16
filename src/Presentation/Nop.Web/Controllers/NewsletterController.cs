@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Messages;
@@ -38,8 +38,7 @@ namespace Nop.Web.Controllers
             this._customerSettings = customerSettings;
         }
 
-        [ChildActionOnly]
-        public virtual ActionResult NewsletterBox()
+        public virtual IActionResult NewsletterBox()
         {
             if (_customerSettings.HideNewsletterBlock)
                 return Content("");
@@ -51,8 +50,7 @@ namespace Nop.Web.Controllers
         //available even when a store is closed
         [StoreClosed(true)]
         [HttpPost]
-        [ValidateInput(false)]
-        public virtual ActionResult SubscribeNewsletter(string email, bool subscribe)
+        public virtual IActionResult SubscribeNewsletter(string email, bool subscribe)
         {
             string result;
             bool success = false;
@@ -116,7 +114,7 @@ namespace Nop.Web.Controllers
 
         //available even when a store is closed
         [StoreClosed(true)]
-        public virtual ActionResult SubscriptionActivation(Guid token, bool active)
+        public virtual IActionResult SubscriptionActivation(Guid token, bool active)
         {
             var subscription = _newsLetterSubscriptionService.GetNewsLetterSubscriptionByGuid(token);
             if (subscription == null)

@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Routing;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Services.Cms;
@@ -65,7 +65,7 @@ namespace Nop.Web.Factories
 
                     string actionName;
                     string controllerName;
-                    RouteValueDictionary routeValues;
+                    Microsoft.AspNetCore.Routing.RouteValueDictionary routeValues;
                     widget.GetDisplayWidgetRoute(widgetZone, out actionName, out controllerName, out routeValues);
                     widgetModel.ActionName = actionName;
                     widgetModel.ControllerName = controllerName;
@@ -85,12 +85,12 @@ namespace Nop.Web.Factories
                 clonedWidgetModel.ActionName = widgetModel.ActionName;
                 clonedWidgetModel.ControllerName = widgetModel.ControllerName;
                 if (widgetModel.RouteValues != null)
-                    clonedWidgetModel.RouteValues = new RouteValueDictionary(widgetModel.RouteValues);
+                    clonedWidgetModel.RouteValues = new Microsoft.AspNetCore.Routing.RouteValueDictionary(widgetModel.RouteValues);
 
                 if (additionalData != null)
                 {
                     if (clonedWidgetModel.RouteValues == null)
-                        clonedWidgetModel.RouteValues = new RouteValueDictionary();
+                        clonedWidgetModel.RouteValues = new Microsoft.AspNetCore.Routing.RouteValueDictionary();
                     clonedWidgetModel.RouteValues.Add("additionalData", additionalData);
                 }
 

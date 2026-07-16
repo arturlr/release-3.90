@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Http;
+
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Plugins;
 using Nop.Core;
@@ -259,12 +261,12 @@ namespace Nop.Admin.Controllers
 
         #region Methods
 
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-        public virtual ActionResult List()
+        public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
                 return AccessDeniedView();
@@ -279,7 +281,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 	    [HttpPost]
-        public virtual ActionResult ListSelect(DataSourceRequest command, PluginListModel model)
+        public virtual IActionResult ListSelect(DataSourceRequest command, PluginListModel model)
 	    {
 	        if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
 	            return AccessDeniedKendoGridJson();
@@ -298,8 +300,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("List")]
         [FormValueRequired(FormValueRequirement.StartsWith, "install-plugin-link-")]
-        [ValidateInput(false)]
-        public virtual ActionResult Install(FormCollection form)
+        public virtual IActionResult Install(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
                 return AccessDeniedView();
@@ -308,7 +309,7 @@ namespace Nop.Admin.Controllers
             {
                 //get plugin system name
                 string systemName = null;
-                foreach (var formValue in form.AllKeys)
+                foreach (var formValue in form.Keys)
                     if (formValue.StartsWith("install-plugin-link-", StringComparison.InvariantCultureIgnoreCase))
                         systemName = formValue.Substring("install-plugin-link-".Length);
 
@@ -341,8 +342,7 @@ namespace Nop.Admin.Controllers
         }
         [HttpPost, ActionName("List")]
         [FormValueRequired(FormValueRequirement.StartsWith, "uninstall-plugin-link-")]
-        [ValidateInput(false)]
-        public virtual ActionResult Uninstall(FormCollection form)
+        public virtual IActionResult Uninstall(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
                 return AccessDeniedView();
@@ -351,7 +351,7 @@ namespace Nop.Admin.Controllers
             {
                 //get plugin system name
                 string systemName = null;
-                foreach (var formValue in form.AllKeys)
+                foreach (var formValue in form.Keys)
                     if (formValue.StartsWith("uninstall-plugin-link-", StringComparison.InvariantCultureIgnoreCase))
                         systemName = formValue.Substring("uninstall-plugin-link-".Length);
 
@@ -385,7 +385,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("List")]
         [FormValueRequired("plugin-reload-grid")]
-        public virtual ActionResult ReloadList()
+        public virtual IActionResult ReloadList()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
                 return AccessDeniedView();
@@ -395,7 +395,7 @@ namespace Nop.Admin.Controllers
             return RedirectToAction("List");
         }
         
-        public virtual ActionResult ConfigureMiscPlugin(string systemName)
+        public virtual IActionResult ConfigureMiscPlugin(string systemName)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
                 return AccessDeniedView();
@@ -408,7 +408,7 @@ namespace Nop.Admin.Controllers
             var plugin  = descriptor.Instance<IMiscPlugin>();
 
             string actionName, controllerName;
-            RouteValueDictionary routeValues;
+            Microsoft.AspNetCore.Routing.RouteValueDictionary routeValues;
             plugin.GetConfigurationRoute(out actionName, out controllerName, out routeValues);
             var model = new MiscPluginModel();
             model.FriendlyName = descriptor.FriendlyName;
@@ -419,7 +419,7 @@ namespace Nop.Admin.Controllers
         }
 
         //edit
-        public virtual ActionResult EditPopup(string systemName)
+        public virtual IActionResult EditPopup(string systemName)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
                 return AccessDeniedView();
@@ -434,7 +434,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
         [HttpPost]
-        public virtual ActionResult EditPopup(string btnId, string formId, PluginModel model)
+        public virtual IActionResult EditPopup(string btnId, string formId, PluginModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
                 return AccessDeniedView();
@@ -612,7 +612,7 @@ namespace Nop.Admin.Controllers
         }
 
         //official feed
-        public virtual ActionResult OfficialFeed()
+        public virtual IActionResult OfficialFeed()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
                 return AccessDeniedView();
@@ -643,7 +643,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
         [HttpPost]
-        public virtual ActionResult OfficialFeedSelect(DataSourceRequest command, OfficialFeedListModel model)
+        public virtual IActionResult OfficialFeedSelect(DataSourceRequest command, OfficialFeedListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePlugins))
                 return AccessDeniedKendoGridJson();

@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Customers;
@@ -93,7 +93,7 @@ namespace Nop.Web.Controllers
         #region Categories
         
         [NopHttpsRequirement(SslRequirement.No)]
-        public virtual ActionResult Category(int categoryId, CatalogPagingFilteringModel command)
+        public virtual IActionResult Category(int categoryId, CatalogPagingFilteringModel command)
         {
             var category = _categoryService.GetCategoryById(categoryId);
             if (category == null || category.Deleted)
@@ -131,23 +131,17 @@ namespace Nop.Web.Controllers
             var templateViewPath = _catalogModelFactory.PrepareCategoryTemplateViewPath(category.CategoryTemplateId);
             return View(templateViewPath, model);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult CategoryNavigation(int currentCategoryId, int currentProductId)
+        public virtual IActionResult CategoryNavigation(int currentCategoryId, int currentProductId)
         {
             var model = _catalogModelFactory.PrepareCategoryNavigationModel(currentCategoryId, currentProductId);
             return PartialView(model);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult TopMenu()
+        public virtual IActionResult TopMenu()
         {
             var model = _catalogModelFactory.PrepareTopMenuModel();
             return PartialView(model);
         }
-        
-        [ChildActionOnly]
-        public virtual ActionResult HomepageCategories()
+        public virtual IActionResult HomepageCategories()
         {
             var model = _catalogModelFactory.PrepareHomepageCategoryModels();
             if (!model.Any())
@@ -161,7 +155,7 @@ namespace Nop.Web.Controllers
         #region Manufacturers
 
         [NopHttpsRequirement(SslRequirement.No)]
-        public virtual ActionResult Manufacturer(int manufacturerId, CatalogPagingFilteringModel command)
+        public virtual IActionResult Manufacturer(int manufacturerId, CatalogPagingFilteringModel command)
         {
             var manufacturer = _manufacturerService.GetManufacturerById(manufacturerId);
             if (manufacturer == null || manufacturer.Deleted)
@@ -201,14 +195,12 @@ namespace Nop.Web.Controllers
         }
 
         [NopHttpsRequirement(SslRequirement.No)]
-        public virtual ActionResult ManufacturerAll()
+        public virtual IActionResult ManufacturerAll()
         {
             var model = _catalogModelFactory.PrepareManufacturerAllModels();
             return View(model);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult ManufacturerNavigation(int currentManufacturerId)
+        public virtual IActionResult ManufacturerNavigation(int currentManufacturerId)
         {
             if (_catalogSettings.ManufacturersBlockItemsToDisplay == 0)
                 return Content("");
@@ -226,7 +218,7 @@ namespace Nop.Web.Controllers
         #region Vendors
 
         [NopHttpsRequirement(SslRequirement.No)]
-        public virtual ActionResult Vendor(int vendorId, CatalogPagingFilteringModel command)
+        public virtual IActionResult Vendor(int vendorId, CatalogPagingFilteringModel command)
         {
             var vendor = _vendorService.GetVendorById(vendorId);
             if (vendor == null || vendor.Deleted || !vendor.Active)
@@ -249,7 +241,7 @@ namespace Nop.Web.Controllers
         }
 
         [NopHttpsRequirement(SslRequirement.No)]
-        public virtual ActionResult VendorAll()
+        public virtual IActionResult VendorAll()
         {
             //we don't allow viewing of vendors if "vendors" block is hidden
             if (_vendorSettings.VendorsBlockItemsToDisplay == 0)
@@ -258,9 +250,7 @@ namespace Nop.Web.Controllers
             var model = _catalogModelFactory.PrepareVendorAllModels();
             return View(model);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult VendorNavigation()
+        public virtual IActionResult VendorNavigation()
         {
             if (_vendorSettings.VendorsBlockItemsToDisplay == 0)
                 return Content("");
@@ -275,9 +265,7 @@ namespace Nop.Web.Controllers
         #endregion
 
         #region Product tags
-        
-        [ChildActionOnly]
-        public virtual ActionResult PopularProductTags()
+        public virtual IActionResult PopularProductTags()
         {
             var model = _catalogModelFactory.PreparePopularProductTagsModel();
 
@@ -288,7 +276,7 @@ namespace Nop.Web.Controllers
         }
 
         [NopHttpsRequirement(SslRequirement.No)]
-        public virtual ActionResult ProductsByTag(int productTagId, CatalogPagingFilteringModel command)
+        public virtual IActionResult ProductsByTag(int productTagId, CatalogPagingFilteringModel command)
         {
             var productTag = _productTagService.GetProductTagById(productTagId);
             if (productTag == null)
@@ -299,7 +287,7 @@ namespace Nop.Web.Controllers
         }
 
         [NopHttpsRequirement(SslRequirement.No)]
-        public virtual ActionResult ProductTagsAll()
+        public virtual IActionResult ProductTagsAll()
         {
             var model = _catalogModelFactory.PrepareProductTagsAllModel();
             return View(model);
@@ -310,8 +298,7 @@ namespace Nop.Web.Controllers
         #region Searching
 
         [NopHttpsRequirement(SslRequirement.No)]
-        [ValidateInput(false)]
-        public virtual ActionResult Search(SearchModel model, CatalogPagingFilteringModel command)
+        public virtual IActionResult Search(SearchModel model, CatalogPagingFilteringModel command)
         {
             //'Continue shopping' URL
             _genericAttributeService.SaveAttribute(_workContext.CurrentCustomer,
@@ -325,16 +312,12 @@ namespace Nop.Web.Controllers
             model = _catalogModelFactory.PrepareSearchModel(model, command);
             return View(model);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult SearchBox()
+        public virtual IActionResult SearchBox()
         {
             var model = _catalogModelFactory.PrepareSearchBoxModel();
             return PartialView(model);
         }
-
-        [ValidateInput(false)]
-        public virtual ActionResult SearchTermAutoComplete(string term)
+        public virtual IActionResult SearchTermAutoComplete(string term)
         {
             if (String.IsNullOrWhiteSpace(term) || term.Length < _catalogSettings.ProductSearchTermMinimumLength)
                 return Content("");
@@ -359,7 +342,7 @@ namespace Nop.Web.Controllers
                               productpictureurl = p.DefaultPictureModel.ImageUrl
                           })
                           .ToList();
-            return Json(result, JsonRequestBehavior.AllowGet);
+            return Json(result);
         }
 
         #endregion

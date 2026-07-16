@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Models.Orders;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
@@ -111,12 +112,12 @@ namespace Nop.Admin.Controllers
         #region Methods
 
         //list
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-        public virtual ActionResult List()
+        public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageReturnRequests))
                 return AccessDeniedView();
@@ -138,7 +139,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult List(DataSourceRequest command, ReturnRequestListModel model)
+        public virtual IActionResult List(DataSourceRequest command, ReturnRequestListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageReturnRequests))
                 return AccessDeniedKendoGridJson();
@@ -169,7 +170,7 @@ namespace Nop.Admin.Controllers
         }
 
         //edit
-        public virtual ActionResult Edit(int id)
+        public virtual IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageReturnRequests))
                 return AccessDeniedView();
@@ -186,7 +187,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
-        public virtual ActionResult Edit(ReturnRequestModel model, bool continueEditing)
+        public virtual IActionResult Edit(ReturnRequestModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageReturnRequests))
                 return AccessDeniedView();
@@ -222,7 +223,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("notify-customer")]
-        public virtual ActionResult NotifyCustomer(ReturnRequestModel model)
+        public virtual IActionResult NotifyCustomer(ReturnRequestModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageReturnRequests))
                 return AccessDeniedView();
@@ -247,7 +248,7 @@ namespace Nop.Admin.Controllers
 
         //delete
         [HttpPost]
-        public virtual ActionResult Delete(int id)
+        public virtual IActionResult Delete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageReturnRequests))
                 return AccessDeniedView();

@@ -1,14 +1,12 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Validators.Messages;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Messages
 {
-    [Validator(typeof(QueuedEmailValidator))]
     public partial class QueuedEmailModel: BaseNopEntityModel
     {
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.Id")]
@@ -18,47 +16,36 @@ namespace Nop.Admin.Models.Messages
         public string PriorityName { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.From")]
-        [AllowHtml]
         public string From { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.FromName")]
-        [AllowHtml]
         public string FromName { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.To")]
-        [AllowHtml]
         public string To { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.ToName")]
-        [AllowHtml]
         public string ToName { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.ReplyTo")]
-        [AllowHtml]
         public string ReplyTo { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.ReplyToName")]
-        [AllowHtml]
         public string ReplyToName { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.CC")]
-        [AllowHtml]
         public string CC { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.Bcc")]
-        [AllowHtml]
         public string Bcc { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.Subject")]
-        [AllowHtml]
         public string Subject { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.Body")]
-        [AllowHtml]
         public string Body { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.AttachmentFilePath")]
-        [AllowHtml]
         public string AttachmentFilePath { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.AttachedDownload")]
@@ -82,7 +69,6 @@ namespace Nop.Admin.Models.Messages
         public DateTime? SentOn { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.Fields.EmailAccountName")]
-        [AllowHtml]
         public string EmailAccountName { get; set; }
     }
 }

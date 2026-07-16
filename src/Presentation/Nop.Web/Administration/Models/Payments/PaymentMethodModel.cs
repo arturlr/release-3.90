@@ -1,5 +1,5 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Routing;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -8,11 +8,9 @@ namespace Nop.Admin.Models.Payments
     public partial class PaymentMethodModel : BaseNopModel
     {
         [NopResourceDisplayName("Admin.Configuration.Payment.Methods.Fields.FriendlyName")]
-        [AllowHtml]
         public string FriendlyName { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Payment.Methods.Fields.SystemName")]
-        [AllowHtml]
         public string SystemName { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Payment.Methods.Fields.DisplayOrder")]
@@ -44,6 +42,6 @@ namespace Nop.Admin.Models.Payments
 
         public string ConfigurationActionName { get; set; }
         public string ConfigurationControllerName { get; set; }
-        public RouteValueDictionary ConfigurationRouteValues { get; set; }
+        public Microsoft.AspNetCore.Routing.RouteValueDictionary ConfigurationRouteValues { get; set; }
     }
 }

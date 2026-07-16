@@ -1,19 +1,15 @@
-﻿using System.Web.Mvc;
-using FluentValidation.Attributes;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core.Domain.Forums;
 using Nop.Web.Validators.Boards;
 
 namespace Nop.Web.Models.Boards
 {
-    [Validator(typeof(EditForumPostValidator))]
     public partial class EditForumPostModel
     {
         public int Id { get; set; }
         public int ForumTopicId { get; set; }
 
         public bool IsEdit { get; set; }
-
-        [AllowHtml]
         public string Text { get; set; }
         public EditorType ForumEditor { get; set; }
 

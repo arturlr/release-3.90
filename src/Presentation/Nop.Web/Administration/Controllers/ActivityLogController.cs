@@ -1,7 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Http;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Logging;
 using Nop.Services.Helpers;
@@ -40,7 +42,7 @@ namespace Nop.Admin.Controllers
 
         #region Activity log types
 
-        public virtual ActionResult ListTypes()
+        public virtual IActionResult ListTypes()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageActivityLog))
                 return AccessDeniedView();
@@ -53,7 +55,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult SaveTypes(FormCollection form)
+        public virtual IActionResult SaveTypes(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageActivityLog))
                 return AccessDeniedView();
@@ -62,7 +64,7 @@ namespace Nop.Admin.Controllers
             _customerActivityService.InsertActivity("EditActivityLogTypes", _localizationService.GetResource("ActivityLog.EditActivityLogTypes"));
 
             string formKey = "checkbox_activity_types";
-            var checkedActivityTypes = form[formKey] != null ? form[formKey].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => Convert.ToInt32(x)).ToList() : new List<int>();
+            var checkedActivityTypes = !string.IsNullOrEmpty(form[formKey]) ? form[formKey].ToString().Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => Convert.ToInt32(x)).ToList() : new List<int>();
             
             var activityTypes = _customerActivityService.GetAllActivityTypes();
             foreach (var activityType in activityTypes)
@@ -79,7 +81,7 @@ namespace Nop.Admin.Controllers
 
         #region Activity log
 
-        public virtual ActionResult ListLogs()
+        public virtual IActionResult ListLogs()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageActivityLog))
                 return AccessDeniedView();
@@ -104,7 +106,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ListLogs(DataSourceRequest command, ActivityLogSearchModel model)
+        public virtual IActionResult ListLogs(DataSourceRequest command, ActivityLogSearchModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageActivityLog))
                 return AccessDeniedKendoGridJson();
@@ -130,7 +132,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        public virtual ActionResult AcivityLogDelete(int id)
+        public virtual IActionResult AcivityLogDelete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageActivityLog))
                 return AccessDeniedView();
@@ -148,7 +150,7 @@ namespace Nop.Admin.Controllers
             return new NullJsonResult();
         }
 
-        public virtual ActionResult ClearAll()
+        public virtual IActionResult ClearAll()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageActivityLog))
                 return AccessDeniedView();

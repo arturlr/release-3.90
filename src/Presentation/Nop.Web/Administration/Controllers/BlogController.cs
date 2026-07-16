@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Blogs;
 using Nop.Core.Domain.Blogs;
@@ -134,12 +135,12 @@ namespace Nop.Admin.Controllers
         
 		#region Blog posts
 
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-		public virtual ActionResult List()
+		public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();
@@ -155,7 +156,7 @@ namespace Nop.Admin.Controllers
 		}
 
 		[HttpPost]
-        public virtual ActionResult List(DataSourceRequest command, BlogPostListModel model)
+        public virtual IActionResult List(DataSourceRequest command, BlogPostListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedKendoGridJson();
@@ -185,7 +186,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
 		}
         
-        public virtual ActionResult Create()
+        public virtual IActionResult Create()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();
@@ -201,7 +202,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult Create(BlogPostModel model, bool continueEditing)
+        public virtual IActionResult Create(BlogPostModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();
@@ -242,7 +243,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-		public virtual ActionResult Edit(int id)
+		public virtual IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();
@@ -263,7 +264,7 @@ namespace Nop.Admin.Controllers
 		}
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-		public virtual ActionResult Edit(BlogPostModel model, bool continueEditing)
+		public virtual IActionResult Edit(BlogPostModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();
@@ -308,7 +309,7 @@ namespace Nop.Admin.Controllers
 		}
 
 		[HttpPost]
-		public virtual ActionResult Delete(int id)
+		public virtual IActionResult Delete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();
@@ -331,7 +332,7 @@ namespace Nop.Admin.Controllers
 
         #region Comments
 
-        public virtual ActionResult Comments(int? filterByBlogPostId)
+        public virtual IActionResult Comments(int? filterByBlogPostId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();
@@ -351,7 +352,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Comments(int? filterByBlogPostId, DataSourceRequest command, BlogCommentListModel model)
+        public virtual IActionResult Comments(int? filterByBlogPostId, DataSourceRequest command, BlogCommentListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedKendoGridJson();
@@ -395,7 +396,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult CommentUpdate(BlogCommentModel model)
+        public virtual IActionResult CommentUpdate(BlogCommentModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();
@@ -419,7 +420,7 @@ namespace Nop.Admin.Controllers
             return new NullJsonResult();
         }
 
-        public virtual ActionResult CommentDelete(int id)
+        public virtual IActionResult CommentDelete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();
@@ -438,7 +439,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult DeleteSelectedComments(ICollection<int> selectedIds)
+        public virtual IActionResult DeleteSelectedComments(ICollection<int> selectedIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();
@@ -460,7 +461,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ApproveSelected(ICollection<int> selectedIds)
+        public virtual IActionResult ApproveSelected(ICollection<int> selectedIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();
@@ -487,7 +488,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult DisapproveSelected(ICollection<int> selectedIds)
+        public virtual IActionResult DisapproveSelected(ICollection<int> selectedIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageBlog))
                 return AccessDeniedView();

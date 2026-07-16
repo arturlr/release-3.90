@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
@@ -6,7 +6,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 using Nop.Core;
 using Nop.Services.Security;
 using Nop.Web.Framework.Security;
@@ -30,19 +30,19 @@ namespace Nop.Admin.Controllers
         
         //custom code by nopCommerce team
         private readonly IPermissionService _permissionService;
-        private readonly HttpContextBase _context;
-        private readonly HttpResponseBase _r;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private HttpContext _context => _httpContextAccessor.HttpContext;
+        private HttpResponse _r => _context.Response;
 
         #endregion
 
         #region Ctor
 
         //custom code by nopCommerce team
-        public RoxyFilemanController(IPermissionService permissionService, HttpContextBase context)
+        public RoxyFilemanController(IPermissionService permissionService, IHttpContextAccessor httpContextAccessor)
         {
             this._permissionService = permissionService;
-            this._context = context;
-            this._r = this._context.Response;
+            this._httpContextAccessor = httpContextAccessor;
         }
 
         #endregion
@@ -54,66 +54,66 @@ namespace Nop.Admin.Controllers
 
             //custom code by nopCommerce team
             if (!_permissionService.Authorize(StandardPermissionProvider.HtmlEditorManagePictures))
-                _r.Write(GetErrorRes("You don't have required permission"));
+                _r.WriteAsync(GetErrorRes("You don't have required permission")).GetAwaiter().GetResult();
 
             try{
-                if (_context.Request["a"] != null)
-                    action = (string)_context.Request["a"];
+                if (!string.IsNullOrEmpty(_context.Request.Query["a"].ToString()))
+                    action = (string)_context.Request.Query["a"].ToString();
 
                 //custom code by nopCommerce team
                 //VerifyAction(action);
                 switch (action.ToUpper())
                 {
                     case "DIRLIST":
-                        ListDirTree(_context.Request["type"]);
+                        ListDirTree(_context.Request.Query["type"].ToString());
                         break;
                     case "FILESLIST":
-                        ListFiles(_context.Request["d"], _context.Request["type"]);
+                        ListFiles(_context.Request.Query["d"].ToString(), _context.Request.Query["type"].ToString());
                         break;
                     case "COPYDIR":
-                        CopyDir(_context.Request["d"], _context.Request["n"]);
+                        CopyDir(_context.Request.Query["d"].ToString(), _context.Request.Query["n"].ToString());
                         break;
                     case "COPYFILE":
-                        CopyFile(_context.Request["f"], _context.Request["n"]);
+                        CopyFile(_context.Request.Query["f"].ToString(), _context.Request.Query["n"].ToString());
                         break;
                     case "CREATEDIR":
-                        CreateDir(_context.Request["d"], _context.Request["n"]);
+                        CreateDir(_context.Request.Query["d"].ToString(), _context.Request.Query["n"].ToString());
                         break;
                     case "DELETEDIR":
-                        DeleteDir(_context.Request["d"]);
+                        DeleteDir(_context.Request.Query["d"].ToString());
                         break;
                     case "DELETEFILE":
-                        DeleteFile(_context.Request["f"]);
+                        DeleteFile(_context.Request.Query["f"].ToString());
                         break;
                     case "DOWNLOAD":
-                        DownloadFile(_context.Request["f"]);
+                        DownloadFile(_context.Request.Query["f"].ToString());
                         break;
                     case "DOWNLOADDIR":
-                        DownloadDir(_context.Request["d"]);
+                        DownloadDir(_context.Request.Query["d"].ToString());
                         break;
                     case "MOVEDIR":
-                        MoveDir(_context.Request["d"], _context.Request["n"]);
+                        MoveDir(_context.Request.Query["d"].ToString(), _context.Request.Query["n"].ToString());
                         break;
                     case "MOVEFILE":
-                        MoveFile(_context.Request["f"], _context.Request["n"]);
+                        MoveFile(_context.Request.Query["f"].ToString(), _context.Request.Query["n"].ToString());
                         break;
                     case "RENAMEDIR":
-                        RenameDir(_context.Request["d"], _context.Request["n"]);
+                        RenameDir(_context.Request.Query["d"].ToString(), _context.Request.Query["n"].ToString());
                         break;
                     case "RENAMEFILE":
-                        RenameFile(_context.Request["f"], _context.Request["n"]);
+                        RenameFile(_context.Request.Query["f"].ToString(), _context.Request.Query["n"].ToString());
                         break;
                     case "GENERATETHUMB":
                         int w = 140, h = 0;
-                        int.TryParse(_context.Request["width"].Replace("px", ""), out w);
-                        int.TryParse(_context.Request["height"].Replace("px", ""), out h);
-                        ShowThumbnail(_context.Request["f"], w, h);
+                        int.TryParse(_context.Request.Query["width"].ToString().Replace("px", ""), out w);
+                        int.TryParse(_context.Request.Query["height"].ToString().Replace("px", ""), out h);
+                        ShowThumbnail(_context.Request.Query["f"].ToString(), w, h);
                         break;
                     case "UPLOAD":
-                        Upload(_context.Request["d"]);
+                        Upload(_context.Request.Query["d"].ToString());
                         break;
                     default:
-                        _r.Write(GetErrorRes("This action is not implemented."));
+                        _r.WriteAsync(GetErrorRes("This action is not implemented.")).GetAwaiter().GetResult();
                         break;
                 }
         
@@ -121,12 +121,12 @@ namespace Nop.Admin.Controllers
             catch(Exception ex){
                 if (action == "UPLOAD" && !IsAjaxUpload())
                 {
-                    _r.Write("<script>");
-                    _r.Write("parent.fileUploaded(" + GetErrorRes(LangRes("E_UploadNoFiles")) + ");");
-                    _r.Write("</script>");
+                    _r.WriteAsync("<script>").GetAwaiter().GetResult();
+                    _r.WriteAsync("parent.fileUploaded(" + GetErrorRes(LangRes("E_UploadNoFiles")) + ");").GetAwaiter().GetResult();
+                    _r.WriteAsync("</script>").GetAwaiter().GetResult();
                 }
                 else{
-                    _r.Write(GetErrorRes(ex.Message));
+                    _r.WriteAsync(GetErrorRes(ex.Message)).GetAwaiter().GetResult();
                 }
             }
         
@@ -153,11 +153,11 @@ namespace Nop.Admin.Controllers
             if (!path.ToLowerInvariant().Contains(rootDirectory.ToLowerInvariant()))
                 path = rootDirectory;
 
-            return _context.Server.MapPath(path);
+            return System.IO.Path.Combine(AppContext.BaseDirectory, path);
         }
         private string GetLangFile(){
             string filename = "../lang/" + GetSetting("LANG") + ".json";
-            if (!System.IO.File.Exists(_context.Server.MapPath(filename)))
+            if (!System.IO.File.Exists(System.IO.Path.Combine(AppContext.BaseDirectory, filename)))
                 filename = "../lang/en.json";
             return filename;
         }
@@ -208,7 +208,7 @@ namespace Nop.Admin.Controllers
             Dictionary<string, string> ret = new Dictionary<string,string>();
             string json = "";
             try{
-                json = System.IO.File.ReadAllText(_context.Server.MapPath(file), System.Text.Encoding.UTF8);
+                json = System.IO.File.ReadAllText(System.IO.Path.Combine(AppContext.BaseDirectory, file), System.Text.Encoding.UTF8);
             }
             catch{}
 
@@ -234,11 +234,11 @@ namespace Nop.Admin.Controllers
         }
         protected virtual string GetFilesRoot(){
             string ret = GetSetting("FILES_ROOT");
-            if (GetSetting("SESSION_PATH_KEY") != "" && _context.Session[GetSetting("SESSION_PATH_KEY")] != null)
-                ret = (string)_context.Session[GetSetting("SESSION_PATH_KEY")];
+            if (GetSetting("SESSION_PATH_KEY") != "" && _context.Session.GetString(GetSetting("SESSION_PATH_KEY")) != null)
+                ret = _context.Session.GetString(GetSetting("SESSION_PATH_KEY"));
         
             if(ret == "")
-                ret = _context.Server.MapPath("../Uploads");
+                ret = System.IO.Path.Combine(AppContext.BaseDirectory, "../Uploads");
             else
                 ret = FixPath(ret);
             return ret;
@@ -271,7 +271,7 @@ namespace Nop.Admin.Controllers
                 setting = "/" + setting;
             setting = ".." + setting;
         
-            if (_context.Server.MapPath(setting) != _context.Server.MapPath(_context.Request.Url.LocalPath))
+            if (System.IO.Path.Combine(AppContext.BaseDirectory, setting) != System.IO.Path.Combine(AppContext.BaseDirectory, Request.Path.Value))
                 throw new Exception(LangRes("E_ActionDisabled"));
         }
         protected virtual string GetResultStr(string type, string msg)
@@ -324,7 +324,7 @@ namespace Nop.Admin.Controllers
             else{
                 _copyDir(dir.FullName, newDir.FullName);
             }
-            _r.Write(GetSuccessRes());
+            _r.WriteAsync(GetSuccessRes()).GetAwaiter().GetResult();
         }
         protected virtual string MakeUniqueFilename(string dir, string filename){
             string ret = filename;
@@ -347,7 +347,7 @@ namespace Nop.Admin.Controllers
                 string newName = MakeUniqueFilename(newPath, file.Name);
                 try{
                     System.IO.File.Copy(file.FullName, Path.Combine(newPath, newName));
-                    _r.Write(GetSuccessRes());
+                    _r.WriteAsync(GetSuccessRes()).GetAwaiter().GetResult();
                 }
                 catch{
                     throw new Exception(LangRes("E_CopyFile"));
@@ -366,7 +366,7 @@ namespace Nop.Admin.Controllers
                     path = Path.Combine(path, name);
                     if(!Directory.Exists(path))
                         Directory.CreateDirectory(path);
-                    _r.Write(GetSuccessRes());
+                    _r.WriteAsync(GetSuccessRes()).GetAwaiter().GetResult();
                 }
                 catch
                 {
@@ -389,7 +389,7 @@ namespace Nop.Admin.Controllers
                 try
                 {
                     Directory.Delete(path);
-                    _r.Write(GetSuccessRes());
+                    _r.WriteAsync(GetSuccessRes()).GetAwaiter().GetResult();
                 }
                 catch
                 {
@@ -408,7 +408,7 @@ namespace Nop.Admin.Controllers
                 try
                 {
                     System.IO.File.Delete(path);
-                    _r.Write(GetSuccessRes());
+                    _r.WriteAsync(GetSuccessRes()).GetAwaiter().GetResult();
                 }
                 catch
                 {
@@ -445,15 +445,14 @@ namespace Nop.Admin.Controllers
             ArrayList dirs = ListDirs(d.FullName);
             dirs.Insert(0, d.FullName);
         
-            string localPath = _context.Server.MapPath("~/");
-            _r.Write("[");
+            string localPath = System.IO.Path.Combine(AppContext.BaseDirectory, "");
+            _r.WriteAsync("[").GetAwaiter().GetResult();
             for(int i = 0; i <dirs.Count; i++){
                 string dir = (string) dirs[i];
-                _r.Write("{\"p\":\"/" + dir.Replace(localPath, "").Replace("\\", "/") + "\",\"f\":\"" + GetFiles(dir, type).Count.ToString() + "\",\"d\":\"" + Directory.GetDirectories(dir).Length.ToString() + "\"}");
-                if(i < dirs.Count -1)
-                    _r.Write(",");
+                _r.WriteAsync("{\"p\":\"/" + dir.Replace(localPath, "").Replace("\\", "/") + "\",\"f\":\"" + GetFiles(dir, type).Count.ToString() + "\",\"d\":\"" + Directory.GetDirectories(dir).Length.ToString() + "\"}").GetAwaiter().GetResult();                if(i < dirs.Count -1)
+                    _r.WriteAsync(",").GetAwaiter().GetResult();
             }
-            _r.Write("]");
+            _r.WriteAsync("]").GetAwaiter().GetResult();
         }
         protected virtual double LinuxTimestamp(DateTime d){
             DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0).ToLocalTime();
@@ -467,7 +466,7 @@ namespace Nop.Admin.Controllers
             CheckPath(path);
             string fullPath = FixPath(path);
             List<string> files = GetFiles(fullPath, type);
-            _r.Write("[");
+            _r.WriteAsync("[").GetAwaiter().GetResult();
             for(int i = 0; i < files.Count; i++){
                 FileInfo f = new FileInfo(files[i]);
                 int w = 0, h = 0;
@@ -484,17 +483,17 @@ namespace Nop.Admin.Controllers
                     }
                     catch(Exception ex){throw ex;}
                 }
-                _r.Write("{");
-                _r.Write("\"p\":\""+path + "/" + f.Name+"\"");
-                _r.Write(",\"t\":\"" + Math.Ceiling(LinuxTimestamp(f.LastWriteTime)).ToString() + "\"");
-                _r.Write(",\"s\":\""+f.Length.ToString()+"\"");
-                _r.Write(",\"w\":\""+w.ToString()+"\"");
-                _r.Write(",\"h\":\""+h.ToString()+"\"");
-                _r.Write("}");
+                _r.WriteAsync("{").GetAwaiter().GetResult();
+                _r.WriteAsync("\"p\":\""+path + "/" + f.Name+"\"").GetAwaiter().GetResult();
+                _r.WriteAsync(",\"t\":\"" + Math.Ceiling(LinuxTimestamp(f.LastWriteTime)).ToString() + "\"").GetAwaiter().GetResult();
+                _r.WriteAsync(",\"s\":\""+f.Length.ToString()+"\"").GetAwaiter().GetResult();
+                _r.WriteAsync(",\"w\":\""+w.ToString()+"\"").GetAwaiter().GetResult();
+                _r.WriteAsync(",\"h\":\""+h.ToString()+"\"").GetAwaiter().GetResult();
+                _r.WriteAsync("}").GetAwaiter().GetResult();
                 if (i < files.Count - 1)
-                    _r.Write(",");
+                    _r.WriteAsync(",").GetAwaiter().GetResult();
             }
-            _r.Write("]");
+            _r.WriteAsync("]").GetAwaiter().GetResult();
         }
         public virtual void DownloadDir(string path)
         {
@@ -502,17 +501,17 @@ namespace Nop.Admin.Controllers
             if(!Directory.Exists(path))
                 throw new Exception(LangRes("E_CreateArchive"));
             string dirName = new FileInfo(path).Name;
-            string tmpZip = _context.Server.MapPath("../tmp/" + dirName + ".zip");
+            string tmpZip = System.IO.Path.Combine(AppContext.BaseDirectory, "../tmp/" + dirName + ".zip");
             if (System.IO.File.Exists(tmpZip))
                 System.IO.File.Delete(tmpZip);
             ZipFile.CreateFromDirectory(path, tmpZip,CompressionLevel.Fastest, true);
             _r.Clear();
             _r.Headers.Add("Content-Disposition", "attachment; filename=\"" + dirName + ".zip\"");
             _r.ContentType = MimeTypes.ApplicationForceDownload;
-            _r.TransmitFile(tmpZip);
-            _r.Flush();
+            _r.SendFileAsync(tmpZip).GetAwaiter().GetResult();
+            _r.Body.FlushAsync().GetAwaiter().GetResult();
             System.IO.File.Delete(tmpZip);
-            _r.End();
+            /* Response.End removed */
         }
         protected virtual void DownloadFile(string path)
         {
@@ -522,9 +521,9 @@ namespace Nop.Admin.Controllers
                 _r.Clear();
                 _r.Headers.Add("Content-Disposition", "attachment; filename=\"" + file.Name + "\"");
                 _r.ContentType = MimeTypes.ApplicationForceDownload;
-                _r.TransmitFile(file.FullName);
-                _r.Flush();
-                _r.End();
+                _r.SendFileAsync(file.FullName).GetAwaiter().GetResult();
+                _r.Body.FlushAsync().GetAwaiter().GetResult();
+                /* Response.End removed */
             }
         }
         protected virtual void MoveDir(string path, string newPath)
@@ -542,7 +541,7 @@ namespace Nop.Admin.Controllers
             else{
                 try{
                     source.MoveTo(dest.FullName);
-                    _r.Write(GetSuccessRes());
+                    _r.WriteAsync(GetSuccessRes()).GetAwaiter().GetResult();
                 }
                 catch{
                     throw new Exception(LangRes("E_MoveDir") + " \"" + path + "\"");
@@ -565,7 +564,7 @@ namespace Nop.Admin.Controllers
                 try
                 {
                     source.MoveTo(dest.FullName);
-                    _r.Write(GetSuccessRes());
+                    _r.WriteAsync(GetSuccessRes()).GetAwaiter().GetResult();
                 }
                 catch
                 {
@@ -589,7 +588,7 @@ namespace Nop.Admin.Controllers
                 try
                 {
                     source.MoveTo(dest.FullName);
-                    _r.Write(GetSuccessRes());
+                    _r.WriteAsync(GetSuccessRes()).GetAwaiter().GetResult();
                 }
                 catch
                 {
@@ -611,7 +610,7 @@ namespace Nop.Admin.Controllers
                 try
                 {
                     source.MoveTo(dest.FullName);
-                    _r.Write(GetSuccessRes());
+                    _r.WriteAsync(GetSuccessRes()).GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
                 {
@@ -668,9 +667,9 @@ namespace Nop.Admin.Controllers
             img.Dispose();
             Image.GetThumbnailImageAbort imgCallback = new Image.GetThumbnailImageAbort(ThumbnailCallback);
 
-            _r.AddHeader("Content-Type", MimeTypes.ImagePng);
-            cropImg.GetThumbnailImage(width, height, imgCallback, IntPtr.Zero).Save(_r.OutputStream, ImageFormat.Png);
-            _r.OutputStream.Close();
+            _r.Headers.Append("Content-Type", MimeTypes.ImagePng);
+            cropImg.GetThumbnailImage(width, height, imgCallback, IntPtr.Zero).Save(_r.Body, ImageFormat.Png);
+            _r.Body.Close();
             cropImg.Dispose();
         }
         private ImageFormat GetImageFormat(string filename){
@@ -711,7 +710,7 @@ namespace Nop.Admin.Controllers
         }
         protected virtual bool IsAjaxUpload()
         {
-            return (_context.Request["method"] != null && _context.Request["method"].ToString() == "ajax");
+            return (!string.IsNullOrEmpty(_context.Request.Query["method"].ToString()) && _context.Request.Query["method"].ToString() == "ajax");
         }
         protected virtual void Upload(string path)
         {
@@ -720,13 +719,13 @@ namespace Nop.Admin.Controllers
             string res = GetSuccessRes();
             bool hasErrors = false;
             try{
-                for(int i = 0; i < Request.Files.Count; i++){
-                    if (CanHandleFile(Request.Files[i].FileName))
+                for(int i = 0; i < Request.Form.Files.Count; i++){
+                    if (CanHandleFile(Request.Form.Files[i].FileName))
                     {
-                        FileInfo f = new FileInfo(Request.Files[i].FileName);
+                        FileInfo f = new FileInfo(Request.Form.Files[i].FileName);
                         string filename = MakeUniqueFilename(path, f.Name);
                         string dest = Path.Combine(path, filename);
-                        Request.Files[i].SaveAs(dest);
+                        Request.Form.Files[i].CopyTo(new FileStream(dest, FileMode.Create));
                         if (GetFileType(new FileInfo(filename).Extension) == "image")
                         {
                             int w = 0;
@@ -750,13 +749,13 @@ namespace Nop.Admin.Controllers
             {
                 if(hasErrors)
                     res = GetErrorRes(LangRes("E_UploadNotAll"));
-                _r.Write(res);
+                _r.WriteAsync(res).GetAwaiter().GetResult();
             }
             else
             {
-                _r.Write("<script>");
-                _r.Write("parent.fileUploaded(" + res + ");");
-                _r.Write("</script>");
+                _r.WriteAsync("<script>").GetAwaiter().GetResult();
+                _r.WriteAsync("parent.fileUploaded(" + res + ").GetAwaiter().GetResult();");
+                _r.WriteAsync("</script>").GetAwaiter().GetResult();
             }
         }
         

@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.IO;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Services.Media;
 using Nop.Web.Framework.Security;
@@ -20,7 +20,7 @@ namespace Nop.Admin.Controllers
         [HttpPost]
         //do not validate request token (XSRF)
         [AdminAntiForgery(true)] 
-        public virtual ActionResult AsyncUpload()
+        public virtual IActionResult AsyncUpload()
         {
             //if (!_permissionService.Authorize(StandardPermissionProvider.UploadPictures))
             //    return Json(new { success = false, error = "You do not have required permissions" }, "text/plain");
@@ -30,21 +30,21 @@ namespace Nop.Admin.Controllers
             Stream stream = null;
             var fileName = "";
             var contentType = "";
-            if (String.IsNullOrEmpty(Request["qqfile"]))
+            if (String.IsNullOrEmpty(Request.Query["qqfile"].ToString()))
             {
                 // IE
-                HttpPostedFileBase httpPostedFile = Request.Files[0];
+                IFormFile httpPostedFile = Request.Form.Files[0];
                 if (httpPostedFile == null)
                     throw new ArgumentException("No file uploaded");
-                stream = httpPostedFile.InputStream;
+                stream = httpPostedFile.OpenReadStream();
                 fileName = Path.GetFileName(httpPostedFile.FileName);
                 contentType = httpPostedFile.ContentType;
             }
             else
             {
                 //Webkit, Mozilla
-                stream = Request.InputStream;
-                fileName = Request["qqfile"];
+                stream = Request.Body;
+                fileName = Request.Query["qqfile"].ToString();
             }
 
             var fileBinary = new byte[stream.Length];

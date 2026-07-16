@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc;
+
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Tax;
 using Nop.Core.Domain.Tax;
@@ -44,7 +44,7 @@ namespace Nop.Admin.Controllers
 
         #region Tax Providers
 
-        public virtual ActionResult Providers()
+        public virtual IActionResult Providers()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return AccessDeniedView();
@@ -53,7 +53,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Providers(DataSourceRequest command)
+        public virtual IActionResult Providers(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return AccessDeniedKendoGridJson();
@@ -72,7 +72,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        public virtual ActionResult ConfigureProvider(string systemName)
+        public virtual IActionResult ConfigureProvider(string systemName)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return AccessDeniedView();
@@ -84,7 +84,7 @@ namespace Nop.Admin.Controllers
 
             var model = taxProvider.ToModel();
             string actionName, controllerName;
-            RouteValueDictionary routeValues;
+            Microsoft.AspNetCore.Routing.RouteValueDictionary routeValues;
             taxProvider.GetConfigurationRoute(out actionName, out controllerName, out routeValues);
             model.ConfigurationActionName = actionName;
             model.ConfigurationControllerName = controllerName;
@@ -92,7 +92,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult MarkAsPrimaryProvider(string systemName)
+        public virtual IActionResult MarkAsPrimaryProvider(string systemName)
         {
             if (String.IsNullOrEmpty(systemName))
             {
@@ -116,7 +116,7 @@ namespace Nop.Admin.Controllers
 
         #region Tax Categories
 
-        public virtual ActionResult Categories()
+        public virtual IActionResult Categories()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return AccessDeniedView();
@@ -125,7 +125,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Categories(DataSourceRequest command)
+        public virtual IActionResult Categories(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return AccessDeniedKendoGridJson();
@@ -143,7 +143,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult CategoryUpdate(TaxCategoryModel model)
+        public virtual IActionResult CategoryUpdate(TaxCategoryModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return AccessDeniedView();
@@ -161,7 +161,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult CategoryAdd([Bind(Exclude = "Id")] TaxCategoryModel model)
+        public virtual IActionResult CategoryAdd(TaxCategoryModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return AccessDeniedView();
@@ -179,7 +179,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult CategoryDelete(int id)
+        public virtual IActionResult CategoryDelete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return AccessDeniedView();

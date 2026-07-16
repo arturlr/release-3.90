@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using System.ServiceModel.Syndication;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using System.Xml;
 using Nop.Admin.Infrastructure.Cache;
 using Nop.Admin.Models.Home;
@@ -64,21 +64,19 @@ namespace Nop.Admin.Controllers
 
         #region Methods
 
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             var model = new DashboardModel();
             model.IsLoggedInAsVendor = _workContext.CurrentVendor != null;
             return View(model);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult NopCommerceNews()
+        public virtual IActionResult NopCommerceNews()
         {
             try
             {
                 string feedUrl = string.Format("http://www.nopCommerce.com/NewsRSS.aspx?Version={0}&Localhost={1}&HideAdvertisements={2}&StoreURL={3}",
                     NopVersion.CurrentVersion, 
-                    Request.Url.IsLoopback,
+                    new System.Uri(Microsoft.AspNetCore.Http.Extensions.UriHelper.GetDisplayUrl(Request)).IsLoopback,
                     _adminAreaSettings.HideAdvertisementsOnAdminArea,
                     _storeContext.CurrentStore.Url)
                     .ToLowerInvariant();
@@ -137,15 +135,13 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult NopCommerceNewsHideAdv()
+        public virtual IActionResult NopCommerceNewsHideAdv()
         {
             _adminAreaSettings.HideAdvertisementsOnAdminArea = !_adminAreaSettings.HideAdvertisementsOnAdminArea;
             _settingService.SaveSetting(_adminAreaSettings);
             return Content("Setting changed");
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult CommonStatistics()
+        public virtual IActionResult CommonStatistics()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCustomers) ||
                 !_permissionService.Authorize(StandardPermissionProvider.ManageOrders) ||

@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Orders;
 using Nop.Core;
@@ -66,12 +67,12 @@ namespace Nop.Admin.Controllers
         #region Methods
 
         //list
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-        public virtual ActionResult List()
+        public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageGiftCards))
                 return AccessDeniedView();
@@ -96,7 +97,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult GiftCardList(DataSourceRequest command, GiftCardListModel model)
+        public virtual IActionResult GiftCardList(DataSourceRequest command, GiftCardListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageGiftCards))
                 return AccessDeniedKendoGridJson();
@@ -126,7 +127,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        public virtual ActionResult Create()
+        public virtual IActionResult Create()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageGiftCards))
                 return AccessDeniedView();
@@ -138,7 +139,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult Create(GiftCardModel model, bool continueEditing)
+        public virtual IActionResult Create(GiftCardModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageGiftCards))
                 return AccessDeniedView();
@@ -161,7 +162,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult Edit(int id)
+        public virtual IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageGiftCards))
                 return AccessDeniedView();
@@ -184,7 +185,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
-        public virtual ActionResult Edit(GiftCardModel model, bool continueEditing)
+        public virtual IActionResult Edit(GiftCardModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageGiftCards))
                 return AccessDeniedView();
@@ -223,14 +224,14 @@ namespace Nop.Admin.Controllers
         }
         
         [HttpPost]
-        public virtual ActionResult GenerateCouponCode()
+        public virtual IActionResult GenerateCouponCode()
         {
-            return Json(new { CouponCode = _giftCardService.GenerateGiftCardCode() }, JsonRequestBehavior.AllowGet);
+            return Json(new { CouponCode = _giftCardService.GenerateGiftCardCode() });
         }
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("notifyRecipient")]
-        public virtual ActionResult NotifyRecipient(GiftCardModel model)
+        public virtual IActionResult NotifyRecipient(GiftCardModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageGiftCards))
                 return AccessDeniedView();
@@ -283,7 +284,7 @@ namespace Nop.Admin.Controllers
         }
         
         [HttpPost]
-        public virtual ActionResult Delete(int id)
+        public virtual IActionResult Delete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageGiftCards))
                 return AccessDeniedView();
@@ -304,7 +305,7 @@ namespace Nop.Admin.Controllers
         
         //Gif card usage history
         [HttpPost]
-        public virtual ActionResult UsageHistoryList(int giftCardId, DataSourceRequest command)
+        public virtual IActionResult UsageHistoryList(int giftCardId, DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageGiftCards))
                 return AccessDeniedKendoGridJson();

@@ -1,8 +1,7 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core.Configuration;
 using Nop.Core.Infrastructure;
-using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc.Routes;
 
 namespace Nop.Web.Infrastructure
@@ -10,52 +9,39 @@ namespace Nop.Web.Infrastructure
     //Routes used for backward compatibility with 2.x versions of nopCommerce
     public partial class BackwardCompatibility2XRouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
         {
             var config = EngineContext.Current.Resolve<NopConfig>();
             if (!config.SupportPreviousNopcommerceVersions)
                 return;
 
             //products
-            routes.MapLocalizedRoute("", "p/{productId}/{SeName}",
-                new { controller = "BackwardCompatibility2X", action = "RedirectProductById", SeName = UrlParameter.Optional },
-                new { productId = @"\d+" },
-                new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("", "p/{productId:int}/{SeName?}",
+                new { controller = "BackwardCompatibility2X", action = "RedirectProductById" });
 
             //categories
-            routes.MapLocalizedRoute("", "c/{categoryId}/{SeName}",
-                new { controller = "BackwardCompatibility2X", action = "RedirectCategoryById", SeName = UrlParameter.Optional },
-                new { categoryId = @"\d+" },
-                new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("", "c/{categoryId:int}/{SeName?}",
+                new { controller = "BackwardCompatibility2X", action = "RedirectCategoryById" });
 
             //manufacturers
-            routes.MapLocalizedRoute("", "m/{manufacturerId}/{SeName}",
-                new { controller = "BackwardCompatibility2X", action = "RedirectManufacturerById", SeName = UrlParameter.Optional },
-                new { manufacturerId = @"\d+" },
-                new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("", "m/{manufacturerId:int}/{SeName?}",
+                new { controller = "BackwardCompatibility2X", action = "RedirectManufacturerById" });
 
             //news
-            routes.MapLocalizedRoute("", "news/{newsItemId}/{SeName}",
-                new { controller = "BackwardCompatibility2X", action = "RedirectNewsItemById", SeName = UrlParameter.Optional },
-                new { newsItemId = @"\d+" },
-                new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("", "news/{newsItemId:int}/{SeName?}",
+                new { controller = "BackwardCompatibility2X", action = "RedirectNewsItemById" });
 
             //blog
-            routes.MapLocalizedRoute("", "blog/{blogPostId}/{SeName}",
-                new { controller = "BackwardCompatibility2X", action = "RedirectBlogPostById", SeName = UrlParameter.Optional },
-                new { blogPostId = @"\d+" },
-                new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("", "blog/{blogPostId:int}/{SeName?}",
+                new { controller = "BackwardCompatibility2X", action = "RedirectBlogPostById" });
 
             //topic
-            routes.MapLocalizedRoute("", "t/{SystemName}",
-                new { controller = "BackwardCompatibility2X", action = "RedirectTopicBySystemName" },
-                new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("", "t/{SystemName}",
+                new { controller = "BackwardCompatibility2X", action = "RedirectTopicBySystemName" });
 
             //vendors
-            routes.MapLocalizedRoute("", "vendor/{vendorId}/{SeName}",
-                new { controller = "BackwardCompatibility2X", action = "RedirectVendorById", SeName = UrlParameter.Optional },
-                new { vendorId = @"\d+" },
-                new[] { "Nop.Web.Controllers" });
+            endpointRouteBuilder.MapControllerRoute("", "vendor/{vendorId:int}/{SeName?}",
+                new { controller = "BackwardCompatibility2X", action = "RedirectVendorById" });
         }
 
         public int Priority

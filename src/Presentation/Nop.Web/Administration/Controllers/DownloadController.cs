@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.IO;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Media;
 using Nop.Services.Media;
@@ -18,7 +18,7 @@ namespace Nop.Admin.Controllers
             this._downloadService = downloadService;
         }
 
-        public virtual ActionResult DownloadFile(Guid downloadGuid)
+        public virtual IActionResult DownloadFile(Guid downloadGuid)
         {
             var download = _downloadService.GetDownloadByGuid(downloadGuid);
             if (download == null)
@@ -42,10 +42,9 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        [ValidateInput(false)]
         //do not validate request token (XSRF)
         [AdminAntiForgery(true)] 
-        public virtual ActionResult SaveDownloadUrl(string downloadUrl)
+        public virtual IActionResult SaveDownloadUrl(string downloadUrl)
         {
             //insert
             var download = new Download
@@ -57,34 +56,34 @@ namespace Nop.Admin.Controllers
               };
             _downloadService.InsertDownload(download);
 
-            return Json(new { downloadId = download.Id }, JsonRequestBehavior.AllowGet);
+            return Json(new { downloadId = download.Id });
         }
 
         [HttpPost]
         //do not validate request token (XSRF)
         [AdminAntiForgery(true)]
-        public virtual ActionResult AsyncUpload()
+        public virtual IActionResult AsyncUpload()
         {
             //we process it distinct ways based on a browser
             //find more info here http://stackoverflow.com/questions/4884920/mvc3-valums-ajax-file-upload
             Stream stream = null;
             var fileName = "";
             var contentType = "";
-            if (String.IsNullOrEmpty(Request["qqfile"]))
+            if (String.IsNullOrEmpty(Request.Query["qqfile"].ToString()))
             {
                 // IE
-                HttpPostedFileBase httpPostedFile = Request.Files[0];
+                IFormFile httpPostedFile = Request.Form.Files[0];
                 if (httpPostedFile == null)
                     throw new ArgumentException("No file uploaded");
-                stream = httpPostedFile.InputStream;
+                stream = httpPostedFile.OpenReadStream();
                 fileName = Path.GetFileName(httpPostedFile.FileName);
                 contentType = httpPostedFile.ContentType;
             }
             else
             {
                 //Webkit, Mozilla
-                stream = Request.InputStream;
-                fileName = Request["qqfile"];
+                stream = Request.Body;
+                fileName = Request.Query["qqfile"].ToString();
             }
 
             var fileBinary = new byte[stream.Length];

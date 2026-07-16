@@ -1,14 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Validators.Forums;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Forums
 {
-    [Validator(typeof(ForumValidator))]
     public partial class ForumModel : BaseNopEntityModel
     {
         public ForumModel()
@@ -20,11 +18,9 @@ namespace Nop.Admin.Models.Forums
         public int ForumGroupId { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Forums.Forum.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Forums.Forum.Fields.Description")]
-        [AllowHtml]
         public string Description { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Forums.Forum.Fields.DisplayOrder")]

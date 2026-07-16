@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -66,7 +66,6 @@ namespace Nop.Admin.Models.Settings
         public bool ShowShareButton_OverrideForStore { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Settings.Catalog.PageShareCode")]
-        [AllowHtml]
         public string PageShareCode { get; set; }
         public bool PageShareCode_OverrideForStore { get; set; }
 

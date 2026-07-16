@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -29,27 +29,21 @@ namespace Nop.Admin.Models.Orders
         public bool IsGiftCardActivated { get; set; }
 
         [NopResourceDisplayName("Admin.GiftCards.Fields.GiftCardCouponCode")]
-        [AllowHtml]
         public string GiftCardCouponCode { get; set; }
 
         [NopResourceDisplayName("Admin.GiftCards.Fields.RecipientName")]
-        [AllowHtml]
         public string RecipientName { get; set; }
 
         [NopResourceDisplayName("Admin.GiftCards.Fields.RecipientEmail")]
-        [AllowHtml]
         public string RecipientEmail { get; set; }
 
         [NopResourceDisplayName("Admin.GiftCards.Fields.SenderName")]
-        [AllowHtml]
         public string SenderName { get; set; }
 
         [NopResourceDisplayName("Admin.GiftCards.Fields.SenderEmail")]
-        [AllowHtml]
         public string SenderEmail { get; set; }
 
         [NopResourceDisplayName("Admin.GiftCards.Fields.Message")]
-        [AllowHtml]
         public string Message { get; set; }
 
         [NopResourceDisplayName("Admin.GiftCards.Fields.IsRecipientNotified")]

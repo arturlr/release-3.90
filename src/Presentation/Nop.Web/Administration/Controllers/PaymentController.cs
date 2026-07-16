@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Payments;
 using Nop.Core;
@@ -58,7 +59,7 @@ namespace Nop.Admin.Controllers
 
         #region Methods
 
-        public virtual ActionResult Methods()
+        public virtual IActionResult Methods()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
                 return AccessDeniedView();
@@ -67,7 +68,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Methods(DataSourceRequest command)
+        public virtual IActionResult Methods(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
                 return AccessDeniedKendoGridJson();
@@ -92,7 +93,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult MethodUpdate([Bind(Exclude = "ConfigurationRouteValues")] PaymentMethodModel model)
+        public virtual IActionResult MethodUpdate(PaymentMethodModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
                 return AccessDeniedView();
@@ -126,7 +127,7 @@ namespace Nop.Admin.Controllers
             return new NullJsonResult();
         }
 
-        public virtual ActionResult ConfigureMethod(string systemName)
+        public virtual IActionResult ConfigureMethod(string systemName)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
                 return AccessDeniedView();
@@ -138,7 +139,7 @@ namespace Nop.Admin.Controllers
 
             var model = pm.ToModel();
             string actionName, controllerName;
-            RouteValueDictionary routeValues;
+            Microsoft.AspNetCore.Routing.RouteValueDictionary routeValues;
             pm.GetConfigurationRoute(out actionName, out controllerName, out routeValues);
             model.ConfigurationActionName = actionName;
             model.ConfigurationControllerName = controllerName;
@@ -146,7 +147,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult MethodRestrictions()
+        public virtual IActionResult MethodRestrictions()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
                 return AccessDeniedView();
@@ -179,7 +180,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ActionName("MethodRestrictions")]
-        public virtual ActionResult MethodRestrictionsSave(FormCollection form)
+        public virtual IActionResult MethodRestrictionsSave(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
                 return AccessDeniedView();
@@ -190,7 +191,7 @@ namespace Nop.Admin.Controllers
             foreach (var pm in paymentMethods)
             {
                 string formKey = "restrict_" + pm.PluginDescriptor.SystemName;
-                var countryIdsToRestrict = (form[formKey] != null ? form[formKey].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>())
+                var countryIdsToRestrict = (!string.IsNullOrEmpty(form[formKey]) ? form[formKey].ToString().Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>())
                     .Select(x => Convert.ToInt32(x)).ToList();
 
                 var newCountryIds = new List<int>();

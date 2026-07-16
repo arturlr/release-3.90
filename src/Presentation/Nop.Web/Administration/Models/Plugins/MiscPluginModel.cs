@@ -1,4 +1,4 @@
-﻿using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Plugins
@@ -9,6 +9,6 @@ namespace Nop.Admin.Models.Plugins
 
         public string ConfigurationActionName { get; set; }
         public string ConfigurationControllerName { get; set; }
-        public RouteValueDictionary ConfigurationRouteValues { get; set; }
+        public Microsoft.AspNetCore.Routing.RouteValueDictionary ConfigurationRouteValues { get; set; }
     }
 }

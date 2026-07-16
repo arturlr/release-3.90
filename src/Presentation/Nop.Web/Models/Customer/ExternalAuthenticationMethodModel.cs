@@ -1,4 +1,4 @@
-﻿using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Web.Models.Customer
@@ -7,6 +7,6 @@ namespace Nop.Web.Models.Customer
     {
         public string ActionName { get; set; }
         public string ControllerName { get; set; }
-        public RouteValueDictionary RouteValues { get; set; }
+        public Microsoft.AspNetCore.Routing.RouteValueDictionary RouteValues { get; set; }
     }
 }

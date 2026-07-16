@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Catalog;
@@ -128,12 +128,12 @@ namespace Nop.Web.Models.Catalog
                     string[] fromTo = str1.Trim().Split(new [] { '-' });
 
                     decimal? from = null;
-                    if (!String.IsNullOrEmpty(fromTo[0]) && !String.IsNullOrEmpty(fromTo[0].Trim()))
-                        from = decimal.Parse(fromTo[0].Trim(), new CultureInfo("en-US"));
+                    if (!String.IsNullOrEmpty(fromTo[0]) && !String.IsNullOrEmpty(fromTo[0].ToString().Trim()))
+                        from = decimal.Parse(fromTo[0].ToString().Trim(), new CultureInfo("en-US"));
 
                     decimal? to = null;
-                    if (!String.IsNullOrEmpty(fromTo[1]) && !String.IsNullOrEmpty(fromTo[1].Trim()))
-                        to = decimal.Parse(fromTo[1].Trim(), new CultureInfo("en-US"));
+                    if (!String.IsNullOrEmpty(fromTo[1]) && !String.IsNullOrEmpty(fromTo[1].ToString().Trim()))
+                        to = decimal.Parse(fromTo[1].ToString().Trim(), new CultureInfo("en-US"));
 
                     priceRanges.Add(new PriceRange { From = from, To = to });
                 }
@@ -175,11 +175,11 @@ namespace Nop.Web.Models.Catalog
                 if (fromTo.Length == 2)
                 {
                     decimal? from = null;
-                    if (!String.IsNullOrEmpty(fromTo[0]) && !String.IsNullOrEmpty(fromTo[0].Trim()))
-                        from = decimal.Parse(fromTo[0].Trim(), new CultureInfo("en-US"));
+                    if (!String.IsNullOrEmpty(fromTo[0]) && !String.IsNullOrEmpty(fromTo[0].ToString().Trim()))
+                        from = decimal.Parse(fromTo[0].ToString().Trim(), new CultureInfo("en-US"));
                     decimal? to = null;
-                    if (!String.IsNullOrEmpty(fromTo[1]) && !String.IsNullOrEmpty(fromTo[1].Trim()))
-                        to = decimal.Parse(fromTo[1].Trim(), new CultureInfo("en-US"));
+                    if (!String.IsNullOrEmpty(fromTo[1]) && !String.IsNullOrEmpty(fromTo[1].ToString().Trim()))
+                        to = decimal.Parse(fromTo[1].ToString().Trim(), new CultureInfo("en-US"));
 
                     var priceRangeList = GetPriceRangeList(priceRangesStr);
                     foreach (var pr in priceRangeList)

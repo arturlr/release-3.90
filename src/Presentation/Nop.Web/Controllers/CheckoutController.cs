@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Nop.Core;
+using Nop.Core.Infrastructure;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Orders;
@@ -48,7 +50,7 @@ namespace Nop.Web.Controllers
         private readonly ILogger _logger;
         private readonly IOrderService _orderService;
         private readonly IWebHelper _webHelper;
-        private readonly HttpContextBase _httpContext; 
+        private readonly HttpContext _httpContext; 
         private readonly IAddressAttributeParser _addressAttributeParser;
         private readonly IAddressAttributeService _addressAttributeService;
 
@@ -80,7 +82,7 @@ namespace Nop.Web.Controllers
             ILogger logger,
             IOrderService orderService,
             IWebHelper webHelper,
-            HttpContextBase httpContext,
+            HttpContext httpContext,
             IAddressAttributeParser addressAttributeParser,
             IAddressAttributeService addressAttributeService,
             OrderSettings orderSettings, 
@@ -144,7 +146,7 @@ namespace Nop.Web.Controllers
 
         #region Methods (common)
 
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
                 .Where(sci => sci.ShoppingCartType == ShoppingCartType.ShoppingCart)
@@ -160,7 +162,7 @@ namespace Nop.Web.Controllers
                 && (!_orderSettings.AnonymousCheckoutAllowed
                     || downloadableProductsRequireRegistration)
                 )
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             //if we have only "button" payment methods available (displayed onthe shopping cart page, not during checkout),
             //then we should allow standard checkout
@@ -211,11 +213,11 @@ namespace Nop.Web.Controllers
             return RedirectToRoute("CheckoutBillingAddress");
         }
 
-        public virtual ActionResult Completed(int? orderId)
+        public virtual IActionResult Completed(int? orderId)
         {
             //validation
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             Order order = null;
             if (orderId.HasValue)
@@ -249,7 +251,7 @@ namespace Nop.Web.Controllers
 
         #region Methods (multistep checkout)
 
-        public virtual ActionResult BillingAddress(FormCollection form)
+        public virtual IActionResult BillingAddress(IFormCollection form)
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -263,7 +265,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             //model
             var model = _checkoutModelFactory.PrepareBillingAddressModel(cart, prePopulateNewAddressWithCustomerFields: true);
@@ -285,7 +287,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        public virtual ActionResult SelectBillingAddress(int addressId, bool shipToSameAddress = false)
+        public virtual IActionResult SelectBillingAddress(int addressId, bool shipToSameAddress = false)
         {
             var address = _workContext.CurrentCustomer.Addresses.FirstOrDefault(a => a.Id == addressId);
             if (address == null)
@@ -316,8 +318,7 @@ namespace Nop.Web.Controllers
 
         [HttpPost, ActionName("BillingAddress")]
         [FormValueRequired("nextstep")]
-        [ValidateInput(false)]
-        public virtual ActionResult NewBillingAddress(CheckoutBillingAddressModel model, FormCollection form)
+        public virtual IActionResult NewBillingAddress(CheckoutBillingAddressModel model, IFormCollection form)
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -331,7 +332,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             //custom address attributes
             var customAttributes = form.ParseCustomAddressAttributes(_addressAttributeParser, _addressAttributeService);
@@ -389,7 +390,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        public virtual ActionResult ShippingAddress()
+        public virtual IActionResult ShippingAddress()
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -403,7 +404,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             if (!cart.RequiresShipping())
             {
@@ -417,7 +418,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        public virtual ActionResult SelectShippingAddress(int addressId)
+        public virtual IActionResult SelectShippingAddress(int addressId)
         {
             var address = _workContext.CurrentCustomer.Addresses.FirstOrDefault(a => a.Id == addressId);
             if (address == null)
@@ -437,8 +438,7 @@ namespace Nop.Web.Controllers
 
         [HttpPost, ActionName("ShippingAddress")]
         [FormValueRequired("nextstep")]
-        [ValidateInput(false)]
-        public virtual ActionResult NewShippingAddress(CheckoutShippingAddressModel model, FormCollection form)
+        public virtual IActionResult NewShippingAddress(CheckoutShippingAddressModel model, IFormCollection form)
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -452,7 +452,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             if (!cart.RequiresShipping())
             {
@@ -470,7 +470,7 @@ namespace Nop.Web.Controllers
                     _workContext.CurrentCustomer.ShippingAddress = null;
                     _customerService.UpdateCustomer(_workContext.CurrentCustomer);
 
-                    var pickupPoint = form["pickup-points-id"].Split(new[] { "___" }, StringSplitOptions.None);
+                    var pickupPoint = form["pickup-points-id"].ToString().Split(new[] { "___" }, StringSplitOptions.None);
                     var pickupPoints = _shippingService.GetPickupPoints(_workContext.CurrentCustomer.BillingAddress,
                         _workContext.CurrentCustomer, pickupPoint[1], _storeContext.CurrentStore.Id).PickupPoints.ToList();
                     var selectedPoint = pickupPoints.FirstOrDefault(x => x.Id.Equals(pickupPoint[0]));
@@ -538,7 +538,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
         
-        public virtual ActionResult ShippingMethod()
+        public virtual IActionResult ShippingMethod()
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -552,7 +552,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             if (!cart.RequiresShipping())
             {
@@ -580,8 +580,7 @@ namespace Nop.Web.Controllers
 
         [HttpPost, ActionName("ShippingMethod")]
         [FormValueRequired("nextstep")]
-        [ValidateInput(false)]
-        public virtual ActionResult SelectShippingMethod(string shippingoption)
+        public virtual IActionResult SelectShippingMethod(string shippingoption)
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -595,7 +594,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             if (!cart.RequiresShipping())
             {
@@ -640,7 +639,7 @@ namespace Nop.Web.Controllers
             return RedirectToRoute("CheckoutPaymentMethod");
         }
         
-        public virtual ActionResult PaymentMethod()
+        public virtual IActionResult PaymentMethod()
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -654,7 +653,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             //Check whether payment workflow is required
             //we ignore reward points during cart total calculation
@@ -696,8 +695,7 @@ namespace Nop.Web.Controllers
 
         [HttpPost, ActionName("PaymentMethod")]
         [FormValueRequired("nextstep")]
-        [ValidateInput(false)]
-        public virtual ActionResult SelectPaymentMethod(string paymentmethod, CheckoutPaymentMethodModel model)
+        public virtual IActionResult SelectPaymentMethod(string paymentmethod, CheckoutPaymentMethodModel model)
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -711,7 +709,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             //reward points
             if (_rewardPointsSettings.Enabled)
@@ -747,7 +745,7 @@ namespace Nop.Web.Controllers
             return RedirectToRoute("CheckoutPaymentInfo");
         }
 
-        public virtual ActionResult PaymentInfo()
+        public virtual IActionResult PaymentInfo()
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -761,7 +759,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             //Check whether payment workflow is required
             bool isPaymentWorkflowRequired = _orderProcessingService.IsPaymentWorkflowRequired(cart);
@@ -785,7 +783,7 @@ namespace Nop.Web.Controllers
                 //skip payment info page
                 var paymentInfo = new ProcessPaymentRequest();
                 //session save
-                _httpContext.Session["OrderPaymentInfo"] = paymentInfo;
+                _httpContext.Session.SetString("OrderPaymentInfo", JsonConvert.SerializeObject(paymentInfo));
 
                 return RedirectToRoute("CheckoutConfirm");
             }
@@ -797,8 +795,7 @@ namespace Nop.Web.Controllers
 
         [HttpPost, ActionName("PaymentInfo")]
         [FormValueRequired("nextstep")]
-        [ValidateInput(false)]
-        public virtual ActionResult EnterPaymentInfo(FormCollection form)
+        public virtual IActionResult EnterPaymentInfo(IFormCollection form)
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -812,7 +809,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             //Check whether payment workflow is required
             bool isPaymentWorkflowRequired = _orderProcessingService.IsPaymentWorkflowRequired(cart);
@@ -830,7 +827,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutPaymentMethod");
 
             var paymentControllerType = paymentMethod.GetControllerType();
-            var paymentController = DependencyResolver.Current.GetService(paymentControllerType) as BasePaymentController;
+            var paymentController = EngineContext.Current.Resolve(paymentControllerType) as BasePaymentController;
             if (paymentController == null)
                 throw new Exception("Payment controller cannot be loaded");
 
@@ -842,7 +839,7 @@ namespace Nop.Web.Controllers
                 //get payment info
                 var paymentInfo = paymentController.GetPaymentInfo(form);
                 //session save
-                _httpContext.Session["OrderPaymentInfo"] = paymentInfo;
+                _httpContext.Session.SetString("OrderPaymentInfo", JsonConvert.SerializeObject(paymentInfo));
                 return RedirectToRoute("CheckoutConfirm");
             }
 
@@ -852,7 +849,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
         
-        public virtual ActionResult Confirm()
+        public virtual IActionResult Confirm()
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -866,7 +863,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             //model
             var model = _checkoutModelFactory.PrepareConfirmOrderModel(cart);
@@ -874,8 +871,7 @@ namespace Nop.Web.Controllers
         }
 
         [HttpPost, ActionName("Confirm")]
-        [ValidateInput(false)]
-        public virtual ActionResult ConfirmOrder()
+        public virtual IActionResult ConfirmOrder()
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -889,14 +885,16 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CheckoutOnePage");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
 
             //model
             var model = _checkoutModelFactory.PrepareConfirmOrderModel(cart);
             try
             {
-                var processPaymentRequest = _httpContext.Session["OrderPaymentInfo"] as ProcessPaymentRequest;
+                var processPaymentRequest = _httpContext.Session.GetString("OrderPaymentInfo") != null
+                    ? JsonConvert.DeserializeObject<ProcessPaymentRequest>(_httpContext.Session.GetString("OrderPaymentInfo"))
+                    : null;
                 if (processPaymentRequest == null)
                 {
                     //Check whether payment workflow is required
@@ -919,7 +917,7 @@ namespace Nop.Web.Controllers
                 var placeOrderResult = _orderProcessingService.PlaceOrder(processPaymentRequest);
                 if (placeOrderResult.Success)
                 {
-                    _httpContext.Session["OrderPaymentInfo"] = null;
+                    _httpContext.Session.Remove("OrderPaymentInfo");
                     var postProcessPaymentRequest = new PostProcessPaymentRequest
                     {
                         Order = placeOrderResult.PlacedOrder
@@ -947,9 +945,7 @@ namespace Nop.Web.Controllers
             //If we got this far, something failed, redisplay form
             return View(model);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult CheckoutProgress(CheckoutProgressStep step)
+        public virtual IActionResult CheckoutProgress(CheckoutProgressStep step)
         {
             var model = _checkoutModelFactory.PrepareCheckoutProgressModel(step);
             return PartialView(model);
@@ -1066,7 +1062,7 @@ namespace Nop.Web.Controllers
                 //skip payment info page
                 var paymentInfo = new ProcessPaymentRequest();
                 //session save
-                _httpContext.Session["OrderPaymentInfo"] = paymentInfo;
+                _httpContext.Session.SetString("OrderPaymentInfo", JsonConvert.SerializeObject(paymentInfo));
 
                 var confirmOrderModel = _checkoutModelFactory.PrepareConfirmOrderModel(cart);
                 return Json(new
@@ -1094,7 +1090,7 @@ namespace Nop.Web.Controllers
             });
         }
 
-        public virtual ActionResult OnePageCheckout()
+        public virtual IActionResult OnePageCheckout()
         {
             //validation
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -1109,14 +1105,12 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("Checkout");
 
             if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var model = _checkoutModelFactory.PrepareOnePageCheckoutModel(cart);
             return View(model);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult OpcBillingForm()
+        public virtual IActionResult OpcBillingForm()
         {
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
                 .Where(sci => sci.ShoppingCartType == ShoppingCartType.ShoppingCart)
@@ -1127,9 +1121,7 @@ namespace Nop.Web.Controllers
             var billingAddressModel = _checkoutModelFactory.PrepareBillingAddressModel(cart, prePopulateNewAddressWithCustomerFields: true);
             return PartialView("OpcBillingAddress", billingAddressModel);
         }
-
-        [ValidateInput(false)]
-        public virtual ActionResult OpcSaveBilling(FormCollection form)
+        public virtual IActionResult OpcSaveBilling(IFormCollection form)
         {
             try
             {
@@ -1164,7 +1156,7 @@ namespace Nop.Web.Controllers
                 {
                     //new address
                     var model = new CheckoutBillingAddressModel();
-                    TryUpdateModel(model.NewAddress, "BillingNewAddress");
+                    TryUpdateModelAsync(model.NewAddress, "BillingNewAddress");
 
                     //custom address attributes
                     var customAttributes = form.ParseCustomAddressAttributes(_addressAttributeParser, _addressAttributeService);
@@ -1227,7 +1219,7 @@ namespace Nop.Web.Controllers
                     //shipping is required
 
                     var model = new CheckoutBillingAddressModel();
-                    TryUpdateModel(model);
+                    TryUpdateModelAsync(model);
                     if (_shippingSettings.ShipToSameAddress && model.ShipToSameAddress)
                     {
                         //ship to the same address
@@ -1271,9 +1263,7 @@ namespace Nop.Web.Controllers
                 return Json(new { error = 1, message = exc.Message });
             }
         }
-
-        [ValidateInput(false)]
-        public virtual ActionResult OpcSaveShipping(FormCollection form)
+        public virtual IActionResult OpcSaveShipping(IFormCollection form)
         {
             try
             {
@@ -1298,7 +1288,7 @@ namespace Nop.Web.Controllers
                 if (_shippingSettings.AllowPickUpInStore)
                 {
                     var model = new CheckoutShippingAddressModel();
-                    TryUpdateModel(model);
+                    TryUpdateModelAsync(model);
 
                     if (model.PickUpInStore)
                     {
@@ -1306,7 +1296,7 @@ namespace Nop.Web.Controllers
                         _workContext.CurrentCustomer.ShippingAddress = null;
                         _customerService.UpdateCustomer(_workContext.CurrentCustomer);
 
-                        var pickupPoint = form["pickup-points-id"].Split(new[] { "___" }, StringSplitOptions.None);
+                        var pickupPoint = form["pickup-points-id"].ToString().Split(new[] { "___" }, StringSplitOptions.None);
                         var pickupPoints = _shippingService.GetPickupPoints(_workContext.CurrentCustomer.BillingAddress,
                             _workContext.CurrentCustomer, pickupPoint[1], _storeContext.CurrentStore.Id).PickupPoints.ToList();
                         var selectedPoint = pickupPoints.FirstOrDefault(x => x.Id.Equals(pickupPoint[0]));
@@ -1348,7 +1338,7 @@ namespace Nop.Web.Controllers
                 {
                     //new address
                     var model = new CheckoutShippingAddressModel();
-                    TryUpdateModel(model.NewAddress, "ShippingNewAddress");
+                    TryUpdateModelAsync(model.NewAddress, "ShippingNewAddress");
 
                     //custom address attributes
                     var customAttributes = form.ParseCustomAddressAttributes(_addressAttributeParser, _addressAttributeService);
@@ -1417,9 +1407,7 @@ namespace Nop.Web.Controllers
                 return Json(new { error = 1, message = exc.Message });
             }
         }
-
-        [ValidateInput(false)]
-        public virtual ActionResult OpcSaveShippingMethod(FormCollection form)
+        public virtual IActionResult OpcSaveShippingMethod(IFormCollection form)
         {
             try
             {
@@ -1483,9 +1471,7 @@ namespace Nop.Web.Controllers
                 return Json(new { error = 1, message = exc.Message });
             }
         }
-
-        [ValidateInput(false)]
-        public virtual ActionResult OpcSavePaymentMethod(FormCollection form)
+        public virtual IActionResult OpcSavePaymentMethod(IFormCollection form)
         {
             try
             {
@@ -1510,7 +1496,7 @@ namespace Nop.Web.Controllers
 
 
                 var model = new CheckoutPaymentMethodModel();
-                TryUpdateModel(model);
+                TryUpdateModelAsync(model);
 
                 //reward points
                 if (_rewardPointsSettings.Enabled)
@@ -1559,9 +1545,7 @@ namespace Nop.Web.Controllers
                 return Json(new { error = 1, message = exc.Message });
             }
         }
-
-        [ValidateInput(false)]
-        public virtual ActionResult OpcSavePaymentInfo(FormCollection form)
+        public virtual IActionResult OpcSavePaymentInfo(IFormCollection form)
         {
             try
             {
@@ -1587,7 +1571,7 @@ namespace Nop.Web.Controllers
                     throw new Exception("Payment method is not selected");
 
                 var paymentControllerType = paymentMethod.GetControllerType();
-                var paymentController = DependencyResolver.Current.GetService(paymentControllerType) as BasePaymentController;
+                var paymentController = EngineContext.Current.Resolve(paymentControllerType) as BasePaymentController;
                 if (paymentController == null)
                     throw new Exception("Payment controller cannot be loaded");
 
@@ -1599,7 +1583,7 @@ namespace Nop.Web.Controllers
                     //get payment info
                     var paymentInfo = paymentController.GetPaymentInfo(form);
                     //session save
-                    _httpContext.Session["OrderPaymentInfo"] = paymentInfo;
+                    _httpContext.Session.SetString("OrderPaymentInfo", JsonConvert.SerializeObject(paymentInfo));
 
                     var confirmOrderModel = _checkoutModelFactory.PrepareConfirmOrderModel(cart);
                     return Json(new
@@ -1630,9 +1614,7 @@ namespace Nop.Web.Controllers
                 return Json(new { error = 1, message = exc.Message });
             }
         }
-
-        [ValidateInput(false)]
-        public virtual ActionResult OpcConfirmOrder()
+        public virtual IActionResult OpcConfirmOrder()
         {
             try
             {
@@ -1655,7 +1637,9 @@ namespace Nop.Web.Controllers
                     throw new Exception(_localizationService.GetResource("Checkout.MinOrderPlacementInterval"));
 
                 //place order
-                var processPaymentRequest = _httpContext.Session["OrderPaymentInfo"] as ProcessPaymentRequest;
+                var processPaymentRequest = _httpContext.Session.GetString("OrderPaymentInfo") != null
+                    ? JsonConvert.DeserializeObject<ProcessPaymentRequest>(_httpContext.Session.GetString("OrderPaymentInfo"))
+                    : null;
                 if (processPaymentRequest == null)
                 {
                     //Check whether payment workflow is required
@@ -1675,7 +1659,7 @@ namespace Nop.Web.Controllers
                 var placeOrderResult = _orderProcessingService.PlaceOrder(processPaymentRequest);
                 if (placeOrderResult.Success)
                 {
-                    _httpContext.Session["OrderPaymentInfo"] = null;
+                    _httpContext.Session.Remove("OrderPaymentInfo");
                     var postProcessPaymentRequest = new PostProcessPaymentRequest
                     {
                         Order = placeOrderResult.PlacedOrder
@@ -1727,7 +1711,7 @@ namespace Nop.Web.Controllers
             }
         }
 
-        public virtual ActionResult OpcCompleteRedirectionPayment()
+        public virtual IActionResult OpcCompleteRedirectionPayment()
         {
             try
             {
@@ -1736,7 +1720,7 @@ namespace Nop.Web.Controllers
                     return RedirectToRoute("HomePage");
 
                 if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
-                    return new HttpUnauthorizedResult();
+                    return new UnauthorizedResult();
 
                 //get the order
                 var order = _orderService.SearchOrders(storeId: _storeContext.CurrentStore.Id,

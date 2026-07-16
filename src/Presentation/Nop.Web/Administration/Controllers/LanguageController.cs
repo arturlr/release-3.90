@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Http;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Localization;
 using Nop.Core;
@@ -130,12 +132,12 @@ namespace Nop.Admin.Controllers
 
         #region Languages
 
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-        public virtual ActionResult List()
+        public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -144,7 +146,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult List(DataSourceRequest command)
+        public virtual IActionResult List(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedKendoGridJson();
@@ -159,7 +161,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        public virtual ActionResult Create()
+        public virtual IActionResult Create()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -175,7 +177,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult Create(LanguageModel model, bool continueEditing)
+        public virtual IActionResult Create(LanguageModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -213,7 +215,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult Edit(int id)
+        public virtual IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -224,7 +226,7 @@ namespace Nop.Admin.Controllers
                 return RedirectToAction("List");
 
             //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
+            //this.Server.ScriptTimeout = 300; // Not available in ASP.NET Core
 
             var model = language.ToModel();
             //Stores
@@ -236,7 +238,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult Edit(LanguageModel model, bool continueEditing)
+        public virtual IActionResult Edit(LanguageModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -290,7 +292,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Delete(int id)
+        public virtual IActionResult Delete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -347,7 +349,7 @@ namespace Nop.Admin.Controllers
         //do not validate request token (XSRF)
         //for some reasons it does not work with "filtering" support
         [AdminAntiForgery(true)]
-        public virtual ActionResult Resources(int languageId, DataSourceRequest command, LanguageResourcesListModel model)
+        public virtual IActionResult Resources(int languageId, DataSourceRequest command, LanguageResourcesListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedKendoGridJson();
@@ -381,7 +383,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ResourceUpdate(LanguageResourceModel model)
+        public virtual IActionResult ResourceUpdate(LanguageResourceModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -415,7 +417,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ResourceAdd(int languageId, [Bind(Exclude = "Id")] LanguageResourceModel model)
+        public virtual IActionResult ResourceAdd(int languageId, LanguageResourceModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -447,7 +449,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ResourceDelete(int id)
+        public virtual IActionResult ResourceDelete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -464,7 +466,7 @@ namespace Nop.Admin.Controllers
 
         #region Export / Import
 
-        public virtual ActionResult ExportXml(int id)
+        public virtual IActionResult ExportXml(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -487,7 +489,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ImportXml(int id, FormCollection form)
+        public virtual IActionResult ImportXml(int id, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -498,14 +500,14 @@ namespace Nop.Admin.Controllers
                 return RedirectToAction("List");
 
             //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
+            //this.Server.ScriptTimeout = 300; // Not available in ASP.NET Core
 
             try
             {
-                var file = Request.Files["importxmlfile"];
-                if (file != null && file.ContentLength > 0)
+                var file = Request.Form.Files["importxmlfile"];
+                if (file != null && file.Length > 0)
                 {
-                    using (var sr = new StreamReader(file.InputStream, Encoding.UTF8))
+                    using (var sr = new StreamReader(file.OpenReadStream(), Encoding.UTF8))
                     {
                         string content = sr.ReadToEnd();
                         _localizationService.ImportResourcesFromXml(language, content);

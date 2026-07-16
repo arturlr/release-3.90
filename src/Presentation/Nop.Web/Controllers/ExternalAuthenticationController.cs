@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Services.Authentication.External;
 using Nop.Web.Factories;
 
@@ -6,7 +6,7 @@ namespace Nop.Web.Controllers
 {
     public partial class ExternalAuthenticationController : BasePublicController
     {
-		#region Fields
+        #region Fields
 
         private readonly IExternalAuthenticationModelFactory _externalAuthenticationModelFactory;
 
@@ -23,7 +23,7 @@ namespace Nop.Web.Controllers
 
         #region Methods
 
-        public virtual RedirectResult RemoveParameterAssociation(string returnUrl)
+        public virtual IActionResult RemoveParameterAssociation(string returnUrl)
         {
             //prevent open redirection attack
             if (!Url.IsLocalUrl(returnUrl))
@@ -33,8 +33,7 @@ namespace Nop.Web.Controllers
             return Redirect(returnUrl);
         }
 
-        [ChildActionOnly]
-        public virtual ActionResult ExternalMethods()
+        public virtual IActionResult ExternalMethods()
         {
             var model = _externalAuthenticationModelFactory.PrepareExternalMethodsModel();
             return PartialView(model);

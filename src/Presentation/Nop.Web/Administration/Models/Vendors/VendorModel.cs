@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Models.Common;
 using Nop.Admin.Validators.Vendors;
 using Nop.Web.Framework;
@@ -11,7 +10,6 @@ using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Vendors
 {
-    [Validator(typeof(VendorValidator))]
     public partial class VendorModel : BaseNopEntityModel, ILocalizedModel<VendorLocalizedModel>
     {
         public VendorModel()
@@ -27,15 +25,12 @@ namespace Nop.Admin.Models.Vendors
         }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.Email")]
-        [AllowHtml]
         public string Email { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.Description")]
-        [AllowHtml]
         public string Description { get; set; }
 
         [UIHint("Picture")]
@@ -43,7 +38,6 @@ namespace Nop.Admin.Models.Vendors
         public int PictureId { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.AdminComment")]
-        [AllowHtml]
         public string AdminComment { get; set; }
 
         public AddressModel Address { get; set; }
@@ -56,19 +50,15 @@ namespace Nop.Admin.Models.Vendors
         
 
         [NopResourceDisplayName("Admin.Vendors.Fields.MetaKeywords")]
-        [AllowHtml]
         public string MetaKeywords { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.MetaDescription")]
-        [AllowHtml]
         public string MetaDescription { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.MetaTitle")]
-        [AllowHtml]
         public string MetaTitle { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.SeName")]
-        [AllowHtml]
         public string SeName { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.PageSize")]
@@ -89,7 +79,6 @@ namespace Nop.Admin.Models.Vendors
 
         //vendor notes
         [NopResourceDisplayName("Admin.Vendors.VendorNotes.Fields.Note")]
-        [AllowHtml]
         public string AddVendorNoteMessage { get; set; }
 
 
@@ -120,27 +109,21 @@ namespace Nop.Admin.Models.Vendors
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.Description")]
-        [AllowHtml]
         public string Description { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.MetaKeywords")]
-        [AllowHtml]
         public string MetaKeywords { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.MetaDescription")]
-        [AllowHtml]
         public string MetaDescription { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.MetaTitle")]
-        [AllowHtml]
         public string MetaTitle { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.SeName")]
-        [AllowHtml]
         public string SeName { get; set; }
     }
 }

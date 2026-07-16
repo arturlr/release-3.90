@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -17,11 +17,9 @@ namespace Nop.Admin.Models.Messages
         public DateTime? SearchEndDate { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.List.FromEmail")]
-        [AllowHtml]
         public string SearchFromEmail { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.List.ToEmail")]
-        [AllowHtml]
         public string SearchToEmail { get; set; }
 
         [NopResourceDisplayName("Admin.System.QueuedEmails.List.LoadNotSent")]

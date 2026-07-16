@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
-using FluentValidation.Attributes;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Validators.Settings;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Localization;
@@ -8,7 +7,6 @@ using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Settings
 {
-    [Validator(typeof(ReturnRequestReasonValidator))]
     public partial class ReturnRequestReasonModel : BaseNopEntityModel, ILocalizedModel<ReturnRequestReasonLocalizedModel>
     {
         public ReturnRequestReasonModel()
@@ -17,7 +15,6 @@ namespace Nop.Admin.Models.Settings
         }
 
         [NopResourceDisplayName("Admin.Configuration.Settings.Order.ReturnRequestReasons.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Settings.Order.ReturnRequestReasons.DisplayOrder")]
@@ -31,7 +28,6 @@ namespace Nop.Admin.Models.Settings
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Settings.Order.ReturnRequestReasons.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
     }

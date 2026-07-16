@@ -1,12 +1,10 @@
-﻿using System.Collections.Generic;
-using FluentValidation.Attributes;
+using System.Collections.Generic;
 using Nop.Admin.Validators.Messages;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Messages
 {
-    [Validator(typeof(TestMessageTemplateValidator))]
     public partial class TestMessageTemplateModel : BaseNopEntityModel
     {
         public TestMessageTemplateModel()

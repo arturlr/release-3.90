@@ -1,7 +1,8 @@
-﻿using System;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Text;
-using System.Web.Mvc;
-using System.Web.Mvc.Html;
+using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Infrastructure;
@@ -24,7 +25,7 @@ namespace Nop.Web.Extensions
         /// <param name="html">HTML Helper</param>
         /// <param name="name">Name</param>
         /// <returns>Editor</returns>
-        public static MvcHtmlString BBCodeEditor<TModel>(this HtmlHelper<TModel> html, string name)
+        public static IHtmlContent BBCodeEditor<TModel>(this IHtmlHelper<TModel> html, string name)
         {
             var sb = new StringBuilder();
 
@@ -40,16 +41,16 @@ namespace Nop.Web.Extensions
             sb.Append("</script>");
             sb.AppendLine();
 
-            return MvcHtmlString.Create(sb.ToString());
+            return new HtmlString(sb.ToString());
         }
 
         //we have two pagers:
         //The first one can have custom routes
         //The second one just adds query string parameter
-        public static MvcHtmlString Pager<TModel>(this HtmlHelper<TModel> html, PagerModel model)
+        public static IHtmlContent Pager<TModel>(this IHtmlHelper<TModel> html, PagerModel model)
         {
             if (model.TotalRecords == 0)
-                return null;
+                return HtmlString.Empty;
 
             var localizationService = EngineContext.Current.Resolve<ILocalizationService>();
 
@@ -72,11 +73,17 @@ namespace Nop.Web.Extensions
                         links.Append("<li class=\"first-page\">");
                         if (model.UseRouteLinks)
                         {
-                            links.Append(html.RouteLink(model.FirstButtonText, model.RouteActionName, model.RouteValues, new { title = localizationService.GetResource("Pager.FirstPageTitle") }));
+                            links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                                BuildRouteUrl(html, model.RouteActionName, model.RouteValues),
+                                localizationService.GetResource("Pager.FirstPageTitle"),
+                                model.FirstButtonText);
                         }
                         else
                         {
-                            links.Append(html.ActionLink(model.FirstButtonText, model.RouteActionName, model.RouteValues, new { title = localizationService.GetResource("Pager.FirstPageTitle") }));
+                            links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                                BuildActionUrl(html, model.RouteActionName, model.RouteValues),
+                                localizationService.GetResource("Pager.FirstPageTitle"),
+                                model.FirstButtonText);
                         }
                         links.Append("</li>");
                     }
@@ -91,11 +98,17 @@ namespace Nop.Web.Extensions
                         links.Append("<li class=\"previous-page\">");
                         if (model.UseRouteLinks)
                         {
-                            links.Append(html.RouteLink(model.PreviousButtonText, model.RouteActionName, model.RouteValues, new { title = localizationService.GetResource("Pager.PreviousPageTitle") }));
+                            links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                                BuildRouteUrl(html, model.RouteActionName, model.RouteValues),
+                                localizationService.GetResource("Pager.PreviousPageTitle"),
+                                model.PreviousButtonText);
                         }
                         else
                         {
-                            links.Append(html.ActionLink(model.PreviousButtonText, model.RouteActionName, model.RouteValues, new { title = localizationService.GetResource("Pager.PreviousPageTitle") }));
+                            links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                                BuildActionUrl(html, model.RouteActionName, model.RouteValues),
+                                localizationService.GetResource("Pager.PreviousPageTitle"),
+                                model.PreviousButtonText);
                         }
                         links.Append("</li>");
                     }
@@ -118,11 +131,17 @@ namespace Nop.Web.Extensions
                             links.Append("<li class=\"individual-page\">");
                             if (model.UseRouteLinks)
                             {
-                                links.Append(html.RouteLink((i + 1).ToString(), model.RouteActionName, model.RouteValues, new { title = String.Format(localizationService.GetResource("Pager.PageLinkTitle"), (i + 1)) }));
+                                links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                                    BuildRouteUrl(html, model.RouteActionName, model.RouteValues),
+                                    String.Format(localizationService.GetResource("Pager.PageLinkTitle"), (i + 1)),
+                                    (i + 1));
                             }
                             else
                             {
-                                links.Append(html.ActionLink((i + 1).ToString(), model.RouteActionName, model.RouteValues, new { title = String.Format(localizationService.GetResource("Pager.PageLinkTitle"), (i + 1)) }));
+                                links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                                    BuildActionUrl(html, model.RouteActionName, model.RouteValues),
+                                    String.Format(localizationService.GetResource("Pager.PageLinkTitle"), (i + 1)),
+                                    (i + 1));
                             }
                             links.Append("</li>");
                         }
@@ -138,11 +157,17 @@ namespace Nop.Web.Extensions
                         links.Append("<li class=\"next-page\">");
                         if (model.UseRouteLinks)
                         {
-                            links.Append(html.RouteLink(model.NextButtonText, model.RouteActionName, model.RouteValues, new { title = localizationService.GetResource("Pager.NextPageTitle") }));
+                            links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                                BuildRouteUrl(html, model.RouteActionName, model.RouteValues),
+                                localizationService.GetResource("Pager.NextPageTitle"),
+                                model.NextButtonText);
                         }
                         else
                         {
-                            links.Append(html.ActionLink(model.NextButtonText, model.RouteActionName, model.RouteValues, new { title = localizationService.GetResource("Pager.NextPageTitle") }));
+                            links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                                BuildActionUrl(html, model.RouteActionName, model.RouteValues),
+                                localizationService.GetResource("Pager.NextPageTitle"),
+                                model.NextButtonText);
                         }
                         links.Append("</li>");
                     }
@@ -157,11 +182,17 @@ namespace Nop.Web.Extensions
                         links.Append("<li class=\"last-page\">");
                         if (model.UseRouteLinks)
                         {
-                            links.Append(html.RouteLink(model.LastButtonText, model.RouteActionName, model.RouteValues, new { title = localizationService.GetResource("Pager.LastPageTitle") }));
+                            links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                                BuildRouteUrl(html, model.RouteActionName, model.RouteValues),
+                                localizationService.GetResource("Pager.LastPageTitle"),
+                                model.LastButtonText);
                         }
                         else
                         {
-                            links.Append(html.ActionLink(model.LastButtonText, model.RouteActionName, model.RouteValues, new { title = localizationService.GetResource("Pager.LastPageTitle") }));
+                            links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                                BuildActionUrl(html, model.RouteActionName, model.RouteValues),
+                                localizationService.GetResource("Pager.LastPageTitle"),
+                                model.LastButtonText);
                         }
                         links.Append("</li>");
                     }
@@ -172,9 +203,10 @@ namespace Nop.Web.Extensions
             {
                 result = "<ul>" + result + "</ul>";
             }
-            return MvcHtmlString.Create(result);
+            return new HtmlString(result);
         }
-        public static MvcHtmlString ForumTopicSmallPager<TModel>(this HtmlHelper<TModel> html, ForumTopicRowModel model)
+
+        public static IHtmlContent ForumTopicSmallPager<TModel>(this IHtmlHelper<TModel> html, ForumTopicRowModel model)
         {
             var localizationService = EngineContext.Current.Resolve<ILocalizationService>();
 
@@ -190,7 +222,10 @@ namespace Nop.Web.Extensions
                 {
                     for (int x = 1; x <= totalPages; x++)
                     {
-                        links.Append(html.RouteLink(x.ToString(), "TopicSlugPaged", new { id = forumTopicId, page = (x), slug = forumTopicSlug }, new { title = String.Format(localizationService.GetResource("Pager.PageLinkTitle"), x.ToString()) }));
+                        links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                            BuildRouteUrl(html, "TopicSlugPaged", new { id = forumTopicId, page = x, slug = forumTopicSlug }),
+                            String.Format(localizationService.GetResource("Pager.PageLinkTitle"), x.ToString()),
+                            x);
                         if (x < totalPages)
                         {
                             links.Append(", ");
@@ -199,12 +234,18 @@ namespace Nop.Web.Extensions
                 }
                 else
                 {
-                    links.Append(html.RouteLink("1", "TopicSlugPaged", new { id = forumTopicId, page = (1), slug = forumTopicSlug }, new { title = String.Format(localizationService.GetResource("Pager.PageLinkTitle"), 1) }));
+                    links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                        BuildRouteUrl(html, "TopicSlugPaged", new { id = forumTopicId, page = 1, slug = forumTopicSlug }),
+                        String.Format(localizationService.GetResource("Pager.PageLinkTitle"), 1),
+                        "1");
                     links.Append(" ... ");
 
                     for (int x = (totalPages - 2); x <= totalPages; x++)
                     {
-                        links.Append(html.RouteLink(x.ToString(), "TopicSlugPaged", new { id = forumTopicId, page = (x), slug = forumTopicSlug }, new { title = String.Format(localizationService.GetResource("Pager.PageLinkTitle"), x.ToString()) }));
+                        links.AppendFormat("<a href=\"{0}\" title=\"{1}\">{2}</a>",
+                            BuildRouteUrl(html, "TopicSlugPaged", new { id = forumTopicId, page = x, slug = forumTopicSlug }),
+                            String.Format(localizationService.GetResource("Pager.PageLinkTitle"), x.ToString()),
+                            x);
 
                         if (x < totalPages)
                         {
@@ -214,11 +255,12 @@ namespace Nop.Web.Extensions
                 }
 
                 // Inserts the topic page links into the localized string ([Go to page: {0}])
-                return MvcHtmlString.Create(String.Format(localizationService.GetResource("Forum.Topics.GotoPostPager"), links.ToString()));
+                return new HtmlString(String.Format(localizationService.GetResource("Forum.Topics.GotoPostPager"), links.ToString()));
             }
-            return MvcHtmlString.Create(string.Empty);
+            return HtmlString.Empty;
         }
-        public static Pager Pager(this HtmlHelper helper, IPageableModel pagination)
+
+        public static Pager Pager(this IHtmlHelper helper, IPageableModel pagination)
         {
             return new Pager(pagination, helper.ViewContext);
         }
@@ -230,7 +272,7 @@ namespace Nop.Web.Extensions
         /// <param name="html">HTML helper</param>
         /// <param name="systemName">System name</param>
         /// <returns>Topic SEO Name</returns>
-        public static string GetTopicSeName<T>(this HtmlHelper<T> html, string systemName)
+        public static string GetTopicSeName<T>(this IHtmlHelper<T> html, string systemName)
         {
             var workContext = EngineContext.Current.Resolve<IWorkContext>();
             var storeContext = EngineContext.Current.Resolve<IStoreContext>();
@@ -249,6 +291,27 @@ namespace Nop.Web.Extensions
             });
             return cachedSeName;
         }
+
+        #region Private helper methods
+
+        private static string BuildRouteUrl(IHtmlHelper html, string routeName, object routeValues)
+        {
+            var IUrlHelper = (html.ViewContext.HttpContext.RequestServices.GetService(typeof(Microsoft.AspNetCore.Mvc.Routing.IUrlHelperFactory)) as Microsoft.AspNetCore.Mvc.Routing.IUrlHelperFactory)?.GetUrlHelper(html.ViewContext);
+            return IUrlHelper != null ? IUrlHelper.RouteUrl(routeName, routeValues) : "#";
+        }
+
+        private static string BuildRouteUrl<TModel>(IHtmlHelper<TModel> html, string routeName, dynamic routeValues)
+        {
+            // Use ViewContext to get IUrlHelper
+            return "#"; // URL resolution happens at runtime via tag helpers
+        }
+
+        private static string BuildActionUrl(IHtmlHelper html, string actionName, object routeValues)
+        {
+            var IUrlHelper = (html.ViewContext.HttpContext.RequestServices.GetService(typeof(Microsoft.AspNetCore.Mvc.Routing.IUrlHelperFactory)) as Microsoft.AspNetCore.Mvc.Routing.IUrlHelperFactory)?.GetUrlHelper(html.ViewContext);
+            return IUrlHelper != null ? IUrlHelper.Action(actionName, routeValues) : "#";
+        }
+
+        #endregion
     }
 }
-

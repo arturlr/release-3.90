@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Extensions;
 using Nop.Admin.Helpers;
 using Nop.Admin.Models.Catalog;
@@ -300,12 +301,12 @@ namespace Nop.Admin.Controllers
         
         #region List
 
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-        public virtual ActionResult List()
+        public virtual IActionResult List()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -318,7 +319,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult List(DataSourceRequest command, CategoryListModel model)
+        public virtual IActionResult List(DataSourceRequest command, CategoryListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedKendoGridJson();
@@ -342,7 +343,7 @@ namespace Nop.Admin.Controllers
 
         #region Create / Edit / Delete
 
-        public virtual ActionResult Create()
+        public virtual IActionResult Create()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -371,7 +372,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult Create(CategoryModel model, bool continueEditing)
+        public virtual IActionResult Create(CategoryModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -431,7 +432,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult Edit(int id)
+        public virtual IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -467,7 +468,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult Edit(CategoryModel model, bool continueEditing)
+        public virtual IActionResult Edit(CategoryModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -551,7 +552,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Delete(int id)
+        public virtual IActionResult Delete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -575,7 +576,7 @@ namespace Nop.Admin.Controllers
 
         #region Export / Import
 
-        public virtual ActionResult ExportXml()
+        public virtual IActionResult ExportXml()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -592,7 +593,7 @@ namespace Nop.Admin.Controllers
             }
         }
 
-        public virtual ActionResult ExportXlsx()
+        public virtual IActionResult ExportXlsx()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -611,7 +612,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ImportFromXlsx()
+        public virtual IActionResult ImportFromXlsx()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -622,10 +623,10 @@ namespace Nop.Admin.Controllers
 
             try
             {
-                var file = Request.Files["importexcelfile"];
-                if (file != null && file.ContentLength > 0)
+                var file = Request.Form.Files["importexcelfile"];
+                if (file != null && file.Length > 0)
                 {
-                    _importManager.ImportCategoriesFromXlsx(file.InputStream);
+                    _importManager.ImportCategoriesFromXlsx(file.OpenReadStream());
                 }
                 else
                 {
@@ -646,7 +647,7 @@ namespace Nop.Admin.Controllers
         #region Products
 
         [HttpPost]
-        public virtual ActionResult ProductList(DataSourceRequest command, int categoryId)
+        public virtual IActionResult ProductList(DataSourceRequest command, int categoryId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedKendoGridJson();
@@ -670,7 +671,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        public virtual ActionResult ProductUpdate(CategoryModel.CategoryProductModel model)
+        public virtual IActionResult ProductUpdate(CategoryModel.CategoryProductModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -686,7 +687,7 @@ namespace Nop.Admin.Controllers
             return new NullJsonResult();
         }
 
-        public virtual ActionResult ProductDelete(int id)
+        public virtual IActionResult ProductDelete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -701,7 +702,7 @@ namespace Nop.Admin.Controllers
             return new NullJsonResult();
         }
 
-        public virtual ActionResult ProductAddPopup(int categoryId)
+        public virtual IActionResult ProductAddPopup(int categoryId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();
@@ -738,7 +739,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ProductAddPopupList(DataSourceRequest command, CategoryModel.AddCategoryProductModel model)
+        public virtual IActionResult ProductAddPopupList(DataSourceRequest command, CategoryModel.AddCategoryProductModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedKendoGridJson();
@@ -763,7 +764,7 @@ namespace Nop.Admin.Controllers
         
         [HttpPost]
         [FormValueRequired("save")]
-        public virtual ActionResult ProductAddPopup(string btnId, string formId, CategoryModel.AddCategoryProductModel model)
+        public virtual IActionResult ProductAddPopup(string btnId, string formId, CategoryModel.AddCategoryProductModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCategories))
                 return AccessDeniedView();

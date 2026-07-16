@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -7,7 +7,6 @@ namespace Nop.Admin.Models.Common
     public partial class UrlRecordModel : BaseNopEntityModel
     {
         [NopResourceDisplayName("Admin.System.SeNames.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.System.SeNames.EntityId")]

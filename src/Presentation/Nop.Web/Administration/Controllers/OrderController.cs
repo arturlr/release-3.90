@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Http;
 using Nop.Admin.Extensions;
 using Nop.Admin.Helpers;
 using Nop.Admin.Models.Orders;
@@ -282,7 +284,7 @@ namespace Nop.Admin.Controllers
         /// <param name="errors">Errors</param>
         /// <returns>Parsed attributes</returns>
 	    [NonAction]
-        protected virtual string ParseProductAttributes(Product product, FormCollection form, List<string> errors)
+        protected virtual string ParseProductAttributes(Product product, IFormCollection form, List<string> errors)
         {
             var attributesXml = string.Empty;
 
@@ -307,8 +309,8 @@ namespace Nop.Admin.Controllers
                                 {
                                     //get quantity entered by customer
                                     var quantity = 1;
-                                    var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)];
-                                    if (quantityStr != null && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
+                                    var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)].ToString();
+                                    if (!string.IsNullOrEmpty(quantityStr) && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
                                         errors.Add(_localizationService.GetResource("ShoppingCart.QuantityShouldPositive"));
 
                                     attributesXml = _productAttributeParser.AddProductAttribute(attributesXml,
@@ -319,7 +321,7 @@ namespace Nop.Admin.Controllers
                         break;
                     case AttributeControlType.Checkboxes:
                         {
-                            var ctrlAttributes = form[controlId];
+                            var ctrlAttributes = form[controlId].ToString();
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 foreach (var item in ctrlAttributes.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -329,8 +331,8 @@ namespace Nop.Admin.Controllers
                                     {
                                         //get quantity entered by customer
                                         var quantity = 1;
-                                        var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, item)];
-                                        if (quantityStr != null && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
+                                        var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, item)].ToString();
+                                        if (!string.IsNullOrEmpty(quantityStr) && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
                                             errors.Add(_localizationService.GetResource("ShoppingCart.QuantityShouldPositive"));
 
                                         attributesXml = _productAttributeParser.AddProductAttribute(attributesXml,
@@ -351,8 +353,8 @@ namespace Nop.Admin.Controllers
                             {
                                 //get quantity entered by customer
                                 var quantity = 1;
-                                var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)];
-                                if (quantityStr != null && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
+                                var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)].ToString();
+                                if (!string.IsNullOrEmpty(quantityStr) && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
                                     errors.Add(_localizationService.GetResource("ShoppingCart.QuantityShouldPositive"));
 
                                 attributesXml = _productAttributeParser.AddProductAttribute(attributesXml,
@@ -363,7 +365,7 @@ namespace Nop.Admin.Controllers
                     case AttributeControlType.TextBox:
                     case AttributeControlType.MultilineTextbox:
                         {
-                            var ctrlAttributes = form[controlId];
+                            var ctrlAttributes = form[controlId].ToString();
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 string enteredText = ctrlAttributes.Trim();
@@ -428,7 +430,7 @@ namespace Nop.Admin.Controllers
         /// <param name="startDate">Start date</param>
         /// <param name="endDate">End date</param>
         [NonAction]
-        protected virtual void ParseRentalDates(FormCollection form,
+        protected virtual void ParseRentalDates(IFormCollection form,
             out DateTime? startDate, out DateTime? endDate)
         {
             startDate = null;
@@ -713,7 +715,7 @@ namespace Nop.Admin.Controllers
                     model.ShippingAddress.FaxEnabled = _addressSettings.FaxEnabled;
                     model.ShippingAddress.FaxRequired = _addressSettings.FaxRequired;
 
-                    model.ShippingAddressGoogleMapsUrl = string.Format("http://maps.google.com/maps?f=q&hl=en&ie=UTF8&oe=UTF8&geocode=&q={0}", Server.UrlEncode(order.ShippingAddress.Address1 + " " + order.ShippingAddress.ZipPostalCode + " " + order.ShippingAddress.City + " " + (order.ShippingAddress.Country != null ? order.ShippingAddress.Country.Name : "")));
+                    model.ShippingAddressGoogleMapsUrl = string.Format("http://maps.google.com/maps?f=q&hl=en&ie=UTF8&oe=UTF8&geocode=&q={0}", Uri.EscapeDataString(order.ShippingAddress.Address1 + " " + order.ShippingAddress.ZipPostalCode + " " + order.ShippingAddress.City + " " + (order.ShippingAddress.Country != null ? order.ShippingAddress.Country.Name : "")));
                 }
                 else
                 {
@@ -721,7 +723,7 @@ namespace Nop.Admin.Controllers
                     {
                         model.PickupAddress = order.PickupAddress.ToModel();
                         model.PickupAddressGoogleMapsUrl = string.Format("http://maps.google.com/maps?f=q&hl=en&ie=UTF8&oe=UTF8&geocode=&q={0}",
-                            Server.UrlEncode(string.Format("{0} {1} {2} {3}", order.PickupAddress.Address1, order.PickupAddress.ZipPostalCode, order.PickupAddress.City,
+                            Uri.EscapeDataString(string.Format("{0} {1} {2} {3}", order.PickupAddress.Address1, order.PickupAddress.ZipPostalCode, order.PickupAddress.City,
                                 order.PickupAddress.Country != null ? order.PickupAddress.Country.Name : string.Empty)));
                     }
                 }
@@ -1019,12 +1021,12 @@ namespace Nop.Admin.Controllers
 
         #region Order list
 
-        public virtual ActionResult Index()
+        public virtual IActionResult Index()
         {
             return RedirectToAction("List");
         }
 
-        public virtual ActionResult List(
+        public virtual IActionResult List(
             [ModelBinder(typeof(CommaSeparatedModelBinder))] List<string> orderStatusIds = null,
             [ModelBinder(typeof(CommaSeparatedModelBinder))] List<string> paymentStatusIds = null,
             [ModelBinder(typeof(CommaSeparatedModelBinder))] List<string> shippingStatusIds = null)
@@ -1100,7 +1102,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-		public virtual ActionResult OrderList(DataSourceRequest command, OrderListModel model)
+		public virtual IActionResult OrderList(DataSourceRequest command, OrderListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -1215,7 +1217,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("List")]
         [FormValueRequired("go-to-order-by-number")]
-        public virtual ActionResult GoToOrderId(OrderListModel model)
+        public virtual IActionResult GoToOrderId(OrderListModel model)
         {
             var order = _orderService.GetOrderByCustomOrderNumber(model.GoDirectlyToCustomOrderNumber);
 
@@ -1225,7 +1227,7 @@ namespace Nop.Admin.Controllers
             return RedirectToAction("Edit", "Order", new { id = order.Id });
         }
 
-        public virtual ActionResult ProductSearchAutoComplete(string term)
+        public virtual IActionResult ProductSearchAutoComplete(string term)
         {
             const int searchTermMinimumLength = 3;
             if (String.IsNullOrWhiteSpace(term) || term.Length < searchTermMinimumLength)
@@ -1253,7 +1255,7 @@ namespace Nop.Admin.Controllers
                               productid = p.Id
                           })
                           .ToList();
-            return Json(result, JsonRequestBehavior.AllowGet);
+            return Json(result);
         }
 
         #endregion
@@ -1262,7 +1264,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("List")]
         [FormValueRequired("exportxml-all")]
-        public virtual ActionResult ExportXmlAll(OrderListModel model)
+        public virtual IActionResult ExportXmlAll(OrderListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1317,7 +1319,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ExportXmlSelected(string selectedIds)
+        public virtual IActionResult ExportXmlSelected(string selectedIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1338,7 +1340,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("List")]
         [FormValueRequired("exportexcel-all")]
-        public virtual ActionResult ExportExcelAll(OrderListModel model)
+        public virtual IActionResult ExportExcelAll(OrderListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1393,7 +1395,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ExportExcelSelected(string selectedIds)
+        public virtual IActionResult ExportExcelSelected(string selectedIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1428,7 +1430,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("cancelorder")]
-        public virtual ActionResult CancelOrder(int id)
+        public virtual IActionResult CancelOrder(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1462,7 +1464,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("captureorder")]
-        public virtual ActionResult CaptureOrder(int id)
+        public virtual IActionResult CaptureOrder(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1499,7 +1501,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("markorderaspaid")]
-        public virtual ActionResult MarkOrderAsPaid(int id)
+        public virtual IActionResult MarkOrderAsPaid(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1533,7 +1535,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("refundorder")]
-        public virtual ActionResult RefundOrder(int id)
+        public virtual IActionResult RefundOrder(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1569,7 +1571,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("refundorderoffline")]
-        public virtual ActionResult RefundOrderOffline(int id)
+        public virtual IActionResult RefundOrderOffline(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1603,7 +1605,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("voidorder")]
-        public virtual ActionResult VoidOrder(int id)
+        public virtual IActionResult VoidOrder(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1639,7 +1641,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("voidorderoffline")]
-        public virtual ActionResult VoidOrderOffline(int id)
+        public virtual IActionResult VoidOrderOffline(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1671,7 +1673,7 @@ namespace Nop.Admin.Controllers
             }
         }
         
-        public virtual ActionResult PartiallyRefundOrderPopup(int id, bool online)
+        public virtual IActionResult PartiallyRefundOrderPopup(int id, bool online)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1693,7 +1695,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost]
         [FormValueRequired("partialrefundorder")]
-        public virtual ActionResult PartiallyRefundOrderPopup(string btnId, string formId, int id, bool online, OrderModel model)
+        public virtual IActionResult PartiallyRefundOrderPopup(string btnId, string formId, int id, bool online, OrderModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1753,7 +1755,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("btnSaveOrderStatus")]
-        public virtual ActionResult ChangeOrderStatus(int id, OrderModel model)
+        public virtual IActionResult ChangeOrderStatus(int id, OrderModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1800,7 +1802,7 @@ namespace Nop.Admin.Controllers
 
         #region Edit, delete
 
-        public virtual ActionResult Edit(int id)
+        public virtual IActionResult Edit(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1825,7 +1827,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Delete(int id)
+        public virtual IActionResult Delete(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1847,7 +1849,7 @@ namespace Nop.Admin.Controllers
             return RedirectToAction("List");
         }
 
-        public virtual ActionResult PdfInvoice(int orderId)
+        public virtual IActionResult PdfInvoice(int orderId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1873,7 +1875,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("List")]
         [FormValueRequired("pdf-invoice-all")]
-        public virtual ActionResult PdfInvoiceAll(OrderListModel model)
+        public virtual IActionResult PdfInvoiceAll(OrderListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1925,7 +1927,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult PdfInvoiceSelected(string selectedIds)
+        public virtual IActionResult PdfInvoiceSelected(string selectedIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -1966,9 +1968,8 @@ namespace Nop.Admin.Controllers
 
         //currently we use this method on the add product to order details pages
         [HttpPost]
-        [ValidateInput(false)]
-        public virtual ActionResult ProductDetails_AttributeChange(int productId, bool validateAttributeConditions,
-	        FormCollection form)
+        public virtual IActionResult ProductDetails_AttributeChange(int productId, bool validateAttributeConditions,
+	        IFormCollection form)
 	    {
             var product = _productService.GetProductById(productId);
             if (product == null)
@@ -2006,7 +2007,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("btnSaveCC")]
-        public virtual ActionResult EditCreditCardInfo(int id, OrderModel model)
+        public virtual IActionResult EditCreditCardInfo(int id, OrderModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2055,7 +2056,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("btnSaveOrderTotals")]
-        public virtual ActionResult EditOrderTotals(int id, OrderModel model)
+        public virtual IActionResult EditOrderTotals(int id, OrderModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2099,7 +2100,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired("save-shipping-method")]
-        public virtual ActionResult EditShippingMethod(int id, OrderModel model)
+        public virtual IActionResult EditShippingMethod(int id, OrderModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2136,8 +2137,7 @@ namespace Nop.Admin.Controllers
         
         [HttpPost, ActionName("Edit")]
         [FormValueRequired(FormValueRequirement.StartsWith, "btnSaveOrderItem")]
-        [ValidateInput(false)]
-        public virtual ActionResult EditOrderItem(int id, FormCollection form)
+        public virtual IActionResult EditOrderItem(int id, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2153,7 +2153,7 @@ namespace Nop.Admin.Controllers
 
             //get order item identifier
             int orderItemId = 0;
-            foreach (var formValue in form.AllKeys)
+            foreach (var formValue in form.Keys)
                 if (formValue.StartsWith("btnSaveOrderItem", StringComparison.InvariantCultureIgnoreCase))
                     orderItemId = Convert.ToInt32(formValue.Substring("btnSaveOrderItem".Length));
 
@@ -2247,8 +2247,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired(FormValueRequirement.StartsWith, "btnDeleteOrderItem")]
-        [ValidateInput(false)]
-        public virtual ActionResult DeleteOrderItem(int id, FormCollection form)
+        public virtual IActionResult DeleteOrderItem(int id, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2264,7 +2263,7 @@ namespace Nop.Admin.Controllers
 
             //get order item identifier
             int orderItemId = 0;
-            foreach (var formValue in form.AllKeys)
+            foreach (var formValue in form.Keys)
                 if (formValue.StartsWith("btnDeleteOrderItem", StringComparison.InvariantCultureIgnoreCase))
                     orderItemId = Convert.ToInt32(formValue.Substring("btnDeleteOrderItem".Length));
 
@@ -2330,8 +2329,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired(FormValueRequirement.StartsWith, "btnResetDownloadCount")]
-        [ValidateInput(false)]
-        public virtual ActionResult ResetDownloadCount(int id, FormCollection form)
+        public virtual IActionResult ResetDownloadCount(int id, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2343,7 +2341,7 @@ namespace Nop.Admin.Controllers
 
             //get order item identifier
             int orderItemId = 0;
-            foreach (var formValue in form.AllKeys)
+            foreach (var formValue in form.Keys)
                 if (formValue.StartsWith("btnResetDownloadCount", StringComparison.InvariantCultureIgnoreCase))
                     orderItemId = Convert.ToInt32(formValue.Substring("btnResetDownloadCount".Length));
 
@@ -2370,8 +2368,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired(FormValueRequirement.StartsWith, "btnPvActivateDownload")]
-        [ValidateInput(false)]
-        public virtual ActionResult ActivateDownloadItem(int id, FormCollection form)
+        public virtual IActionResult ActivateDownloadItem(int id, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2383,7 +2380,7 @@ namespace Nop.Admin.Controllers
 
             //get order item identifier
             int orderItemId = 0;
-            foreach (var formValue in form.AllKeys)
+            foreach (var formValue in form.Keys)
                 if (formValue.StartsWith("btnPvActivateDownload", StringComparison.InvariantCultureIgnoreCase))
                     orderItemId = Convert.ToInt32(formValue.Substring("btnPvActivateDownload".Length));
 
@@ -2408,7 +2405,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult UploadLicenseFilePopup(int id, int orderItemId)
+        public virtual IActionResult UploadLicenseFilePopup(int id, int orderItemId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2441,7 +2438,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost]
         [FormValueRequired("uploadlicense")]
-        public virtual ActionResult UploadLicenseFilePopup(string btnId, string formId, OrderModel.UploadLicenseModel model)
+        public virtual IActionResult UploadLicenseFilePopup(string btnId, string formId, OrderModel.UploadLicenseModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2477,7 +2474,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("UploadLicenseFilePopup")]
         [FormValueRequired("deletelicense")]
-        public virtual ActionResult DeleteLicenseFilePopup(string btnId, string formId, OrderModel.UploadLicenseModel model)
+        public virtual IActionResult DeleteLicenseFilePopup(string btnId, string formId, OrderModel.UploadLicenseModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2508,7 +2505,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult AddProductToOrder(int orderId)
+        public virtual IActionResult AddProductToOrder(int orderId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2539,7 +2536,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult AddProductToOrder(DataSourceRequest command, OrderModel.AddOrderProductModel model)
+        public virtual IActionResult AddProductToOrder(DataSourceRequest command, OrderModel.AddOrderProductModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -2572,7 +2569,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        public virtual ActionResult AddProductToOrderDetails(int orderId, int productId)
+        public virtual IActionResult AddProductToOrderDetails(int orderId, int productId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2586,7 +2583,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult AddProductToOrderDetails(int orderId, int productId, FormCollection form)
+        public virtual IActionResult AddProductToOrderDetails(int orderId, int productId, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2626,7 +2623,7 @@ namespace Nop.Admin.Controllers
             string giftCardMessage = "";
             if (product.IsGiftCard)
             {
-                foreach (string formKey in form.AllKeys)
+                foreach (string formKey in form.Keys)
                 {
                     if (formKey.Equals("giftcard.RecipientName", StringComparison.InvariantCultureIgnoreCase))
                     {
@@ -2776,7 +2773,7 @@ namespace Nop.Admin.Controllers
 
         #region Addresses
 
-        public virtual ActionResult AddressEdit(int addressId, int orderId)
+        public virtual IActionResult AddressEdit(int addressId, int orderId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2841,8 +2838,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        [ValidateInput(false)]
-        public virtual ActionResult AddressEdit(OrderAddressModel model, FormCollection form)
+        public virtual IActionResult AddressEdit(OrderAddressModel model, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2936,7 +2932,7 @@ namespace Nop.Admin.Controllers
         
         #region Shipments
 
-        public virtual ActionResult ShipmentList()
+        public virtual IActionResult ShipmentList()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2958,7 +2954,7 @@ namespace Nop.Admin.Controllers
 		}
 
 		[HttpPost]
-        public virtual ActionResult ShipmentListSelect(DataSourceRequest command, ShipmentListModel model)
+        public virtual IActionResult ShipmentListSelect(DataSourceRequest command, ShipmentListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -2996,7 +2992,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ShipmentsByOrder(int orderId, DataSourceRequest command)
+        public virtual IActionResult ShipmentsByOrder(int orderId, DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -3030,7 +3026,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ShipmentsItemsByShipmentId(int shipmentId, DataSourceRequest command)
+        public virtual IActionResult ShipmentsItemsByShipmentId(int shipmentId, DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -3062,7 +3058,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        public virtual ActionResult AddShipment(int orderId)
+        public virtual IActionResult AddShipment(int orderId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3180,7 +3176,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
-        public virtual ActionResult AddShipment(int orderId, FormCollection form, bool continueEditing)
+        public virtual IActionResult AddShipment(int orderId, IFormCollection form, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3215,7 +3211,7 @@ namespace Nop.Admin.Controllers
                     continue;
 
                 int qtyToAdd = 0; //parse quantity
-                foreach (string formKey in form.AllKeys)
+                foreach (string formKey in form.Keys)
                     if (formKey.Equals(string.Format("qtyToAdd{0}", orderItem.Id), StringComparison.InvariantCultureIgnoreCase))
                     {
                         int.TryParse(form[formKey], out qtyToAdd);
@@ -3228,7 +3224,7 @@ namespace Nop.Admin.Controllers
                 {
                     //multiple warehouses supported
                     //warehouse is chosen by a store owner
-                    foreach (string formKey in form.AllKeys)
+                    foreach (string formKey in form.Keys)
                         if (formKey.Equals(string.Format("warehouse_{0}", orderItem.Id), StringComparison.InvariantCultureIgnoreCase))
                         {
                             int.TryParse(form[formKey], out warehouseId);
@@ -3241,7 +3237,7 @@ namespace Nop.Admin.Controllers
                     warehouseId = orderItem.Product.WarehouseId;
                 }
 
-                foreach (string formKey in form.AllKeys)
+                foreach (string formKey in form.Keys)
                     if (formKey.Equals(string.Format("qtyToAdd{0}", orderItem.Id), StringComparison.InvariantCultureIgnoreCase))
                     {
                         int.TryParse(form[formKey], out qtyToAdd);
@@ -3314,7 +3310,7 @@ namespace Nop.Admin.Controllers
             return RedirectToAction("AddShipment", new { orderId = orderId });
         }
 
-        public virtual ActionResult ShipmentDetails(int id)
+        public virtual IActionResult ShipmentDetails(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3333,7 +3329,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult DeleteShipment(int id)
+        public virtual IActionResult DeleteShipment(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3377,7 +3373,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("ShipmentDetails")]
         [FormValueRequired("settrackingnumber")]
-        public virtual ActionResult SetTrackingNumber(ShipmentModel model)
+        public virtual IActionResult SetTrackingNumber(ShipmentModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3399,7 +3395,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("ShipmentDetails")]
         [FormValueRequired("setadmincomment")]
-        public virtual ActionResult SetShipmentAdminComment(ShipmentModel model)
+        public virtual IActionResult SetShipmentAdminComment(ShipmentModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3421,7 +3417,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("ShipmentDetails")]
         [FormValueRequired("setasshipped")]
-        public virtual ActionResult SetAsShipped(int id)
+        public virtual IActionResult SetAsShipped(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3451,7 +3447,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("ShipmentDetails")]
         [FormValueRequired("saveshippeddate")]
-        public virtual ActionResult EditShippedDate(ShipmentModel model)
+        public virtual IActionResult EditShippedDate(ShipmentModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3485,7 +3481,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("ShipmentDetails")]
         [FormValueRequired("setasdelivered")]
-        public virtual ActionResult SetAsDelivered(int id)
+        public virtual IActionResult SetAsDelivered(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3516,7 +3512,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("ShipmentDetails")]
         [FormValueRequired("savedeliverydate")]
-        public virtual ActionResult EditDeliveryDate(ShipmentModel model)
+        public virtual IActionResult EditDeliveryDate(ShipmentModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3548,7 +3544,7 @@ namespace Nop.Admin.Controllers
             }
         }
 
-        public virtual ActionResult PdfPackagingSlip(int shipmentId)
+        public virtual IActionResult PdfPackagingSlip(int shipmentId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3576,7 +3572,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("ShipmentList")]
         [FormValueRequired("exportpackagingslips-all")]
-        public virtual ActionResult PdfPackagingSlipAll(ShipmentListModel model)
+        public virtual IActionResult PdfPackagingSlipAll(ShipmentListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3620,7 +3616,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult PdfPackagingSlipSelected(string selectedIds)
+        public virtual IActionResult PdfPackagingSlipSelected(string selectedIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3657,7 +3653,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult SetAsShippedSelected(ICollection<int> selectedIds)
+        public virtual IActionResult SetAsShippedSelected(ICollection<int> selectedIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3689,7 +3685,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult SetAsDeliveredSelected(ICollection<int> selectedIds)
+        public virtual IActionResult SetAsDeliveredSelected(ICollection<int> selectedIds)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3725,7 +3721,7 @@ namespace Nop.Admin.Controllers
         #region Order notes
         
         [HttpPost]
-        public virtual ActionResult OrderNotesSelect(int orderId, DataSourceRequest command)
+        public virtual IActionResult OrderNotesSelect(int orderId, DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -3764,20 +3760,18 @@ namespace Nop.Admin.Controllers
 
             return Json(gridModel);
         }
-        
-        [ValidateInput(false)]
-        public virtual ActionResult OrderNoteAdd(int orderId, int downloadId, bool displayToCustomer, string message)
+        public virtual IActionResult OrderNoteAdd(int orderId, int downloadId, bool displayToCustomer, string message)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
 
             var order = _orderService.GetOrderById(orderId);
             if (order == null)
-                return Json(new { Result = false }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = false });
 
             //a vendor does not have access to this functionality
             if (_workContext.CurrentVendor != null)
-                return Json(new { Result = false }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = false });
 
             var orderNote = new OrderNote
             {
@@ -3798,11 +3792,11 @@ namespace Nop.Admin.Controllers
 
             }
 
-            return Json(new { Result = true }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = true });
         }
 
         [HttpPost]
-        public virtual ActionResult OrderNoteDelete(int id, int orderId)
+        public virtual IActionResult OrderNoteDelete(int id, int orderId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3861,7 +3855,7 @@ namespace Nop.Admin.Controllers
             };
             return gridModel;
         }
-        public virtual ActionResult BestsellersBriefReportByQuantity()
+        public virtual IActionResult BestsellersBriefReportByQuantity()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return Content("");
@@ -3869,7 +3863,7 @@ namespace Nop.Admin.Controllers
             return PartialView();
         }
         [HttpPost]
-        public virtual ActionResult BestsellersBriefReportByQuantityList(DataSourceRequest command)
+        public virtual IActionResult BestsellersBriefReportByQuantityList(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -3879,7 +3873,7 @@ namespace Nop.Admin.Controllers
 
             return Json(gridModel);
         }
-        public virtual ActionResult BestsellersBriefReportByAmount()
+        public virtual IActionResult BestsellersBriefReportByAmount()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return Content("");
@@ -3887,7 +3881,7 @@ namespace Nop.Admin.Controllers
             return PartialView();
         }
         [HttpPost]
-        public virtual ActionResult BestsellersBriefReportByAmountList(DataSourceRequest command)
+        public virtual IActionResult BestsellersBriefReportByAmountList(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -3900,7 +3894,7 @@ namespace Nop.Admin.Controllers
 
 
 
-        public virtual ActionResult BestsellersReport()
+        public virtual IActionResult BestsellersReport()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3948,7 +3942,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
         [HttpPost]
-        public virtual ActionResult BestsellersReportList(DataSourceRequest command, BestsellersReportModel model)
+        public virtual IActionResult BestsellersReportList(DataSourceRequest command, BestsellersReportModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -4005,7 +3999,7 @@ namespace Nop.Admin.Controllers
 
 
 
-        public virtual ActionResult NeverSoldReport()
+        public virtual IActionResult NeverSoldReport()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -4042,7 +4036,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
         [HttpPost]
-        public virtual ActionResult NeverSoldReportList(DataSourceRequest command, NeverSoldReportModel model)
+        public virtual IActionResult NeverSoldReportList(DataSourceRequest command, NeverSoldReportModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -4081,10 +4075,7 @@ namespace Nop.Admin.Controllers
 
             return Json(gridModel);
         }
-
-
-        [ChildActionOnly]
-        public virtual ActionResult OrderAverageReport()
+        public virtual IActionResult OrderAverageReport()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return Content("");
@@ -4092,7 +4083,7 @@ namespace Nop.Admin.Controllers
             return PartialView();
         }
         [HttpPost]
-        public virtual ActionResult OrderAverageReportList(DataSourceRequest command)
+        public virtual IActionResult OrderAverageReportList(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -4124,9 +4115,7 @@ namespace Nop.Admin.Controllers
 
             return Json(gridModel);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult OrderIncompleteReport()
+        public virtual IActionResult OrderIncompleteReport()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return Content("");
@@ -4135,7 +4124,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult OrderIncompleteReportList(DataSourceRequest command)
+        public virtual IActionResult OrderIncompleteReportList(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
@@ -4190,7 +4179,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
         
-        public virtual ActionResult CountryReport()
+        public virtual IActionResult CountryReport()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.OrderCountryReport))
                 return AccessDeniedView();
@@ -4209,7 +4198,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult CountryReportList(DataSourceRequest command, CountryReportModel model)
+        public virtual IActionResult CountryReportList(DataSourceRequest command, CountryReportModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.OrderCountryReport))
                 return AccessDeniedKendoGridJson();
@@ -4246,9 +4235,7 @@ namespace Nop.Admin.Controllers
 
             return Json(gridModel);
         }
-
-        [ChildActionOnly]
-	    public virtual ActionResult OrderStatistics()
+	    public virtual IActionResult OrderStatistics()
 	    {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return Content("");
@@ -4260,8 +4247,8 @@ namespace Nop.Admin.Controllers
             return PartialView();
 	    }
 
-        [AcceptVerbs(HttpVerbs.Get)]
-        public virtual ActionResult LoadOrderStatistics(string period)
+        [HttpGet]
+        public virtual IActionResult LoadOrderStatistics(string period)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return Content("");
@@ -4350,11 +4337,9 @@ namespace Nop.Admin.Controllers
                     break;
             }
 
-            return Json(result, JsonRequestBehavior.AllowGet);
+            return Json(result);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult LatestOrders()
+        public virtual IActionResult LatestOrders()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return Content("");

@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -25,7 +25,6 @@ namespace Nop.Web.Models.Catalog
         /// Query string
         /// </summary>
         [NopResourceDisplayName("Search.SearchTerm")]
-        [AllowHtml]
         public string q { get; set; }
         /// <summary>
         /// Category ID
@@ -47,12 +46,10 @@ namespace Nop.Web.Models.Catalog
         /// <summary>
         /// Price - From 
         /// </summary>
-        [AllowHtml]
         public string pf { get; set; }
         /// <summary>
         /// Price - To
         /// </summary>
-        [AllowHtml]
         public string pt { get; set; }
         /// <summary>
         /// A value indicating whether to search in descriptions

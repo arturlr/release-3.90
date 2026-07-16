@@ -1,25 +1,25 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
+using Nop.Web.Framework.Mvc.Routes;
 
 namespace Nop.Admin
 {
-    public class AdminAreaRegistration : AreaRegistration
+    /// <summary>
+    /// Represents the Admin area route provider for ASP.NET Core
+    /// </summary>
+    public class AdminAreaRouteProvider : IRouteProvider
     {
-        public override string AreaName
+        public void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
         {
-            get
-            {
-                return "Admin";
-            }
+            endpointRouteBuilder.MapControllerRoute(
+                name: "Admin_default",
+                pattern: "Admin/{controller=Home}/{action=Index}/{id?}",
+                defaults: new { area = "Admin" });
         }
 
-        public override void RegisterArea(AreaRegistrationContext context)
+        public int Priority
         {
-            context.MapRoute(
-                "Admin_default",
-                "Admin/{controller}/{action}/{id}",
-                new { controller = "Home", action = "Index", area = "Admin", id = "" },
-                new[] { "Nop.Admin.Controllers" }
-            );
+            get { return 1000; } // Admin routes should be registered with high priority
         }
     }
 }

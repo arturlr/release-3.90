@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain;
 using Nop.Core.Domain.Catalog;
@@ -173,7 +173,7 @@ namespace Nop.Web.Controllers
         }
 
         [NonAction]
-        protected virtual string ParseCustomCustomerAttributes(FormCollection form)
+        protected virtual string ParseCustomCustomerAttributes(IFormCollection form)
         {
             if (form == null)
                 throw new ArgumentNullException("form");
@@ -200,7 +200,7 @@ namespace Nop.Web.Controllers
                         break;
                     case AttributeControlType.Checkboxes:
                     {
-                        var cblAttributes = form[controlId];
+                        var cblAttributes = form[controlId].ToString();
                         if (!String.IsNullOrEmpty(cblAttributes))
                         {
                             foreach (var item in cblAttributes.Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
@@ -231,7 +231,7 @@ namespace Nop.Web.Controllers
                     case AttributeControlType.TextBox:
                     case AttributeControlType.MultilineTextbox:
                     {
-                        var ctrlAttributes = form[controlId];
+                        var ctrlAttributes = form[controlId].ToString();
                         if (!String.IsNullOrEmpty(ctrlAttributes))
                         {
                             string enteredText = ctrlAttributes.Trim();
@@ -262,7 +262,7 @@ namespace Nop.Web.Controllers
         [StoreClosed(true)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult Login(bool? checkoutAsGuest)
+        public virtual IActionResult Login(bool? checkoutAsGuest)
         {
             var model = _customerModelFactory.PrepareLoginModel(checkoutAsGuest);
             return View(model);
@@ -274,7 +274,7 @@ namespace Nop.Web.Controllers
         [StoreClosed(true)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult Login(LoginModel model, string returnUrl, bool captchaValid)
+        public virtual IActionResult Login(LoginModel model, string returnUrl, bool captchaValid)
         {
             //validate CAPTCHA
             if (_captchaSettings.Enabled && _captchaSettings.ShowOnLoginPage && !captchaValid)
@@ -347,7 +347,7 @@ namespace Nop.Web.Controllers
         [StoreClosed(true)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult Logout()
+        public virtual IActionResult Logout()
         {
             //external authentication
             ExternalAuthorizerHelper.RemoveParameters();
@@ -404,7 +404,7 @@ namespace Nop.Web.Controllers
         [NopHttpsRequirement(SslRequirement.Yes)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult PasswordRecovery()
+        public virtual IActionResult PasswordRecovery()
         {
             var model = _customerModelFactory.PreparePasswordRecoveryModel();
             return View(model);
@@ -415,7 +415,7 @@ namespace Nop.Web.Controllers
         [FormValueRequired("send-email")]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult PasswordRecoverySend(PasswordRecoveryModel model)
+        public virtual IActionResult PasswordRecoverySend(PasswordRecoveryModel model)
         {
             if (ModelState.IsValid)
             {
@@ -452,7 +452,7 @@ namespace Nop.Web.Controllers
         [NopHttpsRequirement(SslRequirement.Yes)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult PasswordRecoveryConfirm(string token, string email)
+        public virtual IActionResult PasswordRecoveryConfirm(string token, string email)
         {
             var customer = _customerService.GetCustomerByEmail(email);
             if (customer == null)
@@ -491,7 +491,7 @@ namespace Nop.Web.Controllers
         [FormValueRequired("set-password")]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult PasswordRecoveryConfirmPOST(string token, string email, PasswordRecoveryConfirmModel model)
+        public virtual IActionResult PasswordRecoveryConfirmPOST(string token, string email, PasswordRecoveryConfirmModel model)
         {
             var customer = _customerService.GetCustomerByEmail(email);
             if (customer == null)
@@ -544,7 +544,7 @@ namespace Nop.Web.Controllers
         [NopHttpsRequirement(SslRequirement.Yes)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult Register()
+        public virtual IActionResult Register()
         {
             //check whether registration is allowed
             if (_customerSettings.UserRegistrationType == UserRegistrationType.Disabled)
@@ -560,10 +560,9 @@ namespace Nop.Web.Controllers
         [CaptchaValidator]
         [HoneypotValidator]
         [PublicAntiForgery]
-        [ValidateInput(false)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult Register(RegisterModel model, string returnUrl, bool captchaValid, FormCollection form)
+        public virtual IActionResult Register(RegisterModel model, string returnUrl, bool captchaValid, IFormCollection form)
         {
             //check whether registration is allowed
             if (_customerSettings.UserRegistrationType == UserRegistrationType.Disabled)
@@ -777,7 +776,7 @@ namespace Nop.Web.Controllers
 
                             var redirectUrl = Url.RouteUrl("RegisterResult", new {resultId = (int) UserRegistrationType.Standard});
                             if (!String.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                                redirectUrl = _webHelper.ModifyQueryString(redirectUrl, "returnurl=" + HttpUtility.UrlEncode(returnUrl), null);
+                                redirectUrl = _webHelper.ModifyQueryString(redirectUrl, "returnurl=" + System.Net.WebUtility.UrlEncode(returnUrl), null);
                             return Redirect(redirectUrl);
                         }
                         default:
@@ -799,7 +798,7 @@ namespace Nop.Web.Controllers
 
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult RegisterResult(int resultId)
+        public virtual IActionResult RegisterResult(int resultId)
         {
             var model = _customerModelFactory.PrepareRegisterResultModel(resultId);
             return View(model);
@@ -808,7 +807,7 @@ namespace Nop.Web.Controllers
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
         [HttpPost]
-        public virtual ActionResult RegisterResult(string returnUrl)
+        public virtual IActionResult RegisterResult(string returnUrl)
         {
             if (String.IsNullOrEmpty(returnUrl) || !Url.IsLocalUrl(returnUrl))
                 return RedirectToRoute("HomePage");
@@ -818,10 +817,9 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult CheckUsernameAvailability(string username)
+        public virtual IActionResult CheckUsernameAvailability(string username)
         {
             var usernameAvailable = false;
             var statusText = _localizationService.GetResource("Account.CheckUsernameAvailability.NotAvailable");
@@ -851,7 +849,7 @@ namespace Nop.Web.Controllers
         [NopHttpsRequirement(SslRequirement.Yes)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult AccountActivation(string token, string email)
+        public virtual IActionResult AccountActivation(string token, string email)
         {
             var customer = _customerService.GetCustomerByEmail(email);
             if (customer == null)
@@ -883,19 +881,17 @@ namespace Nop.Web.Controllers
         #endregion
 
         #region My account / Info
-
-        [ChildActionOnly]
-        public virtual ActionResult CustomerNavigation(int selectedTabId = 0)
+        public virtual IActionResult CustomerNavigation(int selectedTabId = 0)
         {
             var model = _customerModelFactory.PrepareCustomerNavigationModel(selectedTabId);
             return PartialView(model);
         }
 
         [NopHttpsRequirement(SslRequirement.Yes)]
-        public virtual ActionResult Info()
+        public virtual IActionResult Info()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var model = new CustomerInfoModel();
             model = _customerModelFactory.PrepareCustomerInfoModel(model, _workContext.CurrentCustomer, false);
@@ -905,11 +901,10 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
-        public virtual ActionResult Info(CustomerInfoModel model, FormCollection form)
+        public virtual IActionResult Info(CustomerInfoModel model, IFormCollection form)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var customer = _workContext.CurrentCustomer;
 
@@ -1082,10 +1077,10 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        public virtual ActionResult RemoveExternalAssociation(int id)
+        public virtual IActionResult RemoveExternalAssociation(int id)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             //ensure it's our record
             var ear = _openAuthenticationService.GetExternalIdentifiersFor(_workContext.CurrentCustomer)
@@ -1110,7 +1105,7 @@ namespace Nop.Web.Controllers
         [NopHttpsRequirement(SslRequirement.Yes)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult EmailRevalidation(string token, string email)
+        public virtual IActionResult EmailRevalidation(string token, string email)
         {
             var customer = _customerService.GetCustomerByEmail(email);
             if (customer == null)
@@ -1166,10 +1161,10 @@ namespace Nop.Web.Controllers
         #region My account / Addresses
 
         [NopHttpsRequirement(SslRequirement.Yes)]
-        public virtual ActionResult Addresses()
+        public virtual IActionResult Addresses()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var model = _customerModelFactory.PrepareCustomerAddressListModel();
             return View(model);
@@ -1178,10 +1173,10 @@ namespace Nop.Web.Controllers
         [HttpPost]
         [PublicAntiForgery]
         [NopHttpsRequirement(SslRequirement.Yes)]
-        public virtual ActionResult AddressDelete(int addressId)
+        public virtual IActionResult AddressDelete(int addressId)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var customer = _workContext.CurrentCustomer;
 
@@ -1203,10 +1198,10 @@ namespace Nop.Web.Controllers
         }
 
         [NopHttpsRequirement(SslRequirement.Yes)]
-        public virtual ActionResult AddressAdd()
+        public virtual IActionResult AddressAdd()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var model = new CustomerAddressEditModel();
             _addressModelFactory.PrepareAddressModel(model.Address,
@@ -1220,11 +1215,10 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
-        public virtual ActionResult AddressAdd(CustomerAddressEditModel model, FormCollection form)
+        public virtual IActionResult AddressAdd(CustomerAddressEditModel model, IFormCollection form)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var customer = _workContext.CurrentCustomer;
 
@@ -1264,10 +1258,10 @@ namespace Nop.Web.Controllers
         }
 
         [NopHttpsRequirement(SslRequirement.Yes)]
-        public virtual ActionResult AddressEdit(int addressId)
+        public virtual IActionResult AddressEdit(int addressId)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var customer = _workContext.CurrentCustomer;
             //find address (ensure that it belongs to the current customer)
@@ -1288,11 +1282,10 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
-        public virtual ActionResult AddressEdit(CustomerAddressEditModel model, int addressId, FormCollection form)
+        public virtual IActionResult AddressEdit(CustomerAddressEditModel model, int addressId, IFormCollection form)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var customer = _workContext.CurrentCustomer;
             //find address (ensure that it belongs to the current customer)
@@ -1333,10 +1326,10 @@ namespace Nop.Web.Controllers
         #region My account / Downloadable products
 
         [NopHttpsRequirement(SslRequirement.Yes)]
-        public virtual ActionResult DownloadableProducts()
+        public virtual IActionResult DownloadableProducts()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             if (_customerSettings.HideDownloadableProductsTab)
                 return RedirectToRoute("CustomerInfo");
@@ -1345,7 +1338,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        public virtual ActionResult UserAgreement(Guid orderItemId)
+        public virtual IActionResult UserAgreement(Guid orderItemId)
         {
             var orderItem = _orderService.GetOrderItemByGuid(orderItemId);
             if (orderItem == null)
@@ -1364,10 +1357,10 @@ namespace Nop.Web.Controllers
         #region My account / Change password
 
         [NopHttpsRequirement(SslRequirement.Yes)]
-        public virtual ActionResult ChangePassword()
+        public virtual IActionResult ChangePassword()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var model = _customerModelFactory.PrepareChangePasswordModel();
 
@@ -1380,10 +1373,10 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        public virtual ActionResult ChangePassword(ChangePasswordModel model)
+        public virtual IActionResult ChangePassword(ChangePasswordModel model)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             var customer = _workContext.CurrentCustomer;
 
@@ -1413,10 +1406,10 @@ namespace Nop.Web.Controllers
         #region My account / Avatar
 
         [NopHttpsRequirement(SslRequirement.Yes)]
-        public virtual ActionResult Avatar()
+        public virtual IActionResult Avatar()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             if (!_customerSettings.AllowCustomersToUploadAvatars)
                 return RedirectToRoute("CustomerInfo");
@@ -1429,10 +1422,10 @@ namespace Nop.Web.Controllers
         [HttpPost, ActionName("Avatar")]
         [PublicAntiForgery]
         [FormValueRequired("upload-avatar")]
-        public virtual ActionResult UploadAvatar(CustomerAvatarModel model, HttpPostedFileBase uploadedFile)
+        public virtual IActionResult UploadAvatar(CustomerAvatarModel model, IFormFile uploadedFile)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             if (!_customerSettings.AllowCustomersToUploadAvatars)
                 return RedirectToRoute("CustomerInfo");
@@ -1447,7 +1440,7 @@ namespace Nop.Web.Controllers
                     if ((uploadedFile != null) && (!String.IsNullOrEmpty(uploadedFile.FileName)))
                     {
                         int avatarMaxSize = _customerSettings.AvatarMaximumSizeBytes;
-                        if (uploadedFile.ContentLength > avatarMaxSize)
+                        if (uploadedFile.Length > avatarMaxSize)
                             throw new NopException(string.Format(_localizationService.GetResource("Account.Avatar.MaximumUploadedFileSize"), avatarMaxSize));
 
                         byte[] customerPictureBinary = uploadedFile.GetPictureBits();
@@ -1484,10 +1477,10 @@ namespace Nop.Web.Controllers
         [HttpPost, ActionName("Avatar")]
         [PublicAntiForgery]
         [FormValueRequired("remove-avatar")]
-        public virtual ActionResult RemoveAvatar(CustomerAvatarModel model, HttpPostedFileBase uploadedFile)
+        public virtual IActionResult RemoveAvatar(CustomerAvatarModel model, IFormFile uploadedFile)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new UnauthorizedResult();
 
             if (!_customerSettings.AllowCustomersToUploadAvatars)
                 return RedirectToRoute("CustomerInfo");

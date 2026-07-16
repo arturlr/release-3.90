@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Http;
+
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Directory;
 using Nop.Admin.Models.Shipping;
@@ -114,7 +116,7 @@ namespace Nop.Admin.Controllers
 
         #region Shipping rate computation methods
 
-        public virtual ActionResult Providers()
+        public virtual IActionResult Providers()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -123,7 +125,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Providers(DataSourceRequest command)
+        public virtual IActionResult Providers(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedKendoGridJson();
@@ -148,7 +150,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ProviderUpdate([Bind(Exclude = "ConfigurationRouteValues")] ShippingRateComputationMethodModel model)
+        public virtual IActionResult ProviderUpdate(ShippingRateComputationMethodModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -182,7 +184,7 @@ namespace Nop.Admin.Controllers
             return new NullJsonResult();
         }
 
-        public virtual ActionResult ConfigureProvider(string systemName)
+        public virtual IActionResult ConfigureProvider(string systemName)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -194,7 +196,7 @@ namespace Nop.Admin.Controllers
 
             var model = srcm.ToModel();
             string actionName, controllerName;
-            RouteValueDictionary routeValues;
+            Microsoft.AspNetCore.Routing.RouteValueDictionary routeValues;
             srcm.GetConfigurationRoute(out actionName, out controllerName, out routeValues);
             model.ConfigurationActionName = actionName;
             model.ConfigurationControllerName = controllerName;
@@ -206,7 +208,7 @@ namespace Nop.Admin.Controllers
 
         #region Pickup point providers
 
-        public virtual ActionResult PickupPointProviders()
+        public virtual IActionResult PickupPointProviders()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -215,7 +217,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult PickupPointProviders(DataSourceRequest command)
+        public virtual IActionResult PickupPointProviders(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedKendoGridJson();
@@ -240,7 +242,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult PickupPointProviderUpdate([Bind(Exclude = "ConfigurationRouteValues")] PickupPointProviderModel model)
+        public virtual IActionResult PickupPointProviderUpdate(PickupPointProviderModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -273,7 +275,7 @@ namespace Nop.Admin.Controllers
             return new NullJsonResult();
         }
 
-        public virtual ActionResult ConfigurePickupPointProvider(string systemName)
+        public virtual IActionResult ConfigurePickupPointProvider(string systemName)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -285,7 +287,7 @@ namespace Nop.Admin.Controllers
             var model = pickupPointProvider.ToModel();
             string actionName;
             string controllerName;
-            RouteValueDictionary routeValues;
+            Microsoft.AspNetCore.Routing.RouteValueDictionary routeValues;
             pickupPointProvider.GetConfigurationRoute(out actionName, out controllerName, out routeValues);
             model.ConfigurationActionName = actionName;
             model.ConfigurationControllerName = controllerName;
@@ -297,7 +299,7 @@ namespace Nop.Admin.Controllers
 
         #region Shipping methods
 
-        public virtual ActionResult Methods()
+        public virtual IActionResult Methods()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -306,7 +308,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Methods(DataSourceRequest command)
+        public virtual IActionResult Methods(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedKendoGridJson();
@@ -324,7 +326,7 @@ namespace Nop.Admin.Controllers
         }
 
 
-        public virtual ActionResult CreateMethod()
+        public virtual IActionResult CreateMethod()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -336,7 +338,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult CreateMethod(ShippingMethodModel model, bool continueEditing)
+        public virtual IActionResult CreateMethod(ShippingMethodModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -356,7 +358,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult EditMethod(int id)
+        public virtual IActionResult EditMethod(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -378,7 +380,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult EditMethod(ShippingMethodModel model, bool continueEditing)
+        public virtual IActionResult EditMethod(ShippingMethodModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -404,7 +406,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult DeleteMethod(int id)
+        public virtual IActionResult DeleteMethod(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -424,7 +426,7 @@ namespace Nop.Admin.Controllers
 
         #region Dates and ranges
 
-        public virtual ActionResult DatesAndRanges()
+        public virtual IActionResult DatesAndRanges()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -435,7 +437,7 @@ namespace Nop.Admin.Controllers
         #region Delivery dates
 
         [HttpPost]
-        public virtual ActionResult DeliveryDates(DataSourceRequest command)
+        public virtual IActionResult DeliveryDates(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedKendoGridJson();
@@ -451,7 +453,7 @@ namespace Nop.Admin.Controllers
         }
 
 
-        public virtual ActionResult CreateDeliveryDate()
+        public virtual IActionResult CreateDeliveryDate()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -465,7 +467,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult CreateDeliveryDate(DeliveryDateModel model, bool continueEditing)
+        public virtual IActionResult CreateDeliveryDate(DeliveryDateModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -487,7 +489,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult EditDeliveryDate(int id)
+        public virtual IActionResult EditDeliveryDate(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -509,7 +511,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult EditDeliveryDate(DeliveryDateModel model, bool continueEditing)
+        public virtual IActionResult EditDeliveryDate(DeliveryDateModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -537,7 +539,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult DeleteDeliveryDate(int id)
+        public virtual IActionResult DeleteDeliveryDate(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -559,7 +561,7 @@ namespace Nop.Admin.Controllers
         #region Product availability ranges
 
         [HttpPost]
-        public virtual ActionResult ProductAvailabilityRanges(DataSourceRequest command)
+        public virtual IActionResult ProductAvailabilityRanges(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedKendoGridJson();
@@ -574,7 +576,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        public virtual ActionResult CreateProductAvailabilityRange()
+        public virtual IActionResult CreateProductAvailabilityRange()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -588,7 +590,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult CreateProductAvailabilityRange(ProductAvailabilityRangeModel model, bool continueEditing)
+        public virtual IActionResult CreateProductAvailabilityRange(ProductAvailabilityRangeModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -610,7 +612,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult EditProductAvailabilityRange(int id)
+        public virtual IActionResult EditProductAvailabilityRange(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -632,7 +634,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult EditProductAvailabilityRange(ProductAvailabilityRangeModel model, bool continueEditing)
+        public virtual IActionResult EditProductAvailabilityRange(ProductAvailabilityRangeModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -660,7 +662,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult DeleteProductAvailabilityRange(int id)
+        public virtual IActionResult DeleteProductAvailabilityRange(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -683,7 +685,7 @@ namespace Nop.Admin.Controllers
 
         #region Warehouses
 
-        public virtual ActionResult Warehouses()
+        public virtual IActionResult Warehouses()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -692,7 +694,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult Warehouses(DataSourceRequest command)
+        public virtual IActionResult Warehouses(DataSourceRequest command)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedKendoGridJson();
@@ -719,7 +721,7 @@ namespace Nop.Admin.Controllers
         }
 
 
-        public virtual ActionResult CreateWarehouse()
+        public virtual IActionResult CreateWarehouse()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -741,7 +743,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult CreateWarehouse(WarehouseModel model, bool continueEditing)
+        public virtual IActionResult CreateWarehouse(WarehouseModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -785,7 +787,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        public virtual ActionResult EditWarehouse(int id)
+        public virtual IActionResult EditWarehouse(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -832,7 +834,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual ActionResult EditWarehouse(WarehouseModel model, bool continueEditing)
+        public virtual IActionResult EditWarehouse(WarehouseModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -890,7 +892,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult DeleteWarehouse(int id)
+        public virtual IActionResult DeleteWarehouse(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -913,7 +915,7 @@ namespace Nop.Admin.Controllers
         
         #region Restrictions
 
-        public virtual ActionResult Restrictions()
+        public virtual IActionResult Restrictions()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -951,7 +953,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ActionName("Restrictions")]
-        public virtual ActionResult RestrictionSave(FormCollection form)
+        public virtual IActionResult RestrictionSave(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -963,8 +965,8 @@ namespace Nop.Admin.Controllers
             foreach (var shippingMethod in shippingMethods)
             {
                 string formKey = "restrict_" + shippingMethod.Id;
-                var countryIdsToRestrict = form[formKey] != null 
-                    ? form[formKey].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                var countryIdsToRestrict = !string.IsNullOrEmpty(form[formKey]) 
+                    ? form[formKey].ToString().Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(int.Parse)
                     .ToList() 
                     : new List<int>();

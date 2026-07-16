@@ -1,12 +1,12 @@
-﻿using System.Linq;
-using System.Web.Mvc;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Web.Factories;
 
 namespace Nop.Web.Controllers
 {
     public partial class WidgetController : BasePublicController
     {
-		#region Fields
+        #region Fields
 
         private readonly IWidgetModelFactory _widgetModelFactory;
 
@@ -23,8 +23,7 @@ namespace Nop.Web.Controllers
 
         #region Methods
 
-        [ChildActionOnly]
-        public virtual ActionResult WidgetsByZone(string widgetZone, object additionalData = null)
+        public virtual IActionResult WidgetsByZone(string widgetZone, object additionalData = null)
         {
             var model = _widgetModelFactory.GetRenderWidgetModels(widgetZone, additionalData);
 

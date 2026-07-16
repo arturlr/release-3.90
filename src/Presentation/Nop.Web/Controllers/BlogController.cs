@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ServiceModel.Syndication;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Blogs;
 using Nop.Core.Domain.Customers;
@@ -84,7 +84,7 @@ namespace Nop.Web.Controllers
 
         #region Methods
 
-        public virtual ActionResult List(BlogPagingFilteringModel command)
+        public virtual IActionResult List(BlogPagingFilteringModel command)
         {
             if (!_blogSettings.Enabled)
                 return RedirectToRoute("HomePage");
@@ -92,7 +92,7 @@ namespace Nop.Web.Controllers
             var model = _blogModelFactory.PrepareBlogPostListModel(command);
             return View("List", model);
         }
-        public virtual ActionResult BlogByTag(BlogPagingFilteringModel command)
+        public virtual IActionResult BlogByTag(BlogPagingFilteringModel command)
         {
             if (!_blogSettings.Enabled)
                 return RedirectToRoute("HomePage");
@@ -100,7 +100,7 @@ namespace Nop.Web.Controllers
             var model = _blogModelFactory.PrepareBlogPostListModel(command);
             return View("List", model);
         }
-        public virtual ActionResult BlogByMonth(BlogPagingFilteringModel command)
+        public virtual IActionResult BlogByMonth(BlogPagingFilteringModel command)
         {
             if (!_blogSettings.Enabled)
                 return RedirectToRoute("HomePage");
@@ -109,7 +109,7 @@ namespace Nop.Web.Controllers
             return View("List", model);
         }
 
-        public virtual ActionResult ListRss(int languageId)
+        public virtual IActionResult ListRss(int languageId)
         {
             var feed = new SyndicationFeed(
                 string.Format("{0}: Blog", _storeContext.CurrentStore.GetLocalized(x => x.Name)),
@@ -132,7 +132,7 @@ namespace Nop.Web.Controllers
             return new RssActionResult(feed, _webHelper.GetThisPageUrl(false));
         }
 
-        public virtual ActionResult BlogPost(int blogPostId)
+        public virtual IActionResult BlogPost(int blogPostId)
         {
             if (!_blogSettings.Enabled)
                 return RedirectToRoute("HomePage");
@@ -161,7 +161,7 @@ namespace Nop.Web.Controllers
         [PublicAntiForgery]
         [FormValueRequired("add-comment")]
         [CaptchaValidator]
-        public virtual ActionResult BlogCommentAdd(int blogPostId, BlogPostModel model, bool captchaValid)
+        public virtual IActionResult BlogCommentAdd(int blogPostId, BlogPostModel model, bool captchaValid)
         {
             if (!_blogSettings.Enabled)
                 return RedirectToRoute("HomePage");
@@ -218,9 +218,7 @@ namespace Nop.Web.Controllers
             _blogModelFactory.PrepareBlogPostModel(model, blogPost, true);
             return View(model);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult BlogTags()
+        public virtual IActionResult BlogTags()
         {
             if (!_blogSettings.Enabled)
                 return Content("");
@@ -228,9 +226,7 @@ namespace Nop.Web.Controllers
             var model = _blogModelFactory.PrepareBlogPostTagListModel();
             return PartialView(model);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult BlogMonths()
+        public virtual IActionResult BlogMonths()
         {
             if (!_blogSettings.Enabled)
                 return Content("");
@@ -238,9 +234,7 @@ namespace Nop.Web.Controllers
             var model = _blogModelFactory.PrepareBlogPostYearModel();
             return PartialView(model);
         }
-
-        [ChildActionOnly]
-        public virtual ActionResult RssHeaderLink()
+        public virtual IActionResult RssHeaderLink()
         {
             if (!_blogSettings.Enabled || !_blogSettings.ShowHeaderRssUrl)
                 return Content("");

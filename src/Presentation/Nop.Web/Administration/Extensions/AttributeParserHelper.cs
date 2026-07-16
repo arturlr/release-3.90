@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core.Domain.Catalog;
 using Nop.Services.Common;
 
@@ -11,7 +12,7 @@ namespace Nop.Admin.Extensions
     /// </summary>
     public static class AttributeParserHelper
     {
-        public static string ParseCustomAddressAttributes(this FormCollection form,
+        public static string ParseCustomAddressAttributes(this IFormCollection form,
             IAddressAttributeParser addressAttributeParser,
             IAddressAttributeService addressAttributeService)
         {
@@ -28,7 +29,7 @@ namespace Nop.Admin.Extensions
                     case AttributeControlType.DropdownList:
                     case AttributeControlType.RadioList:
                         {
-                            var ctrlAttributes = form[controlId];
+                            var ctrlAttributes = form[controlId].ToString();
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 int selectedAttributeId = int.Parse(ctrlAttributes);
@@ -40,7 +41,7 @@ namespace Nop.Admin.Extensions
                         break;
                     case AttributeControlType.Checkboxes:
                         {
-                            var cblAttributes = form[controlId];
+                            var cblAttributes = form[controlId].ToString();
                             if (!String.IsNullOrEmpty(cblAttributes))
                             {
                                 foreach (var item in cblAttributes.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -70,7 +71,7 @@ namespace Nop.Admin.Extensions
                     case AttributeControlType.TextBox:
                     case AttributeControlType.MultilineTextbox:
                         {
-                            var ctrlAttributes = form[controlId];
+                            var ctrlAttributes = form[controlId].ToString();
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 string enteredText = ctrlAttributes.Trim();

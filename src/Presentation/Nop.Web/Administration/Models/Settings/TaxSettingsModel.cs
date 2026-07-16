@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Admin.Models.Common;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
