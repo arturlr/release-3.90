@@ -135,6 +135,35 @@ app.MapControllerRoute("NewsItem", "{SeName}", new { controller = "News", action
 app.MapControllerRoute("BlogPost", "{SeName}", new { controller = "Blog", action = "BlogPost" });
 app.MapControllerRoute("Topic", "{SeName}", new { controller = "Topic", action = "TopicDetails" });
 
+// Account routes
+app.MapControllerRoute("Login", "login", new { controller = "Customer", action = "Login" });
+app.MapControllerRoute("Logout", "logout", new { controller = "Customer", action = "Logout" });
+app.MapControllerRoute("Register", "register", new { controller = "Customer", action = "Register" });
+app.MapControllerRoute("CustomerInfo", "customer/info", new { controller = "Customer", action = "Info" });
+app.MapControllerRoute("CustomerAddresses", "customer/addresses", new { controller = "Customer", action = "Addresses" });
+app.MapControllerRoute("CustomerOrders", "customer/orders", new { controller = "Order", action = "CustomerOrders" });
+
+// Shopping routes
+app.MapControllerRoute("ShoppingCart", "cart", new { controller = "ShoppingCart", action = "Cart" });
+app.MapControllerRoute("Wishlist", "wishlist", new { controller = "ShoppingCart", action = "Wishlist" });
+app.MapControllerRoute("Checkout", "checkout", new { controller = "Checkout", action = "Index" });
+app.MapControllerRoute("ContactUs", "contactus", new { controller = "Common", action = "ContactUs" });
+app.MapControllerRoute("Sitemap", "sitemap", new { controller = "Common", action = "Sitemap" });
+app.MapControllerRoute("HomePage", "", new { controller = "Home", action = "Index" });
+
+// Catalog routes
+app.MapControllerRoute("ProductSearch", "search", new { controller = "Catalog", action = "Search" });
+app.MapControllerRoute("NewProducts", "newproducts", new { controller = "Product", action = "NewProducts" });
+app.MapControllerRoute("RecentlyViewedProducts", "recentlyviewedproducts", new { controller = "Product", action = "RecentlyViewedProducts" });
+app.MapControllerRoute("CompareProducts", "compareproducts", new { controller = "Product", action = "CompareProducts" });
+app.MapControllerRoute("ManufacturerList", "manufacturer/all", new { controller = "Catalog", action = "ManufacturerAll" });
+app.MapControllerRoute("VendorList", "vendor/all", new { controller = "Catalog", action = "VendorAll" });
+
+// Blog/News/Forums
+app.MapControllerRoute("Blog", "blog", new { controller = "Blog", action = "List" });
+app.MapControllerRoute("NewsArchive", "news", new { controller = "News", action = "List" });
+app.MapControllerRoute("Boards", "boards", new { controller = "Boards", action = "Index" });
+
 // Admin area route
 app.MapControllerRoute(
     name: "admin",
