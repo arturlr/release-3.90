@@ -1,4 +1,4 @@
-﻿@model IList<Nop.Web.Models.ShoppingCart.ShoppingCartModel.CheckoutAttributeModel>
+@model IList<Nop.Web.Models.ShoppingCart.ShoppingCartModel.CheckoutAttributeModel>
 @using Nop.Core.Domain.Catalog;
 @using Nop.Core.Domain.Media
 @using Nop.Core.Infrastructure;
@@ -79,12 +79,12 @@
                             break;
                         case AttributeControlType.TextBox:
                             {
-                                <input name="@(controlId)" type="text" class="textbox" id="@(controlId)" value="@attribute.DefaultValue" />
+                                <input name="@(controlId)" type="text" class="textbox" id="@(controlId)" value="@(attribute).DefaultValue" />
                             }
                             break;
                         case AttributeControlType.MultilineTextbox:
                             {
-                                <textarea id="@(controlId)" name="@(controlId)">@attribute.DefaultValue</textarea>
+                                <textarea id="@(controlId)" name="@(controlId)">@(attribute).DefaultValue</textarea>
                             }
                             break;
                         case AttributeControlType.Datepicker:

@@ -1,4 +1,4 @@
-﻿@model IList<ProductDetailsModel.ProductAttributeModel>
+@model IList<ProductDetailsModel.ProductAttributeModel>
 @using Nop.Web.Models.Catalog;
 @using Nop.Core.Domain.Catalog;
 @using Nop.Core.Domain.Media;
@@ -125,12 +125,12 @@
                             break;
                         case AttributeControlType.TextBox:
                             {
-                                <input name="@(controlId)" type="text" class="textbox" id="@(controlId)" value="@attribute.DefaultValue" />
+                                <input name="@(controlId)" type="text" class="textbox" id="@(controlId)" value="@(attribute).DefaultValue" />
                             }
                             break;
                         case AttributeControlType.MultilineTextbox:
                             {
-                                <textarea cols="20" id="@(controlId)" name="@(controlId)">@attribute.DefaultValue</textarea>
+                                <textarea cols="20" id="@(controlId)" name="@(controlId)">@(attribute).DefaultValue</textarea>
                             }
                             break;
                         case AttributeControlType.Datepicker:
