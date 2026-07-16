@@ -314,13 +314,21 @@ namespace Nop.Core
         }
 
         /// <summary>
+        /// Gets or sets the application base directory for path mapping.
+        /// Set this to ContentRootPath during startup for ASP.NET Core apps.
+        /// </summary>
+        public static string ApplicationBaseDirectory { get; set; }
+
+        /// <summary>
         /// Maps a virtual path to a physical disk path.
         /// </summary>
         /// <param name="path">The path to map. E.g. "~/bin"</param>
         /// <returns>The physical path. E.g. "c:\inetpub\wwwroot\bin"</returns>
         public static string MapPath(string path)
         {
-            string baseDirectory = AppContext.BaseDirectory;
+            string baseDirectory = !string.IsNullOrEmpty(ApplicationBaseDirectory) 
+                ? ApplicationBaseDirectory 
+                : AppContext.BaseDirectory;
 
             //remove the tilde and leading slash from virtual path
             path = path.Replace("~/", "").TrimStart('/').Replace('/', Path.DirectorySeparatorChar);

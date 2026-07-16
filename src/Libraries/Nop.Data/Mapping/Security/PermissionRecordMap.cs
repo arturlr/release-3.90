@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Security;
 
 namespace Nop.Data.Mapping.Security
@@ -16,7 +18,11 @@ namespace Nop.Data.Mapping.Security
 
             builder.HasMany(pr => pr.CustomerRoles)
                 .WithMany(cr => cr.PermissionRecords)
-                .UsingEntity(j => j.ToTable("PermissionRecord_Role_Mapping"));
+                .UsingEntity<Dictionary<string, object>>(
+                    "PermissionRecord_Role_Mapping",
+                    right => right.HasOne<CustomerRole>().WithMany().HasForeignKey("CustomerRole_Id"),
+                    left => left.HasOne<PermissionRecord>().WithMany().HasForeignKey("PermissionRecord_Id"),
+                    j => j.ToTable("PermissionRecord_Role_Mapping"));
         }
     }
 }

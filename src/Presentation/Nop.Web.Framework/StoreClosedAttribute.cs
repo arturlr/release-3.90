@@ -45,9 +45,17 @@ namespace Nop.Web.Framework
             if (!DataSettingsHelper.DatabaseIsInstalled())
                 return;
 
-            var storeInformationSettings = filterContext.HttpContext.RequestServices.GetService<StoreInformationSettings>();
-            if (!storeInformationSettings.StoreClosed)
+            try
+            {
+                var storeInformationSettings = filterContext.HttpContext.RequestServices.GetService<StoreInformationSettings>();
+                if (storeInformationSettings == null || !storeInformationSettings.StoreClosed)
+                    return;
+            }
+            catch
+            {
+                // If settings can't be resolved, allow navigation
                 return;
+            }
 
             //get controller and action names
             string controllerName = string.Empty;

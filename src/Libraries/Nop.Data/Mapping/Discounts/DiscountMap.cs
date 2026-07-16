@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Discounts;
 
 namespace Nop.Data.Mapping.Discounts
@@ -24,16 +26,29 @@ namespace Nop.Data.Mapping.Discounts
                 .HasForeignKey(dr => dr.DiscountId)
                 .IsRequired();
 
-            builder.HasMany(dr => dr.AppliedToCategories)
+            builder.HasMany(d => d.AppliedToCategories)
                 .WithMany(c => c.AppliedDiscounts)
-                .UsingEntity(j => j.ToTable("Discount_AppliedToCategories"));
+                .UsingEntity<Dictionary<string, object>>(
+                    "Discount_AppliedToCategories",
+                    right => right.HasOne<Category>().WithMany().HasForeignKey("Category_Id"),
+                    left => left.HasOne<Discount>().WithMany().HasForeignKey("Discount_Id"),
+                    j => j.ToTable("Discount_AppliedToCategories"));
 
-            builder.HasMany(dr => dr.AppliedToManufacturers)
+            builder.HasMany(d => d.AppliedToManufacturers)
                 .WithMany(c => c.AppliedDiscounts)
-                .UsingEntity(j => j.ToTable("Discount_AppliedToManufacturers"));
+                .UsingEntity<Dictionary<string, object>>(
+                    "Discount_AppliedToManufacturers",
+                    right => right.HasOne<Manufacturer>().WithMany().HasForeignKey("Manufacturer_Id"),
+                    left => left.HasOne<Discount>().WithMany().HasForeignKey("Discount_Id"),
+                    j => j.ToTable("Discount_AppliedToManufacturers"));
 
-            builder.HasMany(dr => dr.AppliedToProducts)
+            builder.HasMany(d => d.AppliedToProducts)
                 .WithMany(p => p.AppliedDiscounts)
-                .UsingEntity(j => j.ToTable("Discount_AppliedToProducts"));        }
+                .UsingEntity<Dictionary<string, object>>(
+                    "Discount_AppliedToProducts",
+                    right => right.HasOne<Product>().WithMany().HasForeignKey("Product_Id"),
+                    left => left.HasOne<Discount>().WithMany().HasForeignKey("Discount_Id"),
+                    j => j.ToTable("Discount_AppliedToProducts"));
+        }
     }
 }

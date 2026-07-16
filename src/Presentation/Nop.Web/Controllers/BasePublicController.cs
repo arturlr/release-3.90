@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nop.Core.Infrastructure;
 using Nop.Web.Framework;
@@ -7,6 +8,7 @@ using Nop.Web.Framework.Seo;
 
 namespace Nop.Web.Controllers
 {
+    [AllowAnonymous]
     [CheckAffiliate]
     [StoreClosed]
     [PublicStoreAllowNavigation]

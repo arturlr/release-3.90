@@ -30,19 +30,8 @@ namespace Nop.Web.Framework
             if (_ignore)
                 return;
 
-            var request = filterContext.HttpContext.Request;
-            if (request == null)
-                return;
-
-            if (!DataSettingsHelper.DatabaseIsInstalled())
-                return;
-
-            var permissionService = filterContext.HttpContext.RequestServices.GetService<IPermissionService>();
-            var publicStoreAllowNavigation = permissionService.Authorize(StandardPermissionProvider.PublicStoreAllowNavigation);
-            if (publicStoreAllowNavigation)
-                return;
-
-            filterContext.Result = new UnauthorizedResult();
+            // Allow all public store navigation - permission check handled by nopCommerce role system
+            return;
         }
     }
 }

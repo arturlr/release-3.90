@@ -12,13 +12,13 @@ namespace Nop.Core.Infrastructure.DependencyManagement
     /// </summary>
     public class ContainerManager
     {
-        private readonly IContainer _container;
+        private readonly ILifetimeScope _container;
 
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="container">Conainer</param>
-        public ContainerManager(IContainer container)
+        /// <param name="container">Container</param>
+        public ContainerManager(ILifetimeScope container)
         {
             this._container = container;
         }
@@ -26,7 +26,7 @@ namespace Nop.Core.Infrastructure.DependencyManagement
         /// <summary>
         /// Gets a container
         /// </summary>
-        public virtual IContainer Container
+        public virtual ILifetimeScope Container
         {
             get
             {

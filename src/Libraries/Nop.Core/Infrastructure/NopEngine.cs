@@ -156,6 +156,15 @@ namespace Nop.Core.Infrastructure
             get { return _containerManager; }
         }
 
+        /// <summary>
+        /// Sets the container manager (used when DI is managed by ASP.NET Core host)
+        /// </summary>
+        /// <param name="containerManager">The container manager wrapping the Autofac scope</param>
+        public void SetContainerManager(ContainerManager containerManager)
+        {
+            this._containerManager = containerManager;
+        }
+
         #endregion
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Catalog;
@@ -42,7 +43,11 @@ namespace Nop.Data.Mapping.Catalog
 
             builder.HasMany(p => p.ProductTags)
                 .WithMany(pt => pt.Products)
-                .UsingEntity(j => j.ToTable("Product_ProductTag_Mapping"));
+                .UsingEntity<Dictionary<string, object>>(
+                    "Product_ProductTag_Mapping",
+                    right => right.HasOne<ProductTag>().WithMany().HasForeignKey("ProductTag_Id"),
+                    left => left.HasOne<Product>().WithMany().HasForeignKey("Product_Id"),
+                    j => j.ToTable("Product_ProductTag_Mapping"));
         }
     }
 }

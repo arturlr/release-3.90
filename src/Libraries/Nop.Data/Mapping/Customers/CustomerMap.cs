@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Customers;
@@ -17,11 +18,19 @@ namespace Nop.Data.Mapping.Customers
 
             builder.HasMany(c => c.CustomerRoles)
                 .WithMany()
-                .UsingEntity(j => j.ToTable("Customer_CustomerRole_Mapping"));
+                .UsingEntity<Dictionary<string, object>>(
+                    "Customer_CustomerRole_Mapping",
+                    right => right.HasOne<CustomerRole>().WithMany().HasForeignKey("CustomerRole_Id"),
+                    left => left.HasOne<Customer>().WithMany().HasForeignKey("Customer_Id"),
+                    j => j.ToTable("Customer_CustomerRole_Mapping"));
 
             builder.HasMany(c => c.Addresses)
                 .WithMany()
-                .UsingEntity(j => j.ToTable("CustomerAddresses"));
+                .UsingEntity<Dictionary<string, object>>(
+                    "CustomerAddresses",
+                    right => right.HasOne<Nop.Core.Domain.Common.Address>().WithMany().HasForeignKey("Address_Id"),
+                    left => left.HasOne<Customer>().WithMany().HasForeignKey("Customer_Id"),
+                    j => j.ToTable("CustomerAddresses"));
 
             builder.HasOne(c => c.BillingAddress)
                 .WithMany()

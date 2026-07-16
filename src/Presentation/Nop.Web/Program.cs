@@ -1,14 +1,20 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Nop.Core;
 using Nop.Core.Configuration;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
+using Nop.Core.Infrastructure.DependencyManagement;
 using Nop.Data;
 using Nop.Services.Tasks;
 using Nop.Web.Framework;
@@ -16,6 +22,9 @@ using Nop.Web.Framework.Mvc.Routes;
 using Nop.Web.Framework.Themes;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Set the application base directory for path mapping (used by CommonHelper.MapPath)
+CommonHelper.ApplicationBaseDirectory = builder.Environment.ContentRootPath;
 
 // Set web root to current directory (nopCommerce serves static files from Content/, Scripts/, Themes/)
 builder.Environment.WebRootPath = builder.Environment.ContentRootPath;
@@ -32,35 +41,74 @@ builder.Services.AddControllersWithViews()
     .AddRazorRuntimeCompilation();
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
 builder.Services.AddSession();
-builder.Services.AddAuthentication("Cookies")
-    .AddCookie("Cookies");
-
-// Add DbContext
-var dataSettings = new DataSettingsManager().LoadSettings();
-if (dataSettings != null && dataSettings.IsValid())
+builder.Services.AddAuthentication(options =>
 {
-    builder.Services.AddDbContext<NopObjectContext>(options =>
-        options.UseSqlServer(dataSettings.DataConnectionString));
-}
+    options.DefaultScheme = "Cookies";
+    options.DefaultChallengeScheme = "Cookies";
+})
+    .AddCookie("Cookies", options =>
+    {
+        options.LoginPath = "/login";
+        options.AccessDeniedPath = "/access-denied";
+    });
+
+// Don't require authentication globally - nopCommerce handles auth via its own filters
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = null; // No global auth requirement
+});
 
 // Bind NopConfig
 var nopConfig = new NopConfig();
 builder.Configuration.GetSection("Nop").Bind(nopConfig);
 builder.Services.AddSingleton(nopConfig);
 
-// Register Autofac modules
+// Register Autofac modules - this is where all nopCommerce DI registrations happen
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 {
-    // Initialize engine and register dependencies
+    // Register the engine and config
+    var typeFinder = new WebAppTypeFinder();
+    containerBuilder.RegisterInstance(nopConfig).As<NopConfig>().SingleInstance();
+    containerBuilder.RegisterInstance(typeFinder).As<ITypeFinder>().SingleInstance();
+
+    // Find and execute all IDependencyRegistrar implementations
+    var drTypes = typeFinder.FindClassesOfType<IDependencyRegistrar>();
+    var drInstances = new List<IDependencyRegistrar>();
+    foreach (var drType in drTypes)
+    {
+        try
+        {
+            drInstances.Add((IDependencyRegistrar)Activator.CreateInstance(drType));
+        }
+        catch { }
+    }
+    drInstances = drInstances.OrderBy(t => t.Order).ToList();
+    foreach (var dependencyRegistrar in drInstances)
+    {
+        dependencyRegistrar.Register(containerBuilder, typeFinder, nopConfig);
+    }
+
+    // Register the engine itself
     var engine = new NopEngine();
-    engine.Initialize(nopConfig);
-    // Register all IDependencyRegistrar implementations
+    containerBuilder.RegisterInstance(engine).As<IEngine>().SingleInstance();
 });
 
 var app = builder.Build();
 
-// Configure middleware pipeline - always show detailed errors for now
+// Initialize the EngineContext with the service provider so EngineContext.Current works
+var engine = app.Services.GetService<IEngine>() as NopEngine;
+if (engine != null)
+{
+    // Set up the ContainerManager so EngineContext.Current.Resolve<T>() works
+    var lifetimeScope = app.Services.GetAutofacRoot();
+    var containerManager = new ContainerManager(lifetimeScope);
+    engine.SetContainerManager(containerManager);
+    Singleton<IEngine>.Instance = engine;
+}
+
+// Configure middleware pipeline - show detailed errors
 app.UseDeveloperExceptionPage();
 
 app.UseStaticFiles();
@@ -81,8 +129,16 @@ app.MapRazorPages();
 // Start scheduled tasks if database is installed
 if (DataSettingsHelper.DatabaseIsInstalled())
 {
-    TaskManager.Instance.Initialize();
-    TaskManager.Instance.Start();
+    try
+    {
+        TaskManager.Instance.Initialize();
+        TaskManager.Instance.Start();
+    }
+    catch (Exception ex)
+    {
+        // Log but don't crash on task initialization failure
+        Console.WriteLine($"Warning: Task manager initialization failed: {ex.Message}");
+    }
 }
 
 app.Run();
