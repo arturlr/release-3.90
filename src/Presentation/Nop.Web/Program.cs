@@ -126,6 +126,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
 
+// Named routes for SEO-friendly URL generation (used by Url.RouteUrl in views)
+app.MapControllerRoute("Product", "{SeName}", new { controller = "Product", action = "ProductDetails" });
+app.MapControllerRoute("Category", "{SeName}", new { controller = "Catalog", action = "Category" });
+app.MapControllerRoute("Manufacturer", "{SeName}", new { controller = "Catalog", action = "Manufacturer" });
+app.MapControllerRoute("Vendor", "{SeName}", new { controller = "Catalog", action = "Vendor" });
+app.MapControllerRoute("NewsItem", "{SeName}", new { controller = "News", action = "NewsItem" });
+app.MapControllerRoute("BlogPost", "{SeName}", new { controller = "Blog", action = "BlogPost" });
+app.MapControllerRoute("Topic", "{SeName}", new { controller = "Topic", action = "TopicDetails" });
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
