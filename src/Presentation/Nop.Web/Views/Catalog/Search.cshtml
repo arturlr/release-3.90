@@ -32,7 +32,7 @@
     </div>
     <div class="page-body">
         <div class="search-input">
-            @using (Html.BeginRouteForm("ProductSearch", FormMethod.Get))
+            @using (Html.BeginForm(null, null, null, FormMethod.Get, true, null))
             {
                 <div class="fieldset">
                     <div class="form-fields">
@@ -140,6 +140,7 @@
         @Html.Widget("productsearch_page_after_results")
     </div>
 </div>
+
 
 
 

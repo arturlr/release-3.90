@@ -1,4 +1,4 @@
-﻿@model CheckoutShippingMethodModel
+@model CheckoutShippingMethodModel
 @using Nop.Web.Models.Checkout;
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
@@ -16,7 +16,7 @@
     </div>
     <div class="page-body checkout-data">
         <div class="section shipping-method">
-            @using (Html.BeginRouteForm("CheckoutShippingMethod", FormMethod.Post))
+            @using (Html.BeginForm(null, null, null, FormMethod.Post, true, null))
             {
                 @Html.Widget("checkout_shipping_method_top")
                 if (Model.Warnings.Count == 0)
@@ -71,3 +71,4 @@
         </div>
     </div>
 </div>
+

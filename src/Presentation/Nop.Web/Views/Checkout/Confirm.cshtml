@@ -1,4 +1,4 @@
-﻿@model CheckoutConfirmModel
+@model CheckoutConfirmModel
 @using Nop.Web.Models.Checkout;
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
@@ -17,7 +17,7 @@
     <div class="page-body checkout-data">
         @Html.Widget("checkout_confirm_top")
         <div class="section confirm-order">
-            @using (Html.BeginRouteForm("CheckoutConfirm", FormMethod.Post, new { id = "confirm-order-form" }))
+            @using (Html.BeginForm(null, null, null, FormMethod.Post, true, new { id = "confirm-order-form" }))
             {
                 <script type="text/javascript">
                     $(document).ready(function () {
@@ -99,3 +99,4 @@
         </div>
     </div>
 </div>
+

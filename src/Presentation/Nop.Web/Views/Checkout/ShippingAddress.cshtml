@@ -15,7 +15,7 @@
         <h1>@T("Checkout.ShippingAddress")</h1>
     </div>
     <div class="page-body checkout-data">
-        @using (Html.BeginRouteForm("CheckoutShippingAddress", FormMethod.Post))
+        @using (Html.BeginForm(null, null, null, FormMethod.Post, true, null))
         {
             if (Model.AllowPickUpInStore && !Model.PickUpInStoreOnly && Model.PickupPoints.Any())
             {
@@ -345,5 +345,6 @@
         </div>
     </div>
 </div>
+
 
 

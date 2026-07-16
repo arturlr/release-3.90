@@ -1,4 +1,4 @@
-﻿@model PrivateMessageListModel 
+@model PrivateMessageListModel 
 @using Nop.Web.Models.PrivateMessages;
 <div class="private-messages-box">
     <script type="text/javascript">
@@ -17,7 +17,7 @@
     </script>
     @if (Model.Messages.Count > 0)
     {
-        using (Html.BeginRouteForm("PrivateMessagesInbox", FormMethod.Post))
+        using (Html.BeginForm(null, null, null, FormMethod.Post, true, null))
         {
             @Html.AntiForgeryToken()
         <div class="table-wrapper">
@@ -87,3 +87,4 @@
         }
     }
 </div>
+

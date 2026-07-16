@@ -1,4 +1,4 @@
-﻿@model CheckoutPaymentMethodModel
+@model CheckoutPaymentMethodModel
 @using Nop.Web.Models.Checkout;
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
@@ -17,7 +17,7 @@
     <div class="page-body checkout-data">
         @Html.Widget("checkout_payment_method_top")
         <div class="section payment-method">
-            @using (Html.BeginRouteForm("CheckoutPaymentMethod", FormMethod.Post))
+            @using (Html.BeginForm(null, null, null, FormMethod.Post, true, null))
             {
                 if (Model.DisplayRewardPoints && Model.PaymentMethods.Count > 0)
                 {
@@ -96,3 +96,4 @@
         </div>
     </div>
 </div>
+

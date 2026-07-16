@@ -1,5 +1,5 @@
-﻿<div class="search-box forum-search-box">
-    @using (Html.BeginRouteForm("Search", FormMethod.Get))
+<div class="search-box forum-search-box">
+    @using (Html.BeginForm(null, null, null, FormMethod.Get, true, null))
     {
         <div class="basic">
             <input type="text" class="search-box-text" id="forums-small-searchterms" name="searchterms" placeholder="@T("Forum.SearchForumsTooltip")" />

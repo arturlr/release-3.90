@@ -1,4 +1,4 @@
-﻿@model CustomerBackInStockSubscriptionsModel
+@model CustomerBackInStockSubscriptionsModel
 @using Nop.Web.Models.Catalog
 @using Nop.Web.Models.Customer
 @{    
@@ -38,7 +38,7 @@
                     });
                 });
             </script>        
-            using (Html.BeginRouteForm("CustomerBackInStockSubscriptions", FormMethod.Post))
+            using (Html.BeginForm(null, null, null, FormMethod.Post, true, null))
             {
             <div class="subscription-list">
                 <div class="table-wrapper">
@@ -96,3 +96,4 @@
         }
     </div>
 </div>
+

@@ -1,4 +1,4 @@
-﻿@model SearchModel
+@model SearchModel
 @using Nop.Core.Domain.Forums;
 @using Nop.Web.Models.Boards;
 @using Nop.Web.Models.Common;
@@ -34,7 +34,7 @@
 <div class="page-body">
     @Html.Widget("boards_search_before_searchform")
     <div class="search-input">
-        @using (Html.BeginRouteForm("Search", FormMethod.Get))
+        @using (Html.BeginForm(null, null, null, FormMethod.Get, true, null))
         {
             <div class="fieldset">
                 <div class="form-fields">
@@ -233,3 +233,4 @@
     </div>
 </div>
 </div>
+

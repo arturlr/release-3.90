@@ -14,7 +14,7 @@
 {
     @Html.Action("CustomerNavigation", "Customer", new { selectedTabId = CustomerNavigationEnum.VendorInfo })
 }
-@using (Html.BeginRouteForm("CustomerVendorInfo", FormMethod.Post, new { enctype = "multipart/form-data" }))
+@using (Html.BeginForm(null, null, null, FormMethod.Post, true, new { enctype = "multipart/form-data" }))
 {
     @Html.AntiForgeryToken()
     <div class="page account-page vendorinfo-page">
@@ -67,3 +67,4 @@
         </div>
     </div>
                 }
+

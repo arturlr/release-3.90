@@ -188,7 +188,7 @@
                             {
                                 @*Complete payment (for redirection payment methods)*@
                                 <li class="repost">
-                                    @using (Html.BeginRouteForm("OrderDetails", FormMethod.Post))
+                                    @using (Html.BeginForm(null, null, null, FormMethod.Post, true, null))
                                     {
                                         @Html.AntiForgeryToken()
                                         <input type="submit" name="repost-payment" value="@T("Order.RetryPayment")" class="button-2 re-order-button" />
@@ -725,3 +725,4 @@
         @Html.Widget("orderdetails_page_bottom", Model.Id)
     </div>
 </div>
+

@@ -23,7 +23,7 @@
        </div>
        }     
        @*we add enctype = "multipart/form-data" because "File upload" attribute control type requires it*@
-       using (Html.BeginRouteForm("ShoppingCart", FormMethod.Post, new { enctype = "multipart/form-data", id = "shopping-cart-form" }))
+       using (Html.BeginForm(null, null, null, FormMethod.Post, true, new { enctype = "multipart/form-data", id = "shopping-cart-form" }))
        {
            @Html.AntiForgeryToken()
        <div class="table-wrapper">
@@ -320,4 +320,5 @@
    }
    @Html.Widget("order_summary_content_after")
 </div>
+
 

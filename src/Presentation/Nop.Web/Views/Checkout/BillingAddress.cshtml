@@ -15,7 +15,7 @@
         <h1>@T("Checkout.BillingAddress")</h1>
     </div>
     <div class="page-body checkout-data">
-        @using (Html.BeginRouteForm("CheckoutBillingAddress", FormMethod.Post))
+        @using (Html.BeginForm(null, null, null, FormMethod.Post, true, null))
         {
             <div class="billing-addresses">
                 @Html.Widget("checkout_billing_address_top")
@@ -172,5 +172,6 @@
         </div>
     </div>
 </div>
+
 
 

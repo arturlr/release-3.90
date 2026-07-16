@@ -1,4 +1,4 @@
-﻿@model CustomerAvatarModel
+@model CustomerAvatarModel
 @using Nop.Web.Models.Customer;
 @{
     Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
@@ -13,7 +13,7 @@
 {
     @Html.Action("CustomerNavigation", "Customer", new { selectedTabId = CustomerNavigationEnum.Avatar })
 }
-@using (Html.BeginRouteForm("CustomerAvatar", FormMethod.Post, new { enctype = "multipart/form-data" }))
+@using (Html.BeginForm(null, null, null, FormMethod.Post, true, new { enctype = "multipart/form-data" }))
 {
     @Html.AntiForgeryToken()
     <div class="page account-page avatar-page">
