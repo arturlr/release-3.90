@@ -20,7 +20,7 @@
             @using (Html.BeginForm(null, null, null, FormMethod.Post, true, null))
             {
                 var validationSummary = Html.ValidationSummary(false);
-                if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+                if (!string.IsNullOrEmpty(validationSummary?.ToString()))
                 {
                     <div class="message-error">@validationSummary</div>
                 }
@@ -41,4 +41,5 @@
         </div>
     </div>
 </div>
+
 

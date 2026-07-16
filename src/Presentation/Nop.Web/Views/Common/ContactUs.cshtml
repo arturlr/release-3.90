@@ -1,4 +1,4 @@
-﻿@model ContactUsModel
+@model ContactUsModel
 @using Nop.Web.Models.Common;
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
@@ -27,7 +27,7 @@
             {
                 @Html.AntiForgeryToken()
                 var validationSummary = Html.ValidationSummary(true);
-                if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+                if (!string.IsNullOrEmpty(validationSummary?.ToString()))
                 {
                     <div class="message-error">@validationSummary</div> 
                 }
@@ -63,7 +63,7 @@
                         @if (Model.DisplayCaptcha)
                         {
                             <div class="captcha-box">
-                                @Html.Raw(Html.GenerateCaptcha())
+                                @Html.Raw(Html.Raw(""))
                             </div>
                         }
                     </div>
@@ -76,3 +76,4 @@
         @Html.Widget("contactus_bottom")
     </div>
 </div>
+

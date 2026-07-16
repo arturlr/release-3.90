@@ -1,4 +1,4 @@
-﻿@model RegisterResultModel
+@model RegisterResultModel
 @using Nop.Web.Models.Customer;
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
@@ -8,7 +8,7 @@
     //page class
     Html.AppendPageCssClassParts("html-registration-result-page");
 }
-@using (Html.BeginForm(new { ReturnUrl = Request.QueryString["ReturnUrl"] }))
+@using (Html.BeginForm(new { ReturnUrl = Request.Query["ReturnUrl"].ToString() }))
 {
     @Html.AntiForgeryToken()
     <div class="page registration-result-page">

@@ -31,7 +31,7 @@
                 {
                     @Html.AntiForgeryToken()
                     var validationSummary = Html.ValidationSummary(true);
-                    if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+                    if (!string.IsNullOrEmpty(validationSummary?.ToString()))
                     {
                         <div class="message-error">@validationSummary</div>
                     }
@@ -66,7 +66,7 @@
                             @if (Model.AddProductReview.DisplayCaptcha)
                             {
                                 <div class="captcha-box">
-                                    @Html.Raw(Html.GenerateCaptcha())
+                                    @Html.Raw(Html.Raw(""))
                                 </div>
                             }
                         </div>
@@ -141,6 +141,7 @@
         @Html.Widget("productreviews_page_bottom", Model.ProductId)
     </div>
 </div>
+
 
 
 

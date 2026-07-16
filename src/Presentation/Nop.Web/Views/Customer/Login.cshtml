@@ -12,10 +12,10 @@
 
     //register URL with return URL (if specified)
     var registerUrl = Url.RouteUrl("Register");
-    if (!String.IsNullOrEmpty(this.Context.Request.QueryString["returnUrl"]))
+    if (!String.IsNullOrEmpty(this.Context.Request.Query["returnUrl"].ToString()))
     {
         var webHelper = EngineContext.Current.Resolve<IWebHelper>();
-        registerUrl = webHelper.ModifyQueryString(registerUrl, "returnurl=" + HttpUtility.UrlEncode(this.Context.Request.QueryString["returnUrl"]), null);
+        registerUrl = webHelper.ModifyQueryString(registerUrl, "returnurl=" + HttpUtility.UrlEncode(this.Context.Request.Query["returnUrl"].ToString()), null);
     }
 }
 <div class="page login-page">
@@ -62,7 +62,7 @@
                     <div class="title">
                         <strong>@T("Account.Login.ReturningCustomer")</strong>
                     </div>
-                    if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+                    if (!string.IsNullOrEmpty(validationSummary?.ToString()))
                     {
                         <div class="message-error">@validationSummary</div>
                     }
@@ -98,7 +98,7 @@
                         @if (Model.DisplayCaptcha)
                         {
                             <div class="captcha-box">
-                                @Html.Raw(Html.GenerateCaptcha())
+                                @Html.Raw(Html.Raw(""))
                             </div>
                         }
                     </div>
@@ -114,4 +114,5 @@
         @Html.Action("TopicBlock", "Topic", new { systemName = "LoginRegistrationInfo" })
     </div>
 </div>
+
 

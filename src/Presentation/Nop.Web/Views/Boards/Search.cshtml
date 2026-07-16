@@ -100,7 +100,7 @@
             });
         }
         @Html.Widget("boards_search_before_results")
-        @if (!MvcHtmlString.IsNullOrEmpty(pager))
+        @if (!string.IsNullOrEmpty(pager?.ToString()))
         {
             <div class="pager upper">
                 @pager
@@ -223,7 +223,7 @@
                 </div>
             }
         </div>
-        @if (!MvcHtmlString.IsNullOrEmpty(pager))
+        @if (!string.IsNullOrEmpty(pager?.ToString()))
         {
             <div class="pager lower">
                 @pager
@@ -233,4 +233,5 @@
     </div>
 </div>
 </div>
+
 

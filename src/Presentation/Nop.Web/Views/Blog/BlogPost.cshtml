@@ -59,7 +59,7 @@
                     var validationSummary = Html.ValidationSummary(true);
                 }
                 <div class="notifications">
-                    @if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+                    @if (!string.IsNullOrEmpty(validationSummary?.ToString()))
                     {
                         <div class="message-error">@validationSummary</div>
                     }
@@ -84,7 +84,7 @@
                         @if (Model.AddNewComment.DisplayCaptcha)
                         {
                             <div class="captcha-box">
-                                @Html.Raw(Html.GenerateCaptcha())
+                                @Html.Raw(Html.Raw(""))
                             </div>
                         }
                     </div>
@@ -151,4 +151,5 @@
     </div>
     @Html.Widget("blogpost_page_bottom", Model.Id)
 </div>
+
 

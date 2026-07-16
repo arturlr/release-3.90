@@ -1,4 +1,4 @@
-﻿@model ForumPageModel
+@model ForumPageModel
 @using Nop.Core.Domain.Forums;
 @using Nop.Web.Models.Boards;
 @using Nop.Web.Models.Common;
@@ -65,7 +65,7 @@
                 RouteValues = new RouteValues { id = Model.Id, slug = Model.SeName }
             });
         }
-        @if (!MvcHtmlString.IsNullOrEmpty(pager))
+        @if (!string.IsNullOrEmpty(pager?.ToString()))
         {
             <div class="pager upper">
                 @pager
@@ -183,7 +183,7 @@
             </div>
         }
     </div>
-    @if (!MvcHtmlString.IsNullOrEmpty(pager))
+    @if (!string.IsNullOrEmpty(pager?.ToString()))
     {
         <div class="pager lower">
             @pager
@@ -191,3 +191,4 @@
     }
     @Html.Widget("boards_forum_bottom", Model.Id)
 </div>
+

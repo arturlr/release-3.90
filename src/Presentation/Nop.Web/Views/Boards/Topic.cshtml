@@ -1,4 +1,4 @@
-﻿@model ForumTopicPageModel
+@model ForumTopicPageModel
 @using Nop.Web.Models.Boards;
 @using Nop.Web.Models.Common;
 @{
@@ -93,7 +93,7 @@
             });
         }
         @Html.Widget("boards_topic_top", Model.Id)
-        @if (!MvcHtmlString.IsNullOrEmpty(pager))
+        @if (!string.IsNullOrEmpty(pager?.ToString()))
         {
             <div class="pager upper">
                 @pager
@@ -139,7 +139,7 @@
                 </script>
             }
         </div>
-        @if (!MvcHtmlString.IsNullOrEmpty(pager))
+        @if (!string.IsNullOrEmpty(pager?.ToString()))
         {
             <div class="pager lower">
                 @pager

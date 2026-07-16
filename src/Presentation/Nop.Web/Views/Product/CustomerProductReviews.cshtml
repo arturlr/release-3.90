@@ -78,7 +78,7 @@
                 @GetReviewRow(review)
             }
             var pager = Html.Pager(Model.PagerModel);
-            if (!MvcHtmlString.IsNullOrEmpty(pager))
+            if (!string.IsNullOrEmpty(pager?.ToString()))
             {
                 <div class="pager">
                     @pager
@@ -93,3 +93,4 @@
         }
     </div>
 </div>
+
