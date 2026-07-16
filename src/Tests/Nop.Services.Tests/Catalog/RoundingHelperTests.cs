@@ -1,4 +1,4 @@
-﻿using Autofac;
+using Autofac;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Infrastructure;
@@ -6,7 +6,7 @@ using Nop.Core.Infrastructure.DependencyManagement;
 using Nop.Services.Catalog;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
 
 namespace Nop.Services.Tests.Catalog
 {
@@ -18,15 +18,15 @@ namespace Nop.Services.Tests.Catalog
         [SetUp]
         public new void SetUp()
         {
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workContext.Expect(w => w.WorkingCurrency).Return(new Currency { RoundingType = RoundingType.Rounding001 });
+            _workContext = new Mock<IWorkContext>().Object;
+            Mock.Get(_workContext).Setup(w => w.WorkingCurrency).Returns(new Currency { RoundingType = RoundingType.Rounding001 });
             
-            var nopEngine = MockRepository.GenerateMock<NopEngine>();
-            var containe = MockRepository.GenerateMock<IContainer>();
-            var containerManager = MockRepository.GenerateMock<ContainerManager>(containe);
-            nopEngine.Expect(x => x.ContainerManager).Return(containerManager);
-            containerManager.Expect(x => x.Resolve<IWorkContext>()).Return(_workContext);
-            EngineContext.Replace(nopEngine);
+            var nopEngineMock = new Mock<IEngine>();
+            var containe = new Mock<IContainer>().Object;
+            var containerManager = new Mock<ContainerManager>(containe).Object;
+            nopEngineMock.Setup(x => x.ContainerManager).Returns(containerManager);
+            Mock.Get(containerManager).Setup(x => x.Resolve<IWorkContext>()).Returns(_workContext);
+            EngineContext.Replace(nopEngineMock.Object);
         }
 
         [OneTimeTearDown]

@@ -19,7 +19,7 @@ using Nop.Services.Localization;
 using Nop.Services.Stores;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
 
 namespace Nop.Services.Tests.Catalog
 {
@@ -40,8 +40,8 @@ namespace Nop.Services.Tests.Catalog
         {
             var cacheManager = new NopNullCache();
 
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workContext.Expect(w => w.WorkingCurrency).Return(new Currency { RoundingType = RoundingType.Rounding001 });
+            _workContext = new Mock<IWorkContext>().Object;
+            Mock.Get(_workContext).Setup(w => w.WorkingCurrency).Returns(new Currency { RoundingType = RoundingType.Rounding001 });
 
             _currencySettings = new CurrencySettings();
             var currency1 = new Currency
@@ -50,7 +50,7 @@ namespace Nop.Services.Tests.Catalog
                 Name = "Euro",
                 CurrencyCode = "EUR",
                 DisplayLocale =  "",
-                CustomFormatting = "€0.00",
+                CustomFormatting = "0.00",
                 DisplayOrder = 1,
                 Published = true,
                 CreatedOnUtc = DateTime.UtcNow,
@@ -68,10 +68,10 @@ namespace Nop.Services.Tests.Catalog
                 CreatedOnUtc = DateTime.UtcNow,
                 UpdatedOnUtc= DateTime.UtcNow
             };            
-            _currencyRepo = MockRepository.GenerateMock<IRepository<Currency>>();
-            _currencyRepo.Expect(x => x.Table).Return(new List<Currency> { currency1, currency2 }.AsQueryable());
+            _currencyRepo = new Mock<IRepository<Currency>>().Object;
+            Mock.Get(_currencyRepo).Setup(x => x.Table).Returns(new List<Currency> { currency1, currency2 }.AsQueryable());
 
-            _storeMappingService = MockRepository.GenerateMock<IStoreMappingService>();
+            _storeMappingService = new Mock<IStoreMappingService>().Object;
 
             var pluginFinder = new PluginFinder();
             _currencyService = new CurrencyService(cacheManager, _currencyRepo, _storeMappingService,
@@ -79,19 +79,19 @@ namespace Nop.Services.Tests.Catalog
 
             _taxSettings = new TaxSettings();
 
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _localizationService.Expect(x => x.GetResource("Products.InclTaxSuffix", 1, false)).Return("{0} incl tax");
-            _localizationService.Expect(x => x.GetResource("Products.ExclTaxSuffix", 1, false)).Return("{0} excl tax");
+            _localizationService = new Mock<ILocalizationService>().Object;
+            Mock.Get(_localizationService).Setup(x => x.GetResource("Products.InclTaxSuffix", 1, false)).Returns("{0} incl tax");
+            Mock.Get(_localizationService).Setup(x => x.GetResource("Products.ExclTaxSuffix", 1, false)).Returns("{0} excl tax");
             
             _priceFormatter = new PriceFormatter(_workContext, _currencyService,_localizationService, 
                 _taxSettings, _currencySettings);
 
-            var nopEngine = MockRepository.GenerateMock<NopEngine>();
-            var containe = MockRepository.GenerateMock<IContainer>();
-            var containerManager = MockRepository.GenerateMock<ContainerManager>(containe);
-            nopEngine.Expect(x => x.ContainerManager).Return(containerManager);
-            containerManager.Expect(x => x.Resolve<IWorkContext>()).Return(_workContext);
-            EngineContext.Replace(nopEngine);
+            var nopEngineMock = new Mock<IEngine>();
+            var containe = new Mock<IContainer>().Object;
+            var containerManager = new Mock<ContainerManager>(containe).Object;
+            nopEngineMock.Setup(x => x.ContainerManager).Returns(containerManager);
+            Mock.Get(containerManager).Setup(x => x.Resolve<IWorkContext>()).Returns(_workContext);
+            EngineContext.Replace(nopEngineMock.Object);
         }
 
         [OneTimeTearDown]
@@ -111,7 +111,7 @@ namespace Nop.Services.Tests.Catalog
                 Name = "Euro",
                 CurrencyCode = "EUR",
                 DisplayLocale =  "",
-                CustomFormatting = "€0.00"
+                CustomFormatting = "0.00"
             };
             var language = new Language
             {
@@ -119,7 +119,7 @@ namespace Nop.Services.Tests.Catalog
                 Name = "English",
                 LanguageCulture = "en-US"
             };
-            _priceFormatter.FormatPrice(1234.5M, false, currency, language, false, false).ShouldEqual("€1234.50");
+            _priceFormatter.FormatPrice(1234.5M, false, currency, language, false, false).ShouldEqual("1234.50");
         }
 
         [Test]

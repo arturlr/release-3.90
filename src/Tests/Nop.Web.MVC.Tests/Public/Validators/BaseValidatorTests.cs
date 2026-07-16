@@ -1,6 +1,6 @@
-﻿using Nop.Services.Localization;
+using Moq;
+using Nop.Services.Localization;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Web.MVC.Tests.Public.Validators
 {
@@ -12,9 +12,10 @@ namespace Nop.Web.MVC.Tests.Public.Validators
         [SetUp]
         public void Setup()
         {
-            //set up localziation service used by almost all validators
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _localizationService.Expect(l => l.GetResource("")).Return("Invalid").IgnoreArguments();
+            //set up localization service used by almost all validators
+            var localizationServiceMock = new Mock<ILocalizationService>();
+            localizationServiceMock.Setup(l => l.GetResource(It.IsAny<string>())).Returns("Invalid");
+            _localizationService = localizationServiceMock.Object;
         }
     }
 }

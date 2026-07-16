@@ -25,8 +25,8 @@ namespace Nop.Web.MVC.Tests.Events
         public void Can_find_consumers()
         {
             var types = _engine.ResolveAll<IConsumer<DateTime>>().ToList();
-            Assert.AreEqual(1, types.Count);
-            Assert.IsInstanceOf<DateTimeConsumer>(types[0]);
+            Assert.That(types.Count, Is.EqualTo(1));
+            Assert.That(types[0], Is.InstanceOf<DateTimeConsumer>());
         }
 
         [Test]
@@ -38,7 +38,7 @@ namespace Nop.Web.MVC.Tests.Events
             var newDateTime = DateTime.Now.Subtract(TimeSpan.FromDays(5));
             _eventPublisher.Publish(newDateTime);
 
-            Assert.AreEqual(DateTimeConsumer.DateTime, newDateTime);
+            Assert.That(DateTimeConsumer.DateTime, Is.EqualTo(newDateTime));
         }
     }
 }

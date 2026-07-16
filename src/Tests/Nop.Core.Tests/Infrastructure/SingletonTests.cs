@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using Nop.Core.Infrastructure;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace Nop.Core.Tests.Infrastructure
 {

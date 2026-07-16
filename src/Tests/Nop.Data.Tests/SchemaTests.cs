@@ -1,4 +1,5 @@
-﻿using System.Data.Entity;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Nop.Tests;
 using NUnit.Framework;
 
@@ -10,10 +11,20 @@ namespace Nop.Data.Tests
         [Test]
         public void Can_generate_schema()
         {
-            Database.SetInitializer<NopObjectContext>(null);
-            var ctx = new NopObjectContext("Test");
-            string result = ctx.CreateDatabaseScript();
-            result.ShouldNotBeNull();
+            using (var connection = new SqliteConnection("DataSource=:memory:"))
+            {
+                connection.Open();
+
+                var options = new DbContextOptionsBuilder<NopObjectContext>()
+                    .UseSqlite(connection)
+                    .Options;
+
+                using (var ctx = new NopObjectContext(options))
+                {
+                    string result = ctx.CreateDatabaseScript();
+                    result.ShouldNotBeNull();
+                }
+            }
         }
     }
 }

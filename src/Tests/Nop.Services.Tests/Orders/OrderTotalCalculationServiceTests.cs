@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Nop.Core;
 using Nop.Core.Caching;
@@ -25,7 +25,7 @@ using Nop.Services.Shipping;
 using Nop.Services.Tax;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
 
 namespace Nop.Services.Tests.Orders
 {
@@ -69,21 +69,21 @@ namespace Nop.Services.Tests.Orders
         [SetUp]
         public new void SetUp()
         {
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
+            _workContext = new Mock<IWorkContext>().Object;
 
             _store = new Store { Id = 1 };
-            _storeContext = MockRepository.GenerateMock<IStoreContext>();
-            _storeContext.Expect(x => x.CurrentStore).Return(_store);
+            _storeContext = new Mock<IStoreContext>().Object;
+            Mock.Get(_storeContext).Setup(x => x.CurrentStore).Returns(_store);
 
-            _productService = MockRepository.GenerateMock<IProductService>();
+            _productService = new Mock<IProductService>().Object;
 
             var pluginFinder = new PluginFinder();
             var cacheManager = new NopNullCache();
 
-            _discountService = MockRepository.GenerateMock<IDiscountService>();
-            _categoryService = MockRepository.GenerateMock<ICategoryService>();
-            _manufacturerService = MockRepository.GenerateMock<IManufacturerService>();
-            _productAttributeParser = MockRepository.GenerateMock<IProductAttributeParser>();
+            _discountService = new Mock<IDiscountService>().Object;
+            _categoryService = new Mock<ICategoryService>().Object;
+            _manufacturerService = new Mock<IManufacturerService>().Object;
+            _productAttributeParser = new Mock<IProductAttributeParser>().Object;
 
             _shoppingCartSettings = new ShoppingCartSettings();
             _catalogSettings = new CatalogSettings();
@@ -94,17 +94,17 @@ namespace Nop.Services.Tests.Orders
                 _productService, cacheManager, 
                 _shoppingCartSettings, _catalogSettings);
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = new Mock<IEventPublisher>().Object;
+            Mock.Get(_eventPublisher).Setup(x => x.Publish(It.IsAny<object>()));
 
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
+            _localizationService = new Mock<ILocalizationService>().Object;
 
             //shipping
             _shippingSettings = new ShippingSettings();
             _shippingSettings.ActiveShippingRateComputationMethodSystemNames = new List<string>();
             _shippingSettings.ActiveShippingRateComputationMethodSystemNames.Add("FixedRateTestShippingRateComputationMethod");
-            _shippingMethodRepository = MockRepository.GenerateMock<IRepository<ShippingMethod>>();
-            _warehouseRepository = MockRepository.GenerateMock<IRepository<Warehouse>>();
+            _shippingMethodRepository = new Mock<IRepository<ShippingMethod>>().Object;
+            _warehouseRepository = new Mock<IRepository<Warehouse>>().Object;
             _logger = new NullLogger();
             _shippingService = new ShippingService(_shippingMethodRepository,
                 _warehouseRepository,
@@ -123,17 +123,17 @@ namespace Nop.Services.Tests.Orders
                 cacheManager);
             
 
-            _paymentService = MockRepository.GenerateMock<IPaymentService>();
-            _checkoutAttributeParser = MockRepository.GenerateMock<ICheckoutAttributeParser>();
-            _giftCardService = MockRepository.GenerateMock<IGiftCardService>();
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
+            _paymentService = new Mock<IPaymentService>().Object;
+            _checkoutAttributeParser = new Mock<ICheckoutAttributeParser>().Object;
+            _giftCardService = new Mock<IGiftCardService>().Object;
+            _genericAttributeService = new Mock<IGenericAttributeService>().Object;
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = new Mock<IEventPublisher>().Object;
+            Mock.Get(_eventPublisher).Setup(x => x.Publish(It.IsAny<object>()));
 
-            _geoLookupService = MockRepository.GenerateMock<IGeoLookupService>();
-            _countryService = MockRepository.GenerateMock<ICountryService>();
-            _stateProvinceService = MockRepository.GenerateMock<IStateProvinceService>();
+            _geoLookupService = new Mock<IGeoLookupService>().Object;
+            _countryService = new Mock<ICountryService>().Object;
+            _stateProvinceService = new Mock<IStateProvinceService>().Object;
             _customerSettings = new CustomerSettings();
             _addressSettings = new AddressSettings();
 
@@ -142,12 +142,12 @@ namespace Nop.Services.Tests.Orders
             _taxSettings.ShippingIsTaxable = true;
             _taxSettings.PaymentMethodAdditionalFeeIsTaxable = true;
             _taxSettings.DefaultTaxAddressId = 10;
-            _addressService = MockRepository.GenerateMock<IAddressService>();
-            _addressService.Expect(x => x.GetAddressById(_taxSettings.DefaultTaxAddressId)).Return(new Address { Id = _taxSettings.DefaultTaxAddressId });
+            _addressService = new Mock<IAddressService>().Object;
+            Mock.Get(_addressService).Setup(x => x.GetAddressById(_taxSettings.DefaultTaxAddressId)).Returns(new Address { Id = _taxSettings.DefaultTaxAddressId });
             _taxService = new TaxService(_addressService, _workContext, _storeContext, _taxSettings,
                 pluginFinder, _geoLookupService, _countryService, _stateProvinceService, _logger,
                 _customerSettings, _shippingSettings, _addressSettings);
-            _rewardPointService = MockRepository.GenerateMock<IRewardPointService>();
+            _rewardPointService = new Mock<IRewardPointService>().Object;
 
             _rewardPointsSettings = new RewardPointsSettings();
 
@@ -198,8 +198,8 @@ namespace Nop.Services.Tests.Orders
             cart.ForEach(sci => sci.Customer = customer);
             cart.ForEach(sci => sci.CustomerId = customer.Id);
 
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             decimal discountAmount;
             List<DiscountForCaching> appliedDiscounts;
@@ -259,8 +259,8 @@ namespace Nop.Services.Tests.Orders
             cart.ForEach(sci => sci.Customer = customer);
             cart.ForEach(sci => sci.CustomerId = customer.Id);
 
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             decimal discountAmount;
             List<DiscountForCaching> appliedDiscounts;
@@ -329,10 +329,10 @@ namespace Nop.Services.Tests.Orders
                 DiscountAmount = 3,
                 DiscountLimitation = DiscountLimitationType.Unlimited,
             };
-            _discountService.Expect(ds => ds.ValidateDiscount(discount1, customer)).Return(new DiscountValidationResult() { IsValid = true });
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToOrderSubTotal)).Return(new List<DiscountForCaching> { discount1 });
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.ValidateDiscount(discount1, customer)).Returns(new DiscountValidationResult() { IsValid = true });
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToOrderSubTotal)).Returns(new List<DiscountForCaching> { discount1 });
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             decimal discountAmount;
             List<DiscountForCaching> appliedDiscounts;
@@ -402,10 +402,10 @@ namespace Nop.Services.Tests.Orders
                 DiscountAmount = 3,
                 DiscountLimitation = DiscountLimitationType.Unlimited,
             };
-            _discountService.Expect(ds => ds.ValidateDiscount(discount1, customer)).Return(new DiscountValidationResult() { IsValid = true });
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToOrderSubTotal)).Return(new List<DiscountForCaching> { discount1 });
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.ValidateDiscount(discount1, customer)).Returns(new DiscountValidationResult() { IsValid = true });
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToOrderSubTotal)).Returns(new List<DiscountForCaching> { discount1 });
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             decimal discountAmount;
             List<DiscountForCaching> appliedDiscounts;
@@ -810,8 +810,8 @@ namespace Nop.Services.Tests.Orders
                 DiscountAmount = 3,
                 DiscountLimitation = DiscountLimitationType.Unlimited,
             };
-            _discountService.Expect(ds => ds.ValidateDiscount(discount1, customer)).Return(new DiscountValidationResult() { IsValid = true });
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToShipping)).Return(new List<DiscountForCaching> { discount1 });
+            Mock.Get(_discountService).Setup(ds => ds.ValidateDiscount(discount1, customer)).Returns(new DiscountValidationResult() { IsValid = true });
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToShipping)).Returns(new List<DiscountForCaching> { discount1 });
 
 
             decimal taxRate;
@@ -891,8 +891,8 @@ namespace Nop.Services.Tests.Orders
                 DiscountAmount = 3,
                 DiscountLimitation = DiscountLimitationType.Unlimited,
             };
-            _discountService.Expect(ds => ds.ValidateDiscount(discount1, customer)).Return(new DiscountValidationResult() { IsValid = true });
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToShipping)).Return(new List<DiscountForCaching> { discount1 });
+            Mock.Get(_discountService).Setup(ds => ds.ValidateDiscount(discount1, customer)).Returns(new DiscountValidationResult() { IsValid = true });
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToShipping)).Returns(new List<DiscountForCaching> { discount1 });
 
 
             decimal taxRate;
@@ -952,8 +952,8 @@ namespace Nop.Services.Tests.Orders
 
 
 
-            _genericAttributeService.Expect(x => x.GetAttributesForEntity(customer.Id, "Customer"))
-                .Return(new List<GenericAttribute>
+            Mock.Get(_genericAttributeService).Setup(x => x.GetAttributesForEntity(customer.Id, "Customer"))
+                .Returns(new List<GenericAttribute>
                             {
                                 new GenericAttribute
                                     {
@@ -964,9 +964,9 @@ namespace Nop.Services.Tests.Orders
                                         Value = "test1"
                                     }
                             });
-            _paymentService.Expect(ps => ps.GetAdditionalHandlingFee(cart, "test1")).Return(20);
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_paymentService).Setup(ps => ps.GetAdditionalHandlingFee(cart, "test1")).Returns(20);
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             //56 - items, 10 - shipping (fixed), 20 - payment fee
 
@@ -1053,8 +1053,8 @@ namespace Nop.Services.Tests.Orders
 
 
 
-            _genericAttributeService.Expect(x => x.GetAttributesForEntity(customer.Id, "Customer"))
-                .Return(new List<GenericAttribute>
+            Mock.Get(_genericAttributeService).Setup(x => x.GetAttributesForEntity(customer.Id, "Customer"))
+                .Returns(new List<GenericAttribute>
                             {
                                 new GenericAttribute
                                     {
@@ -1065,10 +1065,10 @@ namespace Nop.Services.Tests.Orders
                                         Value = "test1"
                                     }
                             });
-            _paymentService.Expect(ps => ps.GetAdditionalHandlingFee(cart, "test1")).Return(20);
+            Mock.Get(_paymentService).Setup(ps => ps.GetAdditionalHandlingFee(cart, "test1")).Returns(20);
 
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             decimal discountAmount;
             List<DiscountForCaching> appliedDiscounts;
@@ -1130,8 +1130,8 @@ namespace Nop.Services.Tests.Orders
             cart.ForEach(sci => sci.Customer = customer);
             cart.ForEach(sci => sci.CustomerId = customer.Id);
 
-            _genericAttributeService.Expect(x => x.GetAttributesForEntity(customer.Id, "Customer"))
-                .Return(new List<GenericAttribute>
+            Mock.Get(_genericAttributeService).Setup(x => x.GetAttributesForEntity(customer.Id, "Customer"))
+                .Returns(new List<GenericAttribute>
                             {
                                 new GenericAttribute
                                     {
@@ -1142,10 +1142,10 @@ namespace Nop.Services.Tests.Orders
                                         Value = "test1"
                                     }
                             });
-            _paymentService.Expect(ps => ps.GetAdditionalHandlingFee(cart, "test1")).Return(20);
+            Mock.Get(_paymentService).Setup(ps => ps.GetAdditionalHandlingFee(cart, "test1")).Returns(20);
 
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             decimal discountAmount;
             List<DiscountForCaching> appliedDiscounts;
@@ -1210,8 +1210,8 @@ namespace Nop.Services.Tests.Orders
 
 
 
-            _genericAttributeService.Expect(x => x.GetAttributesForEntity(customer.Id, "Customer"))
-                .Return(new List<GenericAttribute>
+            Mock.Get(_genericAttributeService).Setup(x => x.GetAttributesForEntity(customer.Id, "Customer"))
+                .Returns(new List<GenericAttribute>
                             {
                                 new GenericAttribute
                                     {
@@ -1230,11 +1230,11 @@ namespace Nop.Services.Tests.Orders
                                         Value = true.ToString()
                                         }
                             });
-            _paymentService.Expect(ps => ps.GetAdditionalHandlingFee(cart, "test1")).Return(20);
+            Mock.Get(_paymentService).Setup(ps => ps.GetAdditionalHandlingFee(cart, "test1")).Returns(20);
 
 
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             decimal discountAmount;
             Discount appliedDiscount;
@@ -1311,14 +1311,14 @@ namespace Nop.Services.Tests.Orders
                 DiscountAmount = 3,
                 DiscountLimitation = DiscountLimitationType.Unlimited,
             };
-            _discountService.Expect(ds => ds.ValidateDiscount(discount1, customer)).Return(new DiscountValidationResult() { IsValid = true });
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToOrderTotal)).Return(new List<DiscountForCaching> { discount1 });
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.ValidateDiscount(discount1, customer)).Returns(new DiscountValidationResult() { IsValid = true });
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToOrderTotal)).Returns(new List<DiscountForCaching> { discount1 });
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
 
-            _genericAttributeService.Expect(x => x.GetAttributesForEntity(customer.Id, "Customer"))
-                .Return(new List<GenericAttribute>
+            Mock.Get(_genericAttributeService).Setup(x => x.GetAttributesForEntity(customer.Id, "Customer"))
+                .Returns(new List<GenericAttribute>
                             {
                                 new GenericAttribute
                                     {
@@ -1329,7 +1329,7 @@ namespace Nop.Services.Tests.Orders
                                         Value = "test1"
                                     }
                             });
-            _paymentService.Expect(ps => ps.GetAdditionalHandlingFee(cart, "test1")).Return(20);
+            Mock.Get(_paymentService).Setup(ps => ps.GetAdditionalHandlingFee(cart, "test1")).Returns(20);
 
 
             decimal discountAmount;

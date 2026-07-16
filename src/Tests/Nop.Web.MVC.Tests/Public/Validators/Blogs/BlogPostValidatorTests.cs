@@ -1,4 +1,4 @@
-﻿using Nop.Web.Validators.Blogs;
+using Nop.Web.Validators.Blogs;
 using NUnit.Framework;
 
 namespace Nop.Web.MVC.Tests.Public.Validators.Blogs
@@ -19,9 +19,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Blogs
         //{
         //    var model = new BlogPostModel();
         //    model.AddNewComment.CommentText = null;
-        //    _validator.ShouldHaveValidationErrorFor(x => x.AddNewComment.CommentText, model);
+        //    _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AddNewComment.CommentText);
         //    model.AddNewComment.CommentText = "";
-        //    _validator.ShouldHaveValidationErrorFor(x => x.AddNewComment.CommentText, model);
+        //    _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AddNewComment.CommentText);
         //}
 
         //[Test]
@@ -29,7 +29,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Blogs
         //{
         //    var model = new BlogPostModel();
         //    model.AddNewComment.CommentText = "some comment";
-        //    _validator.ShouldNotHaveValidationErrorFor(x => x.AddNewComment.CommentText, model);
+        //    _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.AddNewComment.CommentText);
         //}
     }
 }

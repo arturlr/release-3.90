@@ -1,4 +1,4 @@
-﻿using Nop.Web.Validators.Catalog;
+using Nop.Web.Validators.Catalog;
 using NUnit.Framework;
 
 namespace Nop.Web.MVC.Tests.Public.Validators.Catalog
@@ -21,9 +21,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Catalog
         //{
         //    var model = new ProductReviewsModel();
         //    model.AddProductReview.Title = null;
-        //    _validator.ShouldHaveValidationErrorFor(x => x.AddProductReview.Title, model);
+        //    _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AddProductReview.Title);
         //    model.AddProductReview.Title = "";
-        //    _validator.ShouldHaveValidationErrorFor(x => x.AddProductReview.Title, model);
+        //    _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AddProductReview.Title);
         //}
 
         //[Test]
@@ -31,7 +31,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Catalog
         //{
         //    var model = new ProductReviewsModel();
         //    model.AddProductReview.Title = "some comment";
-        //    _validator.ShouldNotHaveValidationErrorFor(x => x.AddProductReview.Title, model);
+        //    _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.AddProductReview.Title);
         //}
 
         //[Test]
@@ -39,9 +39,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Catalog
         //{
         //    var model = new ProductReviewsModel();
         //    model.AddProductReview.ReviewText = null;
-        //    _validator.ShouldHaveValidationErrorFor(x => x.AddProductReview.ReviewText, model);
+        //    _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AddProductReview.ReviewText);
         //    model.AddProductReview.ReviewText = "";
-        //    _validator.ShouldHaveValidationErrorFor(x => x.AddProductReview.ReviewText, model);
+        //    _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.AddProductReview.ReviewText);
         //}
 
         //[Test]
@@ -49,7 +49,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Catalog
         //{
         //    var model = new ProductReviewsModel();
         //    model.AddProductReview.ReviewText = "some comment";
-        //    _validator.ShouldNotHaveValidationErrorFor(x => x.AddProductReview.ReviewText, model);
+        //    _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.AddProductReview.ReviewText);
         //}
     }
 }

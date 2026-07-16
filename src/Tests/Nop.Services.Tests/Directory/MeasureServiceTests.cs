@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Nop.Core.Caching;
 using Nop.Core.Data;
@@ -7,7 +7,7 @@ using Nop.Services.Directory;
 using Nop.Services.Events;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
 
 namespace Nop.Services.Tests.Directory
 {
@@ -94,19 +94,19 @@ namespace Nop.Services.Tests.Directory
                 DisplayOrder = 4,
             };
 
-            _measureDimensionRepository = MockRepository.GenerateMock<IRepository<MeasureDimension>>();
-            _measureDimensionRepository.Expect(x => x.Table).Return(new List<MeasureDimension> { measureDimension1, measureDimension2, measureDimension3, measureDimension4 }.AsQueryable());
-            _measureDimensionRepository.Expect(x => x.GetById(measureDimension1.Id)).Return(measureDimension1);
-            _measureDimensionRepository.Expect(x => x.GetById(measureDimension2.Id)).Return(measureDimension2);
-            _measureDimensionRepository.Expect(x => x.GetById(measureDimension3.Id)).Return(measureDimension3);
-            _measureDimensionRepository.Expect(x => x.GetById(measureDimension4.Id)).Return(measureDimension4);
+            _measureDimensionRepository = new Mock<IRepository<MeasureDimension>>().Object;
+            Mock.Get(_measureDimensionRepository).Setup(x => x.Table).Returns(new List<MeasureDimension> { measureDimension1, measureDimension2, measureDimension3, measureDimension4 }.AsQueryable());
+            Mock.Get(_measureDimensionRepository).Setup(x => x.GetById(measureDimension1.Id)).Returns(measureDimension1);
+            Mock.Get(_measureDimensionRepository).Setup(x => x.GetById(measureDimension2.Id)).Returns(measureDimension2);
+            Mock.Get(_measureDimensionRepository).Setup(x => x.GetById(measureDimension3.Id)).Returns(measureDimension3);
+            Mock.Get(_measureDimensionRepository).Setup(x => x.GetById(measureDimension4.Id)).Returns(measureDimension4);
 
-            _measureWeightRepository = MockRepository.GenerateMock<IRepository<MeasureWeight>>();
-            _measureWeightRepository.Expect(x => x.Table).Return(new List<MeasureWeight> { measureWeight1, measureWeight2, measureWeight3, measureWeight4 }.AsQueryable());
-            _measureWeightRepository.Expect(x => x.GetById(measureWeight1.Id)).Return(measureWeight1);
-            _measureWeightRepository.Expect(x => x.GetById(measureWeight2.Id)).Return(measureWeight2);
-            _measureWeightRepository.Expect(x => x.GetById(measureWeight3.Id)).Return(measureWeight3);
-            _measureWeightRepository.Expect(x => x.GetById(measureWeight4.Id)).Return(measureWeight4);
+            _measureWeightRepository = new Mock<IRepository<MeasureWeight>>().Object;
+            Mock.Get(_measureWeightRepository).Setup(x => x.Table).Returns(new List<MeasureWeight> { measureWeight1, measureWeight2, measureWeight3, measureWeight4 }.AsQueryable());
+            Mock.Get(_measureWeightRepository).Setup(x => x.GetById(measureWeight1.Id)).Returns(measureWeight1);
+            Mock.Get(_measureWeightRepository).Setup(x => x.GetById(measureWeight2.Id)).Returns(measureWeight2);
+            Mock.Get(_measureWeightRepository).Setup(x => x.GetById(measureWeight3.Id)).Returns(measureWeight3);
+            Mock.Get(_measureWeightRepository).Setup(x => x.GetById(measureWeight4.Id)).Returns(measureWeight4);
 
 
             var cacheManager = new NopNullCache();
@@ -115,8 +115,8 @@ namespace Nop.Services.Tests.Directory
             _measureSettings.BaseDimensionId = measureDimension1.Id; //inch(es)
             _measureSettings.BaseWeightId = measureWeight2.Id; //lb(s)
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = new Mock<IEventPublisher>().Object;
+            Mock.Get(_eventPublisher).Setup(x => x.Publish(It.IsAny<object>()));
 
             _measureService = new MeasureService(cacheManager,
                 _measureDimensionRepository,

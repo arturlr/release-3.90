@@ -1,4 +1,4 @@
-﻿using FluentValidation.TestHelper;
+using FluentValidation.TestHelper;
 using Nop.Core.Domain.Customers;
 using Nop.Web.Models.Customer;
 using Nop.Web.Validators.Customer;
@@ -24,9 +24,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         {
             var model = new LoginModel();
             model.Email = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.Email, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Email);
             model.Email = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.Email, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Email);
         }
 
         [Test]
@@ -34,7 +34,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         {
             var model = new LoginModel();
             model.Email = "adminexample.com";
-            _validator.ShouldHaveValidationErrorFor(x => x.Email, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.Email);
         }
 
         [Test]
@@ -42,7 +42,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         {
             var model = new LoginModel();
             model.Email = "admin@example.com";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.Email, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.Email);
         }
 
         [Test]
@@ -54,7 +54,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
 
             var model = new LoginModel();
             model.Email = null;
-            _validator.ShouldNotHaveValidationErrorFor(x => x.Email, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.Email);
         }
     }
 }

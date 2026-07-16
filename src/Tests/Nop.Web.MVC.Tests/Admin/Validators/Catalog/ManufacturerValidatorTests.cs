@@ -1,4 +1,4 @@
-﻿using FluentValidation.TestHelper;
+using FluentValidation.TestHelper;
 using Nop.Admin.Models.Catalog;
 using Nop.Admin.Validators.Catalog;
 using Nop.Web.MVC.Tests.Public.Validators;
@@ -22,7 +22,7 @@ namespace Nop.Web.MVC.Tests.Admin.Validators.Catalog
         {
             var model = new ManufacturerModel();
             model.PageSizeOptions = "1, 2, 3, 5, 2";
-            _validator.ShouldHaveValidationErrorFor(x => x.PageSizeOptions, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.PageSizeOptions);
         }
 
         [Test]
@@ -30,7 +30,7 @@ namespace Nop.Web.MVC.Tests.Admin.Validators.Catalog
         {
             var model = new ManufacturerModel();
             model.PageSizeOptions = "1, 2, 3, 5, 9";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.PageSizeOptions, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.PageSizeOptions);
         }
 
         [Test]
@@ -38,9 +38,9 @@ namespace Nop.Web.MVC.Tests.Admin.Validators.Catalog
         {
             var model = new ManufacturerModel();
             model.PageSizeOptions = null;
-            _validator.ShouldNotHaveValidationErrorFor(x => x.PageSizeOptions, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.PageSizeOptions);
             model.PageSizeOptions = "";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.PageSizeOptions, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.PageSizeOptions);
         }
     }
 }

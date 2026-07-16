@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Nop.Core;
 using Nop.Core.Caching;
@@ -16,7 +16,7 @@ using Nop.Services.Stores;
 using Nop.Services.Tax;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
 
 namespace Nop.Services.Tests.Orders
 {
@@ -117,25 +117,25 @@ namespace Nop.Services.Tests.Orders
 
             #endregion
             
-            _checkoutAttributeRepo = MockRepository.GenerateMock<IRepository<CheckoutAttribute>>();
-            _checkoutAttributeRepo.Expect(x => x.Table).Return(new List<CheckoutAttribute> { ca1, ca2, ca3 }.AsQueryable());
-            _checkoutAttributeRepo.Expect(x => x.GetById(ca1.Id)).Return(ca1);
-            _checkoutAttributeRepo.Expect(x => x.GetById(ca2.Id)).Return(ca2);
-            _checkoutAttributeRepo.Expect(x => x.GetById(ca3.Id)).Return(ca3);
+            _checkoutAttributeRepo = new Mock<IRepository<CheckoutAttribute>>().Object;
+            Mock.Get(_checkoutAttributeRepo).Setup(x => x.Table).Returns(new List<CheckoutAttribute> { ca1, ca2, ca3 }.AsQueryable());
+            Mock.Get(_checkoutAttributeRepo).Setup(x => x.GetById(ca1.Id)).Returns(ca1);
+            Mock.Get(_checkoutAttributeRepo).Setup(x => x.GetById(ca2.Id)).Returns(ca2);
+            Mock.Get(_checkoutAttributeRepo).Setup(x => x.GetById(ca3.Id)).Returns(ca3);
 
-            _checkoutAttributeValueRepo = MockRepository.GenerateMock<IRepository<CheckoutAttributeValue>>();
-            _checkoutAttributeValueRepo.Expect(x => x.Table).Return(new List<CheckoutAttributeValue> { cav1_1, cav1_2, cav2_1, cav2_2 }.AsQueryable());
-            _checkoutAttributeValueRepo.Expect(x => x.GetById(cav1_1.Id)).Return(cav1_1);
-            _checkoutAttributeValueRepo.Expect(x => x.GetById(cav1_2.Id)).Return(cav1_2);
-            _checkoutAttributeValueRepo.Expect(x => x.GetById(cav2_1.Id)).Return(cav2_1);
-            _checkoutAttributeValueRepo.Expect(x => x.GetById(cav2_2.Id)).Return(cav2_2);
+            _checkoutAttributeValueRepo = new Mock<IRepository<CheckoutAttributeValue>>().Object;
+            Mock.Get(_checkoutAttributeValueRepo).Setup(x => x.Table).Returns(new List<CheckoutAttributeValue> { cav1_1, cav1_2, cav2_1, cav2_2 }.AsQueryable());
+            Mock.Get(_checkoutAttributeValueRepo).Setup(x => x.GetById(cav1_1.Id)).Returns(cav1_1);
+            Mock.Get(_checkoutAttributeValueRepo).Setup(x => x.GetById(cav1_2.Id)).Returns(cav1_2);
+            Mock.Get(_checkoutAttributeValueRepo).Setup(x => x.GetById(cav2_1.Id)).Returns(cav2_1);
+            Mock.Get(_checkoutAttributeValueRepo).Setup(x => x.GetById(cav2_2.Id)).Returns(cav2_2);
 
             var cacheManager = new NopNullCache();
 
-            _storeMappingService = MockRepository.GenerateMock<IStoreMappingService>();
+            _storeMappingService = new Mock<IStoreMappingService>().Object;
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = new Mock<IEventPublisher>().Object;
+            Mock.Get(_eventPublisher).Setup(x => x.Publish(It.IsAny<object>()));
 
             _checkoutAttributeService = new CheckoutAttributeService(cacheManager,
                 _checkoutAttributeRepo,
@@ -148,13 +148,13 @@ namespace Nop.Services.Tests.Orders
 
 
             var workingLanguage = new Language();
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workContext.Expect(x => x.WorkingLanguage).Return(workingLanguage);
-            _currencyService = MockRepository.GenerateMock<ICurrencyService>();
-            _taxService = MockRepository.GenerateMock<ITaxService>();
-            _priceFormatter = MockRepository.GenerateMock<IPriceFormatter>();
-            _downloadService = MockRepository.GenerateMock<IDownloadService>();
-            _webHelper = MockRepository.GenerateMock<IWebHelper>();
+            _workContext = new Mock<IWorkContext>().Object;
+            Mock.Get(_workContext).Setup(x => x.WorkingLanguage).Returns(workingLanguage);
+            _currencyService = new Mock<ICurrencyService>().Object;
+            _taxService = new Mock<ITaxService>().Object;
+            _priceFormatter = new Mock<IPriceFormatter>().Object;
+            _downloadService = new Mock<IDownloadService>().Object;
+            _webHelper = new Mock<IWebHelper>().Object;
 
             _checkoutAttributeFormatter = new CheckoutAttributeFormatter(_workContext,
                 _checkoutAttributeService,

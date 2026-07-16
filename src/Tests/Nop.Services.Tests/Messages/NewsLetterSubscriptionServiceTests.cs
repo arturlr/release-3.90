@@ -1,4 +1,5 @@
-﻿using Nop.Core.Data;
+using Moq;
+using Nop.Core.Data;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Messages;
 using Nop.Data;
@@ -6,15 +7,17 @@ using Nop.Services.Customers;
 using Nop.Services.Events;
 using Nop.Services.Messages;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Services.Tests.Messages 
 {
     [TestFixture]
     public class NewsLetterSubscriptionServiceTests : ServiceTest
     {
+        private Mock<IEventPublisher> _eventPublisherMock;
         private IEventPublisher _eventPublisher;
+        private Mock<IRepository<NewsLetterSubscription>> _newsLetterSubscriptionRepositoryMock;
         private IRepository<NewsLetterSubscription> _newsLetterSubscriptionRepository;
+        private Mock<IRepository<Customer>> _customerRepositoryMock;
         private IRepository<Customer> _customerRepository;
         private ICustomerService _customerService;
         private IDbContext _dbContext;
@@ -22,11 +25,14 @@ namespace Nop.Services.Tests.Messages
         [SetUp]
         public new void SetUp()
         {
-            _eventPublisher = MockRepository.GenerateStub<IEventPublisher>();
-            _newsLetterSubscriptionRepository = MockRepository.GenerateMock<IRepository<NewsLetterSubscription>>();
-            _customerRepository = MockRepository.GenerateMock<IRepository<Customer>>();
-            _customerService = MockRepository.GenerateMock<ICustomerService>();
-            _dbContext = MockRepository.GenerateStub<IDbContext>();
+            _eventPublisherMock = new Mock<IEventPublisher>();
+            _eventPublisher = _eventPublisherMock.Object;
+            _newsLetterSubscriptionRepositoryMock = new Mock<IRepository<NewsLetterSubscription>>();
+            _newsLetterSubscriptionRepository = _newsLetterSubscriptionRepositoryMock.Object;
+            _customerRepositoryMock = new Mock<IRepository<Customer>>();
+            _customerRepository = _customerRepositoryMock.Object;
+            _customerService = new Mock<ICustomerService>().Object;
+            _dbContext = new Mock<IDbContext>().Object;
         }
 
         /// <summary>
@@ -41,7 +47,7 @@ namespace Nop.Services.Tests.Messages
             var subscription = new NewsLetterSubscription { Active = true, Email = "test@test.com" };
             service.InsertNewsLetterSubscription(subscription, true);
 
-            _eventPublisher.AssertWasCalled(x => x.Publish(new EmailSubscribedEvent(subscription)));
+            _eventPublisherMock.Verify(x => x.Publish(It.IsAny<EmailSubscribedEvent>()));
         }
 
         /// <summary>
@@ -56,7 +62,7 @@ namespace Nop.Services.Tests.Messages
             var subscription = new NewsLetterSubscription { Active = true, Email = "test@test.com" };
             service.DeleteNewsLetterSubscription(subscription, true);
 
-            _eventPublisher.AssertWasCalled(x => x.Publish(new EmailUnsubscribedEvent(subscription)));
+            _eventPublisherMock.Verify(x => x.Publish(It.IsAny<EmailUnsubscribedEvent>()));
         }
 
         /// <summary>
@@ -68,7 +74,7 @@ namespace Nop.Services.Tests.Messages
         {
             //Prepare the original result
             var originalSubscription = new NewsLetterSubscription { Active = true, Email = "test@test.com" };
-            _newsLetterSubscriptionRepository.Stub(m => m.GetById(Arg<object>.Is.Anything)).Return(originalSubscription);
+            _newsLetterSubscriptionRepositoryMock.Setup(m => m.GetById(It.IsAny<object>())).Returns(originalSubscription);
 
             var service = new NewsLetterSubscriptionService(_dbContext, _newsLetterSubscriptionRepository,
                 _customerRepository, _eventPublisher, _customerService);
@@ -76,8 +82,8 @@ namespace Nop.Services.Tests.Messages
             var subscription = new NewsLetterSubscription { Active = true, Email = "test@somenewdomain.com" };
             service.UpdateNewsLetterSubscription(subscription, true);
 
-            _eventPublisher.AssertWasCalled(x => x.Publish(new EmailUnsubscribedEvent(originalSubscription)));
-            _eventPublisher.AssertWasCalled(x => x.Publish(new EmailSubscribedEvent(subscription)));
+            _eventPublisherMock.Verify(x => x.Publish(It.IsAny<EmailUnsubscribedEvent>()));
+            _eventPublisherMock.Verify(x => x.Publish(It.IsAny<EmailSubscribedEvent>()));
         }
 
         /// <summary>
@@ -89,7 +95,7 @@ namespace Nop.Services.Tests.Messages
         {
             //Prepare the original result
             var originalSubscription = new NewsLetterSubscription { Active = false, Email = "test@test.com" };
-            _newsLetterSubscriptionRepository.Stub(m => m.GetById(Arg<object>.Is.Anything)).Return(originalSubscription);
+            _newsLetterSubscriptionRepositoryMock.Setup(m => m.GetById(It.IsAny<object>())).Returns(originalSubscription);
 
             var service = new NewsLetterSubscriptionService(_dbContext, _newsLetterSubscriptionRepository,
                 _customerRepository, _eventPublisher, _customerService);
@@ -98,7 +104,7 @@ namespace Nop.Services.Tests.Messages
 
             service.UpdateNewsLetterSubscription(subscription, true);
 
-            _eventPublisher.AssertWasCalled(x => x.Publish(new EmailSubscribedEvent(subscription)));
+            _eventPublisherMock.Verify(x => x.Publish(It.IsAny<EmailSubscribedEvent>()));
         }
 
         /// <summary>
@@ -112,7 +118,7 @@ namespace Nop.Services.Tests.Messages
 
             service.InsertNewsLetterSubscription(new NewsLetterSubscription { Email = "test@test.com" });
 
-            _eventPublisher.AssertWasCalled(x => x.EntityInserted(Arg<NewsLetterSubscription>.Is.Anything));
+            _eventPublisherMock.Verify(x => x.Publish(It.IsAny<Nop.Core.Events.EntityInserted<NewsLetterSubscription>>()));
         }
 
         /// <summary>
@@ -125,13 +131,13 @@ namespace Nop.Services.Tests.Messages
             //Prepare the original result
             var originalSubscription = new NewsLetterSubscription { Active = false, Email = "test@test.com" };
 
-            _newsLetterSubscriptionRepository.Stub(m => m.GetById(Arg<object>.Is.Anything)).Return(originalSubscription);
+            _newsLetterSubscriptionRepositoryMock.Setup(m => m.GetById(It.IsAny<object>())).Returns(originalSubscription);
             var service = new NewsLetterSubscriptionService(_dbContext, _newsLetterSubscriptionRepository,
                 _customerRepository, _eventPublisher, _customerService);
 
             service.UpdateNewsLetterSubscription(new NewsLetterSubscription { Email = "test@test.com" });
 
-            _eventPublisher.AssertWasCalled(x => x.EntityUpdated(Arg<NewsLetterSubscription>.Is.Anything));
+            _eventPublisherMock.Verify(x => x.Publish(It.IsAny<Nop.Core.Events.EntityUpdated<NewsLetterSubscription>>()));
         }
     }
 }

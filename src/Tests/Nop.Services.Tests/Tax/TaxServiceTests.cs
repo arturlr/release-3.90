@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
@@ -14,7 +14,7 @@ using Nop.Services.Logging;
 using Nop.Services.Tax;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
 
 namespace Nop.Services.Tests.Tax
 {
@@ -44,19 +44,19 @@ namespace Nop.Services.Tests.Tax
             _workContext = null;
             _storeContext = null;
 
-            _addressService = MockRepository.GenerateMock<IAddressService>();
+            _addressService = new Mock<IAddressService>().Object;
             //default tax address
-            _addressService.Expect(x => x.GetAddressById(_taxSettings.DefaultTaxAddressId)).Return(new Address { Id = _taxSettings.DefaultTaxAddressId });
+            Mock.Get(_addressService).Setup(x => x.GetAddressById(_taxSettings.DefaultTaxAddressId)).Returns(new Address { Id = _taxSettings.DefaultTaxAddressId });
 
             var pluginFinder = new PluginFinder();
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = new Mock<IEventPublisher>().Object;
+            Mock.Get(_eventPublisher).Setup(x => x.Publish(It.IsAny<object>()));
 
-            _geoLookupService = MockRepository.GenerateMock<IGeoLookupService>();
-            _countryService = MockRepository.GenerateMock<ICountryService>();
-            _stateProvinceService = MockRepository.GenerateMock<IStateProvinceService>();
-            _logger = MockRepository.GenerateMock<ILogger>();
+            _geoLookupService = new Mock<IGeoLookupService>().Object;
+            _countryService = new Mock<ICountryService>().Object;
+            _stateProvinceService = new Mock<IStateProvinceService>().Object;
+            _logger = new Mock<ILogger>().Object;
             _customerSettings = new CustomerSettings();
             _shippingSettings = new ShippingSettings();
             _addressSettings = new AddressSettings();

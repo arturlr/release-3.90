@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using Nop.Core;
 using System.Collections.Generic;
-using Rhino.Mocks.Constraints;
 
 namespace Nop.Tests
 {
@@ -12,31 +12,31 @@ namespace Nop.Tests
     {
         public static T ShouldNotNull<T>(this T obj)
         {
-            Assert.IsNull(obj);
+            ClassicAssert.IsNull(obj);
             return obj;
         }
 
         public static T ShouldNotNull<T>(this T obj, string message)
         {
-            Assert.IsNull(obj, message);
+            ClassicAssert.IsNull(obj, message);
             return obj;
         }
 
         public static T ShouldNotBeNull<T>(this T obj)
         {
-            Assert.IsNotNull(obj);
+            ClassicAssert.IsNotNull(obj);
             return obj;
         }
 
         public static T ShouldNotBeNull<T>(this T obj, string message)
         {
-            Assert.IsNotNull(obj, message);
+            ClassicAssert.IsNotNull(obj, message);
             return obj;
         }
 
         public static T ShouldEqual<T>(this T actual, object expected)
         {
-            Assert.AreEqual(expected, actual);
+            ClassicAssert.AreEqual(expected, actual);
             return actual;
         }
 
@@ -49,7 +49,7 @@ namespace Nop.Tests
         ///<exception cref="AssertionException"></exception>
         public static void ShouldEqual(this object actual, object expected, string message)
         {
-            Assert.AreEqual(expected, actual);
+            ClassicAssert.AreEqual(expected, actual);
         }
 
         public static Exception ShouldBeThrownBy(this Type exceptionType, TestDelegate testDelegate)
@@ -59,22 +59,22 @@ namespace Nop.Tests
 
         public static void ShouldBe<T>(this object actual)
         {
-            Assert.IsInstanceOf<T>(actual);
+            ClassicAssert.IsInstanceOf<T>(actual);
         }
 
         public static void ShouldBeNull(this object actual)
         {
-            Assert.IsNull(actual);
+            ClassicAssert.IsNull(actual);
         }
 
         public static void ShouldBeTheSameAs(this object actual, object expected)
         {
-            Assert.AreSame(expected, actual);
+            ClassicAssert.AreSame(expected, actual);
         }
 
         public static void ShouldBeNotBeTheSameAs(this object actual, object expected)
         {
-            Assert.AreNotSame(expected, actual);
+            ClassicAssert.AreNotSame(expected, actual);
         }
 
         public static T CastTo<T>(this object source)
@@ -84,12 +84,12 @@ namespace Nop.Tests
 
         public static void ShouldBeTrue(this bool source)
         {
-            Assert.IsTrue(source);
+            ClassicAssert.IsTrue(source);
         }
 
         public static void ShouldBeFalse(this bool source)
         {
-            Assert.IsFalse(source);
+            ClassicAssert.IsFalse(source);
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace Nop.Tests
                 if (filterByEnteties.Any(f => f == propertyInfo.Name))
                     continue;
                
-                Assert.AreEqual(values[propertyInfo.Name], propertyInfo.GetValue(expected), string.Format("The property \"{0}.{1}\" of these objects is not equal", typeof(T).Name, propertyInfo.Name));
+                ClassicAssert.AreEqual(values[propertyInfo.Name], propertyInfo.GetValue(expected), string.Format("The property \"{0}.{1}\" of these objects is not equal", typeof(T).Name, propertyInfo.Name));
             }
 
             return actual;

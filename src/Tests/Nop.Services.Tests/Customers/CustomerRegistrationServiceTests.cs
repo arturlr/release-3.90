@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Nop.Core;
@@ -19,7 +19,7 @@ using Nop.Services.Security;
 using Nop.Services.Stores;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
 
 namespace Nop.Services.Tests.Customers
 {
@@ -65,7 +65,7 @@ namespace Nop.Services.Tests.Customers
             };
 
             _encryptionService = new EncryptionService(_securitySettings);
-            _customerRepo = MockRepository.GenerateMock<IRepository<Customer>>();
+            _customerRepo = new Mock<IRepository<Customer>>().Object;
             var customer1 = new Customer
             {
                 Id = 1,
@@ -109,9 +109,9 @@ namespace Nop.Services.Tests.Customers
                 Email = "notregistered@test.com",
                 Active = true
             };
-            _customerRepo.Expect(x => x.Table).Return(new List<Customer> { customer1, customer2, customer3, customer4, customer5 }.AsQueryable());
+            Mock.Get(_customerRepo).Setup(x => x.Table).Returns(new List<Customer> { customer1, customer2, customer3, customer4, customer5 }.AsQueryable());
 
-            _customerPasswordRepo = MockRepository.GenerateMock<IRepository<CustomerPassword>>();
+            _customerPasswordRepo = new Mock<IRepository<CustomerPassword>>().Object;
             string saltKey = _encryptionService.CreateSaltKey(5);
             string password = _encryptionService.CreatePasswordHash("password", saltKey);
             var password1 = new CustomerPassword
@@ -150,25 +150,25 @@ namespace Nop.Services.Tests.Customers
                 Password = "password",
                 CreatedOnUtc = DateTime.UtcNow
             };
-            _customerPasswordRepo.Expect(x => x.Table).Return(new[] { password1, password2, password3, password4, password5 }.AsQueryable());
+            Mock.Get(_customerPasswordRepo).Setup(x => x.Table).Returns(new[] { password1, password2, password3, password4, password5 }.AsQueryable());
 
-            _eventPublisher = MockRepository.GenerateMock<IEventPublisher>();
-            _eventPublisher.Expect(x => x.Publish(Arg<object>.Is.Anything));
+            _eventPublisher = new Mock<IEventPublisher>().Object;
+            Mock.Get(_eventPublisher).Setup(x => x.Publish(It.IsAny<object>()));
 
-            _storeService = MockRepository.GenerateMock<IStoreService>();
-            _customerRoleRepo = MockRepository.GenerateMock<IRepository<CustomerRole>>();
-            _genericAttributeRepo = MockRepository.GenerateMock<IRepository<GenericAttribute>>();
-            _orderRepo = MockRepository.GenerateMock<IRepository<Order>>();
-            _forumPostRepo = MockRepository.GenerateMock<IRepository<ForumPost>>();
-            _forumTopicRepo = MockRepository.GenerateMock<IRepository<ForumTopic>>();
+            _storeService = new Mock<IStoreService>().Object;
+            _customerRoleRepo = new Mock<IRepository<CustomerRole>>().Object;
+            _genericAttributeRepo = new Mock<IRepository<GenericAttribute>>().Object;
+            _orderRepo = new Mock<IRepository<Order>>().Object;
+            _forumPostRepo = new Mock<IRepository<ForumPost>>().Object;
+            _forumTopicRepo = new Mock<IRepository<ForumTopic>>().Object;
 
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
-            _newsLetterSubscriptionService = MockRepository.GenerateMock<INewsLetterSubscriptionService>();
-            _rewardPointService = MockRepository.GenerateMock<IRewardPointService>();
+            _genericAttributeService = new Mock<IGenericAttributeService>().Object;
+            _newsLetterSubscriptionService = new Mock<INewsLetterSubscriptionService>().Object;
+            _rewardPointService = new Mock<IRewardPointService>().Object;
 
-            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workflowMessageService = MockRepository.GenerateMock<IWorkflowMessageService>();
+            _localizationService = new Mock<ILocalizationService>().Object;
+            _workContext = new Mock<IWorkContext>().Object;
+            _workflowMessageService = new Mock<IWorkflowMessageService>().Object;
 
             _customerService = new CustomerService(new NopNullCache(), _customerRepo, _customerPasswordRepo, _customerRoleRepo,
                 _genericAttributeRepo, _orderRepo, _forumPostRepo, _forumTopicRepo,

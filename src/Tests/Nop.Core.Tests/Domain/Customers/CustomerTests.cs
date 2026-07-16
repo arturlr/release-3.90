@@ -1,8 +1,9 @@
-﻿using System.Linq;
+using System.Linq;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
 using Nop.Tests;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace Nop.Core.Tests.Domain.Customers
 {

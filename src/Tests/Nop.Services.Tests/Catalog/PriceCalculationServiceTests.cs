@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Autofac;
 using Nop.Core;
@@ -15,7 +15,7 @@ using Nop.Services.Catalog;
 using Nop.Services.Discounts;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
 
 namespace Nop.Services.Tests.Catalog
 {
@@ -39,19 +39,19 @@ namespace Nop.Services.Tests.Catalog
         [SetUp]
         public new void SetUp()
         {
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
-            _workContext.Expect(w => w.WorkingCurrency).Return(new Currency { RoundingType = RoundingType.Rounding001 });
+            _workContext = new Mock<IWorkContext>().Object;
+            Mock.Get(_workContext).Setup(w => w.WorkingCurrency).Returns(new Currency { RoundingType = RoundingType.Rounding001 });
 
             _store = new Store { Id = 1 };
-            _storeContext = MockRepository.GenerateMock<IStoreContext>();
-            _storeContext.Expect(x => x.CurrentStore).Return(_store);
+            _storeContext = new Mock<IStoreContext>().Object;
+            Mock.Get(_storeContext).Setup(x => x.CurrentStore).Returns(_store);
 
-            _discountService = MockRepository.GenerateMock<IDiscountService>();
-            _categoryService = MockRepository.GenerateMock<ICategoryService>();
-            _manufacturerService = MockRepository.GenerateMock<IManufacturerService>();
-            _productService = MockRepository.GenerateMock<IProductService>();
+            _discountService = new Mock<IDiscountService>().Object;
+            _categoryService = new Mock<ICategoryService>().Object;
+            _manufacturerService = new Mock<IManufacturerService>().Object;
+            _productService = new Mock<IProductService>().Object;
 
-            _productAttributeParser = MockRepository.GenerateMock<IProductAttributeParser>();
+            _productAttributeParser = new Mock<IProductAttributeParser>().Object;
 
             _shoppingCartSettings = new ShoppingCartSettings();
             _catalogSettings = new CatalogSettings();
@@ -69,12 +69,12 @@ namespace Nop.Services.Tests.Catalog
                 _shoppingCartSettings, 
                 _catalogSettings);
 
-            var nopEngine = MockRepository.GenerateMock<NopEngine>();
-            var containe = MockRepository.GenerateMock<IContainer>();
-            var containerManager = MockRepository.GenerateMock<ContainerManager>(containe);
-            nopEngine.Expect(x => x.ContainerManager).Return(containerManager);
-            containerManager.Expect(x => x.Resolve<IWorkContext>()).Return(_workContext);
-            EngineContext.Replace(nopEngine);
+            var nopEngineMock = new Mock<IEngine>();
+            var containe = new Mock<IContainer>().Object;
+            var containerManager = new Mock<ContainerManager>(containe).Object;
+            nopEngineMock.Setup(x => x.ContainerManager).Returns(containerManager);
+            Mock.Get(containerManager).Setup(x => x.Resolve<IWorkContext>()).Returns(_workContext);
+            EngineContext.Replace(nopEngineMock.Object);
         }
 
         [OneTimeTearDown]
@@ -271,9 +271,9 @@ namespace Nop.Services.Tests.Catalog
             product.AppliedDiscounts.Add(discount1);
             //set HasDiscountsApplied property
             product.HasDiscountsApplied = true;
-            _discountService.Expect(ds => ds.ValidateDiscount(discount1, customer)).Return(new DiscountValidationResult() {IsValid = true});
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.ValidateDiscount(discount1, customer)).Returns(new DiscountValidationResult() {IsValid = true});
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             _priceCalcService.GetFinalPrice(product, customer, 0, true, 1).ShouldEqual(9.34M);
         }
@@ -302,8 +302,8 @@ namespace Nop.Services.Tests.Catalog
                 Quantity = 2,
             };
 
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             _priceCalcService.GetUnitPrice(sci1).ShouldEqual(12.34);
 
@@ -333,8 +333,8 @@ namespace Nop.Services.Tests.Catalog
                 Quantity = 2,
             };
 
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             _priceCalcService.GetSubTotal(sci1).ShouldEqual(24.68);
 
@@ -400,8 +400,8 @@ namespace Nop.Services.Tests.Catalog
                 Quantity = quantity
             };
 
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Return(new List<DiscountForCaching>());
-            _discountService.Expect(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Return(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToCategories)).Returns(new List<DiscountForCaching>());
+            Mock.Get(_discountService).Setup(ds => ds.GetAllDiscountsForCaching(DiscountType.AssignedToManufacturers)).Returns(new List<DiscountForCaching>());
 
             return shoppingCartItem;
         }

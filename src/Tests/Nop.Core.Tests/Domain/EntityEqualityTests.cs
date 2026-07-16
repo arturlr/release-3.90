@@ -1,5 +1,6 @@
-﻿using Nop.Core.Domain.Catalog;
+using Nop.Core.Domain.Catalog;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace Nop.Core.Tests.Domain
 {
@@ -12,7 +13,7 @@ namespace Nop.Core.Tests.Domain
             var p1 = new Product();
             var p2 = new Product();
 
-            Assert.AreNotEqual(p1, p2, "Different transient entities should not be equal");
+            ClassicAssert.AreNotEqual(p1, p2, "Different transient entities should not be equal");
         }
 
         [Test]
@@ -21,7 +22,7 @@ namespace Nop.Core.Tests.Domain
             var p1 = new Product();
             var p2 = p1;
 
-            Assert.AreEqual(p1, p2, "Two references to the same transient entity should be equal");
+            ClassicAssert.AreEqual(p1, p2, "Two references to the same transient entity should be equal");
         }
 
         [Test]
@@ -31,7 +32,7 @@ namespace Nop.Core.Tests.Domain
             var p1 = new Product { Id = id };
             var p2 = new Product { Id = id };
 
-            Assert.AreEqual(p1, p2, "Entities with the same id should be equal");
+            ClassicAssert.AreEqual(p1, p2, "Entities with the same id should be equal");
         }
 
         [Test]
@@ -40,7 +41,7 @@ namespace Nop.Core.Tests.Domain
             var p1 = new Product { Id = 2 };
             var p2 = new Product { Id = 5 };
 
-            Assert.AreNotEqual(p1, p2, "Entities with different ids should not be equal");
+            ClassicAssert.AreNotEqual(p1, p2, "Entities with different ids should not be equal");
         }
 
         [Test]
@@ -49,7 +50,7 @@ namespace Nop.Core.Tests.Domain
             var p1 = new Product { Id = 1 };
             var p2 = new Product();
 
-            Assert.AreNotEqual(p1, p2, "Entity and transient entity should not be equal");
+            ClassicAssert.AreNotEqual(p1, p2, "Entity and transient entity should not be equal");
         }
 
         [Test]
@@ -59,7 +60,7 @@ namespace Nop.Core.Tests.Domain
 
             var c1 = new Category { Id = id };
 
-            Assert.AreNotEqual(p1, c1, "Entities of different types should not be equal, even if they have the same id");
+            ClassicAssert.AreNotEqual(p1, c1, "Entities of different types should not be equal, even if they have the same id");
         }
 
         [Test]
@@ -68,11 +69,11 @@ namespace Nop.Core.Tests.Domain
             var p1 = new Product { Id = 1 };
             var p2 = new Product { Id = 1 };
 
-            Assert.IsTrue(p1 == p2);
+            ClassicAssert.IsTrue(p1 == p2);
 
             var p3 = new Product();
 
-            Assert.IsTrue(p1 != p3);
+            ClassicAssert.IsTrue(p1 != p3);
         }
     }
 

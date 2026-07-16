@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Nop.Core;
@@ -10,7 +10,7 @@ using Nop.Services.Configuration;
 using Nop.Services.Helpers;
 using Nop.Tests;
 using NUnit.Framework;
-using Rhino.Mocks;
+using Moq;
 
 namespace Nop.Services.Tests.Helpers
 {
@@ -28,14 +28,14 @@ namespace Nop.Services.Tests.Helpers
         [SetUp]
         public new void SetUp()
         {
-            _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
-            _settingService = MockRepository.GenerateMock<ISettingService>();
+            _genericAttributeService = new Mock<IGenericAttributeService>().Object;
+            _settingService = new Mock<ISettingService>().Object;
 
-            _workContext = MockRepository.GenerateMock<IWorkContext>();
+            _workContext = new Mock<IWorkContext>().Object;
 
             _store = new Store { Id = 1 };
-            _storeContext = MockRepository.GenerateMock<IStoreContext>();
-            _storeContext.Expect(x => x.CurrentStore).Return(_store);
+            _storeContext = new Mock<IStoreContext>().Object;
+            Mock.Get(_storeContext).Setup(x => x.CurrentStore).Returns(_store);
 
             _dateTimeSettings = new DateTimeSettings
             {
@@ -74,8 +74,8 @@ namespace Nop.Services.Tests.Helpers
                 Id = 10,
             };
 
-            _genericAttributeService.Expect(x => x.GetAttributesForEntity(customer.Id, "Customer"))
-                .Return(new List<GenericAttribute>
+            Mock.Get(_genericAttributeService).Setup(x => x.GetAttributesForEntity(customer.Id, "Customer"))
+                .Returns(new List<GenericAttribute>
                             {
                                 new GenericAttribute
                                     {
@@ -102,8 +102,8 @@ namespace Nop.Services.Tests.Helpers
                 Id = 10,
             };
 
-            _genericAttributeService.Expect(x => x.GetAttributesForEntity(customer.Id, "Customer"))
-                .Return(new List<GenericAttribute>
+            Mock.Get(_genericAttributeService).Setup(x => x.GetAttributesForEntity(customer.Id, "Customer"))
+                .Returns(new List<GenericAttribute>
                             {
                                 new GenericAttribute
                                     {

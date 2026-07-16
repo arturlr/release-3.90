@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using Nop.Core;
 using Nop.Core.Caching;
@@ -64,13 +63,19 @@ namespace Nop.Services.Tests.Configuration
         public override IList<Setting> GetAllSettings()
         {
             var settings = new List<Setting>();
-            var appSettings = ConfigurationManager.AppSettings;
-            foreach (var setting in appSettings.AllKeys)
+            // In .NET Core, we use hardcoded test settings instead of ConfigurationManager
+            var testSettings = new Dictionary<string, string>
+            {
+                { "Setting1", "SomeValue" },
+                { "Setting2", "25" },
+                { "Setting3", "12/25/2010" }
+            };
+            foreach (var kvp in testSettings)
             {
                 settings.Add(new Setting
                                  {
-                                     Name = setting.ToLowerInvariant(),
-                                     Value = appSettings[setting]
+                                     Name = kvp.Key.ToLowerInvariant(),
+                                     Value = kvp.Value
                                  });
             }
 

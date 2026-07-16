@@ -1,6 +1,7 @@
-﻿using Nop.Core.Domain.Orders;
+using Nop.Core.Domain.Orders;
 using Nop.Tests;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace Nop.Core.Tests.Domain.Orders
 {

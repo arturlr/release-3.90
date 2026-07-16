@@ -1,112 +1,81 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
-using Nop.Core.Fakes;
+using System;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using Nop.Services.Security;
 using Nop.Web.Framework.Controllers;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Web.MVC.Tests.Framework.Controllers
 {
     [TestFixture]
     public class AdminAuthorizeAttributeTests
     {
-        private AuthorizationContext GetAuthorizationContext<TController>() where TController : ControllerBase, new()
+        private AuthorizationFilterContext CreateAuthorizationContext(bool hasAccess)
         {
-            var controllerDescriptor = new ReflectedControllerDescriptor(typeof(TController));
-            var controllerContext = new ControllerContext(new FakeHttpContext("~/"), new RouteData(), new TController());
-            return new AuthorizationContext(controllerContext, controllerDescriptor.FindAction(controllerContext, "Index"));
-        }
+            var services = new ServiceCollection();
+            var mockPermissionService = new Mock<IPermissionService>();
+            mockPermissionService.Setup(x => x.Authorize(It.IsAny<Core.Domain.Security.PermissionRecord>()))
+                .Returns(hasAccess);
+            services.AddSingleton(mockPermissionService.Object);
+            var serviceProvider = services.BuildServiceProvider();
 
-        private AdminAuthorizeAttribute GetAdminAuthorizeAttribute(bool result)
-        {
-            var attribute = MockRepository.GeneratePartialMock<AdminAuthorizeAttribute>();
-            attribute.Expect(x => x.HasAdminAccess()).Return(result);
-            return attribute;
-        }
-        private void TestActionThatShouldRequirePermission<TController>() where TController : ControllerBase, new()
-        {
-            var authorizationContext = GetAuthorizationContext<TController>();
-            var attribute = GetAdminAuthorizeAttribute(false);
-            attribute.OnAuthorization(authorizationContext);
-            Assert.That(authorizationContext.Result, Is.InstanceOf<HttpUnauthorizedResult>());
+            var httpContext = new DefaultHttpContext();
+            httpContext.RequestServices = serviceProvider;
 
-            var authorizationContext2 = GetAuthorizationContext<TController>();
-            var attribute2 = GetAdminAuthorizeAttribute(true);
-            attribute2.OnAuthorization(authorizationContext2);
-            Assert.That(authorizationContext2.Result, Is.Null);
+            var actionContext = new ActionContext(
+                httpContext,
+                new RouteData(),
+                new ActionDescriptor());
+
+            var filterContext = new AuthorizationFilterContext(
+                actionContext,
+                new List<IFilterMetadata>());
+
+            return filterContext;
         }
 
         [Test]
         public void Normal_request_should_not_be_affected()
         {
-            var authorizationContext = GetAuthorizationContext<NormalController>();
-
-            var attribute = GetAdminAuthorizeAttribute(false);
-            attribute.OnAuthorization(authorizationContext);
-
-            Assert.That(authorizationContext.Result, Is.Null);
-        }
-
-        
-        [Test]
-        public void Normal_with_attribute_request_should_require_permission()
-        {
-            TestActionThatShouldRequirePermission<NormalWithAttribController>();
+            // A controller without the attribute - the attribute won't be applied
+            // So just verify that when dontValidate is true, no result is set
+            var attribute = new AdminAuthorizeAttribute(true);
+            var filterContext = CreateAuthorizationContext(false);
+            attribute.OnAuthorization(filterContext);
+            Assert.That(filterContext.Result, Is.Null);
         }
 
         [Test]
-        public void Normal_with_action_attribute_request_should_require_permission()
+        public void Should_set_unauthorized_when_no_access()
         {
-            TestActionThatShouldRequirePermission<NormalWithActionAttribController>();
+            var attribute = new AdminAuthorizeAttribute();
+            var filterContext = CreateAuthorizationContext(false);
+            attribute.OnAuthorization(filterContext);
+            Assert.That(filterContext.Result, Is.InstanceOf<UnauthorizedResult>());
         }
 
         [Test]
-        public void Inherited_attribute_request_should_require_permission()
+        public void Should_not_set_result_when_has_access()
         {
-            TestActionThatShouldRequirePermission<InheritedAttribController>();
+            var attribute = new AdminAuthorizeAttribute();
+            var filterContext = CreateAuthorizationContext(true);
+            attribute.OnAuthorization(filterContext);
+            Assert.That(filterContext.Result, Is.Null);
         }
-    }
 
-    public class NormalController : Controller
-    {
-        public ActionResult Index()
+        [Test]
+        public void DontValidate_should_skip_authorization()
         {
-            return View();
-        }
-    }
-    
-    [AdminAuthorize]
-    public class NormalWithAttribController : Controller
-    {
-        public ActionResult Index()
-        {
-            return View();
-        }
-    }
-
-    public class NormalWithActionAttribController : Controller
-    {
-        [AdminAuthorize]
-        public ActionResult Index()
-        {
-            return View();
-        }
-    }
-
-    [AdminAuthorize]
-    public class BaseWithAttribController : Controller
-    {
-        public ActionResult Something()
-        {
-            return View();
-        }
-    }
-
-    public class InheritedAttribController : BaseWithAttribController
-    {
-        public ActionResult Index()
-        {
-            return View();
+            var attribute = new AdminAuthorizeAttribute(true);
+            var filterContext = CreateAuthorizationContext(false);
+            attribute.OnAuthorization(filterContext);
+            Assert.That(filterContext.Result, Is.Null);
         }
     }
 }

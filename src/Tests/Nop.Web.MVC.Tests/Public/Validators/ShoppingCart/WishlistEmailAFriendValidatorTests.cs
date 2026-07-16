@@ -1,4 +1,4 @@
-﻿using FluentValidation.TestHelper;
+using FluentValidation.TestHelper;
 using Nop.Web.Models.ShoppingCart;
 using Nop.Web.Validators.ShoppingCart;
 using NUnit.Framework;
@@ -21,9 +21,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.ShoppingCart
         {
             var model = new WishlistEmailAFriendModel();
             model.FriendEmail = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.FriendEmail, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.FriendEmail);
             model.FriendEmail = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.FriendEmail, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.FriendEmail);
         }
 
         [Test]
@@ -31,7 +31,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.ShoppingCart
         {
             var model = new WishlistEmailAFriendModel();
             model.FriendEmail = "adminexample.com";
-            _validator.ShouldHaveValidationErrorFor(x => x.FriendEmail, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.FriendEmail);
         }
 
         [Test]
@@ -39,7 +39,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.ShoppingCart
         {
             var model = new WishlistEmailAFriendModel();
             model.FriendEmail = "admin@example.com";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.FriendEmail, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.FriendEmail);
         }
 
         [Test]
@@ -47,9 +47,9 @@ namespace Nop.Web.MVC.Tests.Public.Validators.ShoppingCart
         {
             var model = new WishlistEmailAFriendModel();
             model.YourEmailAddress = null;
-            _validator.ShouldHaveValidationErrorFor(x => x.YourEmailAddress, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.YourEmailAddress);
             model.YourEmailAddress = "";
-            _validator.ShouldHaveValidationErrorFor(x => x.YourEmailAddress, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.YourEmailAddress);
         }
 
         [Test]
@@ -57,7 +57,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.ShoppingCart
         {
             var model = new WishlistEmailAFriendModel();
             model.YourEmailAddress = "adminexample.com";
-            _validator.ShouldHaveValidationErrorFor(x => x.YourEmailAddress, model);
+            _validator.TestValidate(model).ShouldHaveValidationErrorFor(x => x.YourEmailAddress);
         }
 
         [Test]
@@ -65,7 +65,7 @@ namespace Nop.Web.MVC.Tests.Public.Validators.ShoppingCart
         {
             var model = new WishlistEmailAFriendModel();
             model.YourEmailAddress = "admin@example.com";
-            _validator.ShouldNotHaveValidationErrorFor(x => x.YourEmailAddress, model);
+            _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(x => x.YourEmailAddress);
         }
     }
 }
