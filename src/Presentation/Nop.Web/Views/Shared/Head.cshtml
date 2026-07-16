@@ -1,1 +1,7 @@
-﻿@*This is here so that if an error doesn't get throw if a theme doesn't have a Shared/Head.cshtml*@
+@using Nop.Web.Framework.UI
+@{
+    //add main CSS file for the default theme
+    Html.AppendCssFileParts("~/Themes/DefaultClean/Content/css/styles.css");
+    //add jQuery UI css file
+    Html.AppendCssFileParts("~/Content/jquery-ui-themes/smoothness/jquery-ui-1.10.3.custom.min.css");
+}

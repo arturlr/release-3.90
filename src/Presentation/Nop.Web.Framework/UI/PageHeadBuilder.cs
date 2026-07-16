@@ -98,7 +98,8 @@ namespace Nop.Web.Framework.UI
             var result = new StringBuilder();
             foreach (var item in _scriptParts[location].Select(x => new { x.Part, x.IsAsync }).Distinct())
             {
-                result.AppendFormat("<script {2}src=\"{0}\" type=\"{1}\"></script>", item.Part, MimeTypes.TextJavascript, item.IsAsync ? "async " : "");
+                var resolvedPath = item.Part.Replace("~/", "/");
+                result.AppendFormat("<script {2}src=\"{0}\" type=\"{1}\"></script>", resolvedPath, MimeTypes.TextJavascript, item.IsAsync ? "async " : "");
                 result.Append(Environment.NewLine);
             }
             return result.ToString();
@@ -123,7 +124,8 @@ namespace Nop.Web.Framework.UI
             var result = new StringBuilder();
             foreach (var path in _cssParts[location].Select(x => x.Part).Distinct())
             {
-                result.AppendFormat("<link href=\"{0}\" rel=\"stylesheet\" type=\"{1}\" />", path, MimeTypes.TextCss);
+                var resolvedPath = path.Replace("~/", "/");
+                result.AppendFormat("<link href=\"{0}\" rel=\"stylesheet\" type=\"{1}\" />", resolvedPath, MimeTypes.TextCss);
                 result.AppendLine();
             }
             return result.ToString();

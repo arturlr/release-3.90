@@ -111,7 +111,12 @@ if (engine != null)
 // Configure middleware pipeline - show detailed errors
 app.UseDeveloperExceptionPage();
 
-app.UseStaticFiles();
+app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+        builder.Environment.ContentRootPath),
+    ServeUnknownFileTypes = true
+});
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
