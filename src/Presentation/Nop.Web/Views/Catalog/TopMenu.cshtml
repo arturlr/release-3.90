@@ -1,40 +1,46 @@
-﻿@model TopMenuModel
+@model TopMenuModel
 @using Nop.Web.Models.Catalog;
 
-@helper RenderCategoryLine(CategorySimpleModel category, int level, bool responsiveMobileMenu)
-{
-    <li>
-        <a href="@Url.RouteUrl("Category", new { SeName = category.SeName })">@category.Name
-        @if (category.NumberOfProducts.HasValue)
+@functions{
+    public IHtmlContent RenderCategoryLine(CategorySimpleModel category, int level, bool responsiveMobileMenu)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<li>");
+        sb.Append($"<a href=\"{Url.RouteUrl("Category", new { SeName = category.SeName })}\">");
+        sb.Append(WebUtility.HtmlEncode(category.Name));
+        if (category.NumberOfProducts.HasValue)
         {
-            <text> </text>@T("Categories.TotalProducts", category.NumberOfProducts.Value)
+            sb.Append(" ");
+            sb.Append(WebUtility.HtmlEncode(T("Categories.TotalProducts", category.NumberOfProducts.Value).Text));
         }
-        </a>
-        @{
-            //subcategories
-            var subCategories = responsiveMobileMenu ?
-                //responsive (all categories)
-                category.SubCategories :
-                //standard design (only categories with "IncludeInTopMenu")
-                category.SubCategories.Where(x => x.IncludeInTopMenu).ToList();
+        sb.Append("</a>");
 
-            var levelClass = "";
-            if (level == 0)
-            {
-                levelClass = "first-level";
-            }
-            if (subCategories.Count > 0)
-            {
-                <div class="sublist-toggle"></div>
-                <ul class="sublist @levelClass">
-                    @foreach (var subCategory in subCategories)
-                    {
-                        @RenderCategoryLine(subCategory, level + 1, responsiveMobileMenu)
-                    }
-                </ul>
-            }
+        //subcategories
+        var subCategories = responsiveMobileMenu ?
+            //responsive (all categories)
+            category.SubCategories :
+            //standard design (only categories with "IncludeInTopMenu")
+            category.SubCategories.Where(x => x.IncludeInTopMenu).ToList();
+
+        var levelClass = "";
+        if (level == 0)
+        {
+            levelClass = "first-level";
         }
-    </li>
+        if (subCategories.Count > 0)
+        {
+            sb.Append("<div class=\"sublist-toggle\"></div>");
+            sb.Append($"<ul class=\"sublist {levelClass}\">");
+            foreach (var subCategory in subCategories)
+            {
+                sb.Append(RenderCategoryLine(subCategory, level + 1, responsiveMobileMenu).ToString());
+            }
+            sb.Append("</ul>");
+        }
+
+        sb.Append("</li>");
+        return new HtmlString(sb.ToString());
+    }
 }
 
 <ul class="top-menu">
@@ -138,6 +144,3 @@
         });
     </script>
 }
-
-
-
