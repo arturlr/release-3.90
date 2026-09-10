@@ -2478,12 +2478,12 @@ The analyser recognises `OperatingSystem.IsWindows()` as a platform guard, so th
 **and** the install page and admin System Info page start working off Windows instead of throwing.
 Alternatively annotate the containing action. Either is a two-line change per file.
 
-### 18.5 Noted, not changed — `FilePermissionHelper`'s file/directory lists are stale
+### 18.5 `FilePermissionHelper`'s file/directory lists are stale — ✅ **RESOLVED by task 7.5** (partially; see below)
 
 `GetFilesWrite()` still asks for write permission on `~/Global.asax` and `~/web.config`, and
 `GetDirectoriesWrite()` builds its paths with hard-coded `\\` separators. Both are pre-existing and
-**neither was touched**, because changing them alters what the installer and the admin System Info
-page report — a behaviour change outside 6.5's scope.
+**neither was touched by 6.5**, because changing them alters what the installer and the admin System
+Info page report — a behaviour change outside 6.5's scope.
 
 It is **harmless today**: `CheckPermissions` wraps the ACL read in `try { … } catch { return true; }`,
 so a path that does not exist is reported as "permission OK". But it is dead weight once task 7.5
@@ -2493,6 +2493,29 @@ deletes `Global.asax` and task 7.4 reduces `web.config` to an optional ANCM shim
 from `GetFilesWrite()`, and decide whether `web.config` stays (keep it only if the ANCM shim is
 kept). The `\\` separators should become `Path.Combine` segments if any non-Windows deployment is
 ever in scope — but that is coupled to the `CA1416` guard decision in §18.4 and belongs with it.
+
+#### Resolution at task 7.5
+
+`src/Presentation/Nop.Web.Framework/Security/FilePermissionHelper.cs`, `GetFilesWrite()`:
+
+- **`Global.asax` entry REMOVED.** Task 7.2 deleted the file, so the check was asking about a path
+  that cannot exist. It never *failed* — the swallowing `catch` reported the missing path as
+  "permission OK" — but it made the installer and the admin System Info page assert something
+  meaningless.
+- **`web.config` entry KEPT**, per the recommendation's own condition: 7.4 retained `web.config` as
+  the IIS/ANCM hosting shim, and the ASP.NET Core Module rewrites it on publish, so write access is
+  still a legitimate thing to verify on an IIS deployment.
+- **Incidental finding, now corrected by coincidence:** this list has always spelled the file
+  lowercase `web.config` while 3.90's file on disk was `Web.config`. On a case-sensitive filesystem
+  the check therefore silently missed the real file — until task 7.4 renamed it to all-lowercase
+  (§31.2). The two are consistent for the first time.
+- **The `\\` separators are deliberately left alone**, exactly as 6.5 argued: they are coupled to the
+  Windows-first posture on `CheckPermissions` and changing them alters what those two pages report.
+  A `<remarks>` block now records this on the method so the next reader does not re-litigate it.
+
+This edits a project that had already passed its gate, so **`Nop.Web.Framework` was re-gated:
+0 errors / 10 warnings**, matching its recorded 6.6 baseline exactly (no new `CA1416` — the change
+is inside a method with no platform-annotated call).
 
 
 ---
@@ -4120,3 +4143,302 @@ Adding to §30's list, and in priority order for the configuration surface:
    first chance to see them composed through `PageHeadBuilder` and a real theme.
 4. **`GET /App_Data/Settings.txt` returns 404** on the running store. Verified in the probe; cheap
    to re-confirm, and it is the single highest-consequence assertion in this task.
+
+
+
+---
+
+# Nop.Web — obsolete-file removal (task 7.5) and the 7.6 clean-compile gate
+
+Task 7.5 is the smallest task in group 7 — three earlier tasks had already removed most of its
+nominal scope — but it is the first one where **the task text itself turned out to be wrong for this
+solution**, and where a note handed down from an earlier task turned out to be **half right in a way
+that would have caused a silent regression**. Both are recorded below in preference to quietly doing
+the reasonable thing.
+
+| Measurement | Value |
+|---|---|
+| errors before / after | **0 / 0** — the 7.6 gate criterion is met |
+| warnings before / after | **15 / 15**, the identical set: 10 upstream `SYSLIB0014/0021/0023/0045/0051` in `Nop.Core`/`Nop.Services` plus 5 `CS0618` on FluentValidation 7.x's obsolete `Custom(...)` in three `Validators/` files this task did not touch (`git diff` confirms). **No warning added.** |
+| `Nop.Web.Framework` re-gate (edited by this task) | **0 errors / 10 warnings** — its recorded 6.6 baseline, unchanged |
+| upstream re-verification | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 |
+| files deleted | **5** — 2 view `Web.config`, 3 dead IE8 assets |
+| files created | **1** — `Themes/DefaultClean/Views/_ViewImports.cshtml` (see §37.2: not optional) |
+| files the task text asked to delete but which are KEPT | **1** — `Properties/AssemblyInfo.cs` (see §37.1: measured, deleting it is a real loss) |
+| swallowed-error check | `-v:normal` log: `"converted to a warning"` **0**, `ContinueOnError` **0**, `NU1901`–`NU1904` **0**, `error MSB*` **0**, Six Labors licence lines **0** |
+| residual `System.Web*` in `Nop.Web` source | **0 real hits across 435 files**, comment-blanked scan with a proven canary (§38.1) |
+| residual banned refs in `Nop.Web.dll` | **0 of 59** assembly references (§38.2) |
+
+## 37. What task 7.5 changed
+
+### 37.1 `Properties/AssemblyInfo.cs` is KEPT — the task text is wrong for this solution, and it was measured
+
+`tasks.md` step 7.5 says "Remove `AssemblyInfo`". **Do not.** Deleting it is a silent regression here,
+for a reason specific to a decision taken at task 2.3.
+
+`src/Directory.Build.props` sets **`<GenerateAssemblyInfo>false</GenerateAssemblyInfo>`** for the
+whole solution, with the comment *"Hand-maintained Properties/AssemblyInfo.cs files are retained
+where they still exist; the SDK must not emit a duplicate generated set."* With that property false
+the SDK emits **no** assembly-identity attributes, so there is nothing to inherit the file's contents.
+
+Measured both ways, via a `MetadataLoadContext` read of the built assembly:
+
+| Build | `AssemblyVersion` |
+|---|---|
+| with `Properties/AssemblyInfo.cs` | **3.9.0.0** |
+| with the file removed | **0.0.0.0** |
+
+Also lost in the second case: `AssemblyTitle`, `AssemblyFileVersion`, `AssemblyCompany`,
+`AssemblyProduct`, `AssemblyCopyright`, `ComVisible(false)` and the COM `Guid`. Note the three
+identity properties `Directory.Build.props` *does* define (`Company`, `Product`, `Copyright`) are
+inert while `GenerateAssemblyInfo` is false, and in any case carry **different values**
+(`nopCommerce` vs the file's `Nop Solutions, Ltd`), so they are not a substitute.
+
+Deleting the file would additionally have required flipping a solution-wide property for one project
+and made `Nop.Web` the only project of the five migrated so far to differ — task 6.5 §18.2 recorded
+exactly this decision for `Nop.Web.Framework`, and `Nop.Core`, `Nop.Data` and `Nop.Services` all keep
+theirs. There are 26 projects still to migrate.
+
+Checked before deciding, so the decision is not resting on convention alone: the file declares **no
+`InternalsVisibleTo`**, nothing in the solution reflects over `AssemblyTitle`/`Guid`/version, and the
+one project that references `Nop.Web` (`src/Tests/Nop.Web.MVC.Tests`, still a legacy project, task
+17.x) needs no internals access.
+
+**If a future task does want to move to SDK-generated assembly info, it is a solution-wide change**:
+set `GenerateAssemblyInfo=true` in `Directory.Build.props`, add `Version`/`FileVersion`/`Title`
+properties, and delete all five `AssemblyInfo.cs` files together. Doing it for one project is worse
+than doing it for none.
+
+### 37.2 `Themes/DefaultClean/Views/_ViewImports.cshtml` — a correction to task 7.3's handover note
+
+7.3 recorded, and `tasks.md` repeats, that *"`Views/Web.config` and
+`Themes/DefaultClean/Views/Web.config` are now fully superseded by `Views/_ViewImports.cshtml`"*.
+**That is true of the first file and false of the second.**
+
+Razor discovers `_ViewImports.cshtml` by walking from the view's **own** directory up to the project
+root. For `Themes/DefaultClean/Views/Shared/Foo.cshtml` the search path is
+`Themes/DefaultClean/Views/Shared/` → `Themes/DefaultClean/Views/` → `Themes/DefaultClean/` →
+`Themes/` → project root. **`Views/` is never on it.**
+
+**Measured, not reasoned about.** A throwaway probe view was planted at
+`Themes/DefaultClean/Views/Shared/_ProbeThemeOverride.cshtml` containing a single
+`@T("Account.Login")`:
+
+| State | Result |
+|---|---|
+| before the new file exists | **`error CS0103: The name 'T' does not exist in the current context`** |
+| after adding `Themes/DefaultClean/Views/_ViewImports.cshtml` | **0 errors** (probe also exercised `Html.NopPageCssClasses()`, i.e. a `Nop.Web.Framework.UI` type the new file supplies) |
+
+Both probes were deleted; `git status` was verified clean of them. The published assembly's 195
+compiled Razor view types include `Themes_DefaultClean_Views__ViewImports`, confirming it is compiled
+and applied.
+
+**Why this matters even though the build was green without it.** Today the theme tree holds exactly
+one view, `Shared/Head.cshtml`, and that view self-declares its four `@using` directives and never
+calls `T()` — so it compiles either way and no gate would ever have caught the gap. But a theme
+exists to **override** base views, and `ThemeableViewLocationExpander` (task 6.3, §16.1) searches
+`/Themes/{theme}/Views/{controller}/` and `/Themes/{theme}/Views/Shared/` **first** for every view in
+the storefront. The moment anyone copies a base view there to customise it — the entire purpose of the
+directory — that copy fails with a confusing `CS0103` on `T()`, which is on essentially every
+nopCommerce view. Supplying the file makes the deletion lossless instead of merely green.
+
+The new file is a direct translation of the deleted `Web.config`'s two payloads —
+`pageBaseType="Nop.Web.Framework.ViewEngines.Razor.WebViewPage"` → `@inherits`, and `<namespaces>` →
+`@using` — mirroring what 7.3 did for `Views/`, plus the handful of extra `@using` entries
+`Views/_ViewImports.cshtml` carries so a copied base view behaves identically to its original.
+
+### 37.3 Files deleted, and what superseded each
+
+| Deleted | Superseded by |
+|---|---|
+| `Views/Web.config` | **`Views/_ViewImports.cshtml`** (task 7.3). Its only payloads were the `system.web.webPages.razor` `pageBaseType` + `<namespaces>`, both translated. The rest of the file was `System.Web`-only and unreadable on .NET 10: `<httpHandlers>`/`<handlers>` registering `System.Web.HttpNotFoundHandler` (whose job — refusing to serve `.cshtml` over HTTP — is now done by 7.4's static-file allow-list, which does not permit `.cshtml` at all and additionally denies the extension explicitly, §33.1), `webpages:Enabled` (no `System.Web.WebPages`), `<pages validateRequest="false">` (ASP.NET request validation does not exist — deferral 7.3-3), and `pageParserFilterType`/`pageBaseType`/`userControlBaseType`/`<controls>` pointing at MVC 5 Web Forms view types. |
+| `Themes/DefaultClean/Views/Web.config` | **`Themes/DefaultClean/Views/_ViewImports.cshtml`**, created by this task — see §37.2. Byte-for-byte the same legacy content as above. |
+| `Themes/DefaultClean/Content/css/ie8.css` | nothing — **dead asset**, see §37.4 |
+| `Scripts/selectivizr.min.js` | nothing — **dead asset**, see §37.4 |
+| `Scripts/respond.min.js` | nothing — **dead asset**, see §37.4 |
+
+Both `Web.config` deletions also remove a live IIS hazard 7.4 had only been able to work around:
+IIS parses **every** file literally named `web.config` in the served tree, and both declared a
+`<configSections>` sectionGroup for an assembly that does not exist on .NET 10, so publishing either
+produced **HTTP 500.19**. 7.4 suppressed that with interim `CopyToPublishDirectory="Never"` entries;
+those entries are now **removed from `Nop.Web.csproj`** rather than left as dead no-ops, and publish
+output was re-verified to contain neither path and exactly one `web.config` (the root ANCM shim).
+
+### 37.4 The three IE8 assets — proven dead, then deleted
+
+Task 7.3 removed the browser-capability branches from `Themes/DefaultClean/Views/Shared/Head.cshtml`
+because `System.Web.HttpBrowserCapabilities` has no ASP.NET Core replacement (capability sniffing was
+driven by `browscap.xml` and was dropped from the platform). Those branches were the **only**
+consumer of these three files, so they are obsolete by platform change, not by preference.
+
+**Proof of death before deletion**, not assertion: a repository-wide search across all file types
+(excluding `.git`, `obj`, `bin`) for `ie8.css`, `selectivizr`, `respond.min.js`/`respond.js` returned
+matches **only** inside the three files' own copyright banners, 7.3's explanatory comment in
+`Head.cshtml`, and the two spec documents. Separately confirmed: **no**
+`AppendCssFileParts`/`AddScriptParts`/`AppendScriptParts`/`AddCssFileParts` call anywhere in the
+solution names any of them, and no CSS `@import`/`url()` pulls in `ie8.css` (the two `IE8` hits in
+`jquery-ui-1.10.3.custom.css` are prose comments).
+
+All three are IE8-only polyfills — selectivizr supplies CSS3 selectors to IE6–8, respond.js supplies
+media queries, `ie8.css` patches IE8 layout — and IE8 cannot run this storefront regardless. They are
+also inside 7.4's public static-file allow-list (`Scripts/**`, `Themes/<theme>/Content/**`), so
+keeping them would ship and publicly serve three dead files in every deployment.
+
+**`Themes/DefaultClean/Content/images/ie_warning.jpg` was checked and KEPT.** It is still live:
+`Views/Shared/OldInternetExplorerWarning.cshtml` builds its path, and `Views/Shared/_Root.cshtml`
+renders that partial via `@await Html.PartialAsync("OldInternetExplorerWarning")`. Dropping polyfills
+while keeping the "your browser is too old" notice is coherent.
+
+The stale forward-looking sentence in `Head.cshtml`'s comment (*"task 7.5 may delete them"*) was
+updated to record what was actually done, including the note that the files are recoverable from git
+history if a custom theme ever needs them.
+
+### 37.5 Confirmed absent rather than assumed
+
+The task text also asks for `Global.asax` and `RouteConfig`/`*Config` App_Start files. Verified
+against the tree rather than taken on trust:
+
+- **`Global.asax` / `Global.asax.cs`** — already deleted by task 7.2 (§20). Confirmed: zero
+  `global.asax*` matches under `Nop.Web`.
+- **`App_Start/`** — **no such directory has ever existed** in this project.
+- **`RouteConfig.cs` / any `*Config.cs`** — **none exists** anywhere under `Nop.Web` (excluding
+  `Administration/`). 3.90 put route registration in `Global.asax.cs`'s `RegisterRoutes` and the four
+  `Infrastructure/*RouteProvider.cs` classes, not in App_Start; task 7.3 ported the latter to
+  `IEndpointRouteBuilder`. So this clause of the task text had nothing to act on — recorded because
+  "found nothing" and "did not look" are indistinguishable in a diff.
+- **`Web.Debug.config` / `Web.Release.config`** — already deleted by task 7.4 (§33.6).
+- **`web.config`** (root) — **KEPT**, deliberately. 7.4 reduced it to the IIS/ANCM shim carrying two
+  live IIS settings (`urlCompression`, the `X-Powered-By` removal) and it is the file the SDK's
+  `TransformWebConfig` merges the ANCM handler into. Its all-lowercase name is load-bearing (§31.2).
+- **`Themes/DefaultClean/theme.config`** — **KEPT**. `ThemeProvider` reads it, and IIS does not parse
+  it.
+
+## 38. The 7.6 gate
+
+### 38.1 No `System.Web*` in source — 0 real hits across 435 files, with a proven canary
+
+Earlier tasks established that a naive `grep` for `System.Web` in this tree is meaningless: the
+migration deliberately leaves explanatory prose naming the legacy types it replaced, and `Nop.Web`
+currently contains 24 such textual matches, **all** in comments. The gate therefore used a scanner
+that blanks `@* *@`, `/* */` and `//` comments — while tracking string, char and verbatim-string
+literals so a `//` inside a URL is not mistaken for a comment — before searching the residue.
+
+Tokens searched: the `System.Web.*` namespaces (`Mvc`, `Routing`, `Optimization`, `WebPages`,
+`Helpers`, `Razor`, `Security`, `Caching`, `SessionState`, `UI`, `Hosting`, `Compilation`, `Http`),
+bare `System.Web`, plus `HttpContext.Current`, `HttpContextBase`, `HttpPostedFileBase`,
+`MvcHtmlString`, `ImageResizer`, `WebGrease`, `Autofac.Integration.Mvc`, `StackExchange.Profiling`,
+`MiniProfiler`, `System.Data.Entity`, `System.Drawing.Common`, `System.Runtime.Caching` and
+`System.Configuration`.
+
+**The scanner was proven able to fail** before its clean result was trusted: a `_CanaryProbe.cs`
+containing `using System.Web.Mvc;` was planted, the scanner reported it, and the file was removed.
+
+Result on the real tree: **435 source files scanned, 0 real hits.**
+
+### 38.2 No `System.Web*` in the emitted assembly — 0 banned of 59 references
+
+Read from `Nop.Web.dll`'s **AssemblyRef metadata table** via `System.Reflection.Metadata`, which is
+authoritative in a way that a text search over a binary is not. Identity: **`Nop.Web v3.9.0.0`**
+(itself the confirmation that §37.1's `AssemblyInfo.cs` is in effect).
+
+All 59 references are ASP.NET Core, `Microsoft.Extensions.*`, BCL, the four nopCommerce projects,
+`Autofac`, `Autofac.Extensions.DependencyInjection`, `FluentValidation`, `Microsoft.Data.SqlClient`
+and `System.ServiceModel.Syndication`. **Banned prefixes found: 0** — no `System.Web*`,
+`ImageResizer`, `WebGrease`, `Autofac.Integration.*`, `MiniProfiler`, `StackExchange.Profiling`,
+`EntityFramework` (EF6), `System.Runtime.Caching`, `System.Configuration`, `Antlr` or `Microsoft.Web.*`.
+`deps.json` and the output directory agree, and EF Core is present under its own
+`Microsoft.EntityFrameworkCore.*` names as expected.
+
+### 38.3 One honest exception: `System.Drawing.Common` IS in the output
+
+The gate checklist asks for no `System.Drawing.Common` in the emitted output. **It is there**, and
+this is reported rather than glossed because the literal check fails even though nothing is wrong.
+
+- It is a **direct `PackageReference` of no project.** `project.assets.json` shows exactly one
+  incoming edge: **`EPPlus/4.5.3.3 → System.Drawing.Common`**.
+- It resolves to **4.7.2**, not the 4.7.0 EPPlus asks for, because task 4.2 §10 pinned it centrally
+  (with `CentralPackageTransitivePinningEnabled`) to clear **`NU1904` / GHSA-rxg9-xrhp-64gj /
+  CVE-2021-24112** — CRITICAL remote code execution via a crafted metafile — which 4.7.0 carries.
+  Removing the package would reintroduce a vulnerable one, not improve anything.
+- **Nothing in the repository binds a type from it.** `Nop.Services` only names
+  `System.Drawing.Color`, which lives in the cross-platform `System.Drawing.Primitives` in the
+  net10.0 shared framework. `Nop.Web.dll`'s reference table has **no** entry for it.
+- It is **pre-existing** — introduced at task 4.2, verified there, and untouched by 7.5, which
+  changed no package file.
+
+The runtime caveat from §10 is unchanged: `System.Drawing.Common` is Windows-only, EPPlus needs it
+only for autofit column measurement and embedded images, and no call site uses either.
+
+### 38.4 Publish audit
+
+`dotnet publish -c Debug` was run and the output inspected, to confirm nothing deleted was
+load-bearing and that 7.4's shaping still holds.
+
+**Present:** `appsettings.json`; the transformed `web.config` with ANCM
+(`AspNetCoreModuleV2`, `hostingModel="inprocess"`) **still merged alongside** 7.4's preserved
+`urlCompression` and `X-Powered-By` elements, i.e. §31.2's case-sensitivity fix is intact;
+`App_Data/browscap.xml`, `App_Data/Install`, `App_Data/Pdf/FreeSerif.ttf`;
+`Content/Images/Thumbs/placeholder.txt` and `Content/files/ExportImport/Index.htm` (§31.3's fix
+intact); `Scripts`, `Themes/DefaultClean/theme.config`, `preview.jpg`, `styles.css`; `favicon.ico`,
+`ErrorPage.htm`, `FileNotFound.htm`.
+
+**Absent:** `App_Data/Settings.txt` (the connection string), `App_Data/InstalledPlugins.txt`,
+`App_Data/browscap.crawlersonly.xml`, **both** `Views/Web.config` paths, `launchSettings.json`,
+`Web.Debug/Release.config`, the three IE8 assets, and **0** `.cs`/`.cshtml`/`.csproj` files. Exactly
+one `web.config` exists in the publish tree.
+
+Note that `.cshtml` files are correctly **absent**: the Razor SDK compiles views into the assembly
+(195 compiled view types, including the new `Themes_DefaultClean_Views__ViewImports`), so a view's
+absence from publish output is the expected ASP.NET Core behaviour and not a missing file.
+
+## 39. NEW deferral opened by task 7.5
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 7.5-1 | `_ViewImports.cshtml` is per-theme, so every future theme needs its own copy | 8.4 (awareness) / theme authors | Low |
+
+### 7.5-1 A new theme will silently need its own `_ViewImports.cshtml`
+
+`Themes/DefaultClean/Views/_ViewImports.cshtml` (§37.2) fixes the shipped theme. It **cannot** fix a
+theme that does not exist yet: Razor's upward walk from
+`Themes/<NewTheme>/Views/Shared/Foo.cshtml` reaches `Themes/` and the project root, neither of which
+holds a `_ViewImports.cshtml`, so a new theme's view overrides get no `@inherits` and no `@using`.
+
+- **Symptom:** `CS0103: The name 'T' does not exist in the current context` at build time on any
+  theme view that uses the localizer — which is nearly every nopCommerce view. **Loud, not silent**:
+  it is a compile error, which is why this is rated Low.
+- **Fix:** copy `Themes/DefaultClean/Views/_ViewImports.cshtml` into the new theme's `Views/` folder.
+  This is the same per-folder obligation 3.90 had — it shipped one `Views/Web.config` per theme view
+  directory for exactly this reason — so it is parity, not a new burden.
+- **A tempting alternative that does NOT work:** placing a single `_ViewImports.cshtml` at
+  `Themes/_ViewImports.cshtml` or the project root would cover all themes, but it would also apply
+  `@inherits WebViewPage<TModel>` to **every** `.cshtml` in the project, including
+  `Administration/`'s ~325 views (task 8.x) which have their own base-type requirements. Not worth
+  the coupling for a compile-time-visible error.
+- **Note for task 8.4:** `Nop.Admin`'s views live under `Administration/Areas/Admin/Views/` and face
+  the identical mechanism. 8.3/8.4 must create `_ViewImports.cshtml` for that tree from
+  `Areas/Admin/Views/Web.config`'s `pageBaseType` + `<namespaces>`, and — per task 7.3's §27 finding
+  — should do it **first**, since it is the single highest-leverage edit available (it took
+  `Nop.Web` from 1974 errors to 24 in one file).
+
+## 40. Deferrals explicitly NOT closed by 7.5, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **35** | Minification gone, nothing replaces it | post-migration (design §8) |
+| **7.2-1** | Startup fails fast on an unreachable database | 7.7 — needs a real database |
+| **7.2-3** | `TaskManager.Instance.Stop()` never called on shutdown | none (3.90 parity) |
+| **7.4-1** | A Kestrel-only deployment gets no response compression | deployment decision |
+| **7.4-2** | Nop.Admin's `db_backups` publish exclusion and admin static assets | 8.1 / 8.5 — structurally out of reach from `Nop.Web.csproj` |
+| **4.11** | `ExecuteSqlCommand` per-batch transaction during installation | 7.7 — needs a real database |
+| **4.10** | `GO`-batched `CreateDatabaseScript()` in four plugin contexts | 11.2, 13.1, 14.4, 15.1 |
+| **9 / 4.9** | `NopObjectContext` needs a real connection string | 3.4 (`Nop.Data.Tests` fixtures only) |
+| **11.27** | `BaseNopModel.BindModel` no longer invoked | accepted; no override exists anywhere |
+| **7.3-1** | The `Html.Action` bridge lives in `Nop.Web` but Nop.Admin and the plugins need it | 8.3 — recommend promoting it to `Nop.Web.Framework` |
+| **7.3-2** | Session-stored `ProcessPaymentRequest.CustomValues` round-trips as `JsonElement` | 12.1–12.5 |
+| **7.3-3** | ASP.NET request validation is gone | accepted; the feature does not exist to restore |
+| **7.3-4** | 48 former `[ChildActionOnly]` actions are URL-reachable | 8.3 (re-targeted by 7.4 §32.2) |
+| **7.3-5** | Server-side browser detection removed | accepted — and 7.5 deleted the three assets it orphaned (§37.4) |
+| **7.3-6** | The child-action bridge does not run action filters | accepted |
+| **18 / 7.18** | ImageSharp licence diagnostic | business decision |
+| **18.4** | `CA1416` at the two `Nop.Admin` `CommonController` call sites | 8.3 — 7.3 fixed the two `Nop.Web` ones |

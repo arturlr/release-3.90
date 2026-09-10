@@ -379,21 +379,18 @@
 
     <!--
       NOT in 3.90's list, added deliberately by task 7.4 because the SDK publishes .json and
-      .config as Content and these three would otherwise ship.
+      .config as Content and this would otherwise ship. launchSettings.json is developer machine
+      launch configuration and never belongs in a deployment.
 
-      The two Views\Web.config files are the important ones and this is NOT cosmetic: both
-      declare a <configSections> sectionGroup for System.Web.WebPages.Razor. IIS parses every
-      file literally named web.config in the served tree, so publishing them would produce an
-      HTTP 500.19 configuration error on an IIS hosted deployment. Task 7.3 recorded both as
-      fully superseded by Views\_ViewImports.cshtml and task 7.5 DELETES them; these two
-      entries keep publish output correct in the meantime and become harmless no-ops
-      afterwards.
-
-      launchSettings.json is developer machine launch configuration and never belongs in a
-      deployment.
+      TASK 7.5 UPDATE: the two `Views\Web.config` entries that used to sit here are GONE,
+      because the files themselves are gone. 7.4 added them as an interim measure - both
+      declared a System.Web.WebPages.Razor <configSections> group, and IIS parses every file
+      literally named web.config in the served tree, so publishing them would have produced an
+      HTTP 500.19 configuration error. 7.5 deleted the files outright (superseded by
+      Views\_ViewImports.cshtml and Themes\DefaultClean\Views\_ViewImports.cshtml), so the
+      exclusions have nothing left to exclude and are removed rather than left as dead no-ops.
+      Verified after removal: neither path appears in the publish output.
     -->
-    <Content Update="Views\Web.config" CopyToPublishDirectory="Never" />
-    <Content Update="Themes\DefaultClean\Views\Web.config" CopyToPublishDirectory="Never" />
     <Content Update="Properties\launchSettings.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
@@ -542,12 +539,23 @@
     CONFIG FILES. Web.Debug.config and Web.Release.config were DELETED by task 7.4 (unmodified
     XDT boilerplate; the Web SDK does not run XDT transforms). Web.config was reduced to the
     IIS/ANCM hosting shim, which is where the ImageResizer 'resizer' configSections
-    declaration was removed per design section 7. Views\Web.config and
-    Themes\DefaultClean\Views\Web.config are still on disk and remain TASK 7.5's to delete;
-    7.4 only set CopyToPublishDirectory="Never" on them, because both declare a
-    System.Web.WebPages.Razor <configSections> group that would cause an IIS 500.19 if
-    published. Themes\DefaultClean\theme.config stays - ThemeProvider reads it, and IIS only
+    declaration was removed per design section 7 - it is KEPT, and its all-lowercase name is
+    load-bearing (the SDK's TransformWebConfig task matches the literal filename when merging
+    the ANCM handler, and it is case sensitive on Linux).
+
+    Views\Web.config and Themes\DefaultClean\Views\Web.config were DELETED by task 7.5, along
+    with their interim CopyToPublishDirectory="Never" entries above. Both declared only
+    System.Web.WebPages.Razor sections that nothing on .NET 10 reads. Their successors are
+    Views\_ViewImports.cshtml (task 7.3) and Themes\DefaultClean\Views\_ViewImports.cshtml
+    (created by task 7.5 - Razor resolves _ViewImports by walking up from the view's OWN
+    directory, so the theme tree does not inherit the one under Views\; this was measured, not
+    assumed). Themes\DefaultClean\theme.config stays - ThemeProvider reads it, and IIS only
     parses files literally named web.config.
+
+    Properties\AssemblyInfo.cs is also KEPT by task 7.5, deliberately. Directory.Build.props
+    sets GenerateAssemblyInfo=false for the whole solution (task 2.3), so the SDK emits NO
+    replacement attributes: deleting the file drops AssemblyVersion from 3.9.0.0 to 0.0.0.0 and
+    loses AssemblyTitle/FileVersion/ComVisible/Guid outright. Measured both ways.
   -->
 
 </Project>

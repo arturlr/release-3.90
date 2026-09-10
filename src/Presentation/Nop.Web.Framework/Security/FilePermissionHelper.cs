@@ -215,11 +215,37 @@ namespace Nop.Web.Framework.Security
         /// Gets a list of files (physical paths) which require write permission
         /// </summary>
         /// <returns>Result</returns>
+        /// <remarks>
+        /// <para>
+        /// <b>Task 7.5 removed the <c>Global.asax</c> entry</b> (runtime deferral 18.5). The file
+        /// was deleted by task 7.2 — <c>System.Web</c>'s <c>HttpApplication</c> hosting model has
+        /// no ASP.NET Core counterpart and its members moved to <c>Program.cs</c> — so asking for
+        /// write permission on it was asking about a path that cannot exist. It was harmless
+        /// rather than broken, because <see cref="CheckPermissions"/> wraps the ACL read in
+        /// <c>try { … } catch { return true; }</c> and therefore reported a non-existent path as
+        /// "permission OK", but it made the installer and the admin System Info page assert
+        /// something meaningless.
+        /// </para>
+        /// <para>
+        /// <c>web.config</c> is <b>deliberately KEPT</b>. Task 7.4 reduced it to the IIS/ANCM
+        /// hosting shim but did not remove it, and the ASP.NET Core Module rewrites it on publish,
+        /// so write access to it is still a legitimate thing to verify on an IIS deployment. Note
+        /// the name is now correct on a case-sensitive filesystem for the first time: this list
+        /// always said lowercase <c>web.config</c> while 3.90's file on disk was
+        /// <c>Web.config</c>, so the check silently missed the real file on Linux until task 7.4
+        /// renamed it to all-lowercase.
+        /// </para>
+        /// <para>
+        /// The remaining <c>\\</c> path separators are pre-existing 3.90 behaviour and are left
+        /// alone; they are coupled to the Windows-first posture recorded on
+        /// <see cref="CheckPermissions"/>, and changing them would alter what the installer and
+        /// System Info page report.
+        /// </para>
+        /// </remarks>
         public static IEnumerable<string> GetFilesWrite()
         {
             string rootDir = CommonHelper.MapPath("~/");
             var filesToCheck = new List<string>();
-            filesToCheck.Add(Path.Combine(rootDir, "Global.asax"));
             filesToCheck.Add(Path.Combine(rootDir, "web.config"));
             filesToCheck.Add(Path.Combine(rootDir, "App_Data\\InstalledPlugins.txt"));
             filesToCheck.Add(Path.Combine(rootDir, "App_Data\\Settings.txt"));

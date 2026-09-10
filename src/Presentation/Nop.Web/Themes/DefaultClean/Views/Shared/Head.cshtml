@@ -17,8 +17,16 @@
         Removing the branches rather than inventing User-Agent parsing is the honest call: IE8
         cannot run this storefront regardless, and the two polyfills these branches loaded -
         selectivizr and respond.js - exist solely to give IE8 CSS3 selectors and media queries.
+
+        task 7.5 DELETED the three assets these branches were the only consumer of:
         ~/Themes/DefaultClean/Content/css/ie8.css, ~/Scripts/selectivizr.min.js and
-        ~/Scripts/respond.min.js are now unreferenced; task 7.5 may delete them.
+        ~/Scripts/respond.min.js. Verified dead first: a repository-wide search found no
+        reference to any of them outside their own copyright banners and this comment, and no
+        AppendCssFileParts/AddScriptParts call anywhere names them. They are recoverable from
+        git history if a custom theme ever needs them.
+
+        ~/Themes/DefaultClean/Content/images/ie_warning.jpg is NOT deleted - it is still live,
+        used by Views/Shared/OldInternetExplorerWarning.cshtml, which _Root.cshtml renders.
     *@
     //add main CSS file
     if (supportRtl)

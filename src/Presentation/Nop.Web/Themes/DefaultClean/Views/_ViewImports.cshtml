@@ -1,0 +1,78 @@
+@*
+    Task 7.5 — the ASP.NET Core successor to Themes/DefaultClean/Views/Web.config, which this
+    task deletes (Requirement 1.5, 4.4).
+
+    WHY THIS FILE IS NECESSARY, and why deleting the theme's Web.config without it would have
+    been a silent capability loss.
+
+    Views/_ViewImports.cshtml (task 7.3) replaced Views/Web.config for the MAIN view tree. It
+    does NOT cover this one. Razor discovers _ViewImports.cshtml by walking from the view's own
+    directory up to the project root, so a view at
+        Themes/DefaultClean/Views/Shared/Foo.cshtml
+    searches Themes/DefaultClean/Views/Shared/, Themes/DefaultClean/Views/,
+    Themes/DefaultClean/, Themes/ and the project root — and never Views/.
+
+    MEASURED, not assumed: a throwaway probe view placed at
+    Themes/DefaultClean/Views/Shared/ containing a single @T("Account.Login") call failed with
+        error CS0103: The name 'T' does not exist in the current context
+    confirming the theme tree inherits nothing from Views/_ViewImports.cshtml. The probe was
+    deleted after measurement.
+
+    The deleted Themes/DefaultClean/Views/Web.config declared exactly two things for this tree,
+    both reproduced below:
+
+      pageBaseType="Nop.Web.Framework.ViewEngines.Razor.WebViewPage"
+          -> the @inherits directive. This is what makes T("Some.Resource") resolve; the
+             localizer lives on that base class.
+
+      <namespaces>  -> the @using directives.
+
+    WHY IT MATTERS EVEN THOUGH THE BUILD IS GREEN WITHOUT IT. Today this tree holds exactly one
+    view, Shared/Head.cshtml, and that view self-declares its four @using directives and never
+    calls T(), so it compiles with or without this file. But a theme exists to OVERRIDE base
+    views, and ThemeableViewLocationExpander (task 6.3) searches
+    /Themes/{theme}/Views/{controller}/ and /Themes/{theme}/Views/Shared/ FIRST for every view
+    in the storefront. The moment anyone copies a base view here to customise it — which is the
+    entire purpose of the directory — that copy would fail with a confusing CS0103 on T()
+    unless this file exists. Supplying it keeps the deletion lossless.
+
+    NOTE FOR FUTURE THEMES: this is per-theme. A new theme added under Themes/<name>/Views/
+    needs its own copy, exactly as 3.90 required its own Views/Web.config. 3.90 shipped one
+    such file per theme view folder for the same reason.
+*@
+@inherits Nop.Web.Framework.ViewEngines.Razor.WebViewPage<TModel>
+
+@*
+    Direct translations of the four System.Web entries in the deleted Web.config, matching
+    Views/_ViewImports.cshtml:
+        System.Web.Mvc       -> Microsoft.AspNetCore.Mvc
+        System.Web.Mvc.Html  -> Microsoft.AspNetCore.Mvc.Rendering (IHtmlHelper extensions)
+        System.Web.Routing   -> Microsoft.AspNetCore.Routing
+        System.Web.Mvc.Ajax  -> no counterpart; the Ajax.* helpers do not exist in ASP.NET Core
+                                and no theme view used them.
+*@
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Routing
+
+@* carried over verbatim from Themes/DefaultClean/Views/Web.config *@
+@using Nop.Web.Extensions
+@using Nop.Web.Framework
+@using Nop.Web.Framework.Security.Captcha
+@using Nop.Web.Framework.Security.Honeypot
+@using Nop.Web.Framework.UI
+
+@*
+    Not in the legacy <namespaces> list, but added for parity with Views/_ViewImports.cshtml so
+    that a base view copied into this theme behaves identically to the original. Head.cshtml
+    already declared Nop.Core, Nop.Core.Infrastructure and Nop.Web.Framework.Themes itself.
+*@
+@using Nop.Core
+@using Nop.Core.Infrastructure
+@using Nop.Services.Localization
+@using Nop.Services.Seo
+@using Nop.Web.Framework.Themes
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
