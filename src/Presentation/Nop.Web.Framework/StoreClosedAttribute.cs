@@ -1,7 +1,11 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain;
@@ -14,6 +18,14 @@ namespace Nop.Web.Framework
     /// <summary>
     /// Store closed attribute
     /// </summary>
+    /// <remarks>
+    /// Task 6.2: ported to ASP.NET Core MVC filters - see ValidatePasswordAttribute for the
+    /// ActionDescriptor / IUrlHelperFactory mappings. One extra difference here:
+    /// <c>RouteData.Values["topicId"] as int?</c> worked in System.Web because the value was
+    /// already boxed as an int by the route; ASP.NET Core route values are always
+    /// <see cref="string"/>, so the cast would silently produce null and every topic would be
+    /// blocked when the store is closed. It is therefore parsed explicitly.
+    /// </remarks>
     public class StoreClosedAttribute : ActionFilterAttribute
     {
         private readonly bool _ignore;
@@ -37,20 +49,17 @@ namespace Nop.Web.Framework
             if (_ignore)
                 return;
 
-            HttpRequestBase request = filterContext.HttpContext.Request;
+            HttpRequest request = filterContext.HttpContext.Request;
             if (request == null)
                 return;
 
-            string actionName = filterContext.ActionDescriptor.ActionName;
+            var controllerActionDescriptor = filterContext.ActionDescriptor as ControllerActionDescriptor;
+            string actionName = controllerActionDescriptor != null ? controllerActionDescriptor.ActionName : null;
             if (String.IsNullOrEmpty(actionName))
                 return;
 
-            string controllerName = filterContext.Controller.ToString();
+            string controllerName = filterContext.Controller != null ? filterContext.Controller.ToString() : null;
             if (String.IsNullOrEmpty(controllerName))
-                return;
-
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
                 return;
 
             if (!DataSettingsHelper.DatabaseIsInstalled())
@@ -70,8 +79,11 @@ namespace Nop.Web.Framework
                     .Where(t => t.AccessibleWhenStoreClosed)
                     .Select(t => t.Id)
                     .ToList();
-                var requestedTopicId = filterContext.RouteData.Values["topicId"] as int?;
-                if (requestedTopicId.HasValue && allowedTopicIds.Contains(requestedTopicId.Value))
+                int requestedTopicId;
+                var routeTopicId = filterContext.RouteData != null ? filterContext.RouteData.Values["topicId"] : null;
+                if (routeTopicId != null &&
+                    int.TryParse(Convert.ToString(routeTopicId), out requestedTopicId) &&
+                    allowedTopicIds.Contains(requestedTopicId))
                     return;
             }
 
@@ -80,7 +92,10 @@ namespace Nop.Web.Framework
             if (permissionService.Authorize(StandardPermissionProvider.AccessClosedStore))
                 return;
 
-            var storeClosedUrl = new UrlHelper(filterContext.RequestContext).RouteUrl("StoreClosed");
+            var urlHelper = filterContext.HttpContext.RequestServices
+                .GetRequiredService<IUrlHelperFactory>()
+                .GetUrlHelper(filterContext);
+            var storeClosedUrl = urlHelper.RouteUrl("StoreClosed");
             filterContext.Result = new RedirectResult(storeClosedUrl);
         }
     }

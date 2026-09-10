@@ -1,13 +1,24 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Nop.Core;
 using Nop.Core.Domain.Security;
 using Nop.Core.Infrastructure;
 
 namespace Nop.Web.Framework.Security
 {
+    /// <summary>
+    /// Task 6.2: ported to ASP.NET Core MVC filters. SECURITY-SENSITIVE: the IP allow-list logic
+    /// is unchanged, including the "empty list means no restriction" default and the
+    /// already-on-the-access-denied-page guard that prevents a redirect loop.
+    /// <c>System.Web.Mvc.ActionFilterAttribute</c> -&gt;
+    /// <c>Microsoft.AspNetCore.Mvc.Filters.ActionFilterAttribute</c>;
+    /// <c>HttpRequestBase</c> -&gt; <see cref="HttpRequest"/>; the <c>IsChildAction</c> guard is
+    /// removed (View Components do not execute action filters). The IP itself comes from
+    /// <c>IWebHelper.GetCurrentIpAddress()</c>, already re-based on ASP.NET Core in task 2.4.
+    /// </summary>
     public class AdminValidateIpAddressAttribute : ActionFilterAttribute
     {
         public override void OnActionExecuting(ActionExecutingContext filterContext)
@@ -15,13 +26,10 @@ namespace Nop.Web.Framework.Security
             if (filterContext == null || filterContext.HttpContext == null)
                 return;
 
-            HttpRequestBase request = filterContext.HttpContext.Request;
+            HttpRequest request = filterContext.HttpContext.Request;
             if (request == null)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
             bool ok = false;
             var ipAddresses = EngineContext.Current.Resolve<SecuritySettings>().AdminAreaAllowedIpAddresses;
             if (ipAddresses != null && ipAddresses.Any())

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Directory;
@@ -23,6 +23,41 @@ namespace Nop.Web.Framework
     /// <summary>
     /// Work context for web application
     /// </summary>
+    /// <remarks>
+    /// Task 6.2: re-based from <c>System.Web.HttpContextBase</c> onto
+    /// <see cref="IHttpContextAccessor"/>.
+    /// <list type="bullet">
+    /// <item>BREAKING CONSTRUCTOR CHANGE: <c>WebWorkContext(HttpContextBase, …)</c> -&gt;
+    /// <c>WebWorkContext(IHttpContextAccessor, …)</c>. This matches the six Nop.Services
+    /// constructors already moved in task 4.2 (runtime-deferrals section 9a) and Nop.Core's
+    /// <c>WebHelper</c>/<c>PerRequestCacheManager</c> (section 3). <c>DependencyRegistrar</c>
+    /// registers this type reflectively (<c>RegisterType&lt;WebWorkContext&gt;</c>), so Autofac
+    /// picks the new constructor up automatically PROVIDED task 6.4 calls
+    /// <c>services.AddHttpContextAccessor()</c> - deferral 7.14.</item>
+    /// <item>COOKIES: <c>HttpCookie</c> / <c>HttpCookieCollection</c> have no ASP.NET Core
+    /// counterpart. Reading is via <c>Request.Cookies</c>
+    /// (<see cref="IRequestCookieCollection"/>, a flat string map) and writing via
+    /// <c>Response.Cookies.Append/Delete</c> (<see cref="IResponseCookies"/>). The cookie name
+    /// (<c>Nop.customer</c>), the <c>HttpOnly</c> flag and the 24*365-hour lifetime are
+    /// preserved. <c>Response.Cookies.Remove(name)</c> + <c>Add(cookie)</c> becomes
+    /// <c>Delete(name)</c> + <c>Append(name, value, options)</c>. The "expire in the past to
+    /// clear" branch for <see cref="Guid.Empty"/> is expressed as a <c>Delete</c>, which is what
+    /// ASP.NET Core emits for that case anyway (an empty value with a past expiry).</item>
+    /// <item><c>Request.AppRelativeCurrentExecutionFilePath</c> ("~/en/...") -&gt; rebuilt as
+    /// <c>"~" + Request.Path</c>; <c>Request.ApplicationPath</c> -&gt; <c>Request.PathBase</c>
+    /// mapped to "/" when empty, because <c>LocalizedUrlExtenstions</c> treats "/" as "not a
+    /// virtual directory" and throws on an empty string.</item>
+    /// <item><c>Request.UserLanguages</c> (a pre-sorted string[]) -&gt; the
+    /// <c>Accept-Language</c> header parsed with
+    /// <see cref="Microsoft.Net.Http.Headers.StringWithQualityHeaderValue"/> and ordered by
+    /// quality, which is what System.Web did internally. Only the first entry is used, exactly as
+    /// before.</item>
+    /// <item>The <c>_httpContext is FakeHttpContext</c> background-task test is PRESERVED - see
+    /// the FakeHttpContext note in runtime-deferrals section 3; the type was re-implemented over a
+    /// composed <c>DefaultHttpContext</c> specifically so this keeps working. It now tests the
+    /// resolved <see cref="HttpContext"/> rather than the injected wrapper.</item>
+    /// </list>
+    /// </remarks>
     public partial class WebWorkContext : IWorkContext
     {
         #region Const
@@ -33,7 +68,7 @@ namespace Nop.Web.Framework
 
         #region Fields
 
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ICustomerService _customerService;
         private readonly IVendorService _vendorService;
         private readonly IStoreContext _storeContext;
@@ -58,7 +93,7 @@ namespace Nop.Web.Framework
 
         #region Ctor
 
-        public WebWorkContext(HttpContextBase httpContext,
+        public WebWorkContext(IHttpContextAccessor httpContextAccessor,
             ICustomerService customerService,
             IVendorService vendorService,
             IStoreContext storeContext,
@@ -72,7 +107,7 @@ namespace Nop.Web.Framework
             IUserAgentHelper userAgentHelper,
             IStoreMappingService storeMappingService)
         {
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._customerService = customerService;
             this._vendorService = vendorService;
             this._storeContext = storeContext;
@@ -91,43 +126,60 @@ namespace Nop.Web.Framework
 
         #region Utilities
 
-        protected virtual HttpCookie GetCustomerCookie()
+        /// <summary>
+        /// The current ASP.NET Core <see cref="HttpContext"/>, or null outside a request
+        /// (scheduled tasks, installation)
+        /// </summary>
+        protected virtual HttpContext HttpContext
         {
-            if (_httpContext == null || _httpContext.Request == null)
+            get { return _httpContextAccessor != null ? _httpContextAccessor.HttpContext : null; }
+        }
+
+        protected virtual string GetCustomerCookie()
+        {
+            var httpContext = HttpContext;
+            if (httpContext == null || httpContext.Request == null)
                 return null;
 
-            return _httpContext.Request.Cookies[CustomerCookieName];
+            return httpContext.Request.Cookies[CustomerCookieName];
         }
 
         protected virtual void SetCustomerCookie(Guid customerGuid)
         {
-            if (_httpContext != null && _httpContext.Response != null)
+            var httpContext = HttpContext;
+            if (httpContext != null && httpContext.Response != null && !httpContext.Response.HasStarted)
             {
-                var cookie = new HttpCookie(CustomerCookieName);
-                cookie.HttpOnly = true;
-                cookie.Value = customerGuid.ToString();
+                //remove the existing cookie first (System.Web did Cookies.Remove + Cookies.Add)
+                httpContext.Response.Cookies.Delete(CustomerCookieName);
+
                 if (customerGuid == Guid.Empty)
                 {
-                    cookie.Expires = DateTime.Now.AddMonths(-1);
-                }
-                else
-                {
-                    int cookieExpires = 24*365; //TODO make configurable
-                    cookie.Expires = DateTime.Now.AddHours(cookieExpires);
+                    //nothing to write - Delete() already emits an expired cookie, which is what
+                    //the old "Expires = DateTime.Now.AddMonths(-1)" branch produced
+                    return;
                 }
 
-                _httpContext.Response.Cookies.Remove(CustomerCookieName);
-                _httpContext.Response.Cookies.Add(cookie);
+                int cookieExpires = 24*365; //TODO make configurable
+                var options = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Expires = DateTime.Now.AddHours(cookieExpires)
+                };
+                httpContext.Response.Cookies.Append(CustomerCookieName, customerGuid.ToString(), options);
             }
         }
 
         protected virtual Language GetLanguageFromUrl()
         {
-            if (_httpContext == null || _httpContext.Request == null)
+            var httpContext = HttpContext;
+            if (httpContext == null || httpContext.Request == null)
                 return null;
 
-            string virtualPath = _httpContext.Request.AppRelativeCurrentExecutionFilePath;
-            string applicationPath = _httpContext.Request.ApplicationPath;
+            //System.Web's AppRelativeCurrentExecutionFilePath was "~" + the app-relative path
+            string virtualPath = "~" + httpContext.Request.Path.Value;
+            string applicationPath = httpContext.Request.PathBase.HasValue
+                ? httpContext.Request.PathBase.Value
+                : "/";
             if (!virtualPath.IsLocalizedUrl(applicationPath, false))
                 return null;
 
@@ -148,12 +200,20 @@ namespace Nop.Web.Framework
 
         protected virtual Language GetLanguageFromBrowserSettings()
         {
-            if (_httpContext == null ||
-                _httpContext.Request == null ||
-                _httpContext.Request.UserLanguages == null)
+            var httpContext = HttpContext;
+            if (httpContext == null || httpContext.Request == null)
                 return null;
 
-            var userLanguage = _httpContext.Request.UserLanguages.FirstOrDefault();
+            //System.Web's Request.UserLanguages was the Accept-Language header split and
+            //ordered by quality; reproduce that here
+            var acceptLanguage = httpContext.Request.GetTypedHeaders().AcceptLanguage;
+            if (acceptLanguage == null || !acceptLanguage.Any())
+                return null;
+
+            var userLanguage = acceptLanguage
+                .OrderByDescending(x => x.Quality ?? 1)
+                .Select(x => x.Value.HasValue ? x.Value.Value : null)
+                .FirstOrDefault(x => !String.IsNullOrEmpty(x));
             if (String.IsNullOrEmpty(userLanguage))
                 return null;
 
@@ -183,7 +243,8 @@ namespace Nop.Web.Framework
                     return _cachedCustomer;
 
                 Customer customer = null;
-                if (_httpContext == null || _httpContext is FakeHttpContext)
+                var httpContext = HttpContext;
+                if (httpContext == null || httpContext is FakeHttpContext)
                 {
                     //check whether request is made by a background task
                     //in this case return built-in customer record for background task
@@ -227,10 +288,10 @@ namespace Nop.Web.Framework
                 if (customer == null || customer.Deleted || !customer.Active || customer.RequireReLogin)
                 {
                     var customerCookie = GetCustomerCookie();
-                    if (customerCookie != null && !String.IsNullOrEmpty(customerCookie.Value))
+                    if (!String.IsNullOrEmpty(customerCookie))
                     {
                         Guid customerGuid;
-                        if (Guid.TryParse(customerCookie.Value, out customerGuid))
+                        if (Guid.TryParse(customerCookie, out customerGuid))
                         {
                             var customerByCookie = _customerService.GetCustomerByGuid(customerGuid);
                             if (customerByCookie != null &&

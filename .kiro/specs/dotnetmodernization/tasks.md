@@ -82,7 +82,7 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
   - [ ]* 4.4 Migrate Nop.Services.Tests to SDK-style net10.0
     - Convert `src/Tests/Nop.Services.Tests`; packages.config → PackageReference; remove `App.config`; `ProjectReference`s → migrated Nop.Services/Nop.Data/Nop.Core; require clean compile
     - _Requirements: 5.6, 1.1, 1.2, 1.3, 3.1_
-  - [ ]* 4.5 Migrate shared Nop.Tests helper project to SDK-style net10.0
+  - [x] 4.5 Migrate shared Nop.Tests helper project to SDK-style net10.0
     - Convert `src/Tests/Nop.Tests` (shared test infrastructure) to SDK-style net10.0; packages.config → PackageReference; replace System.Web fakes with `DefaultHttpContext`-based fakes; fix `ProjectReference`s; require clean compile
     - _Requirements: 5.6, 5.3, 1.1, 1.2, 1.3, 3.1_
 
@@ -91,14 +91,14 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.3_
 
 - [ ] 6. Port Nop.Web.Framework to ASP.NET Core
-  - [ ] 6.1 Convert Nop.Web.Framework.csproj to SDK-style net10.0 and migrate packages
+  - [x] 6.1 Convert Nop.Web.Framework.csproj to SDK-style net10.0 and migrate packages
     - SDK-style conversion (`Microsoft.NET.Sdk`, with Razor/ASP.NET Core MVC framework reference as needed) at `net10.0`; packages.config → PackageReference; replace `Microsoft.AspNet.Mvc/Razor/WebPages`, `Autofac.Mvc5` with ASP.NET Core MVC + `Autofac.Extensions.DependencyInjection`; delete `packages.config`; fix `ProjectReference`s to migrated libraries
     - _Requirements: 1.1, 1.2, 1.3, 2.4, 4.1, 4.2_
-  - [ ] 6.2 Port HTTP context, WebHelper, and controllers/filters
+  - [x] 6.2 Port HTTP context, WebHelper, and controllers/filters
     - Replace `System.Web` `HttpContext.Current`/`HttpRequest`/`HttpResponse`/session usages with `Microsoft.AspNetCore.Http` via `IHttpContextAccessor`
     - `System.Web.Mvc.Controller` → `Microsoft.AspNetCore.Mvc.Controller`; map `ActionResult`/`JsonResult`/`RedirectResult`; port filters (`ActionFilterAttribute`, `AuthorizeAttribute`) to ASP.NET Core filters/policy-based auth
     - _Requirements: 4.1, 4.2, 4.3_
-  - [ ] 6.3 Port Razor infrastructure and HTML/URL helpers
+  - [x] 6.3 Port Razor infrastructure and HTML/URL helpers
     - `WebViewPage`/`@model` base → `RazorPage<TModel>`; `System.Web.Mvc.HtmlHelper` → `IHtmlHelper`, `UrlHelper` → `IUrlHelper`; `@Html.Action`/`[ChildActionOnly]` → View Components; port custom view-page extensions and templates to Tag Helpers where appropriate
     - _Requirements: 4.1, 4.4, 4.2_
   - [ ] 6.4 Port routing, modules/handlers, and DI integration
@@ -135,7 +135,7 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
   - [ ] 7.6 Clean-compile gate — Nop.Web
     - Build `src/Presentation/Nop.Web/Nop.Web.csproj -c Debug` using the containerized .NET 10 SDK command in `build-environment.md`; resolve to zero errors; verify no `System.Web*` references remain. Plugins remain blocked until the Nop.Admin gate (8.8) also passes
     - _Requirements: 3.1, 3.2, 3.3, 4.2_
-  - [ ]* 7.7 Smoke-check the ASP.NET Core host
+  - [ ] 7.7 Smoke-check the ASP.NET Core host
     - Add a minimal integration/smoke check verifying the host starts, the Autofac container builds and core services resolve, one controller route responds, one Razor view renders, one former-module middleware executes, and `appsettings.json` binds (representative, non-gating)
     - _Requirements: 4.1, 4.3, 4.4, 4.5, 4.6, 1.4_
 
@@ -280,7 +280,7 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
 
 ## Notes
 
-- Tasks marked with `*` are optional test-migration/smoke sub-tasks and can be skipped for a faster path to a compiling application; core migration tasks are never optional.
+- Tasks marked with `*` are optional test-migration/smoke sub-tasks and can be skipped for a faster path to a compiling application; core migration tasks are never optional. **Amendment (user decision):** tasks **4.5** (shared `Nop.Tests` helper project) and **7.7** (ASP.NET Core host smoke-check) were **promoted from optional to required** and no longer carry the `*` marker. Rationale: skipping every test-related task would mean no ported code is ever *executed* before the end of the migration, so the plan retained no executable validation at all. 4.5 provides a runnable test project (test SDK + runner) that later stages build on, and 7.7 provides the one end-to-end check that the ported host actually starts. Tasks **2.6**, **3.4** and **4.4** remain `*` optional and are **skipped**.
 - The design defines **no Correctness Properties** (migration is a structural/declarative transformation), so no property-based test tasks are included; verification is by clean-compile gate, structural checks, and a few representative smoke checks.
 - Every project group ends with an explicit **clean-compile gate**; a dependent group MUST NOT begin until its upstream gate reports zero errors (Req 2.1–2.3, 3.1–3.3).
 - **All clean-compile gates run inside the `mcr.microsoft.com/dotnet/sdk:10.0` container documented in `build-environment.md`.** The host is Amazon Linux 2 (glibc 2.26) and .NET 10 requires glibc 2.27+, so the host `dotnet` CLI cannot build `net10.0`. Use `/workspace`-relative project paths in the containerized command.

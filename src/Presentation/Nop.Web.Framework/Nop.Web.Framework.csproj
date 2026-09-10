@@ -1,291 +1,298 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{75FD4163-333C-4DD5-854D-2EF294E45D94}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Nop.Web.Framework</RootNamespace>
-    <AssemblyName>Nop.Web.Framework</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="Antlr3.Runtime, Version=3.5.0.2, Culture=neutral, PublicKeyToken=eb42632606e9261f, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Antlr.3.5.0.2\lib\Antlr3.Runtime.dll</HintPath>
-    </Reference>
-    <Reference Include="Autofac, Version=4.4.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Autofac.4.4.0\lib\net45\Autofac.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Autofac.Integration.Mvc, Version=4.0.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Autofac.Mvc5.4.0.1\lib\net45\Autofac.Integration.Mvc.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
-    </Reference>
-    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
-    </Reference>
-    <Reference Include="FluentValidation, Version=6.4.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\FluentValidation.6.4.0\lib\Net45\FluentValidation.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions.Desktop, Version=1.0.168.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.Desktop.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <Private>True</Private>
-      <HintPath>..\..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Linq.Dynamic, Version=1.0.6132.35681, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\System.Linq.Dynamic.1.0.7\lib\net40\System.Linq.Dynamic.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Net" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Net.Http.Extensions, Version=2.2.29.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Extensions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Net.Http.Primitives, Version=4.2.29.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Primitives.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Net.Http.WebRequest" />
-    <Reference Include="System.ServiceModel" />
-    <Reference Include="System.Web" />
-    <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.Helpers.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.Mvc, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Mvc.5.2.3\lib\net45\System.Web.Mvc.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.Optimization, Version=1.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Web.Optimization.1.1.3\lib\net40\System.Web.Optimization.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Razor.3.2.3\lib\net45\System.Web.Razor.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.WebPages.Deployment, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Deployment.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.WebPages.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="WebActivator, Version=1.5.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\WebActivator.1.5.2\lib\net40\WebActivator.dll</HintPath>
-    </Reference>
-    <Reference Include="WebGrease, Version=1.6.5135.21930, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\WebGrease.1.6.0\lib\WebGrease.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="CheckAffiliateAttribute.cs" />
-    <Compile Include="Controllers\AdminVendorValidation.cs" />
-    <Compile Include="Controllers\BaseController.cs" />
-    <Compile Include="Controllers\BasePluginController.cs" />
-    <Compile Include="Controllers\ParameterBasedOnFormNameAndValueAttribute.cs" />
-    <Compile Include="Kendoui\DataSourceRequest.cs" />
-    <Compile Include="Kendoui\DataSourceResult.cs" />
-    <Compile Include="Kendoui\Sort.cs" />
-    <Compile Include="Kendoui\Filter.cs" />
-    <Compile Include="Kendoui\QueryableExtensions.cs" />
-    <Compile Include="Menu\Extensions.cs" />
-    <Compile Include="Menu\SiteMapNode.cs" />
-    <Compile Include="Menu\XmlSiteMap.cs" />
-    <Compile Include="Mvc\ActionConfirmationModel.cs" />
-    <Compile Include="Mvc\ConverterJsonResult.cs" />
-    <Compile Include="Mvc\NoTrimAttribute.cs" />
-    <Compile Include="Mvc\DependencyRegistrarExtensions.cs" />
-    <Compile Include="Mvc\NullJsonResult.cs" />
-    <Compile Include="Security\Captcha\CaptchaSettingsExtension.cs" />
-    <Compile Include="Security\Captcha\GRecaptchaControl.cs" />
-    <Compile Include="Security\Captcha\GReCaptchaResponse.cs" />
-    <Compile Include="Security\Captcha\GReCaptchaValidator.cs" />
-    <Compile Include="Security\Captcha\ReCaptchaVersion.cs" />
-    <Compile Include="Security\Honeypot\HoneypotValidatorAttribute.cs" />
-    <Compile Include="Security\Honeypot\HtmlExtensions.cs" />
-    <Compile Include="Security\PublicAntiForgeryAttribute.cs" />
-    <Compile Include="Seo\CustomUrlRecordEntityNameRequested.cs" />
-    <Compile Include="Seo\WwwRequirementAttribute.cs" />
-    <Compile Include="Security\AdminAntiForgeryAttribute.cs" />
-    <Compile Include="ValidatePasswordAttribute.cs" />
-    <Compile Include="Validators\BaseNopValidator.cs" />
-    <Compile Include="Validators\DecimalPropertyValidator.cs" />
-    <Compile Include="WebStoreContext.cs" />
-    <Compile Include="StoreIpAddressAttribute.cs" />
-    <Compile Include="CustomerLastActivityAttribute.cs" />
-    <Compile Include="Events\ProductSearchEvent.cs" />
-    <Compile Include="LanguageSeoCodeAttribute.cs" />
-    <Compile Include="Events\AdminTabStripCreated.cs" />
-    <Compile Include="Mvc\CommaSeparatedModelBinder.cs" />
-    <Compile Include="PublicStoreAllowNavigationAttribute.cs" />
-    <Compile Include="Mvc\Routes\GuidConstraint.cs" />
-    <Compile Include="Security\AdminValidateIpAddressAttribute.cs" />
-    <Compile Include="Security\FilePermissionHelper.cs" />
-    <Compile Include="Seo\GenericPathRoute.cs" />
-    <Compile Include="Seo\GenericPathRouteExtensions.cs" />
-    <Compile Include="StoreClosedAttribute.cs" />
-    <Compile Include="StoreLastVisitedPageAttribute.cs" />
-    <Compile Include="RemotePost.cs" />
-    <Compile Include="Controllers\BasePaymentController.cs" />
-    <Compile Include="Controllers\FormValueRequiredAttribute.cs" />
-    <Compile Include="Localization\LocalizedRoute.cs" />
-    <Compile Include="Localization\LocalizedRouteExtensions.cs" />
-    <Compile Include="Localization\LocalizedUrlExtenstions.cs" />
-    <Compile Include="Mvc\BaseNopModel.cs" />
-    <Compile Include="Controllers\AdminAuthorizeAttribute.cs" />
-    <Compile Include="Controllers\ParameterBasedOnFormNameAttribute.cs" />
-    <Compile Include="DependencyRegistrar.cs" />
-    <Compile Include="Mvc\XmlDownloadResult.cs" />
-    <Compile Include="Extensions.cs" />
-    <Compile Include="HtmlExtensions.cs" />
-    <Compile Include="Mvc\IModelAttribute.cs" />
-    <Compile Include="Localization\ILocalizedModel.cs" />
-    <Compile Include="Localization\ILocalizedModelLocal.cs" />
-    <Compile Include="Localization\LocalizedString.cs" />
-    <Compile Include="Localization\Localizer.cs" />
-    <Compile Include="Mvc\DeleteConfirmationModel.cs" />
-    <Compile Include="Mvc\Routes\IRouteProvider.cs" />
-    <Compile Include="Mvc\Routes\IRoutePublisher.cs" />
-    <Compile Include="Mvc\Routes\RoutePublisher.cs" />
-    <Compile Include="Mvc\NopMetadataProvider.cs" />
-    <Compile Include="Mvc\NopModelBinder.cs" />
-    <Compile Include="NopResourceDisplayName.cs" />
-    <Compile Include="NopValidatorFactory.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RssActionResult.cs" />
-    <Compile Include="Security\SslRequirement.cs" />
-    <Compile Include="Security\NopHttpsRequirementAttribute.cs" />
-    <Compile Include="Themes\IThemeProvider.cs" />
-    <Compile Include="Themes\IThemeContext.cs" />
-    <Compile Include="Themes\ThemeableVirtualPathProviderViewEngine.cs" />
-    <Compile Include="Themes\ThemeConfiguration.cs" />
-    <Compile Include="Themes\ThemeableRazorViewEngine.cs" />
-    <Compile Include="Themes\ThemeProvider.cs" />
-    <Compile Include="Themes\ThemeContext.cs" />
-    <Compile Include="Security\Captcha\CaptchaSettings.cs" />
-    <Compile Include="Security\Captcha\HtmlExtensions.cs" />
-    <Compile Include="Security\Captcha\CaptchaValidatorAttribute.cs" />
-    <Compile Include="UI\AsIsBundleOrderer.cs" />
-    <Compile Include="UI\ResourceLocation.cs" />
-    <Compile Include="UI\LayoutExtensions.cs" />
-    <Compile Include="UI\IPageHeadBuilder.cs" />
-    <Compile Include="UI\NotifyType.cs" />
-    <Compile Include="UI\PageHeadBuilder.cs" />
-    <Compile Include="UI\DataListExtensions.cs" />
-    <Compile Include="UI\Paging\BasePageableModel.cs" />
-    <Compile Include="UI\Paging\IPageableModel.cs" />
-    <Compile Include="UI\Paging\Pager.cs" />
-    <Compile Include="UrlHelperExtensions.cs" />
-    <Compile Include="Validators\ValidatorExtensions .cs" />
-    <Compile Include="Validators\CreditCardPropertyValidator.cs" />
-    <Compile Include="ViewEngines\Razor\WebViewPage.cs" />
-    <Compile Include="Menu\IAdminMenuPlugin.cs" />
-    <Compile Include="WebWorkContext.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj">
-      <Project>{6BDA8332-939F-45B7-A25E-7A797260AE59}</Project>
-      <Name>Nop.Core</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\Nop.Data\Nop.Data.csproj">
-      <Project>{CCD7F2C9-6A2C-4CF0-8E89-076B8FC0F144}</Project>
-      <Name>Nop.Data</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj">
-      <Project>{210541ad-f659-47da-8763-16f36c5cd2f4}</Project>
-      <Name>Nop.Services</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Kendoui\ModelStateExtensions.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets'))" />
-  </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Nop.Web.Framework - fourth stage of the migration, first of the three presentation
+    projects, downstream of Nop.Core, Nop.Data and Nop.Services
+    (Requirements 1.1, 1.2, 1.3, 2.4, 4.1, 4.2).
+
+    ===================================================================================
+    WHY Microsoft.NET.Sdk AND NOT Microsoft.NET.Sdk.Razor
+    ===================================================================================
+    The Razor SDK exists to compile .cshtml files into a view assembly (and, for a Razor
+    Class Library, to package them as embedded application parts). This project contains
+    NO .cshtml files at all - verified: `find . -name "*.cshtml"` returns nothing; the
+    only non-.cs files in the tree were app.config and packages.config, both deleted by
+    this task. All 104 files are C#.
+
+    What this project *does* contain is C# code that BINDS AGAINST Razor/MVC types:
+      * ViewEngines\Razor\WebViewPage.cs      - System.Web.Mvc.WebViewPage<TModel>
+                                               subclass -> RazorPage<TModel> (task 6.3)
+      * Themes\ThemeableRazorViewEngine.cs    - System.Web.Mvc.RazorViewEngine subclass
+      * Themes\ThemeableVirtualPathProviderViewEngine.cs
+      * HtmlExtensions.cs, UI\*, Security\Captcha\* - HtmlHelper/UrlHelper extension
+                                               methods and HelperResult templates
+    Every replacement type for those - Microsoft.AspNetCore.Mvc.Razor.RazorPage<T>,
+    IHtmlHelper, IUrlHelper, HelperResult, TagBuilder, IHtmlContent - lives in
+    Microsoft.AspNetCore.Mvc.Razor.dll / Microsoft.AspNetCore.Mvc.ViewFeatures.dll /
+    Microsoft.AspNetCore.Razor.Runtime.dll, all of which ship inside the
+    Microsoft.AspNetCore.App SHARED FRAMEWORK (verified present in
+    packs/Microsoft.AspNetCore.App.Ref/*/ref/net10.0/ in the sdk:10.0 image).
+
+    Referencing types from Razor therefore needs only a FrameworkReference. Compiling
+    Razor files needs the Razor SDK - and there are none here.
+
+    CONSEQUENCE FOR LATER TASKS:
+      * Task 6.3 ports the Razor *infrastructure* (base page class, HTML helpers,
+        view engine, tag helpers) purely as C#; no SDK change to this file is required.
+      * Tasks 7.x / 8.x DO own .cshtml files (Nop.Web ~ views + Nop.Admin ~325 views).
+        Those projects use Microsoft.NET.Sdk.Web, which imports the Razor SDK
+        automatically, so they need no explicit Microsoft.NET.Sdk.Razor either.
+      * If a future task moves shared .cshtml (e.g. shared editor/display templates or
+        a themeable layout) INTO this project, this Sdk attribute must change to
+        Microsoft.NET.Sdk.Razor at that point.
+
+    ===================================================================================
+    DROPPED IN THE CLASSIC -> SDK CONVERSION
+    ===================================================================================
+      * ToolsVersion / DefaultTargets / xmlns MSBuild 2003 attributes
+      * ProjectGuid {75FD4163-333C-4DD5-854D-2EF294E45D94}, ProductVersion,
+        SchemaVersion, FileAlignment, AppDesignerFolder, OutputType (Library is the SDK
+        default), TargetFrameworkProfile, NuGetPackageImportStamp
+      * TargetFrameworkVersion v4.5.1
+      * The Debug|AnyCPU / Release|AnyCPU PropertyGroup pair (the SDK supplies
+        equivalent Debug/Release defaults)
+      * Import of $(MSBuildToolsPath)\Microsoft.CSharp.targets, the commented
+        BeforeBuild/AfterBuild stubs, the Microsoft.Bcl.Build.targets import and its
+        EnsureNuGetPackageBuildImports guard target
+      * The explicit <Compile Include="..."/> list of 104 files (two ItemGroups -
+        the second held only Kendoui\ModelStateExtensions.cs) - replaced by the SDK's
+        implicit globbing. Note the file literally named "Validators\ValidatorExtensions .cs"
+        (with a space before the extension) is picked up by the glob unchanged.
+      * BCL <Reference Include="System.*"/> entries: System, System.Core, System.Data,
+        System.Data.DataSetExtensions, System.Xml, System.Xml.Linq, Microsoft.CSharp,
+        System.Net, System.Net.Http, System.Net.Http.WebRequest,
+        System.ComponentModel.DataAnnotations, System.Configuration, System.ServiceModel,
+        System.Web - subsumed by the net10.0 shared framework, replaced by a package
+        below (System.ServiceModel -> System.ServiceModel.Syndication), or with no
+        net10.0 counterpart at all (System.Web).
+        System.Configuration was referenced but is unused: no file in this project names
+        ConfigurationManager, so there is no appSettings surface to carry to
+        IConfiguration in task 6.5.
+      * <Reference/> items with HintPaths into ..\..\packages\ - the packages.config
+        surface, re-declared below as version-less <PackageReference/> items where a
+        net10.0 successor exists.
+      * <None Include="app.config"/> and <None Include="packages.config"/>. BOTH FILES
+        ARE DELETED by this task (Requirements 1.4, 1.5). app.config contained nothing
+        but a <runtime>/<assemblyBinding> block of .NET Framework binding redirects for
+        System.Web.Mvc, WebGrease, Antlr3.Runtime, Newtonsoft.Json, Autofac and the
+        WindowsAzure/OData/Redis strong-name assemblies - i.e. an artifact of
+        packages.config itself. Binding redirects do not exist on .NET; nothing in the
+        file survives, and leaving it would risk the SDK emitting it as
+        Nop.Web.Framework.dll.config. Task 6.5 retains ownership of the remaining
+        configuration concerns (Properties\AssemblyInfo.cs and any View web.config
+        fragments) - this project has no Views/ folder and therefore no View
+        web.config to remove.
+
+    Properties/AssemblyInfo.cs is retained (matching Nop.Core, Nop.Data and
+    Nop.Services); GenerateAssemblyInfo=false in src/Directory.Build.props keeps the SDK
+    from emitting a duplicate attribute set.
+
+    TargetFramework, Nullable, ImplicitUsings, GenerateAssemblyInfo and the shared
+    assembly metadata come from src/Directory.Build.props; net10.0 is restated here so
+    the target framework is verifiable from the project file itself (Requirement 1.2).
+    It is deliberately the OS-agnostic net10.0 and NOT net10.0-windows. The only
+    Windows-flavoured surface left in the project is Security\FilePermissionHelper.cs
+    (WindowsIdentity / System.Security.AccessControl); both
+    System.Security.AccessControl.dll and System.IO.FileSystem.AccessControl.dll are
+    part of the cross-platform net10.0 targeting pack (verified in the sdk:10.0 image),
+    so they need no package and no OS-specific TFM - they merely throw at runtime off
+    Windows, exactly as the rest of the migration already accepts for Windows-first
+    testing (design section 7).
   -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <!--
+    ASP.NET Core shared framework - the single largest replacement in this task.
+
+    This project is saturated with System.Web: 44 files "using System.Web.Mvc", 16
+    "using System.Web", 12 "using System.Web.Routing", 3 "using System.Web.WebPages",
+    2 "using System.Web.Mvc.Html", 2 "using System.Web.UI". Their successors -
+    Microsoft.AspNetCore.Mvc(.Core/.ViewFeatures/.Razor/.TagHelpers),
+    Microsoft.AspNetCore.Http(.Abstractions), Microsoft.AspNetCore.Routing,
+    Microsoft.AspNetCore.Antiforgery, Microsoft.AspNetCore.Session,
+    Microsoft.Extensions.Caching.Memory, Microsoft.Extensions.Configuration/Options -
+    all ship in Microsoft.AspNetCore.App. A FrameworkReference is therefore the right
+    vehicle (same decision as Nop.Core and Nop.Services); adding individual
+    Microsoft.AspNetCore.* packages would duplicate shared-framework assemblies.
+
+    In particular this covers, with no extra package, everything tasks 6.2-6.5 need:
+      services.AddHttpContextAccessor()   Microsoft.AspNetCore.Http
+      services.AddMemoryCache()           Microsoft.Extensions.Caching.Memory (verified
+                                          present in the AspNetCore ref pack)
+      services.AddSession()               Microsoft.AspNetCore.Session
+      cookie authentication + CookieSecurePolicy
+                                          Microsoft.AspNetCore.Authentication.Cookies
+      IHostApplicationLifetime            Microsoft.Extensions.Hosting.Abstractions
+      IEndpointRouteBuilder / MapControllerRoute
+                                          Microsoft.AspNetCore.Routing
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!--
+    packages.config -> PackageReference (Requirements 1.3, 1.5).
+
+    Versions are governed centrally by src/Directory.Packages.props
+    (ManagePackageVersionsCentrally=true, CentralPackageVersionOverrideEnabled=false),
+    so every item below is intentionally version-less.
+
+    Only DIRECT dependencies are declared - PackageReference is transitive by default,
+    unlike packages.config which enumerated the whole closure. Each entry was verified
+    against actual source usage:
+
+      Autofac                     DependencyRegistrar.cs ("using Autofac",
+                                  "using Autofac.Builder", "using Autofac.Core":
+                                  ContainerBuilder, IRegistrationBuilder,
+                                  IComponentRegistration) and
+                                  Mvc\DependencyRegistrarExtensions.cs
+      Autofac.Extensions.DependencyInjection
+                                  NOT referenced by any source file TODAY - declared
+                                  for task 6.4, which owns the DI integration in this
+                                  project. See the note below.
+      FluentValidation            NopValidatorFactory.cs (AttributedValidatorFactory,
+                                  IValidator, FluentValidation.Attributes.ValidatorAttribute),
+                                  Validators\BaseNopValidator.cs (AbstractValidator<T>),
+                                  Validators\CreditCardPropertyValidator.cs and
+                                  Validators\DecimalPropertyValidator.cs
+                                  (PropertyValidator, PropertyValidatorContext),
+                                  "Validators\ValidatorExtensions .cs"
+                                  (IRuleBuilder/IRuleBuilderOptions, SetValidator)
+      Newtonsoft.Json             Mvc\ConverterJsonResult.cs and Mvc\NullJsonResult.cs
+                                  (JsonSerializerSettings / JsonConvert) and
+                                  Security\Captcha\GReCaptchaValidator.cs
+                                  ("using Newtonsoft.Json.Linq", JObject)
+      System.Linq.Dynamic.Core    Kendoui\QueryableExtensions.cs and
+                                  Validators\BaseNopValidator.cs - both currently
+                                  "using System.Linq.Dynamic" (DynamicExpression.ParseLambda,
+                                  IQueryable.Where/OrderBy string overloads). The
+                                  namespace/API change to System.Linq.Dynamic.Core
+                                  (DynamicExpressionParser.ParseLambda) is task 6.2/6.3
+                                  work, exactly as Nop.Services did for Tokenizer.cs.
+      System.ServiceModel.Syndication
+                                  RssActionResult.cs ("using System.ServiceModel.Syndication":
+                                  SyndicationFeed, GetRss20Formatter,
+                                  AttributeExtensions/ElementExtensions). The net10.0
+                                  targeting pack ships System.ServiceModel.Web.dll but
+                                  NOT System.ServiceModel.Syndication.dll (verified), so
+                                  a package is genuinely required here.
+
+    Note on Autofac.Extensions.DependencyInjection: task 6.1's own description names it
+    as the replacement for Autofac.Mvc5, and task 6.4 - "Integrate Autofac via
+    Autofac.Extensions.DependencyInjection ... remove Autofac.Integration.Mvc
+    per-request plumbing" - is scoped to THIS project. It is also the package that makes
+    runtime-deferrals.md item 1.3 fixable here: assigning
+      ContainerManager.CurrentScopeProvider =
+          () => httpContextAccessor.HttpContext?.RequestServices.GetService<ILifetimeScope>()
+    only works because Autofac.Extensions.DependencyInjection's AutofacServiceProvider
+    is what backs RequestServices and exposes ILifetimeScope. It is declared here rather
+    than deferred so 6.4 does not have to reopen the project file. If 6.4 concludes the
+    integration belongs solely in Nop.Web's Program.cs (task 7.2), this entry should be
+    removed to keep the direct-dependency rule honest.
+
+    Dropped from the legacy packages.config / <Reference> list and NOT restated:
+
+      Microsoft.AspNet.Mvc 5.2.3          System.Web.Mvc / .Razor / .WebPages /
+      Microsoft.AspNet.Razor 3.2.3        .WebPages.Razor / .WebPages.Deployment /
+      Microsoft.AspNet.WebPages 3.2.3     System.Web.Helpers have no net10.0 build and
+                                          no successor package: they ARE the System.Web
+                                          MVC 5 stack. Superseded wholesale by the
+                                          Microsoft.AspNetCore.App FrameworkReference
+                                          above (design section 5).
+      Autofac.Mvc5 4.0.1                  Autofac.Integration.Mvc - AutofacDependencyResolver,
+                                          RequestLifetimeScopeProvider,
+                                          ContainerBuilder.RegisterControllers - is
+                                          MVC5-only and has no net10.0 release.
+                                          DependencyRegistrar.cs is its only consumer.
+                                          Replaced by Autofac.Extensions.DependencyInjection
+                                          plus ASP.NET Core's own request scope
+                                          (task 6.4; design section 5).
+      EntityFramework 6.1.3               Referenced only so DependencyRegistrar.cs
+                                          could construct NopObjectContext; no file in
+                                          this project names System.Data.Entity. EF Core
+                                          now arrives transitively through the Nop.Data
+                                          ProjectReference, so nothing is declared here.
+      Microsoft.AspNet.Web.Optimization   *** NO net10.0 SUCCESSOR - SEE THE GAP NOTE
+      WebGrease 1.6.0                     *** BELOW. Deliberately left out; the
+      Antlr 3.5.0.2                       *** resulting compile errors in UI\PageHeadBuilder.cs
+                                          *** and UI\AsIsBundleOrderer.cs are left
+                                          *** standing for task 6.3 to decide on.
+      WebActivator 1.5.2                  A System.Web PreApplicationStartMethod
+                                          bootstrapper with no ASP.NET Core equivalent
+                                          (the same hosting hook already removed from
+                                          Nop.Core's PluginManager - deferral 1.1). No
+                                          file in this project references it at all.
+      Microsoft.Web.Infrastructure        Transitive-only (DynamicModuleUtility for
+                                          System.Web); no net10.0 equivalent, no usage.
+      Microsoft.Bcl 1.1.10                net45-era BCL polyfills (Task/async,
+      Microsoft.Bcl.Async 1.0.168         HttpClient) plus the MSBuild targets package
+      Microsoft.Bcl.Build 1.0.21          that enforced them - all subsumed by the
+      Microsoft.Net.Http 2.2.29           net10.0 shared framework. Security\Captcha\
+                                          GReCaptchaValidator.cs keeps "using
+                                          System.Net.Http" and binds to the in-box
+                                          HttpClient.
+      System.Linq.Dynamic 1.0.7           net40-only and unmaintained; replaced by
+                                          System.Linq.Dynamic.Core above.
+
+    ===================================================================================
+    *** KNOWN GAP - NO VIABLE net10.0 PATH: System.Web.Optimization (bundling) ***
+    ===================================================================================
+    Microsoft.AspNet.Web.Optimization 1.1.3 (System.Web.Optimization) with its WebGrease
+    + Antlr3.Runtime minification back end is a System.Web feature. There is no .NET
+    Core / .NET 10 release of any of the three, and Microsoft published no successor.
+    Two files bind to it directly:
+      * UI\AsIsBundleOrderer.cs  - implements IBundleOrderer; BundleContext, BundleFile
+      * UI\PageHeadBuilder.cs    - BundleTable.Bundles / BundleTable.EnableOptimizations,
+                                   ScriptBundle, StyleBundle, Bundle.Orderer,
+                                   Bundle.Include, Styles.Render/Scripts.Render paths
+    NO substitute has been invented and NO package was guessed. The two files will not
+    compile; that is intentional and left for task 6.3 to resolve with an explicit
+    decision. Options, for the record:
+      (a) DROP BUNDLING. Emit individual <script>/<link> tags from IPageHeadBuilder and
+          make SeoSettings.EnableJsBundling / EnableCssBundling inert. Smallest change;
+          IPageHeadBuilder's public shape (the excludeFromBundle parameters) can stay so
+          the ~hundreds of view call sites in Nop.Web/Nop.Admin are untouched. This is
+          close to what upstream nopCommerce 4.0 did on its own ASP.NET Core port.
+      (b) LigerShark.WebOptimizer.Core (MIT, maintained, net10.0). Real bundling and
+          minification via IAssetPipeline + app.UseWebOptimizer(); PageHeadBuilder's
+          bundle-registration logic is rewritten against a different model, and the
+          pipeline must be configured in Nop.Web's Program.cs (task 7.2).
+      (c) Hand-rolled bundler over NUglify (MIT, maintained, net10.0 - the maintained
+          successor to Microsoft's Ajax Minifier, which is what WebGrease wrapped).
+          Keeps PageHeadBuilder's existing "compute a virtual path, cache the combined
+          file" structure; most code to write.
+    Recommendation for 6.3: (a) to reach the 6.6 gate, with (b) scheduled as a
+    follow-up, because bundling is a performance concern and not a correctness one.
+
+    Packages the task brief asked to watch for and which are NOT present in this
+    project's packages.config - confirmed absent, nothing to decide:
+    MiniProfiler, DotNetOpenAuth, Microsoft.AspNet.Mvc.Futures (Mvc2Futures),
+    Microsoft.AspNet.WebApi*, AutoMapper (no file here references it).
+  -->
+  <ItemGroup>
+    <PackageReference Include="Autofac" />
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="System.Linq.Dynamic.Core" />
+    <PackageReference Include="System.ServiceModel.Syndication" />
+  </ItemGroup>
+
+  <!--
+    ProjectReferences to the already-migrated SDK-style Nop.Core, Nop.Data and
+    Nop.Services (Requirement 2.4). The legacy
+    <Project>{6BDA8332-939F-45B7-A25E-7A797260AE59}</Project>/<Name>Nop.Core</Name>,
+    <Project>{CCD7F2C9-6A2C-4CF0-8E89-076B8FC0F144}</Project>/<Name>Nop.Data</Name> and
+    <Project>{210541ad-f659-47da-8763-16f36c5cd2f4}</Project>/<Name>Nop.Services</Name>
+    metadata children are dropped - the SDK resolves references by path.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" />
+    <ProjectReference Include="..\..\Libraries\Nop.Data\Nop.Data.csproj" />
+    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj" />
+  </ItemGroup>
+
 </Project>

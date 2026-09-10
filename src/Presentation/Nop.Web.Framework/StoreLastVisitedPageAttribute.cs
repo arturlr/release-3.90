@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Customers;
@@ -8,6 +8,11 @@ using Nop.Services.Common;
 
 namespace Nop.Web.Framework
 {
+    /// <summary>
+    /// Task 6.2: ported to ASP.NET Core MVC filters. <c>HttpRequestBase.HttpMethod</c> -&gt;
+    /// <c>HttpRequest.Method</c>; the <c>IsChildAction</c> guard is removed (View Components
+    /// do not execute action filters).
+    /// </summary>
     public class StoreLastVisitedPageAttribute : ActionFilterAttribute
     {
         public override void OnActionExecuting(ActionExecutingContext filterContext)
@@ -18,12 +23,8 @@ namespace Nop.Web.Framework
             if (filterContext == null || filterContext.HttpContext == null || filterContext.HttpContext.Request == null)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
             //only GET requests
-            if (!String.Equals(filterContext.HttpContext.Request.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
+            if (!String.Equals(filterContext.HttpContext.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
                 return;
 
             var customerSettings = EngineContext.Current.Resolve<CustomerSettings>();

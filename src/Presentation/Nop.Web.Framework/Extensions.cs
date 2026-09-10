@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core.Infrastructure;
 using Nop.Services.Helpers;
 using Nop.Web.Framework.Kendoui;
@@ -11,6 +11,14 @@ namespace Nop.Web.Framework
     /// <summary>
     /// Extensions
     /// </summary>
+    /// <remarks>
+    /// Task 6.2: <c>System.Web.Mvc.SelectListItem</c> -&gt;
+    /// <c>Microsoft.AspNetCore.Mvc.Rendering.SelectListItem</c> - namespace change only;
+    /// <c>Text</c>/<c>Value</c>/<c>Selected</c> are unchanged, so
+    /// <see cref="SelectionIsNotPossible"/> keeps its signature apart from the moved type.
+    /// This matches the <c>SelectList</c> move already recorded for <c>Nop.Services</c>
+    /// (runtime-deferrals section 9b).
+    /// </remarks>
     public static class Extensions
     {
         public static IEnumerable<T> PagedForCommand<T>(this IEnumerable<T> current, DataSourceRequest command)

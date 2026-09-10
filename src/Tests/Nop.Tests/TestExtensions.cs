@@ -4,7 +4,8 @@ using System.Reflection;
 using NUnit.Framework;
 using Nop.Core;
 using System.Collections.Generic;
-using Rhino.Mocks.Constraints;
+//"using Rhino.Mocks.Constraints;" removed by migration task 4.5 - RhinoMocks 3.6.1 has no
+//net10.0 release, and no type from that namespace was ever referenced in this file.
 
 namespace Nop.Tests
 {

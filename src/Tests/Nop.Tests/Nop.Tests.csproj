@@ -1,77 +1,154 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{1D9EB579-3630-468A-BE94-49E7DF4F6E1D}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Nop.Tests</RootNamespace>
-    <AssemblyName>Nop.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="nunit.framework, Version=3.6.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\NUnit.3.6.1\lib\net45\nunit.framework.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Rhino.Mocks">
-      <HintPath>..\..\packages\RhinoMocks.3.6.1\lib\net\Rhino.Mocks.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="AttributeExtensions.cs" />
-    <Compile Include="ExceptionAssert.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TestExtensions.cs" />
-    <Compile Include="TestsBase.cs" />
-    <Compile Include="TypeAssert.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj">
-      <Project>{6BDA8332-939F-45B7-A25E-7A797260AE59}</Project>
-      <Name>Nop.Core</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Nop.Tests - shared test infrastructure, migrated by task 4.5
+    (Requirements 5.6, 5.3, 1.1, 1.2, 1.3, 3.1).
+
+    This project is not a test suite for a particular library; it is the helper
+    assembly that every other test project under src/Tests references
+    (Nop.Core.Tests, Nop.Data.Tests, Nop.Services.Tests, Nop.Web.MVC.Tests). It
+    holds TestsBase, the ShouldXxx assertion extensions, TypeAssert,
+    ExceptionAssert and AttributeExtensions. It does, however, contain one real
+    fixture of its own - ExceptionAssertTests, 4 tests - so it is wired as a
+    runnable test project rather than a plain class library (see the test-SDK
+    ItemGroup below).
+
+    Converted from the classic (non-SDK) MSBuild format. Dropped in the conversion:
+      * ToolsVersion / DefaultTargets / xmlns MSBuild 2003 attributes
+      * ProjectGuid {1D9EB579-3630-468A-BE94-49E7DF4F6E1D}, ProductVersion,
+        SchemaVersion, FileAlignment, AppDesignerFolder, TargetFrameworkProfile,
+        OutputType (Library is the SDK default and is kept - see the note on
+        OutputType further down), RootNamespace/AssemblyName (both already equal
+        the project name, which is the SDK default)
+      * TargetFrameworkVersion v4.5.1
+      * The Debug|AnyCPU / Release|AnyCPU PropertyGroup pair, including
+        Prefer32Bit and WarningLevel (the SDK supplies equivalent defaults)
+      * Import of $(MSBuildToolsPath)\Microsoft.CSharp.targets and the commented
+        BeforeBuild/AfterBuild target stubs
+      * The explicit <Compile Include="..."/> list of 6 files - replaced by the
+        SDK's implicit globbing
+      * BCL <Reference Include="System.*"/> entries (System, System.Core,
+        System.Data, System.Xml, System.Xml.Linq, System.Data.DataSetExtensions,
+        Microsoft.CSharp) - subsumed by the net10.0 shared framework
+      * The two <Reference/> items with HintPaths into ..\..\packages\ -
+        nunit.framework and Rhino.Mocks - re-expressed below (NUnit) or dropped
+        entirely (Rhino Mocks; see the RHINO MOCKS note)
+      * <None Include="packages.config"/> - the file is deleted by this task
+        (Requirements 1.3, 1.5)
+
+    There was no app.config to migrate (Requirement 1.4 is vacuous here) and no
+    System.Web usage at all in this project - see the FAKES note below.
+
+    Properties/AssemblyInfo.cs is retained, matching Nop.Core / Nop.Data /
+    Nop.Services; GenerateAssemblyInfo=false in src/Directory.Build.props keeps
+    the SDK from emitting a duplicate set of assembly attributes.
+
+    TargetFramework, Nullable, ImplicitUsings, GenerateAssemblyInfo and the shared
+    assembly metadata come from src/Directory.Build.props; net10.0 is restated
+    here so the target framework is verifiable from the project file itself
+    (Requirement 1.2).
   -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+
+    <!--
+      OutputType is deliberately left at the SDK default (Library). Adding
+      Microsoft.NET.Test.Sdk does NOT force Exe - it only sets TestProject /
+      IsTestProject - and VSTest runs the test assembly through its own testhost,
+      so a library builds and runs tests fine. Keeping it a library also keeps
+      this project a normal ProjectReference target for the four downstream test
+      projects. Microsoft.NET.Test.Sdk still injects an unused internal
+      AutoGeneratedProgram.Main; it is internal, so it cannot collide with the
+      one generated in each downstream test project.
+    -->
+  </PropertyGroup>
+
+  <!--
+    packages.config -> PackageReference (Requirements 1.3, 1.5).
+
+    Versions are governed centrally by src/Directory.Packages.props
+    (ManagePackageVersionsCentrally=true, CentralPackageVersionOverrideEnabled=false),
+    so every item below is intentionally version-less.
+
+      NUnit                  advanced 3.6.1 -> 3.14.0. Used by ExceptionAssert.cs,
+                             TypeAssert.cs and TestExtensions.cs (Assert,
+                             TestFixture, Test, SetUp, TearDown, TestDelegate,
+                             AssertionException).
+      Microsoft.NET.Test.Sdk NEW. Not in the legacy packages.config - under
+                             .NET Framework these projects were run by an external
+                             nunit3-console / the VS NUnit adapter installed
+                             per-solution. On net10.0 the test host is a package,
+                             so `dotnet test` needs it.
+      NUnit3TestAdapter      NEW, same reason: the VSTest adapter that discovers and
+                             executes NUnit fixtures under `dotnet test`.
+
+    Both of the new entries exist specifically so this project is RUNNABLE and not
+    merely compilable - that is the stated reason task 4.5 was promoted from
+    optional to required (see the amended Notes section of tasks.md).
+
+    RHINO MOCKS - DROPPED, NOT SUBSTITUTED.
+    The legacy packages.config pinned RhinoMocks 3.6.1. Rhino Mocks was abandoned
+    around 2012, its last release (3.6.1 / 4.0.0-alpha) is .NET Framework-only, and
+    there is no net10.0-compatible version - so it cannot come along.
+
+    It is dropped rather than replaced because, in THIS project, its entire usage
+    was dead code:
+      * TestsBase.cs held `protected MockRepository mocks;`, assigned
+        `new MockRepository()` in [SetUp] and calling `mocks.ReplayAll()` /
+        `mocks.VerifyAll()` in [TearDown]. Nothing anywhere in the repository ever
+        created a mock through that instance. The five Nop.Services.Tests fixtures
+        that do mock use the STATIC factory `MockRepository.GenerateMock<T>()`,
+        which does not register with any MockRepository instance, so ReplayAll()/
+        VerifyAll() always ran against an empty repository - i.e. they were no-ops
+        and removing them changes no test outcome.
+      * TestExtensions.cs had `using Rhino.Mocks.Constraints;` and referenced no
+        type from it.
+    No mocking framework is therefore declared here: this project has no mocking
+    usage left, and declaring an unused package would break the direct-dependency
+    rule the rest of this migration follows.
+
+    NOT IN SCOPE OF THIS TASK, BUT FLAGGED: the downstream test projects DO use
+    Rhino Mocks for real - `MockRepository.GenerateMock<T>()`, `.Expect(x => ...)`,
+    `.Return(...)`, `Arg<T>.Is.Anything` - in Nop.Core.Tests, Nop.Services.Tests
+    (5 fixtures) and Nop.Web.MVC.Tests. Those projects need a replacement chosen
+    in their own tasks (2.6, 4.4, 17.1); NSubstitute is the closest in spirit
+    (Substitute.For<T>(), .Returns(...), Arg.Any<T>(), .Received()). No such
+    package is pinned yet - that decision is left to the user.
+
+    FAKES: the task description anticipated System.Web-based fakes in this project.
+    There are none - no file under src/Tests/Nop.Tests references System.Web at
+    all, and there is no Fakes folder here. The Fake* seams live in Nop.Core
+    (Nop.Core.Fakes.FakeHttpContext, re-implemented over a composed
+    DefaultHttpContext because DefaultHttpContext is sealed in .NET 10, plus the
+    new FakeSession : ISession, FakeIdentity and FakePrincipal) and are consumed
+    directly by Nop.Core.Tests / Nop.Web.MVC.Tests, not through this project. So
+    there was nothing to port and nothing to duplicate.
+
+    No FrameworkReference is declared: nothing here binds to an ASP.NET Core type,
+    and Nop.Core's own FrameworkReference to Microsoft.AspNetCore.App flows
+    transitively through the ProjectReference below in any case.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+  </ItemGroup>
+
+  <!--
+    ProjectReference to the already-migrated SDK-style Nop.Core (Requirement 2.4).
+    Used by TestExtensions.PropertiesShouldEqual, which tests values against
+    Nop.Core.BaseEntity. The legacy
+    <Project>{6BDA8332-939F-45B7-A25E-7A797260AE59}</Project> / <Name>Nop.Core</Name>
+    metadata children are dropped - the SDK resolves references by path.
+
+    No signature churn from the Nop.Core / Nop.Data / Nop.Services migrations
+    reaches this project: BaseEntity is unchanged, and this project touches none
+    of the changed seams (WebHelper, PerRequestCacheManager, MemoryCacheManager,
+    IDbContext.Set<T>, NopObjectContext, RouteValueDictionary, SelectList).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" />
+  </ItemGroup>
+
 </Project>

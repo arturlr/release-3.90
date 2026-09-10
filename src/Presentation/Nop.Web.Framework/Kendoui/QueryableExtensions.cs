@@ -1,9 +1,21 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Dynamic;
+using System.Linq.Dynamic.Core;
 
 namespace Nop.Web.Framework.Kendoui
 {
+    /// <summary>
+    /// Task 6.2: <c>System.Linq.Dynamic</c> (net40-only, unmaintained) -&gt;
+    /// <c>System.Linq.Dynamic.Core</c>.
+    /// NOTE FOR THE RECORD - task 6.1 reported that the old <c>using System.Linq.Dynamic;</c>
+    /// "still resolves as-is with the .Core package". It does, but only because
+    /// <c>System.Linq.Dynamic</c> exists as a PARENT namespace of
+    /// <c>System.Linq.Dynamic.Core</c>, so the directive binds to an empty namespace and is
+    /// legal. The string-predicate <c>Where</c>/<c>OrderBy</c> extension methods live in
+    /// <c>System.Linq.Dynamic.Core.DynamicQueryableExtensions</c> and are NOT visible through it,
+    /// which only shows up once method bodies bind. The <c>using</c> therefore did have to
+    /// change. Call syntax and the expression language are unchanged.
+    /// </summary>
     public static class QueryableExtensions
     {
         public static IQueryable<T> Filter<T>(this IQueryable<T> queryable, Filter filter)

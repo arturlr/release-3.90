@@ -2,11 +2,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
-using System.Web;
-using System.Web.Mvc;
-using System.Web.Routing;
+using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Infrastructure;
 using Nop.Services.Localization;
@@ -16,7 +20,15 @@ namespace Nop.Web.Framework.UI.Paging
 	/// <summary>
     /// Renders a pager component from an IPageableModel datasource.
 	/// </summary>
-	public partial class Pager : IHtmlString
+    /// <remarks>
+    /// Ported in task 6.3. <c>System.Web.IHtmlString</c> → <see cref="IHtmlContent"/>
+    /// (<see cref="WriteTo"/> added), <c>System.Web.Mvc.ViewContext</c> →
+    /// <see cref="Microsoft.AspNetCore.Mvc.Rendering.ViewContext"/>, and the whole of
+    /// <see cref="CreateDefaultUrl"/> re-based off the current request — see the note there.
+    /// The instance method <see cref="ToHtmlString"/> is retained so existing view call sites are
+    /// unaffected.
+    /// </remarks>
+	public partial class Pager : IHtmlContent
 	{
         protected readonly IPageableModel model;
         protected readonly ViewContext viewContext;
@@ -113,6 +125,26 @@ namespace Nop.Web.Framework.UI.Paging
         {
             return ToHtmlString();
         }
+
+        /// <summary>
+        /// Write the pager markup.
+        /// </summary>
+        /// <remarks>
+        /// The <see cref="IHtmlContent"/> member that replaces <c>IHtmlString.ToHtmlString()</c>
+        /// as the framework-facing contract. The markup is already encoded, so it is written
+        /// verbatim and <paramref name="encoder"/> is intentionally unused - matching
+        /// <c>IHtmlString</c> semantics.
+        /// </remarks>
+        public virtual void WriteTo(TextWriter writer, HtmlEncoder encoder)
+        {
+            if (writer == null)
+                throw new ArgumentNullException(nameof(writer));
+
+            var html = ToHtmlString();
+            if (!string.IsNullOrEmpty(html))
+                writer.Write(html);
+        }
+
 		public virtual string ToHtmlString()
 		{
             if (model.TotalItems == 0) 
@@ -230,21 +262,52 @@ namespace Nop.Web.Framework.UI.Paging
                 liBuilder.AddCssClass(cssClass);
 
 			var aBuilder = new TagBuilder("a");
-            aBuilder.SetInnerText(text);
+            //SetInnerText -> InnerHtml.SetContent: both HTML-encode
+            aBuilder.InnerHtml.SetContent(text);
             aBuilder.MergeAttribute("href", urlBuilder(pageNumber));
+            aBuilder.TagRenderMode = TagRenderMode.Normal;
 
-            liBuilder.InnerHtml += aBuilder;
+            //3.90 did "liBuilder.InnerHtml += aBuilder", relying on TagBuilder.ToString()
+            liBuilder.InnerHtml.AppendHtml(aBuilder);
 
-            return liBuilder.ToString(TagRenderMode.Normal);
+            return liBuilder.ToHtmlString(TagRenderMode.Normal);
 		}
+
+        /// <summary>
+        /// Build the URL for a page number by re-emitting the current request with a modified
+        /// page query-string parameter.
+        /// </summary>
+        /// <remarks>
+        /// <b>This is a reimplementation, not a rename.</b> 3.90 called
+        /// <c>UrlHelper.GenerateUrl(null, null, null, routeValues, RouteTable.Routes,
+        /// viewContext.RequestContext, includeImplicitMvcValues: true)</c>: it took the query
+        /// string, folded in the implicit action/controller/area of the current request, and asked
+        /// the global <c>RouteTable</c> to regenerate a matching URL. ASP.NET Core has neither a
+        /// static route table nor <c>UrlHelper.GenerateUrl</c>, and <c>LinkGenerator</c> is not
+        /// equivalent: nopCommerce's SEO URLs are produced by <c>GenericPathRoute</c> (task 6.4),
+        /// so round-tripping through link generation could not reproduce a slug-based path.
+        ///
+        /// Since every value fed into <c>routeValues</c> here comes from the QUERY STRING and the
+        /// only thing that changes is the page parameter, the current path is by definition the
+        /// correct path. This therefore keeps the current <c>PathBase + Path</c> and rebuilds only
+        /// the query string. For the SEO routes that matter (<c>/category-slug?pagenumber=2</c>)
+        /// the output is the same string 3.90 produced, and it no longer depends on a route
+        /// existing that can regenerate the URL.
+        ///
+        /// Values are URL-encoded via <see cref="QueryString"/>, where MVC 5's
+        /// <c>GenerateUrl</c> also encoded them. The <c>renderEmptyParameters</c> hack and its
+        /// <c>IWebHelper.ModifyQueryString</c> follow-up are preserved verbatim.
+        /// </remarks>
         protected virtual string CreateDefaultUrl(int pageNumber)
 		{
 			var routeValues = new RouteValueDictionary();
 
+            var request = viewContext.HttpContext.Request;
+
             var parametersWithEmptyValues = new List<string>();
-			foreach (var key in viewContext.RequestContext.HttpContext.Request.QueryString.AllKeys.Where(key => key != null))
+			foreach (var key in request.Query.Keys.Where(key => key != null))
 			{
-                var value = viewContext.RequestContext.HttpContext.Request.QueryString[key];
+                var value = request.Query[key].ToString();
                 if (renderEmptyParameters && String.IsNullOrEmpty(value))
 			    {
                     //we store query string parameters with empty values separately
@@ -279,7 +342,12 @@ namespace Nop.Web.Framework.UI.Paging
                 }
             }
 
-			var url = UrlHelper.GenerateUrl(null, null, null, routeValues, RouteTable.Routes, viewContext.RequestContext, true);
+            var queryBuilder = new QueryBuilder();
+            foreach (var routeValue in routeValues)
+                queryBuilder.Add(routeValue.Key, routeValue.Value?.ToString() ?? string.Empty);
+
+            var url = request.PathBase.Add(request.Path).ToString() + queryBuilder.ToQueryString().ToString();
+
             if (renderEmptyParameters && parametersWithEmptyValues.Any())
             {
                 //we add such parameters manually because UrlHelper.GenerateUrl() ignores them

@@ -1,0 +1,200 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc.Razor;
+using Nop.Core.Infrastructure;
+
+namespace Nop.Web.Framework.Themes
+{
+    /// <summary>
+    /// Contributes nopCommerce's per-theme view locations to the ASP.NET Core Razor view engine.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This type REPLACES <c>ThemeableRazorViewEngine</c> and
+    /// <c>ThemeableVirtualPathProviderViewEngine</c>, both deleted by task 6.3. Those classes
+    /// derived from <c>System.Web.Mvc.RazorViewEngine</c> /
+    /// <c>VirtualPathProviderViewEngine</c>, neither of which has an ASP.NET Core counterpart:
+    /// in ASP.NET Core the view engine is a sealed-by-convention framework service and view
+    /// location is customised by contributing an <see cref="IViewLocationExpander"/> to
+    /// <c>RazorViewEngineOptions.ViewLocationExpanders</c>, not by subclassing.
+    /// </para>
+    /// <para>
+    /// Placeholder mapping differs from 3.90 and matters:
+    /// MVC 5's nopCommerce formats used <c>{0}</c>=view, <c>{1}</c>=controller, <c>{2}</c>=theme
+    /// for non-area formats and <c>{2}</c>=area, <c>{3}</c>=theme for area formats. ASP.NET Core
+    /// fixes <c>{0}</c>=view, <c>{1}</c>=controller, <c>{2}</c>=area, so the theme name cannot be
+    /// a positional placeholder — it is substituted into the format string here, at expansion
+    /// time, which is the documented pattern for expanders.
+    /// </para>
+    /// <para>
+    /// The theme name is written into <see cref="ViewLocationExpanderContext.Values"/> by
+    /// <see cref="PopulateValues"/>. That is REQUIRED, not cosmetic: those values form part of
+    /// the view-lookup cache key, so without it the first-resolved theme's view path would be
+    /// cached and served to every other store/theme.
+    /// </para>
+    /// <para>
+    /// Registration is host-side and is NOT done by this project — see runtime deferrals. It must
+    /// be added by task 6.4/7.2:
+    /// <code>
+    /// services.Configure&lt;RazorViewEngineOptions&gt;(options =&gt;
+    ///     options.ViewLocationExpanders.Add(new ThemeableViewLocationExpander()));
+    /// </code>
+    /// </para>
+    /// </remarks>
+    public partial class ThemeableViewLocationExpander : IViewLocationExpander
+    {
+        #region Constants
+
+        /// <summary>
+        /// Key under which the active theme name is stored in
+        /// <see cref="ViewLocationExpanderContext.Values"/> (and therefore in the view-lookup
+        /// cache key).
+        /// </summary>
+        public const string ThemeKey = "nop.themename";
+
+        /// <summary>
+        /// Name of the nopCommerce administration area.
+        /// </summary>
+        private const string AdminAreaName = "admin";
+
+        #endregion
+
+        #region Location formats
+
+        //3.90 equivalents: ViewLocationFormats / PartialViewLocationFormats / MasterLocationFormats
+        //of ThemeableRazorViewEngine. ASP.NET Core resolves views, partials and layouts through the
+        //same location list, so the three arrays collapse into one. "{theme}" is substituted with
+        //the working theme name; "{0}" = view name, "{1}" = controller name.
+        private static readonly string[] ThemeableViewLocationFormats =
+        {
+            //themes
+            "/Themes/{theme}/Views/{1}/{0}.cshtml",
+            "/Themes/{theme}/Views/Shared/{0}.cshtml",
+
+            //default
+            "/Views/{1}/{0}.cshtml",
+            "/Views/Shared/{0}.cshtml",
+
+            //Admin
+            "/Administration/Views/{1}/{0}.cshtml",
+            "/Administration/Views/Shared/{0}.cshtml"
+        };
+
+        //3.90 equivalents: AreaViewLocationFormats / AreaPartialViewLocationFormats /
+        //AreaMasterLocationFormats. "{2}" = area name.
+        private static readonly string[] ThemeableAreaViewLocationFormats =
+        {
+            //themes
+            "/Areas/{2}/Themes/{theme}/Views/{1}/{0}.cshtml",
+            "/Areas/{2}/Themes/{theme}/Views/Shared/{0}.cshtml",
+
+            //default
+            "/Areas/{2}/Views/{1}/{0}.cshtml",
+            "/Areas/{2}/Views/Shared/{0}.cshtml"
+        };
+
+        //3.90's "little hack to get nop's admin area to be in /Administration/ instead of
+        ///Nop/Admin/ or Areas/Admin/". GetPath() did:
+        //    newLocations.Insert(0, "~/Administration/Views/{1}/{0}.cshtml");
+        //    newLocations.Insert(0, "~/Administration/Views/Shared/{0}.cshtml");
+        //i.e. two Insert(0, ...) calls, so the Shared entry ends up FIRST and the
+        //controller-specific entry second. That ordering is preserved verbatim rather than
+        //"corrected", so admin view resolution behaves exactly as it did in 3.90.
+        private static readonly string[] AdminAreaPrefixLocationFormats =
+        {
+            "/Administration/Views/Shared/{0}.cshtml",
+            "/Administration/Views/{1}/{0}.cshtml"
+        };
+
+        #endregion
+
+        #region Utilities
+
+        /// <summary>
+        /// Get the working theme name.
+        /// </summary>
+        /// <remarks>
+        /// Same seam as 3.90's <c>GetCurrentTheme()</c>: resolved through
+        /// <see cref="EngineContext"/> rather than injected, because the expander is constructed
+        /// during host configuration, before the container exists. Failures are swallowed so a
+        /// not-yet-installed store (no settings, no theme) still resolves its views from the
+        /// default, non-themed locations instead of throwing inside view lookup.
+        /// </remarks>
+        /// <returns>Theme system name, or <c>null</c> when it cannot be determined</returns>
+        protected virtual string GetCurrentTheme()
+        {
+            try
+            {
+                return EngineContext.Current?.Resolve<IThemeContext>()?.WorkingThemeName;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Publish the working theme name so it becomes part of the view-lookup cache key.
+        /// </summary>
+        /// <param name="context">View location expander context</param>
+        public virtual void PopulateValues(ViewLocationExpanderContext context)
+        {
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+
+            //an empty string (not null) is used when there is no theme: null values are not
+            //permitted in the cache-key dictionary
+            context.Values[ThemeKey] = GetCurrentTheme() ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Prepend nopCommerce's themed/administration view locations to the framework defaults.
+        /// </summary>
+        /// <param name="context">View location expander context</param>
+        /// <param name="viewLocations">Location formats already supplied by the view engine</param>
+        /// <returns>Location formats to search, in order</returns>
+        public virtual IEnumerable<string> ExpandViewLocations(ViewLocationExpanderContext context,
+            IEnumerable<string> viewLocations)
+        {
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+            if (viewLocations == null)
+                throw new ArgumentNullException(nameof(viewLocations));
+
+            context.Values.TryGetValue(ThemeKey, out var theme);
+
+            var usingAreas = !string.IsNullOrEmpty(context.AreaName);
+
+            var locations = new List<string>();
+
+            if (usingAreas)
+            {
+                //the /Administration/ hack, applied only to the Admin area — as in 3.90
+                if (context.AreaName.Equals(AdminAreaName, StringComparison.OrdinalIgnoreCase))
+                    locations.AddRange(AdminAreaPrefixLocationFormats);
+
+                locations.AddRange(ThemeableAreaViewLocationFormats);
+            }
+
+            locations.AddRange(ThemeableViewLocationFormats);
+
+            //drop the themed locations when there is no theme: "/Themes//Views/..." would never
+            //match a file and only costs a probe per lookup
+            var expanded = locations
+                .Where(location => !string.IsNullOrEmpty(theme) || !location.Contains("{theme}"))
+                .Select(location => location.Replace("{theme}", theme));
+
+            //framework defaults are kept as a final fallback so views that live only in the
+            //conventional ASP.NET Core locations (including anything contributed by a Razor class
+            //library or a plugin application part) still resolve
+            return expanded.Concat(viewLocations);
+        }
+
+        #endregion
+    }
+}

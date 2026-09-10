@@ -1,27 +1,54 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
-using System.Web;
-using System.Web.Mvc;
-using System.Web.Optimization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Nop.Core;
 using Nop.Core.Domain.Seo;
-using Nop.Services.Seo;
 
 namespace Nop.Web.Framework.UI
 {
     /// <summary>
     /// Page head builder
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Bundling was dropped in the .NET 10 port (design §8, user-approved).</b>
+    /// <c>System.Web.Optimization</c> (<c>BundleTable</c>, <c>ScriptBundle</c>,
+    /// <c>StyleBundle</c>, <c>IBundleOrderer</c>, <c>CssRewriteUrlTransform</c>) and its
+    /// minification back end (<c>WebGrease</c> + <c>Antlr</c>) are System.Web features with no
+    /// .NET Core / .NET 10 release and no successor. <c>GenerateScripts</c> and
+    /// <c>GenerateCssFiles</c> now emit one tag per registered asset, in registration order.
+    /// </para>
+    /// <para>
+    /// <b>Cache busting replaces the one operationally useful property bundling had</b> — a
+    /// fingerprinted URL that invalidated stale browser caches on deploy. Every emitted asset URL
+    /// is stamped by <see cref="IFileVersionProvider"/>, the same service that backs the
+    /// <c>asp-append-version</c> tag helper. The tag helper itself is unusable here because this
+    /// class composes markup as strings rather than rendering tag helpers, so the
+    /// <see cref="IFileVersionProvider.AddFileVersionToPath"/> seam is injected directly.
+    /// </para>
+    /// <para>
+    /// <c>SeoSettings.EnableJsBundling</c> / <c>EnableCssBundling</c> are retained on the settings
+    /// entity (no DB migration) but are never read here — they are inert. Likewise the
+    /// <c>excludeFromBundle</c> / <c>bundleFiles</c> parameters, kept so no view call site changes.
+    /// </para>
+    /// <para>
+    /// Removed from this class by the same decision: the <c>protected virtual</c> members
+    /// <c>GetBundleVirtualPath(string, string, string[])</c> and <c>GetCssTranform()</c>, plus the
+    /// private <c>s_lock</c> used to guard bundle registration. Both existed only to build and
+    /// register bundles.
+    /// </para>
+    /// </remarks>
     public partial class PageHeadBuilder : IPageHeadBuilder
     {
         #region Fields
 
-        private static readonly object s_lock = new object();
-
         private readonly SeoSettings _seoSettings;
+        private readonly IFileVersionProvider _fileVersionProvider;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly List<string> _titleParts;
         private readonly List<string> _metaDescriptionParts;
         private readonly List<string> _metaKeywordParts;
@@ -41,9 +68,25 @@ namespace Nop.Web.Framework.UI
         /// Constuctor
         /// </summary>
         /// <param name="seoSettings">SEO settings</param>
-        public PageHeadBuilder(SeoSettings seoSettings)
+        /// <param name="fileVersionProvider">
+        /// Asset version provider used for cache busting. Registered by ASP.NET Core's MVC view
+        /// services (<c>AddControllersWithViews()</c> / <c>AddRazorViewEngine()</c>); it needs
+        /// <c>IWebHostEnvironment.WebRootFileProvider</c> and <c>IMemoryCache</c>, both of which
+        /// the host already provides.
+        /// </param>
+        /// <param name="httpContextAccessor">
+        /// Used only to read <c>Request.PathBase</c>, which
+        /// <see cref="IFileVersionProvider.AddFileVersionToPath"/> requires in order to map a
+        /// request URL back onto a web-root-relative file when the application is hosted in a
+        /// virtual directory.
+        /// </param>
+        public PageHeadBuilder(SeoSettings seoSettings,
+            IFileVersionProvider fileVersionProvider,
+            IHttpContextAccessor httpContextAccessor)
         {
             this._seoSettings = seoSettings;
+            this._fileVersionProvider = fileVersionProvider;
+            this._httpContextAccessor = httpContextAccessor;
             this._titleParts = new List<string>();
             this._metaDescriptionParts = new List<string>();
             this._metaKeywordParts = new List<string>();
@@ -58,40 +101,28 @@ namespace Nop.Web.Framework.UI
 
         #region Utilities
 
-        protected virtual string GetBundleVirtualPath(string prefix, string extension, string[] parts)
+        /// <summary>
+        /// Resolve an application-relative asset path to a URL and stamp a version suffix onto it.
+        /// </summary>
+        /// <remarks>
+        /// Replaces bundling's fingerprinted URL. <see cref="IFileVersionProvider"/> returns the
+        /// path unchanged when the file cannot be found under the web root, so CDN/absolute URLs
+        /// and assets served from outside <c>wwwroot</c> pass through untouched rather than
+        /// failing.
+        /// </remarks>
+        /// <param name="urlHelper">URL helper</param>
+        /// <param name="part">Registered asset path (may be app-relative, e.g. <c>~/Scripts/x.js</c>)</param>
+        /// <returns>Versioned URL</returns>
+        protected virtual string GetAssetUrl(IUrlHelper urlHelper, string part)
         {
-            if (parts == null || parts.Length == 0)
-                throw new ArgumentException("parts");
+            var url = urlHelper != null ? urlHelper.Content(part) : part;
 
-            //calculate hash
-            var hash = "";
-            using (SHA256 sha = new SHA256Managed())
-            {
-                // string concatenation
-                var hashInput = "";
-                foreach (var part in parts)
-                {
-                    hashInput += part;
-                    hashInput += ",";
-                }
+            if (_fileVersionProvider == null || string.IsNullOrEmpty(url))
+                return url;
 
-                byte[] input = sha.ComputeHash(Encoding.Unicode.GetBytes(hashInput));
-                hash = HttpServerUtility.UrlTokenEncode(input);
-            }
-            //ensure only valid chars
-            hash = SeoExtensions.GetSeName(hash);
+            var pathBase = _httpContextAccessor?.HttpContext?.Request.PathBase ?? PathString.Empty;
 
-            var sb = new StringBuilder(prefix);
-            sb.Append(hash);
-            //we used "extension" when we had "runAllManagedModulesForAllRequests" set to "true" in web.config
-            //now we disabled it. hence we should not use "extension"
-            //sb.Append(extension);
-            return sb.ToString();
-        }
-
-        protected virtual IItemTransform GetCssTranform()
-        {
-            return new CssRewriteUrlTransform();
+            return _fileVersionProvider.AddFileVersionToPath(pathBase, url);
         }
 
         #endregion
@@ -196,6 +227,7 @@ namespace Nop.Web.Framework.UI
         }
     
 
+        /// <param name="excludeFromBundle">Recorded but INERT — bundling was dropped (design §8)</param>
         public virtual void AddScriptParts(ResourceLocation location, string part, bool excludeFromBundle, bool isAsync)
         {
             if (!_scriptParts.ContainsKey(location))
@@ -211,6 +243,7 @@ namespace Nop.Web.Framework.UI
                 Part = part
             });
         }
+        /// <param name="excludeFromBundle">Recorded but INERT — bundling was dropped (design §8)</param>
         public virtual void AppendScriptParts(ResourceLocation location, string part, bool excludeFromBundle, bool isAsync)
         {
             if (!_scriptParts.ContainsKey(location))
@@ -226,82 +259,35 @@ namespace Nop.Web.Framework.UI
                 Part = part
             });
         }
-        public virtual string GenerateScripts(UrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null)
+        /// <summary>
+        /// Generate all script parts as individual &lt;script&gt; elements, in registration order.
+        /// </summary>
+        /// <param name="urlHelper">URL helper</param>
+        /// <param name="location">A location of the script element</param>
+        /// <param name="bundleFiles">IGNORED — bundling was dropped (design §8)</param>
+        /// <returns>Generated string</returns>
+        public virtual string GenerateScripts(IUrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null)
         {
             if (!_scriptParts.ContainsKey(location) || _scriptParts[location] == null)
                 return "";
 
             if (!_scriptParts.Any())
                 return "";
-            
-            if (!bundleFiles.HasValue)
+
+            //bundling has been dropped: every registered script is emitted as its own element,
+            //with a cache-busting version suffix. "bundleFiles" and each part's
+            //"ExcludeFromBundle" flag are deliberately not consulted.
+            var result = new StringBuilder();
+            foreach (var item in _scriptParts[location].Select(x => new { x.Part, x.IsAsync }).Distinct())
             {
-                //use setting if no value is specified
-                bundleFiles = _seoSettings.EnableJsBundling && BundleTable.EnableOptimizations;
+                result.AppendFormat("<script {2}src=\"{0}\" type=\"{1}\"></script>", GetAssetUrl(urlHelper, item.Part), MimeTypes.TextJavascript, item.IsAsync ? "async " : "");
+                result.Append(Environment.NewLine);
             }
-            if (bundleFiles.Value)
-            {
-                var partsToBundle = _scriptParts[location]
-                    .Where(x => !x.ExcludeFromBundle)
-                    .Select(x => x.Part)
-                    .Distinct()
-                    .ToArray();
-                var partsToDontBundle = _scriptParts[location]
-                    .Where(x => x.ExcludeFromBundle)
-                    .Select(x => new  { x.Part, x.IsAsync})
-                    .Distinct()
-                    .ToArray();
-
-
-                var result = new StringBuilder();
-
-                if (partsToBundle.Length > 0)
-                {
-                    string bundleVirtualPath = GetBundleVirtualPath("~/bundles/scripts/", ".js", partsToBundle);
-                    //create bundle
-                    lock (s_lock)
-                    {
-                        var bundleFor = BundleTable.Bundles.GetBundleFor(bundleVirtualPath);
-                        if (bundleFor == null)
-                        {
-                            var bundle = new ScriptBundle(bundleVirtualPath);
-                            //bundle.Transforms.Clear();
-
-                            //"As is" ordering
-                            bundle.Orderer = new AsIsBundleOrderer();
-                            //disable file extension replacements. renders scripts which were specified by a developer
-                            bundle.EnableFileExtensionReplacements = false;
-                            bundle.Include(partsToBundle);
-                            BundleTable.Bundles.Add(bundle);
-                        }
-                    }
-
-                    //parts to bundle
-                    result.AppendLine(Scripts.Render(bundleVirtualPath).ToString());
-                }
-
-                //parts to do not bundle
-                foreach (var item in partsToDontBundle)
-                {
-                    result.AppendFormat("<script {2}src=\"{0}\" type=\"{1}\"></script>", urlHelper.Content(item.Part), MimeTypes.TextJavascript, item.IsAsync ? "async " : "");
-                    result.Append(Environment.NewLine);
-                }
-                return result.ToString();
-            }
-            else
-            {
-                //bundling is disabled
-                var result = new StringBuilder();
-                foreach (var item in _scriptParts[location].Select(x => new { x.Part, x.IsAsync}).Distinct())
-                {
-                    result.AppendFormat("<script {2}src=\"{0}\" type=\"{1}\"></script>", urlHelper.Content(item.Part), MimeTypes.TextJavascript, item.IsAsync ? "async ":"");
-                    result.Append(Environment.NewLine);
-                }
-                return result.ToString();
-            }
+            return result.ToString();
         }
 
 
+        /// <param name="excludeFromBundle">Recorded but INERT — bundling was dropped (design §8)</param>
         public virtual void AddCssFileParts(ResourceLocation location, string part, bool excludeFromBundle = false)
         {
             if (!_cssParts.ContainsKey(location))
@@ -316,6 +302,7 @@ namespace Nop.Web.Framework.UI
                 Part = part
             });
         }
+        /// <param name="excludeFromBundle">Recorded but INERT — bundling was dropped (design §8)</param>
         public virtual void AppendCssFileParts(ResourceLocation location, string part, bool excludeFromBundle = false)
         {
             if (!_cssParts.ContainsKey(location))
@@ -330,7 +317,14 @@ namespace Nop.Web.Framework.UI
                 Part = part
             });
         }
-        public virtual string GenerateCssFiles(UrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null)
+        /// <summary>
+        /// Generate all CSS parts as individual &lt;link&gt; elements, in registration order.
+        /// </summary>
+        /// <param name="urlHelper">URL helper</param>
+        /// <param name="location">A location of the script element</param>
+        /// <param name="bundleFiles">IGNORED — bundling was dropped (design §8)</param>
+        /// <returns>Generated string</returns>
+        public virtual string GenerateCssFiles(IUrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null)
         {
             if (!_cssParts.ContainsKey(location) || _cssParts[location] == null)
                 return "";
@@ -338,77 +332,18 @@ namespace Nop.Web.Framework.UI
             if (!_cssParts.Any())
                 return "";
 
-            if (!bundleFiles.HasValue)
+            //see GenerateScripts: individual tags plus a cache-busting version suffix.
+            //NOTE: System.Web.Optimization's CssRewriteUrlTransform used to rewrite relative
+            //url(...) references inside a bundled stylesheet, because the bundle was served from a
+            //different path than the source file. With no bundle the stylesheet is served from its
+            //own location, so relative urls resolve natively and no transform is needed.
+            var result = new StringBuilder();
+            foreach (var path in _cssParts[location].Select(x => x.Part).Distinct())
             {
-                //use setting if no value is specified
-                bundleFiles = _seoSettings.EnableCssBundling && BundleTable.EnableOptimizations;
+                result.AppendFormat("<link href=\"{0}\" rel=\"stylesheet\" type=\"{1}\" />", GetAssetUrl(urlHelper, path), MimeTypes.TextCss);
+                result.AppendLine();
             }
-            if (bundleFiles.Value)
-            {
-                var partsToBundle = _cssParts[location]
-                    .Where(x => !x.ExcludeFromBundle)
-                    .Select(x => x.Part)
-                    .Distinct()
-                    .ToArray();
-                var partsToDontBundle = _cssParts[location]
-                    .Where(x => x.ExcludeFromBundle)
-                    .Select(x =>x.Part)
-                    .Distinct()
-                    .ToArray();
-
-
-                var result = new StringBuilder();
-
-                if (partsToBundle.Length > 0)
-                {
-                    //IMPORTANT: Do not use CSS bundling in virtual directories
-                    string bundleVirtualPath = GetBundleVirtualPath("~/bundles/styles/", ".css", partsToBundle);
-
-                    //create bundle
-                    lock (s_lock)
-                    {
-                        var bundleFor = BundleTable.Bundles.GetBundleFor(bundleVirtualPath);
-                        if (bundleFor == null)
-                        {
-                            var bundle = new StyleBundle(bundleVirtualPath);
-                            //bundle.Transforms.Clear();
-
-                            //"As is" ordering
-                            bundle.Orderer = new AsIsBundleOrderer();
-                            //disable file extension replacements. renders scripts which were specified by a developer
-                            bundle.EnableFileExtensionReplacements = false;
-                            foreach (var ptb in partsToBundle)
-                            {
-                                bundle.Include(ptb, GetCssTranform());
-                            }
-                            BundleTable.Bundles.Add(bundle);
-                        }
-                    }
-
-                    //parts to bundle
-                    result.AppendLine(Styles.Render(bundleVirtualPath).ToString());
-                }
-
-                //parts to do not bundle
-                foreach (var item in partsToDontBundle)
-                {
-                    result.AppendFormat("<link href=\"{0}\" rel=\"stylesheet\" type=\"{1}\" />", urlHelper.Content(item), MimeTypes.TextCss);
-                    result.Append(Environment.NewLine);
-                }
-
-                return result.ToString();
-            }
-            else
-            {
-                //bundling is disabled
-                var result = new StringBuilder();
-                foreach (var path in _cssParts[location].Select(x =>  x.Part).Distinct())
-                {
-                    result.AppendFormat("<link href=\"{0}\" rel=\"stylesheet\" type=\"{1}\" />", urlHelper.Content(path), MimeTypes.TextCss);
-                    result.AppendLine();
-                }
-                return result.ToString();
-            }
+            return result.ToString();
         }
 
 
@@ -531,6 +466,9 @@ namespace Nop.Web.Framework.UI
 
         private class ScriptReferenceMeta
         {
+            /// <summary>
+            /// INERT — retained so the registration API keeps its shape (design §8)
+            /// </summary>
             public bool ExcludeFromBundle { get; set; }
 
             public bool IsAsync { get; set; }
@@ -540,6 +478,9 @@ namespace Nop.Web.Framework.UI
 
         private class CssReferenceMeta
         {
+            /// <summary>
+            /// INERT — retained so the registration API keeps its shape (design §8)
+            /// </summary>
             public bool ExcludeFromBundle { get; set; }
 
             public string Part { get; set; }

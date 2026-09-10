@@ -47,6 +47,8 @@ Nop.Core        (Leaf_Project — no Source_Project references)
 | `RedLock.net.StrongName`, `StackExchange.Redis.StrongName` | Redis lock/cache | `StackExchange.Redis` + a maintained distributed-lock package |
 | `ImageResizer` 4.0.5, `ImageResizer.Plugins.PrettyGifs` 4.0.5 (Nop.Services) | Image resize/thumbnail pipeline | **`SixLabors.ImageSharp`** — no .NET 10 version of ImageResizer exists (see §7) |
 | `System.Drawing` (BCL ref, Nop.Services / Nop.Web / Nop.Admin) | Bitmap/Graphics imaging | **`SixLabors.ImageSharp`** — `System.Drawing.Common` is Windows-only since .NET 6 (see §7) |
+| `Microsoft.AspNet.Web.Optimization` 1.1.3 (`System.Web.Optimization`) + `WebGrease` 1.6.0, `Antlr` 3.5.0.2 (Nop.Web.Framework) | Script/style bundling & minification | **Dropped** — a System.Web feature with no .NET 10 release and no successor; individual tags + `IFileVersionProvider` cache busting (see §8) |
+| `FluentValidation` 7.6.105 + `FluentValidation.Mvc` (Nop.Web.Framework / Nop.Web / Nop.Admin / plugins / tests) | Model validation | **Retained at 7.6.105** (last release with the attribute model, ships `netstandard2.0`); MVC integration hand-wired (see §9) |
 | `System.Web.Fakes` (`Fakes\*` HTTP fakes) | Test seams over `HttpContext` | Abstractions over `Microsoft.AspNetCore.Http` |
 
 ## Architecture
@@ -221,7 +223,76 @@ Mapping notes:
 
 The legacy→net10.0 mapping table in the Overview is updated accordingly: the `ImageResizer` / `System.Drawing` rows resolve to `SixLabors.ImageSharp`.
 
-### 8. Data layer: EF6 → EF Core considerations (Req 5.1, 5.3)
+### 8. Client-side bundling: System.Web.Optimization → dropped, replaced by per-asset cache busting (Req 4.4, 5.3)
+
+**Decision: bundling and minification are dropped. `PageHeadBuilder` emits individual `<script>` / `<link>` tags, and the one operationally valuable property bundling provided — fingerprinted asset URLs — is preserved by stamping a version suffix onto every asset URL via ASP.NET Core's `IFileVersionProvider`.**
+
+This is the same class of decision as §7: a legacy dependency with no successor. `Microsoft.AspNet.Web.Optimization` 1.1.3 (`System.Web.Optimization`) and its minification back end (`WebGrease` 1.6.0 + `Antlr` 3.5.0.2) are a **System.Web feature**. None of the three has a .NET Core / .NET 10 release, and Microsoft published no successor. Upstream nopCommerce 4.0 likewise dropped `System.Web.Optimization` in its own ASP.NET Core port.
+
+Legacy surface (verified in the workspace) — two files in `Nop.Web.Framework`:
+
+| File | Legacy usage |
+|---|---|
+| `UI/PageHeadBuilder.cs` | `BundleTable.Bundles`, `BundleTable.EnableOptimizations`, `ScriptBundle`, `StyleBundle`, `Bundle.Orderer`, `Bundle.Include` — roughly **58 of 549 lines** |
+| `UI/AsIsBundleOrderer.cs` | implements `IBundleOrderer`; `BundleContext`, `BundleFile` |
+
+Drivers:
+
+- **No upgrade path exists.** Unlike EF6 → EF Core, there is nothing to advance to.
+- **The feature is already off in 3.90.** `Nop.Services/Installation/CodeFirstInstallationService.cs` seeds `EnableJsBundling = false` and `EnableCssBundling = false`, with the source comment *"we disable bundling out of the box because it requires a lot of server resources"*. The admin hint text discouraged turning it on: *"Don't enable if you're running nopCommerce in web farms or Windows Azure. It also doesn't work in virtual IIS directories."* Dropping it therefore changes **nothing** about the default runtime behavior of a stock install.
+- **The blast radius is contained to two files.** `IPageHeadBuilder` has 25+ members; only `GenerateScripts` and `GenerateCssFiles` are bundling-related and **both keep their signatures** — only their internals change. The `excludeFromBundle` parameters on the `Add*`/`Append*` methods also stay. Consequently **zero view call sites in `Nop.Web` or `Nop.Admin` are affected**, and the interface remains source-compatible for plugins.
+
+Concrete changes:
+
+- **`UI/AsIsBundleOrderer.cs` is deleted.** It exists only to control file order *within* a bundle; with no bundles there is nothing to order.
+- **`PageHeadBuilder.GenerateScripts` / `GenerateCssFiles` emit individual tags** — one `<script>` per registered script, one `<link>` per registered stylesheet, in registration order.
+- **`SeoSettings.EnableJsBundling` and `SeoSettings.EnableCssBundling` are retained** on the settings entity so **no database migration is needed**. They become **inert** — read and written, but no longer consulted when generating markup.
+- **Cache busting is added.** Bundling's genuinely useful side effect was a fingerprinted URL (`?v=…`) that invalidated stale browser caches on deploy. Without a replacement the port would be **worse than 3.90** for any user holding stale CSS/JS. Each emitted asset URL therefore carries a version suffix produced by **`IFileVersionProvider`** — the mechanism behind the `asp-append-version` tag helper. Note that `PageHeadBuilder` composes markup as **strings** rather than rendering tag helpers, so the tag helper itself is not usable; `IFileVersionProvider.AddFileVersionToPath(pathBase, path)` is the appropriate seam and is injected into `PageHeadBuilder`.
+
+**Follow-up for task 8.4 (admin settings UI):** remove the two bundling checkboxes from `Nop.Web/Administration/Views/Setting/GeneralCommon.cshtml` (they bind `model.SeoSettings.EnableJsBundling` / `EnableCssBundling`). An inert checkbox that silently does nothing is worse than no checkbox. The `Admin.Configuration.Settings.GeneralCommon.EnableJsBundling` / `…EnableCssBundling` localization resources become orphaned, which is harmless. The corresponding properties on `GeneralCommonSettingsModel` and the read/write in `SettingController.cs` may stay or be removed at 8.x's discretion.
+
+Rejected alternatives (recorded so the reasoning is auditable):
+
+- **`LigerShark.WebOptimizer.Core`** (MIT, maintained, `net10.0`) — provides real bundling and minification through `IAssetPipeline` + `app.UseWebOptimizer()`. Rejected *for the migration*: it rewrites the registration model rather than mapping onto it and requires pipeline configuration in `Program.cs`, which is churn on top of a stage that is already the largest behavioral port. **Worth scheduling as a post-migration follow-up** if bundling is wanted back.
+- **A hand-rolled bundler over `NUglify`** (MIT, maintained, `net10.0`) — minification without the registration-model rewrite, but it means owning concatenation, caching, and cache-key logic in the migration.
+
+Context for why this is a low-cost drop: the request-count argument for bundling has largely been removed by **HTTP/2 multiplexing** since 3.90 was written in 2017. That leaves **minification** as the remaining benefit, which is better solved at deploy/build time than at request time.
+
+### 9. Validation: FluentValidation pinned to 7.6.105 (Req 4.3, 5.3)
+
+**Decision: FluentValidation is deliberately pinned to `7.6.105` and is *not* upgraded as part of this migration. This is a conscious, approved non-upgrade, not an oversight.**
+
+Why 7.6.105 specifically:
+
+- It is the **last 7.x release**, and it ships a `lib/netstandard2.0` assembly, which `net10.0` consumes without issue.
+- It is the **last line whose core package still contains `FluentValidation.Attributes.ValidatorAttribute` and `AttributedValidatorFactory`** — the two types nopCommerce 3.90's validation model is built on.
+
+The coupling to the attribute model is wide (verified in the workspace):
+
+- **77 files** across `Nop.Web.Framework`, `Nop.Web`, `Nop.Admin`, the plugins, and the test projects use `[Validator(typeof(...))]`.
+- `NopValidatorFactory` derives from `AttributedValidatorFactory`.
+- Two custom validators derive from the **non-generic** `PropertyValidator` and override `IsValid(PropertyValidatorContext)`.
+- **18 test files** use `FluentValidation.TestHelper`.
+
+Upgrade blockers, by version — each one breaks a different part of the above:
+
+| Version | Blocking change |
+|---|---|
+| FV 8 | `ValidatorAttribute` moved **out of the core package**; `AttributedValidatorFactory` **deleted** |
+| FV 9 | attribute model **removed entirely** |
+| FV 10 / 11 | `PropertyValidator` rewritten into the generic `PropertyValidator<T,TProperty>` |
+| FV 12 | `IValidatorFactory` **removed** |
+
+`FluentValidation.AspNetCore` 8.6.3 is **not** a way out: it targets `netcoreapp2.1`/`3.x` and pulls ASP.NET Core MVC 2.x/3.x packages that collide with the `Microsoft.AspNetCore.App` **10** shared framework.
+
+Accepted costs, stated plainly:
+
+- 7.6.105 is from **2018 and unmaintained**. NuGet audit currently reports **no advisory** for it, but that can change — the pin should be re-checked, not assumed safe forever.
+- Upgrading later is a **wide but mechanical** refactor (77 attribute sites, one factory, two custom validators, 18 test files), **not a redesign**. Deferring it does not paint the port into a corner.
+
+**Integration gap that tasks 6.2 / 7.2 must close:** there is **no ASP.NET Core integration package for FluentValidation 7.x**. In 3.90 the MVC 5 integration package `FluentValidation.Mvc` was used at exactly **one** call site — `Nop.Web/Global.asax.cs` line 74 — which **task 7.2 deletes anyway** along with the rest of `Global.asax`. `NopValidatorFactory` must therefore be **hand-wired into ASP.NET Core validation**: either a small `IModelValidatorProvider` implementation registered in MVC options, or explicit validator invocation at the points that need it. No `FluentValidation.Mvc` (or `FluentValidation.AspNetCore`) reference is created.
+
+### 10. Data layer: EF6 → EF Core considerations (Req 5.1, 5.3)
 
 `Nop.Data` (EF6 `DbContext` `NopObjectContext`, fluent `Mapping/*`, `EfRepository`, `IDbContext`) targets net10.0 via **EF Core**:
 
@@ -232,7 +303,7 @@ The legacy→net10.0 mapping table in the Overview is updated accordingly: the `
 - EF6 initializers (`Initializers/*`, `CreateTablesIfNotExist`) → EF Core model creation via migrations or `EnsureCreated` in the installation path.
 - Note: The requirement bar is **clean compile** (Req 3.3). The design ports the API surface so dependents compile; behavioral parity of queries/migrations is validated later by integration/smoke tests, not required for stage completion.
 
-### 9. Solution file update (Req 5.4)
+### 11. Solution file update (Req 5.4)
 
 `NopCommerce.sln` is updated so every project entry references the migrated SDK-style `.csproj`. Project GUIDs that the SDK no longer requires internally are kept in the `.sln` (the solution still tracks projects by GUID); removed/renamed projects (e.g., a dropped SQL CE provider) are pruned from the solution. After the last stage, a full `dotnet build NopCommerce.sln` resolves all migrated projects.
 

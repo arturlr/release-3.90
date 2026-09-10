@@ -1,15 +1,25 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Web;
-using System.Web.Mvc;
-using System.Web.WebPages;
+using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Mvc.Razor;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Web.Framework.UI
 {
+    /// <summary>
+    /// Renders a sequence of items into a fixed-column HTML table.
+    /// </summary>
+    /// <remarks>
+    /// Ported in task 6.3: <c>System.Web.IHtmlString</c> → <see cref="IHtmlContent"/>,
+    /// <c>System.Web.Mvc.HtmlHelper</c> → <see cref="IHtmlHelper"/>, and
+    /// <c>System.Web.WebPages.HelperResult</c> → <see cref="HelperResult"/>
+    /// (<c>Microsoft.AspNetCore.Mvc.Razor</c>) — the type Razor templated delegates
+    /// (<c>@&lt;text&gt;…&lt;/text&gt;</c>) produce in ASP.NET Core.
+    /// </remarks>
     public static class DataListExtensions
     {
-        public static IHtmlString DataList<T>(this HtmlHelper helper, IEnumerable<T> items, int columns,
+        public static IHtmlContent DataList<T>(this IHtmlHelper helper, IEnumerable<T> items, int columns,
             Func<T, HelperResult> template) 
             where T : class
         {
@@ -28,7 +38,7 @@ namespace Nop.Web.Framework.UI
 
                 sb.Append("<td");
                 sb.Append(">");
-                
+
                 sb.Append(template(item).ToHtmlString());
                 sb.Append("</td>");
 

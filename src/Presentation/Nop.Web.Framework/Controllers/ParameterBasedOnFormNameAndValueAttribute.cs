@@ -1,10 +1,16 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Nop.Web.Framework.Controllers
 {
+    /// <summary>
+    /// Task 6.2: ported to ASP.NET Core MVC filters - see
+    /// <see cref="ParameterBasedOnFormNameAttribute"/> for the mapping notes
+    /// (<c>ActionParameters</c> -&gt; <c>ActionArguments</c>, <c>RequestContext</c> dropped,
+    /// <c>HasFormContentType</c> guard added).
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)] 
-    public class ParameterBasedOnFormNameAndValueAttribute : FilterAttribute, IActionFilter
+    public class ParameterBasedOnFormNameAndValueAttribute : Attribute, IActionFilter
     {
         private readonly string _name;
         private readonly string _value;
@@ -23,9 +29,10 @@ namespace Nop.Web.Framework.Controllers
 
         public void OnActionExecuting(ActionExecutingContext filterContext)
         {
-            var formValue = filterContext.RequestContext.HttpContext.Request.Form[_name];
-            filterContext.ActionParameters[_actionParameterName] = !string.IsNullOrEmpty(formValue) &&
-                                                                   formValue.ToLower().Equals(_value.ToLower());
+            var request = filterContext.HttpContext.Request;
+            var formValue = request.HasFormContentType ? (string)request.Form[_name] : null;
+            filterContext.ActionArguments[_actionParameterName] = !string.IsNullOrEmpty(formValue) &&
+                                                                 formValue.ToLower().Equals(_value.ToLower());
         }
     }
 }

@@ -1,10 +1,25 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Nop.Web.Framework.UI
 {
     /// <summary>
     /// Page head builder
     /// </summary>
+    /// <remarks>
+    /// Ported in task 6.3. Two deliberate constraints on this interface (design §8):
+    /// <list type="number">
+    /// <item>
+    /// <c>UrlHelper</c> becomes <see cref="IUrlHelper"/> — the only type change on the whole
+    /// interface.
+    /// </item>
+    /// <item>
+    /// The <c>excludeFromBundle</c> parameters and the <c>bundleFiles</c> parameters are RETAINED
+    /// even though bundling has been dropped, so that ZERO view call sites in Nop.Web or
+    /// Nop.Admin change and the interface stays source-compatible for plugins. They are
+    /// <b>inert</b>: recorded but never consulted when markup is generated.
+    /// </item>
+    /// </list>
+    /// </remarks>
     public partial interface IPageHeadBuilder
     {
         void AddTitleParts(string part);
@@ -19,14 +34,34 @@ namespace Nop.Web.Framework.UI
         void AppendMetaKeywordParts(string part);
         string GenerateMetaKeywords();
 
+        /// <param name="location">A location of the script element</param>
+        /// <param name="part">Script part</param>
+        /// <param name="excludeFromBundle">INERT since the .NET 10 port — bundling was dropped (design §8)</param>
+        /// <param name="isAync">A value indicating whether to add an attribute "async" or not for js files</param>
         void AddScriptParts(ResourceLocation location, string part, bool excludeFromBundle, bool isAync);
+        /// <param name="location">A location of the script element</param>
+        /// <param name="part">Script part</param>
+        /// <param name="excludeFromBundle">INERT since the .NET 10 port — bundling was dropped (design §8)</param>
+        /// <param name="isAsync">A value indicating whether to add an attribute "async" or not for js files</param>
         void AppendScriptParts(ResourceLocation location, string part, bool excludeFromBundle, bool isAsync);
-        string GenerateScripts(UrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null);
+        /// <param name="urlHelper">URL helper</param>
+        /// <param name="location">A location of the script element</param>
+        /// <param name="bundleFiles">INERT since the .NET 10 port — bundling was dropped (design §8)</param>
+        string GenerateScripts(IUrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null);
 
+        /// <param name="location">A location of the script element</param>
+        /// <param name="part">CSS part</param>
+        /// <param name="excludeFromBundle">INERT since the .NET 10 port — bundling was dropped (design §8)</param>
         void AddCssFileParts(ResourceLocation location, string part, bool excludeFromBundle = false);
+        /// <param name="location">A location of the script element</param>
+        /// <param name="part">CSS part</param>
+        /// <param name="excludeFromBundle">INERT since the .NET 10 port — bundling was dropped (design §8)</param>
         void AppendCssFileParts(ResourceLocation location, string part, bool excludeFromBundle = false);
-        string GenerateCssFiles(UrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null);
-        
+        /// <param name="urlHelper">URL helper</param>
+        /// <param name="location">A location of the script element</param>
+        /// <param name="bundleFiles">INERT since the .NET 10 port — bundling was dropped (design §8)</param>
+        string GenerateCssFiles(IUrlHelper urlHelper, ResourceLocation location, bool? bundleFiles = null);
+
         void AddCanonicalUrlParts(string part);
         void AppendCanonicalUrlParts(string part);
         string GenerateCanonicalUrls();

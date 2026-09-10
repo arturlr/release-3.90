@@ -1,13 +1,22 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core.Data;
 using Nop.Core.Domain.Security;
 using Nop.Core.Infrastructure;
 
 namespace Nop.Web.Framework.Security
 {
+    /// <summary>
+    /// Task 6.2: ported to ASP.NET Core MVC authorization filters. SECURITY-SENSITIVE (XSRF) -
+    /// see <see cref="AdminAntiForgeryAttribute"/> for the full rationale; this is the same port,
+    /// gated on <see cref="SecuritySettings.EnableXsrfProtectionForPublicStore"/> instead.
+    /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
-    public class PublicAntiForgeryAttribute : FilterAttribute, IAuthorizationFilter
+    public class PublicAntiForgeryAttribute : Attribute, IAsyncAuthorizationFilter
     {
         private readonly bool _ignore;
 
@@ -19,7 +28,8 @@ namespace Nop.Web.Framework.Security
         {
             this._ignore = ignore;
         }
-        public virtual void OnAuthorization(AuthorizationContext filterContext)
+
+        public virtual async Task OnAuthorizationAsync(AuthorizationFilterContext filterContext)
         {
             if (filterContext == null)
                 throw new ArgumentNullException("filterContext");
@@ -27,12 +37,8 @@ namespace Nop.Web.Framework.Security
             if (_ignore)
                 return;
 
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
-                return;
-
             //only POST requests
-            if (!String.Equals(filterContext.HttpContext.Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
+            if (!String.Equals(filterContext.HttpContext.Request.Method, "POST", StringComparison.OrdinalIgnoreCase))
                 return;
 
             if (!DataSettingsHelper.DatabaseIsInstalled())
@@ -40,9 +46,16 @@ namespace Nop.Web.Framework.Security
             var securitySettings = EngineContext.Current.Resolve<SecuritySettings>();
             if (!securitySettings.EnableXsrfProtectionForPublicStore)
                 return;
-            
-            var validator = new ValidateAntiForgeryTokenAttribute();
-            validator.OnAuthorization(filterContext);
+
+            var antiforgery = filterContext.HttpContext.RequestServices.GetRequiredService<IAntiforgery>();
+            try
+            {
+                await antiforgery.ValidateRequestAsync(filterContext.HttpContext);
+            }
+            catch (AntiforgeryValidationException)
+            {
+                filterContext.Result = new BadRequestResult();
+            }
         }
     }
 }

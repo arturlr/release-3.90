@@ -1,5 +1,5 @@
-using System.Linq;
-using System.Linq.Dynamic;
+﻿using System.Linq;
+using System.Linq.Dynamic.Core;
 using FluentValidation;
 using Nop.Core.Infrastructure;
 using Nop.Data;
@@ -7,6 +7,18 @@ using Nop.Services.Localization;
 
 namespace Nop.Web.Framework.Validators
 {
+    /// <summary>
+    /// Task 6.2: <c>System.Linq.Dynamic</c> -&gt; <c>System.Linq.Dynamic.Core</c>, and
+    /// <c>DynamicExpression.ParseLambda&lt;T, TResult&gt;(expression, values)</c> -&gt;
+    /// <c>DynamicExpressionParser.ParseLambda&lt;T, TResult&gt;(ParsingConfig, createParameterCtor,
+    /// expression)</c> - the static entry point was renamed AND the generic two-type-argument
+    /// overload now requires an explicit <c>ParsingConfig</c> plus the <c>createParameterCtor</c>
+    /// flag that the legacy API applied implicitly. Same return type
+    /// (<c>Expression&lt;Func&lt;T, TResult&gt;&gt;</c>), same expression language, so the
+    /// <c>RuleFor(...)</c> calls below are unchanged.
+    /// See the note on <c>Kendoui.QueryableExtensions</c> for why the old <c>using</c> compiled
+    /// at declaration time yet still had to change.
+    /// </summary>
     public abstract class BaseNopValidator<T> : AbstractValidator<T> where T : class
     {
         protected BaseNopValidator()
@@ -53,7 +65,7 @@ namespace Nop.Web.Framework.Validators
                 .Select(p => p.Name).ToArray();
 
             var maxLength = dbContext.GetColumnsMaxLength(dbObjectType.Name, names);
-            var expression = maxLength.Keys.ToDictionary(name => name, name => DynamicExpression.ParseLambda<T, string>(name, null));
+            var expression = maxLength.Keys.ToDictionary(name => name, name => DynamicExpressionParser.ParseLambda<T, string>(ParsingConfig.Default, true, name));
 
             foreach (var expr in expression)
             {
@@ -80,7 +92,7 @@ namespace Nop.Web.Framework.Validators
                 .Select(p => p.Name).ToArray();
 
             var maxValues = dbContext.GetDecimalMaxValue(dbObjectType.Name, names);
-            var expression = maxValues.Keys.ToDictionary(name => name, name => DynamicExpression.ParseLambda<T, decimal>(name, null));
+            var expression = maxValues.Keys.ToDictionary(name => name, name => DynamicExpressionParser.ParseLambda<T, decimal>(ParsingConfig.Default, true, name));
 
             foreach (var expr in expression)
             {

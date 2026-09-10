@@ -1,6 +1,6 @@
-﻿using System;
-using System.Web;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Nop.Core;
 using Nop.Core.Domain.Affiliates;
 using Nop.Core.Infrastructure;
@@ -9,6 +9,16 @@ using Nop.Services.Customers;
 
 namespace Nop.Web.Framework
 {
+    /// <summary>
+    /// Task 6.2: ported from System.Web.Mvc to ASP.NET Core MVC filters.
+    /// <list type="bullet">
+    /// <item><c>System.Web.Mvc.ActionFilterAttribute</c> -&gt; <c>Microsoft.AspNetCore.Mvc.Filters.ActionFilterAttribute</c></item>
+    /// <item><c>HttpRequestBase.QueryString</c> (NameValueCollection) -&gt; <c>HttpRequest.Query</c> (IQueryCollection)</item>
+    /// <item><c>filterContext.IsChildAction</c> has NO ASP.NET Core equivalent and was removed -
+    /// child actions were replaced by View Components, which do not run the action filter
+    /// pipeline at all, so the guard is unnecessary rather than merely unavailable.</item>
+    /// </list>
+    /// </summary>
     public class CheckAffiliateAttribute : ActionFilterAttribute
     {
         private const string AFFILIATE_ID_QUERY_PARAMETER_NAME = "affiliateid";
@@ -19,22 +29,19 @@ namespace Nop.Web.Framework
             if (filterContext == null || filterContext.HttpContext == null)
                 return;
 
-            HttpRequestBase request = filterContext.HttpContext.Request;
+            HttpRequest request = filterContext.HttpContext.Request;
             if (request == null)
-                return;
-
-            //don't apply filter to child methods
-            if (filterContext.IsChildAction)
                 return;
 
             Affiliate affiliate = null;
 
-            if (request.QueryString != null)
+            var query = request.Query;
+            if (query != null)
             {
                 //try to find by ID ("affiliateId" parameter)
-                if (request.QueryString[AFFILIATE_ID_QUERY_PARAMETER_NAME] != null)
+                if (query.ContainsKey(AFFILIATE_ID_QUERY_PARAMETER_NAME))
                 {
-                    var affiliateId = Convert.ToInt32(request.QueryString[AFFILIATE_ID_QUERY_PARAMETER_NAME]);
+                    var affiliateId = Convert.ToInt32(query[AFFILIATE_ID_QUERY_PARAMETER_NAME].ToString());
                     if (affiliateId > 0)
                     {
                         var affiliateService = EngineContext.Current.Resolve<IAffiliateService>();
@@ -42,9 +49,9 @@ namespace Nop.Web.Framework
                     }
                 }
                 //try to find by friendly name ("affiliate" parameter)
-                else if (request.QueryString[AFFILIATE_FRIENDLYURLNAME_QUERY_PARAMETER_NAME] != null)
+                else if (query.ContainsKey(AFFILIATE_FRIENDLYURLNAME_QUERY_PARAMETER_NAME))
                 {
-                    var friendlyUrlName = request.QueryString[AFFILIATE_FRIENDLYURLNAME_QUERY_PARAMETER_NAME];
+                    var friendlyUrlName = query[AFFILIATE_FRIENDLYURLNAME_QUERY_PARAMETER_NAME].ToString();
                     if (!String.IsNullOrEmpty(friendlyUrlName))
                     {
                         var affiliateService = EngineContext.Current.Resolve<IAffiliateService>();
