@@ -2,51 +2,74 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Nop.Core;
-using Nop.Data.Mapping;
 
 namespace Nop.Data
 {
     /// <summary>
     /// Object context
     /// </summary>
+    /// <remarks>
+    /// EF6 -> EF Core port (task 3.2). Base type changed from
+    /// <c>System.Data.Entity.DbContext</c> to <see cref="Microsoft.EntityFrameworkCore.DbContext"/>.
+    /// The <c>NopObjectContext(string nameOrConnectionString)</c> constructor is preserved -
+    /// EF Core configures a context through <c>DbContextOptions</c> rather than a connection
+    /// string, so the connection string is stashed and applied in <see cref="OnConfiguring"/>.
+    /// </remarks>
     public class NopObjectContext : DbContext, IDbContext
     {
+        #region Fields
+
+        private readonly string _nameOrConnectionString;
+
+        //EF Core has no DbContextConfiguration.ProxyCreationEnabled; see the property below.
+        private bool _proxyCreationEnabled = true;
+
+        #endregion
+
         #region Ctor
 
         public NopObjectContext(string nameOrConnectionString)
-            : base(nameOrConnectionString)
         {
-            //((IObjectContextAdapter) this).ObjectContext.ContextOptions.LazyLoadingEnabled = true;
+            _nameOrConnectionString = nameOrConnectionString;
         }
-        
+
+        /// <summary>
+        /// Ctor accepting pre-built options, for hosts/tests that configure the provider
+        /// themselves (e.g. a different provider or an in-memory store).
+        /// </summary>
+        /// <param name="options">Context options</param>
+        public NopObjectContext(DbContextOptions<NopObjectContext> options)
+            : base(options)
+        {
+        }
+
         #endregion
 
         #region Utilities
 
-        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            //dynamically load all configuration
-            //System.Type configType = typeof(LanguageMap);   //any of your configuration classes here
-            //var typesToRegister = Assembly.GetAssembly(configType).GetTypes()
+            //when the context was built from a DbContextOptions instance the provider is
+            //already configured and _nameOrConnectionString is null - do not override it.
+            if (!optionsBuilder.IsConfigured && !string.IsNullOrEmpty(_nameOrConnectionString))
+                optionsBuilder.UseSqlServer(_nameOrConnectionString);
 
-            var typesToRegister = Assembly.GetExecutingAssembly().GetTypes()
-            .Where(type => !String.IsNullOrEmpty(type.Namespace))
-            .Where(type => type.BaseType != null && type.BaseType.IsGenericType &&
-                type.BaseType.GetGenericTypeDefinition() == typeof(NopEntityTypeConfiguration<>));
-            foreach (var type in typesToRegister)
-            {
-                dynamic configurationInstance = Activator.CreateInstance(type);
-                modelBuilder.Configurations.Add(configurationInstance);
-            }
-            //...or do it manually below. For example,
-            //modelBuilder.Configurations.Add(new LanguageMap());
+            base.OnConfiguring(optionsBuilder);
+        }
 
-
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            //EF6 reflected over the assembly looking for NopEntityTypeConfiguration<> subclasses
+            //and fed each one to modelBuilder.Configurations.Add(...). EF Core has a built-in
+            //equivalent: every IEntityTypeConfiguration<T> in the assembly is discovered and
+            //applied. NopEntityTypeConfiguration<T> implements IEntityTypeConfiguration<T>, so
+            //all Mapping/**/*Map.cs classes are picked up by this single call.
+            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
             base.OnModelCreating(modelBuilder);
         }
@@ -73,6 +96,144 @@ namespace Nop.Data
             return alreadyAttached;
         }
 
+        /// <summary>
+        /// Determines whether a type is read from a single result-set column rather than
+        /// mapped property-by-property.
+        /// </summary>
+        private static bool IsSimpleType(Type type)
+        {
+            var underlying = Nullable.GetUnderlyingType(type) ?? type;
+            return underlying.IsPrimitive
+                   || underlying.IsEnum
+                   || underlying == typeof(string)
+                   || underlying == typeof(decimal)
+                   || underlying == typeof(DateTime)
+                   || underlying == typeof(DateTimeOffset)
+                   || underlying == typeof(TimeSpan)
+                   || underlying == typeof(Guid)
+                   || underlying == typeof(byte[]);
+        }
+
+        /// <summary>
+        /// Binds the supplied parameters onto the command and rewrites EF6-style positional
+        /// placeholders ({0}, {1}, ...) into named parameters.
+        /// </summary>
+        private static string PrepareCommand(string sql, object[] parameters, DbCommand command)
+        {
+            if (parameters == null || parameters.Length == 0)
+                return sql;
+
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                var existing = parameters[i] as DbParameter;
+                if (existing != null)
+                {
+                    //already a provider parameter (this is how the stored-procedure call sites
+                    //pass values) - the SQL text already references it by name
+                    command.Parameters.Add(existing);
+                    continue;
+                }
+
+                var name = "@p" + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = name;
+                parameter.Value = parameters[i] ?? DBNull.Value;
+                command.Parameters.Add(parameter);
+
+                sql = sql.Replace("{" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}", name);
+            }
+
+            return sql;
+        }
+
+        /// <summary>
+        /// Runs a raw SQL query and materializes the rows.
+        /// </summary>
+        /// <remarks>
+        /// EF6 offered <c>Database.SqlQuery&lt;T&gt;</c> for ANY type - scalars, and arbitrary
+        /// non-entity classes materialized by column-name/property-name matching. EF Core has no
+        /// equivalent: <c>Database.SqlQueryRaw&lt;T&gt;</c> is restricted to scalar types (and
+        /// requires the column be aliased <c>Value</c>), and <c>FromSqlRaw</c> only works for
+        /// types present in the model. To keep <c>IDbContext.SqlQuery&lt;TElement&gt;</c>'s
+        /// signature and behavior intact for its non-entity call sites
+        /// (<c>PictureService.HashItem</c>, <c>ProductTagService.ProductTagWithCount</c>) this
+        /// drops to ADO.NET over the context's own connection and reuses the same
+        /// reflection-based row mapper as <see cref="DataReaderExtensions"/>.
+        /// </remarks>
+        protected virtual IEnumerable<TElement> ExecuteRawSqlQuery<TElement>(string sql, object[] parameters)
+        {
+            var results = new List<TElement>();
+            var elementType = typeof(TElement);
+            var simple = IsSimpleType(elementType);
+            var targetType = Nullable.GetUnderlyingType(elementType) ?? elementType;
+
+            var connection = Database.GetDbConnection();
+            var closeWhenDone = connection.State != ConnectionState.Open;
+            if (closeWhenDone)
+                connection.Open();
+
+            try
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = PrepareCommand(sql, parameters, command);
+
+                    var commandTimeout = Database.GetCommandTimeout();
+                    if (commandTimeout.HasValue)
+                        command.CommandTimeout = commandTimeout.Value;
+
+                    var currentTransaction = Database.CurrentTransaction;
+                    if (currentTransaction != null)
+                        command.Transaction = currentTransaction.GetDbTransaction();
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (simple)
+                        {
+                            while (reader.Read())
+                            {
+                                if (reader.IsDBNull(0))
+                                {
+                                    results.Add(default(TElement));
+                                    continue;
+                                }
+
+                                var value = reader.GetValue(0);
+                                if (targetType.IsEnum)
+                                    value = Enum.ToObject(targetType, value);
+                                else if (!targetType.IsInstanceOfType(value))
+                                    value = Convert.ChangeType(value, targetType,
+                                        System.Globalization.CultureInfo.InvariantCulture);
+
+                                results.Add((TElement)value);
+                            }
+                        }
+                        else
+                        {
+                            var propertyLookup = elementType
+                                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                                .GroupBy(p => p.Name.ToLowerInvariant())
+                                .ToDictionary(g => g.Key, g => g.First());
+
+                            while (reader.Read())
+                            {
+                                var instance = Activator.CreateInstance<TElement>();
+                                reader.DataReaderToObject(instance, null, propertyLookup);
+                                results.Add(instance);
+                            }
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                if (closeWhenDone)
+                    connection.Close();
+            }
+
+            return results;
+        }
+
         #endregion
 
         #region Methods
@@ -83,7 +244,8 @@ namespace Nop.Data
         /// <returns>SQL to generate database</returns>
         public string CreateDatabaseScript()
         {
-            return ((IObjectContextAdapter)this).ObjectContext.CreateDatabaseScript();
+            //EF6: ((IObjectContextAdapter)this).ObjectContext.CreateDatabaseScript()
+            return Database.GenerateCreateScript();
         }
 
         /// <summary>
@@ -91,7 +253,7 @@ namespace Nop.Data
         /// </summary>
         /// <typeparam name="TEntity">Entity type</typeparam>
         /// <returns>DbSet</returns>
-        public new IDbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
+        public new DbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
         {
             return base.Set<TEntity>();
         }
@@ -125,20 +287,26 @@ namespace Nop.Data
                 }
             }
 
-            var result = this.Database.SqlQuery<TEntity>(commandText, parameters).ToList();
+            //EF6: Database.SqlQuery<TEntity>(commandText, parameters) - untracked entity
+            //materialization. EF Core equivalent is DbSet<TEntity>.FromSqlRaw; AsNoTracking
+            //preserves the EF6 behavior of not tracking the stored-procedure results, which
+            //matters because the loop below re-attaches them deliberately.
+            var result = Set<TEntity>().FromSqlRaw(commandText, parameters ?? new object[0])
+                .AsNoTracking()
+                .ToList();
 
             //performance hack applied as described here - http://www.nopcommerce.com/boards/t/25483/fix-very-important-speed-improvement.aspx
-            bool acd = this.Configuration.AutoDetectChangesEnabled;
+            bool acd = this.ChangeTracker.AutoDetectChangesEnabled;
             try
             {
-                this.Configuration.AutoDetectChangesEnabled = false;
+                this.ChangeTracker.AutoDetectChangesEnabled = false;
 
                 for (int i = 0; i < result.Count; i++)
                     result[i] = AttachEntityToContext(result[i]);
             }
             finally
             {
-                this.Configuration.AutoDetectChangesEnabled = acd;
+                this.ChangeTracker.AutoDetectChangesEnabled = acd;
             }
 
             return result;
@@ -153,7 +321,7 @@ namespace Nop.Data
         /// <returns>Result</returns>
         public IEnumerable<TElement> SqlQuery<TElement>(string sql, params object[] parameters)
         {
-            return this.Database.SqlQuery<TElement>(sql, parameters);
+            return ExecuteRawSqlQuery<TElement>(sql, parameters);
         }
     
         /// <summary>
@@ -170,19 +338,34 @@ namespace Nop.Data
             if (timeout.HasValue)
             {
                 //store previous timeout
-                previousTimeout = ((IObjectContextAdapter) this).ObjectContext.CommandTimeout;
-                ((IObjectContextAdapter) this).ObjectContext.CommandTimeout = timeout;
+                previousTimeout = Database.GetCommandTimeout();
+                Database.SetCommandTimeout(timeout);
             }
 
-            var transactionalBehavior = doNotEnsureTransaction
-                ? TransactionalBehavior.DoNotEnsureTransaction
-                : TransactionalBehavior.EnsureTransaction;
-            var result = this.Database.ExecuteSqlCommand(transactionalBehavior, sql, parameters);
+            var parameterValues = parameters ?? new object[0];
+
+            int result;
+            if (doNotEnsureTransaction || Database.CurrentTransaction != null)
+            {
+                //EF Core's ExecuteSqlRaw does not open its own transaction, which is exactly
+                //EF6's TransactionalBehavior.DoNotEnsureTransaction.
+                result = Database.ExecuteSqlRaw(sql, parameterValues);
+            }
+            else
+            {
+                //EF6's TransactionalBehavior.EnsureTransaction had no EF Core counterpart;
+                //an explicit transaction reproduces it.
+                using (var transaction = Database.BeginTransaction())
+                {
+                    result = Database.ExecuteSqlRaw(sql, parameterValues);
+                    transaction.Commit();
+                }
+            }
 
             if (timeout.HasValue)
             {
                 //Set previous timeout back
-                ((IObjectContextAdapter) this).ObjectContext.CommandTimeout = previousTimeout;
+                Database.SetCommandTimeout(previousTimeout);
             }
 
             //return result
@@ -198,7 +381,8 @@ namespace Nop.Data
             if (entity == null)
                 throw new ArgumentNullException("entity");
 
-            ((IObjectContextAdapter)this).ObjectContext.Detach(entity);
+            //EF6: ((IObjectContextAdapter)this).ObjectContext.Detach(entity)
+            Entry(entity).State = EntityState.Detached;
         }
 
         #endregion
@@ -208,15 +392,25 @@ namespace Nop.Data
         /// <summary>
         /// Gets or sets a value indicating whether proxy creation setting is enabled (used in EF)
         /// </summary>
+        /// <remarks>
+        /// EF6 mapped this straight onto <c>DbContextConfiguration.ProxyCreationEnabled</c>.
+        /// EF Core has no dynamic-proxy layer in the core package (proxies are opt-in via the
+        /// separate Microsoft.EntityFrameworkCore.Proxies package and are configured on the
+        /// options, not toggled at runtime), so the setter is mapped onto the closest runtime
+        /// analogue - <c>ChangeTracker.LazyLoadingEnabled</c> - and the flag is remembered so
+        /// the getter round-trips. Call sites (PictureService) use this only as a
+        /// lazy-load/perf switch, which this preserves.
+        /// </remarks>
         public virtual bool ProxyCreationEnabled
         {
             get
             {
-                return this.Configuration.ProxyCreationEnabled;
+                return _proxyCreationEnabled;
             }
             set
             {
-                this.Configuration.ProxyCreationEnabled = value;
+                _proxyCreationEnabled = value;
+                ChangeTracker.LazyLoadingEnabled = value;
             }
         }
 
@@ -227,11 +421,11 @@ namespace Nop.Data
         {
             get
             {
-                return this.Configuration.AutoDetectChangesEnabled;
+                return ChangeTracker.AutoDetectChangesEnabled;
             }
             set
             {
-                this.Configuration.AutoDetectChangesEnabled = value;
+                ChangeTracker.AutoDetectChangesEnabled = value;
             }
         }
 

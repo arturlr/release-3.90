@@ -1,25 +1,29 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Blogs;
 
 namespace Nop.Data.Mapping.Blogs
 {
     public partial class BlogCommentMap : NopEntityTypeConfiguration<BlogComment>
     {
-        public BlogCommentMap()
+        public override void Configure(EntityTypeBuilder<BlogComment> builder)
         {
-            this.ToTable("BlogComment");
-            this.HasKey(comment => comment.Id);
+            builder.ToTable("BlogComment");
+            builder.HasKey(comment => comment.Id);
 
-            this.HasRequired(comment => comment.BlogPost)
+            builder.HasOne(comment => comment.BlogPost)
                 .WithMany(blog => blog.BlogComments)
                 .HasForeignKey(comment => comment.BlogPostId);
 
-            this.HasRequired(comment => comment.Customer)
+            builder.HasOne(comment => comment.Customer)
                 .WithMany()
                 .HasForeignKey(comment => comment.CustomerId);
 
-            this.HasRequired(comment => comment.Store)
+            builder.HasOne(comment => comment.Store)
                 .WithMany()
                 .HasForeignKey(comment => comment.StoreId);
+
+            base.Configure(builder);
         }
     }
 }

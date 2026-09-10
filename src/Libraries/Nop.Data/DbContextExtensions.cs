@@ -1,25 +1,35 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Core.EntityClient;
-using System.Data.Entity.Core.Metadata.Edm;
-using System.Data.Entity.Infrastructure;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Nop.Core;
 
 namespace Nop.Data
 {
+    /// <summary>
+    /// EF6 -> EF Core port (task 3.2).
+    ///
+    /// The EF6 implementation reached into the ObjectContext / MetadataWorkspace
+    /// (<c>StoreItemCollection</c>, <c>EntityContainer</c>, <c>TypeUsage.Facets</c>,
+    /// <c>EntityConnection</c>) to recover table names, column max lengths and decimal
+    /// precision. EF Core exposes the same information through its own model
+    /// (<see cref="IEntityType"/> / <see cref="IProperty"/>) plus the relational metadata
+    /// extensions, so every helper below is re-based on <c>DbContext.Model</c>. Public
+    /// signatures are unchanged.
+    /// </summary>
     public static class DbContextExtensions
     {
         #region Utilities
 
-        private static T InnerGetCopy<T>(IDbContext context, T currentCopy, Func<DbEntityEntry<T>, DbPropertyValues> func) where T : BaseEntity
+        private static T InnerGetCopy<T>(IDbContext context, T currentCopy, Func<EntityEntry<T>, PropertyValues> func) where T : BaseEntity
         {
             //Get the database context
             DbContext dbContext = CastOrThrow(context);
 
             //Get the entity tracking object
-            DbEntityEntry<T> entry = GetEntityOrReturnNull(currentCopy, dbContext);
+            EntityEntry<T> entry = GetEntityOrReturnNull(currentCopy, dbContext);
 
             //The output 
             T output = null;
@@ -27,7 +37,7 @@ namespace Nop.Data
             //Try and get the values
             if (entry != null)
             {
-                DbPropertyValues dbPropertyValues = func(entry);
+                PropertyValues dbPropertyValues = func(entry);
                 if (dbPropertyValues != null)
                 {
                     output = dbPropertyValues.ToObject() as T;
@@ -44,7 +54,7 @@ namespace Nop.Data
         /// <param name="currentCopy">The current copy.</param>
         /// <param name="dbContext">The db context.</param>
         /// <returns></returns>
-        private static DbEntityEntry<T> GetEntityOrReturnNull<T>(T currentCopy, DbContext dbContext) where T : BaseEntity
+        private static EntityEntry<T> GetEntityOrReturnNull<T>(T currentCopy, DbContext dbContext) where T : BaseEntity
         {
             return dbContext.ChangeTracker.Entries<T>().FirstOrDefault(e => e.Entity == currentCopy);
         }
@@ -59,6 +69,48 @@ namespace Nop.Data
             }
 
             return output;
+        }
+
+        /// <summary>
+        /// Resolve an entity type in the EF Core model from either a simple CLR type name
+        /// ("Product") or an assembly-qualified/full name.
+        /// </summary>
+        private static IEntityType FindEntityType(DbContext dbContext, string entityTypeName)
+        {
+            if (string.IsNullOrEmpty(entityTypeName))
+                return null;
+
+            //the EF6 implementation accepted both a plain CLR name and a fully qualified one
+            var resolved = Type.GetType(entityTypeName);
+            if (resolved != null)
+            {
+                var byClrType = dbContext.Model.FindEntityType(resolved);
+                if (byClrType != null)
+                    return byClrType;
+            }
+
+            return dbContext.Model.GetEntityTypes()
+                .FirstOrDefault(et => et.ClrType != null &&
+                                      (et.ClrType.Name == entityTypeName ||
+                                       et.ClrType.FullName == entityTypeName));
+        }
+
+        /// <summary>
+        /// EF Core replacement for the EF6 "field facets" lookup: returns the model properties of
+        /// the named entity type whose names appear in <paramref name="columnNames"/>.
+        /// </summary>
+        private static IDictionary<string, IProperty> GetModelProperties(this IDbContext context,
+            string entityTypeName, params string[] columnNames)
+        {
+            var dbContext = CastOrThrow(context);
+            var entityType = FindEntityType(dbContext, entityTypeName);
+            if (entityType == null)
+                return new Dictionary<string, IProperty>();
+
+            return entityType.GetProperties()
+                .Where(p => columnNames != null && columnNames.Contains(p.Name))
+                .GroupBy(p => p.Name)
+                .ToDictionary(g => g.Key, g => g.First());
         }
 
         #endregion
@@ -103,10 +155,14 @@ namespace Nop.Data
                 throw new ArgumentNullException("tableName");
 
             //drop the table
-            if (context.Database.SqlQuery<int>("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = {0}", tableName).Any<int>())
+            //EF6 used Database.SqlQuery<int>. EF Core's scalar equivalent is
+            //Database.SqlQueryRaw<T>, which requires the single column to be aliased "Value".
+            if (context.Database
+                    .SqlQueryRaw<int>("SELECT 1 AS Value FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = {0}", tableName)
+                    .Any())
             {
                 var dbScript = "DROP TABLE [" + tableName + "]";
-                context.Database.ExecuteSqlCommand(dbScript);
+                context.Database.ExecuteSqlRaw(dbScript);
             }
             context.SaveChanges();
         }
@@ -119,21 +175,16 @@ namespace Nop.Data
         /// <returns>Table name</returns>
         public static string GetTableName<T>(this IDbContext context) where T : BaseEntity
         {
-            //var tableName = typeof(T).Name;
-            //return tableName;
+            //EF6 walked the SSpace StoreItemCollection to find the store entity set and read its
+            //"Table" metadata property. EF Core exposes the mapped table directly.
+            var dbContext = CastOrThrow(context);
 
-            //this code works only with Entity Framework.
-            //If you want to support other database, then use the code above (commented)
+            var entityType = dbContext.Model.FindEntityType(typeof(T));
+            if (entityType == null)
+                throw new InvalidOperationException(
+                    string.Format("Entity type '{0}' is not part of the model.", typeof(T).Name));
 
-            var adapter = ((IObjectContextAdapter)context).ObjectContext;
-            var storageModel = (StoreItemCollection)adapter.MetadataWorkspace.GetItemCollection(DataSpace.SSpace);
-            var containers = storageModel.GetItems<EntityContainer>();
-            var entitySetBase = containers.SelectMany(c => c.BaseEntitySets.Where(bes => bes.Name == typeof(T).Name)).First();
-
-            // Here are variables that will hold table and schema name
-            string tableName = entitySetBase.MetadataProperties.First(p => p.Name == "Table").Value.ToString();
-            //string schemaName = productEntitySetBase.MetadataProperties.First(p => p.Name == "Schema").Value.ToString();
-            return tableName;
+            return entityType.GetTableName() ?? typeof(T).Name;
         }
 
         /// <summary>
@@ -158,16 +209,10 @@ namespace Nop.Data
         /// <returns></returns>
         public static IDictionary<string, int> GetColumnsMaxLength(this IDbContext context, string entityTypeName, params string[] columnNames)
         {
-            int temp;
-
-            var fildFacets = GetFildFacets(context, entityTypeName, "String", columnNames);
-
-            var queryResult = fildFacets
-                .Select(f => new { Name = f.Key, MaxLength = f.Value["MaxLength"].Value })
-                .Where(p => int.TryParse(p.MaxLength.ToString(), out temp))
-                .ToDictionary(p => p.Name, p => Convert.ToInt32(p.MaxLength));
-
-            return queryResult;
+            //EF6: TypeUsage.Facets["MaxLength"] on CSpace String properties.
+            return context.GetModelProperties(entityTypeName, columnNames)
+                .Where(p => p.Value.ClrType == typeof(string) && p.Value.GetMaxLength().HasValue)
+                .ToDictionary(p => p.Key, p => p.Value.GetMaxLength().Value);
         }
 
 
@@ -180,47 +225,27 @@ namespace Nop.Data
         /// <returns></returns>
         public static IDictionary<string, decimal> GetDecimalMaxValue(this IDbContext context, string entityTypeName, params string[] columnNames)
         {
-            var fildFacets = GetFildFacets(context, entityTypeName, "Decimal", columnNames);
-
-            return fildFacets.ToDictionary(p => p.Key, p => int.Parse(p.Value["Precision"].Value.ToString()) - int.Parse(p.Value["Scale"].Value.ToString()))
-                .ToDictionary(p => p.Key, p => new decimal(Math.Pow(10, p.Value)));
-        }
-
-        private static Dictionary<string, ReadOnlyMetadataCollection<Facet>> GetFildFacets(this IDbContext context,
-            string entityTypeName, string edmTypeName, params string[] columnNames)
-        {
-            //original: http://stackoverflow.com/questions/5081109/entity-framework-4-0-automatically-truncate-trim-string-before-insert
-
-            var entType = Type.GetType(entityTypeName);
-            var adapter = ((IObjectContextAdapter)context).ObjectContext;
-            var metadataWorkspace = adapter.MetadataWorkspace;
-            var q = from meta in metadataWorkspace.GetItems(DataSpace.CSpace).Where(m => m.BuiltInTypeKind == BuiltInTypeKind.EntityType)
-                    from p in (meta as EntityType).Properties.Where(p => columnNames.Contains(p.Name) && p.TypeUsage.EdmType.Name == edmTypeName)
-                    select p;
-
-            var queryResult = q.Where(p =>
-            {
-                var match = p.DeclaringType.Name == entityTypeName;
-                if (!match && entType != null)
-                {
-                    //Is a fully qualified name....
-                    match = entType.Name == p.DeclaringType.Name;
-                }
-
-                return match;
-
-            }).ToDictionary(p => p.Name, p => p.TypeUsage.Facets);
-
-            return queryResult;
+            //EF6: Facets["Precision"] - Facets["Scale"] on CSpace Decimal properties.
+            return context.GetModelProperties(entityTypeName, columnNames)
+                .Where(p => (Nullable.GetUnderlyingType(p.Value.ClrType) ?? p.Value.ClrType) == typeof(decimal) &&
+                            p.Value.GetPrecision().HasValue && p.Value.GetScale().HasValue)
+                .ToDictionary(p => p.Key,
+                    p => new decimal(Math.Pow(10, p.Value.GetPrecision().Value - p.Value.GetScale().Value)));
         }
 
         public static string DbName(this IDbContext context)
         {
-            var connection = ((IObjectContextAdapter)context).ObjectContext.Connection as EntityConnection;
+            //EF6: ((IObjectContextAdapter)context).ObjectContext.Connection as EntityConnection
+            //     -> connection.StoreConnection.Database
+            var dbContext = context as DbContext;
+            if (dbContext == null)
+                return string.Empty;
+
+            var connection = dbContext.Database.GetDbConnection();
             if (connection == null)
                 return string.Empty;
 
-            return connection.StoreConnection.Database;
+            return connection.Database;
         }
 
         #endregion

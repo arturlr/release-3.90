@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Data.Entity;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 
 namespace Nop.Data
@@ -11,7 +11,14 @@ namespace Nop.Data
         /// </summary>
         /// <typeparam name="TEntity">Entity type</typeparam>
         /// <returns>DbSet</returns>
-        IDbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity;
+        /// <remarks>
+        /// EF6 -> EF Core (task 3.2): the return type was <c>System.Data.Entity.IDbSet&lt;TEntity&gt;</c>.
+        /// EF Core has no <c>IDbSet&lt;T&gt;</c>; <c>Microsoft.EntityFrameworkCore.DbSet&lt;T&gt;</c> is
+        /// the only set abstraction. The members the codebase uses off this type
+        /// (Add/Remove/Find/Local/AsNoTracking/IQueryable composition) are all present on
+        /// <see cref="DbSet{TEntity}"/>, so call sites are unaffected apart from the type name.
+        /// </remarks>
+        DbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity;
 
         /// <summary>
         /// Save changes

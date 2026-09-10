@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
-using System.Web;
+using Microsoft.Data.SqlClient;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Common;
@@ -16,6 +15,22 @@ namespace Nop.Services.Common
     /// <summary>
     ///  Maintenance service
     /// </summary>
+    /// <remarks>
+    /// Task 4.2. Two net10.0 gaps were closed here:
+    ///   * <c>System.Data.SqlClient</c> has no net10.0 implementation -&gt;
+    ///     <c>Microsoft.Data.SqlClient</c> (the same type names, and already what
+    ///     <c>Nop.Data.SqlServerDataProvider</c> returns).
+    ///   * <c>HttpRequest.PhysicalApplicationPath</c> does not exist in ASP.NET Core, and it
+    ///     was the ONLY use of the injected HTTP context in this class. The physical
+    ///     application root is now obtained from <see cref="CommonHelper.MapPath"/>
+    ///     (Nop.Core's ASP.NET Core-era path helper), so the <c>HttpContextBase</c>
+    ///     constructor parameter was DROPPED rather than replaced - see the signature table
+    ///     in runtime-deferrals.md. NOTE: <c>CommonHelper.MapPath</c> resolves against
+    ///     <c>CommonHelper.BaseDirectory</c>, which the host must set to the content root
+    ///     (open deferral 1.5 from task 2.4); until then backups resolve under <c>bin/</c>.
+    ///     The Windows-style "\" separator of the original format string is also replaced by
+    ///     <see cref="Path.Combine"/> so the path is correct on Linux.
+    /// </remarks>
     public partial class MaintenanceService : IMaintenanceService
     {
         #region Fields
@@ -23,7 +38,6 @@ namespace Nop.Services.Common
         private readonly IDataProvider _dataProvider;
         private readonly IDbContext _dbContext;
         private readonly CommonSettings _commonSettings;
-        private readonly HttpContextBase _httpContext;
         #endregion
 
         #region Ctor
@@ -34,14 +48,12 @@ namespace Nop.Services.Common
         /// <param name="dataProvider">Data provider</param>
         /// <param name="dbContext">Database Context</param>
         /// <param name="commonSettings">Common settings</param>
-        /// <param name="httpContext">HTTP context</param>
         public MaintenanceService(IDataProvider dataProvider, IDbContext dbContext,
-            CommonSettings commonSettings, HttpContextBase httpContext)
+            CommonSettings commonSettings)
         {
             this._dataProvider = dataProvider;
             this._dbContext = dbContext;
             this._commonSettings = commonSettings;
-            this._httpContext = httpContext;
         }
 
         #endregion
@@ -50,7 +62,7 @@ namespace Nop.Services.Common
 
         protected virtual string GetBackupDirectoryPath()
         {
-            return string.Format("{0}Administration\\db_backups\\", _httpContext.Request.PhysicalApplicationPath);
+            return Path.Combine(CommonHelper.MapPath("~/"), "Administration", "db_backups") + Path.DirectorySeparatorChar;
         }
 
         protected virtual void CheckBackupSupported()

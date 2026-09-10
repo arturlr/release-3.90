@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
 using Autofac;
 using Autofac.Core.Lifetime;
-using Autofac.Integration.Mvc;
 
 namespace Nop.Core.Infrastructure.DependencyManagement
 {
@@ -190,6 +188,23 @@ namespace Nop.Core.Infrastructure.DependencyManagement
         }
         
         /// <summary>
+        /// Gets or sets a delegate that returns the ambient (per-request) lifetime scope, or
+        /// null when there is no ambient scope.
+        /// </summary>
+        /// <remarks>
+        /// Task 2.4 (design section 5): this replaces the removed
+        /// <c>HttpContext.Current != null ? AutofacDependencyResolver.Current.RequestLifetimeScope</c>
+        /// lookup from Autofac.Integration.Mvc (Autofac.Mvc5). ASP.NET Core owns the request
+        /// scope, so the host supplies it here - typically
+        /// <c>() =&gt; httpContextAccessor.HttpContext?.RequestServices.GetService&lt;ILifetimeScope&gt;()</c>
+        /// - when Autofac is integrated in task 6.4. This is an additive member; no existing
+        /// <see cref="ContainerManager"/> signature changed.
+        /// RUNTIME DEFERRAL: until task 6.4 sets it, <see cref="Scope"/> always begins a fresh
+        /// lifetime scope, so per-request-scoped services are not shared within a request.
+        /// </remarks>
+        public static Func<ILifetimeScope> CurrentScopeProvider { get; set; }
+
+        /// <summary>
         /// Get current scope
         /// </summary>
         /// <returns>Scope</returns>
@@ -197,16 +212,21 @@ namespace Nop.Core.Infrastructure.DependencyManagement
         {
             try
             {
-                if (HttpContext.Current != null)
-                    return AutofacDependencyResolver.Current.RequestLifetimeScope;
+                var scopeProvider = CurrentScopeProvider;
+                if (scopeProvider != null)
+                {
+                    var ambientScope = scopeProvider();
+                    if (ambientScope != null)
+                        return ambientScope;
+                }
 
                 //when such lifetime scope is returned, you should be sure that it'll be disposed once used (e.g. in schedule tasks)
                 return Container.BeginLifetimeScope(MatchingScopeLifetimeTags.RequestLifetimeScopeTag);
             }
             catch (Exception)
             {
-                //we can get an exception here if RequestLifetimeScope is already disposed
-                //for example, requested in or after "Application_EndRequest" handler
+                //we can get an exception here if the ambient request lifetime scope is already disposed
+                //for example, requested in or after the end of the request
                 //but note that usually it should never happen
 
                 //when such lifetime scope is returned, you should be sure that it'll be disposed once used (e.g. in schedule tasks)

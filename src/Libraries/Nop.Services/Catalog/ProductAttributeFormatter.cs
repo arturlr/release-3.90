@@ -1,6 +1,6 @@
 using System;
+using System.Net;
 using System.Text;
-using System.Web;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Customers;
@@ -105,7 +105,7 @@ namespace Nop.Services.Catalog
 
                                 //encode (if required)
                                 if (htmlEncode)
-                                    attributeName = HttpUtility.HtmlEncode(attributeName);
+                                    attributeName = WebUtility.HtmlEncode(attributeName);
 
                                 //we never encode multiline textbox input
                                 formattedAttribute = string.Format("{0}: {1}", attributeName, HtmlHelper.FormatText(value, false, true, false, false, false, false));
@@ -122,7 +122,7 @@ namespace Nop.Services.Catalog
 
                                     //encode (if required)
                                     if (htmlEncode)
-                                        fileName = HttpUtility.HtmlEncode(fileName);
+                                        fileName = WebUtility.HtmlEncode(fileName);
 
                                     //TODO add a method for getting URL (use routing because it handles all SEO friendly URLs)
                                     var attributeText = allowHyperlinks ? string.Format("<a href=\"{0}download/getfileupload/?downloadId={1}\" class=\"fileuploadattribute\">{2}</a>",
@@ -132,7 +132,7 @@ namespace Nop.Services.Catalog
 
                                     //encode (if required)
                                     if (htmlEncode)
-                                        attributeName = HttpUtility.HtmlEncode(attributeName);
+                                        attributeName = WebUtility.HtmlEncode(attributeName);
 
                                     formattedAttribute = string.Format("{0}: {1}", attributeName, attributeText);
                                 }
@@ -144,7 +144,7 @@ namespace Nop.Services.Catalog
 
                                 //encode (if required)
                                 if (htmlEncode)
-                                    formattedAttribute = HttpUtility.HtmlEncode(formattedAttribute);
+                                    formattedAttribute = WebUtility.HtmlEncode(formattedAttribute);
                             }
 
                             if (!string.IsNullOrEmpty(formattedAttribute))
@@ -186,7 +186,7 @@ namespace Nop.Services.Catalog
 
                             //encode (if required)
                             if (htmlEncode)
-                                formattedAttribute = HttpUtility.HtmlEncode(formattedAttribute);
+                                formattedAttribute = WebUtility.HtmlEncode(formattedAttribute);
 
                             if (!string.IsNullOrEmpty(formattedAttribute))
                             {
@@ -224,8 +224,8 @@ namespace Nop.Services.Catalog
                     //encode (if required)
                     if (htmlEncode)
                     {
-                        giftCardFrom = HttpUtility.HtmlEncode(giftCardFrom);
-                        giftCardFor = HttpUtility.HtmlEncode(giftCardFor);
+                        giftCardFrom = WebUtility.HtmlEncode(giftCardFrom);
+                        giftCardFor = WebUtility.HtmlEncode(giftCardFor);
                     }
 
                     if (!String.IsNullOrEmpty(result.ToString()))

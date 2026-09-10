@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
 using Autofac;
-using Autofac.Integration.Mvc;
 using AutoMapper;
 using Nop.Core.Configuration;
 using Nop.Core.Infrastructure.DependencyManagement;
@@ -67,8 +65,15 @@ namespace Nop.Core.Infrastructure
             var container = builder.Build();
             this._containerManager = new ContainerManager(container);
 
-            //set dependency resolver
-            DependencyResolver.SetResolver(new AutofacDependencyResolver(container));
+            //Task 2.4 (design section 5): the MVC5 dependency-resolver hook
+            //    DependencyResolver.SetResolver(new AutofacDependencyResolver(container));
+            //was REMOVED along with the Autofac.Integration.Mvc (Autofac.Mvc5) package.
+            //ASP.NET Core has no static DependencyResolver; the container is handed to the host
+            //through Autofac.Extensions.DependencyInjection
+            //(UseServiceProviderFactory(new AutofacServiceProviderFactory()) + ConfigureContainer),
+            //which is wired up in Nop.Web.Framework / the host (tasks 6.4 and 7.2).
+            //Per-request lifetime scopes come from ASP.NET Core's request scope; see
+            //ContainerManager.CurrentScopeProvider for the seam that task 6.4 populates.
         }
 
         /// <summary>

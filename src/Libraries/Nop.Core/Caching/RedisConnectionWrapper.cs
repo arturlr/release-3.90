@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Microsoft.Extensions.Logging;
 using Nop.Core.Configuration;
-using RedLock;
+using RedLockNet.SERedis;
+using RedLockNet.SERedis.Configuration;
 using StackExchange.Redis;
 
 namespace Nop.Core.Caching
@@ -18,7 +21,7 @@ namespace Nop.Core.Caching
         private readonly Lazy<string> _connectionString;
 
         private volatile ConnectionMultiplexer _connection;
-        private volatile RedisLockFactory _redisLockFactory;
+        private volatile RedLockFactory _redisLockFactory;
         private readonly object _lock = new object();
 
         #endregion
@@ -71,10 +74,18 @@ namespace Nop.Core.Caching
         }
 
         /// <summary>
-        /// Create instance of RedisLockFactory
+        /// Create instance of RedLockFactory
         /// </summary>
-        /// <returns>RedisLockFactory</returns>
-        protected RedisLockFactory CreateRedisLockFactory()
+        /// <returns>RedLockFactory</returns>
+        /// <remarks>
+        /// Task 2.4: ported from RedLock.net 1.x to 2.x. The 1.x
+        /// <c>RedLock.RedisLockFactory</c>/<c>RedLock.RedisLockEndPoint</c> pair was renamed to
+        /// <c>RedLockNet.SERedis.RedLockFactory</c>/
+        /// <c>RedLockNet.SERedis.Configuration.RedLockEndPoint</c>, and the public constructor
+        /// was replaced by the static <see cref="RedLockFactory.Create(IList{RedLockEndPoint}, ILoggerFactory)"/>
+        /// factory method.
+        /// </remarks>
+        protected RedLockFactory CreateRedisLockFactory()
         {
             //get password and value whether to use ssl from connection string
             var password = string.Empty;
@@ -92,13 +103,15 @@ namespace Nop.Core.Caching
                 }
             }
 
-            //create RedisLockFactory for using Redlock distributed lock algorithm
-            return new RedisLockFactory(GetEndPoints().Select(endPoint => new RedisLockEndPoint
+            //create RedLockFactory for using Redlock distributed lock algorithm
+            var redLockEndPoints = GetEndPoints().Select(endPoint => new RedLockEndPoint
             {
                 EndPoint = endPoint,
                 Password = password,
                 Ssl = useSsl
-            }));
+            }).ToList();
+
+            return RedLockFactory.Create(redLockEndPoints, (ILoggerFactory)null);
         }
 
         #endregion
@@ -157,8 +170,8 @@ namespace Nop.Core.Caching
         /// <returns>True if lock was acquired and action was performed; otherwise false</returns>
         public bool PerformActionWithLock(string resource, TimeSpan expirationTime, Action action)
         {
-            //use RedLock library
-            using (var redisLock = _redisLockFactory.Create(resource, expirationTime))
+            //use RedLock library (2.x renamed IDistributedLockFactory.Create to CreateLock)
+            using (var redisLock = _redisLockFactory.CreateLock(resource, expirationTime))
             {
                 //ensure that lock is acquired
                 if (!redisLock.IsAcquired)
@@ -179,7 +192,7 @@ namespace Nop.Core.Caching
             if (_connection != null)
                 _connection.Dispose();
 
-            //dispose RedisLockFactory
+            //dispose RedLockFactory
             if (_redisLockFactory != null)
                 _redisLockFactory.Dispose();
         }

@@ -1,212 +1,116 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{CCD7F2C9-6A2C-4CF0-8E89-076B8FC0F144}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Nop.Data</RootNamespace>
-    <AssemblyName>Nop.Data</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
-    </Reference>
-    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
-    </Reference>
-    <Reference Include="EntityFramework.SqlServerCompact, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\EntityFramework.SqlServerCompact.6.1.3\lib\net45\EntityFramework.SqlServerCompact.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Data.SqlServerCe, Version=4.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <Private>True</Private>
-      <HintPath>..\..\packages\Microsoft.SqlServer.Compact.4.0.8876.1\lib\net40\System.Data.SqlServerCe.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Transactions" />
-    <Reference Include="System.Web" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Mapping\Catalog\PredefinedProductAttributeValueMap.cs" />
-    <Compile Include="Mapping\Catalog\StockQuantityHistoryMap.cs" />
-    <Compile Include="Mapping\Common\AddressAttributeMap.cs" />
-    <Compile Include="Mapping\Common\AddressAttributeValueMap.cs" />
-    <Compile Include="Mapping\Customers\CustomerPasswordMap.cs" />
-    <Compile Include="Mapping\Forums\ForumPostVoteMap.cs" />
-    <Compile Include="Mapping\Orders\ReturnRequestReason.cs" />
-    <Compile Include="Mapping\Orders\ReturnRequestAction.cs" />
-    <Compile Include="Mapping\Shipping\ProductAvailabilityRangeMap.cs" />
-    <Compile Include="Mapping\Topics\TopicTemplateMap.cs" />
-    <Compile Include="Mapping\Vendors\VendorNoteMap.cs" />
-    <Compile Include="QueryableExtensions.cs" />
-    <Compile Include="Extensions.cs" />
-    <Compile Include="DataReaderExtensions.cs" />
-    <Compile Include="DbContextExtensions.cs" />
-    <Compile Include="Initializers\CreateCeDatabaseIfNotExists.cs" />
-    <Compile Include="Initializers\DropCreateCeDatabaseAlways.cs" />
-    <Compile Include="Initializers\DropCreateCeDatabaseIfModelChanges.cs" />
-    <Compile Include="Initializers\SqlCeInitializer.cs" />
-    <Compile Include="Initializers\CreateTablesIfNotExist.cs" />
-    <Compile Include="EfDataProviderManager.cs" />
-    <Compile Include="Mapping\Catalog\ProductWarehouseInventoryMap.cs" />
-    <Compile Include="Mapping\Catalog\BackInStockSubscriptionMap.cs" />
-    <Compile Include="Mapping\Catalog\ManufacturerTemplateMap.cs" />
-    <Compile Include="Mapping\Catalog\CategoryTemplateMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductTemplateMap.cs" />
-    <Compile Include="Mapping\Common\SearchTermMap.cs" />
-    <Compile Include="Mapping\Common\GenericAttributeMap.cs" />
-    <Compile Include="Mapping\Customers\CustomerAttributeMap.cs" />
-    <Compile Include="Mapping\Customers\CustomerAttributeValueMap.cs" />
-    <Compile Include="Mapping\Shipping\WarehouseMap.cs" />
-    <Compile Include="Mapping\Shipping\DeliveryDateMap.cs" />
-    <Compile Include="Mapping\NopEntityTypeConfiguration.cs" />
-    <Compile Include="Mapping\Vendors\VendorMap.cs" />
-    <Compile Include="Mapping\Stores\StoreMappingMap.cs" />
-    <Compile Include="Mapping\Stores\StoreMap.cs" />
-    <Compile Include="Mapping\Security\AclRecordMap.cs" />
-    <Compile Include="Mapping\Seo\UrlRecordMap.cs" />
-    <Compile Include="Mapping\Customers\ExternalAuthenticationRecordMap.cs" />
-    <Compile Include="Mapping\Shipping\ShipmentMap.cs" />
-    <Compile Include="Mapping\Shipping\ShipmentItemMap.cs" />
-    <Compile Include="Mapping\Tasks\ScheduleTaskMap.cs" />
-    <Compile Include="SqlServerDataProvider.cs" />
-    <Compile Include="SqlCeDataProvider.cs" />
-    <Compile Include="IDbContext.cs" />
-    <Compile Include="Mapping\Affiliates\AffiliateMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductTagMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductReviewHelpfulnessMap.cs" />
-    <Compile Include="Mapping\Common\AddressMap.cs" />
-    <Compile Include="Mapping\Blogs\BlogPostMap.cs" />
-    <Compile Include="Mapping\Blogs\BlogCommentMap.cs" />
-    <Compile Include="Mapping\News\NewsCommentMap.cs" />
-    <Compile Include="Mapping\News\NewsItemMap.cs" />
-    <Compile Include="Mapping\Customers\CustomerRoleMap.cs" />
-    <Compile Include="Mapping\Customers\RewardPointsHistoryMap.cs" />
-    <Compile Include="Mapping\Directory\MeasureWeightMap.cs" />
-    <Compile Include="Mapping\Directory\MeasureDimensionMap.cs" />
-    <Compile Include="Mapping\Directory\CurrencyMap.cs" />
-    <Compile Include="Mapping\Directory\CountryMap.cs" />
-    <Compile Include="Mapping\Discounts\DiscountUsageHistoryMap.cs" />
-    <Compile Include="Mapping\Discounts\DiscountMap.cs" />
-    <Compile Include="Mapping\Discounts\DiscountRequirementMap.cs" />
-    <Compile Include="Mapping\Forums\ForumGroupMap.cs" />
-    <Compile Include="Mapping\Forums\ForumMap.cs" />
-    <Compile Include="Mapping\Forums\ForumPostMap.cs" />
-    <Compile Include="Mapping\Forums\ForumSubscriptionMap.cs" />
-    <Compile Include="Mapping\Forums\ForumTopicMap.cs" />
-    <Compile Include="Mapping\Forums\PrivateMessageMap.cs" />
-    <Compile Include="Mapping\Logging\ActivityLogMap.cs" />
-    <Compile Include="Mapping\Logging\ActivityLogTypeMap.cs" />
-    <Compile Include="Mapping\Media\DownloadMap.cs" />
-    <Compile Include="Mapping\Messages\CampaignMap.cs" />
-    <Compile Include="Mapping\Messages\EmailAccountMap.cs" />
-    <Compile Include="Mapping\Messages\MessageTemplateMap.cs" />
-    <Compile Include="Mapping\Messages\NewsLetterSubscriptionMap.cs" />
-    <Compile Include="Mapping\Messages\QueuedEmailMap.cs" />
-    <Compile Include="Mapping\Orders\CheckoutAttributeMap.cs" />
-    <Compile Include="Mapping\Orders\CheckoutAttributeValueMap.cs" />
-    <Compile Include="Mapping\Orders\ReturnRequestMap.cs" />
-    <Compile Include="Mapping\Orders\RecurringPaymentHistoryMap.cs" />
-    <Compile Include="Mapping\Orders\RecurringPaymentMap.cs" />
-    <Compile Include="Mapping\Orders\OrderItemMap.cs" />
-    <Compile Include="Mapping\Orders\OrderNoteMap.cs" />
-    <Compile Include="Mapping\Orders\GiftCardMap.cs" />
-    <Compile Include="Mapping\Orders\GiftCardUsageHistoryMap.cs" />
-    <Compile Include="Mapping\Orders\ShoppingCartItemMap.cs" />
-    <Compile Include="Mapping\Orders\OrderMap.cs" />
-    <Compile Include="Mapping\Polls\PollMap.cs" />
-    <Compile Include="Mapping\Polls\PollVotingRecordMap.cs" />
-    <Compile Include="Mapping\Polls\PollAnswerMap.cs" />
-    <Compile Include="Mapping\Security\PermissionRecordMap.cs" />
-    <Compile Include="Mapping\Directory\StateProvinceMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductReviewMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductAttributeMap.cs" />
-    <Compile Include="Mapping\Localization\LocalizedPropertyMap.cs" />
-    <Compile Include="Mapping\Catalog\TierPriceMap.cs" />
-    <Compile Include="Mapping\Catalog\RelatedProductMap.cs" />
-    <Compile Include="Mapping\Catalog\CrossSellProductMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductSpecificationAttributeMap.cs" />
-    <Compile Include="Mapping\Catalog\SpecificationAttributeOptionMap.cs" />
-    <Compile Include="Mapping\Catalog\SpecificationAttributeMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductAttributeValueMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductAttributeCombinationMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductAttributeMappingMap.cs" />
-    <Compile Include="Mapping\Media\PictureMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductPictureMap.cs" />
-    <Compile Include="Mapping\Catalog\ManufacturerMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductManufacturerMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductCategoryMap.cs" />
-    <Compile Include="Mapping\Catalog\CategoryMap.cs" />
-    <Compile Include="Mapping\Catalog\ProductMap.cs" />
-    <Compile Include="Mapping\Customers\CustomerMap.cs" />
-    <Compile Include="Mapping\Logging\LogMap.cs" />
-    <Compile Include="Mapping\Localization\LanguageMap.cs" />
-    <Compile Include="Mapping\Localization\LocaleStringResourceMap.cs" />
-    <Compile Include="Mapping\Configuration\SettingMap.cs" />
-    <Compile Include="Mapping\Shipping\ShippingMethodMap.cs" />
-    <Compile Include="Mapping\Tax\TaxCategoryMap.cs" />
-    <Compile Include="Mapping\Topics\TopicMap.cs" />
-    <Compile Include="NopObjectContext.cs" />
-    <Compile Include="EfRepository.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="EfStartUpTask.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Nop.Core\Nop.Core.csproj">
-      <Project>{6BDA8332-939F-45B7-A25E-7A797260AE59}</Project>
-      <Name>Nop.Core</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
-  </PropertyGroup>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Nop.Data - second stage of the migration, immediately downstream of Nop.Core
+    (Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 5.3).
+
+    Converted from the classic (non-SDK) MSBuild format. Dropped in the conversion:
+      * ToolsVersion / DefaultTargets / xmlns MSBuild 2003 attributes
+      * ProjectGuid {CCD7F2C9-6A2C-4CF0-8E89-076B8FC0F144}, ProductVersion,
+        SchemaVersion, FileAlignment, AppDesignerFolder, OutputType (Library is the
+        SDK default), TargetFrameworkProfile
+      * TargetFrameworkVersion v4.5.1
+      * The Debug|AnyCPU / Release|AnyCPU PropertyGroup pair (the SDK supplies
+        equivalent Debug/Release defaults) and the empty <PostBuildEvent/>
+      * Import of $(MSBuildToolsPath)\Microsoft.CSharp.targets and the commented
+        BeforeBuild/AfterBuild target stubs
+      * The explicit <Compile Include="..."/> list of 128 files - replaced by the
+        SDK's implicit globbing
+      * BCL <Reference Include="System.*"/> entries (System, System.Core, System.Data,
+        System.Xml, System.Xml.Linq, System.Data.DataSetExtensions, Microsoft.CSharp,
+        System.ComponentModel.DataAnnotations, System.Transactions, System.Web) -
+        subsumed by the net10.0 shared framework. Note System.Web was referenced but
+        never used: no source file under this project references System.Web,
+        HttpContext, HostingEnvironment or HttpRuntime.
+      * <Reference/> items with HintPaths into ..\..\packages\ (EntityFramework,
+        EntityFramework.SqlServer, EntityFramework.SqlServerCompact,
+        System.Data.SqlServerCe) - the packages.config surface, re-declared below as
+        version-less <PackageReference/> items for the EF Core equivalents
+      * <None Include="app.config"/> and <None Include="packages.config"/> - both
+        files are deleted in this task
+
+    Properties/AssemblyInfo.cs is retained (matching Nop.Core) and
+    GenerateAssemblyInfo=false in src/Directory.Build.props keeps the SDK from
+    emitting a duplicate set of assembly attributes.
+
+    TargetFramework, Nullable, ImplicitUsings, GenerateAssemblyInfo and the shared
+    assembly metadata come from src/Directory.Build.props; net10.0 is restated here so
+    the target framework is verifiable from the project file itself (Requirement 1.2).
   -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <!--
+    No <FrameworkReference Include="Microsoft.AspNetCore.App" /> here.
+
+    Nop.Core needs the ASP.NET Core shared framework because it consumes HttpContext /
+    IHttpContextAccessor. Nop.Data does not: a grep of every .cs file under this
+    project for System.Web, HttpContext, HostingEnvironment and HttpRuntime returns no
+    matches, and the only non-BCL namespaces used are System.Data.Entity* (ported to
+    EF Core below) plus Nop.Core.*. Everything else it uses - System.Data.Common,
+    System.Transactions, System.ComponentModel.DataAnnotations, System.Reflection - is
+    in the Microsoft.NETCore.App shared framework that the SDK references by default.
+    The legacy <Reference Include="System.Web" /> was an unused leftover.
+  -->
+
+  <!--
+    packages.config -> PackageReference (Requirements 1.3, 1.5).
+
+    Versions are governed centrally by src/Directory.Packages.props
+    (ManagePackageVersionsCentrally=true, CentralPackageVersionOverrideEnabled=false),
+    so every item below is intentionally version-less. All three already had
+    <PackageVersion> entries (10.0.12); this task added none.
+
+    Only DIRECT dependencies are declared. Each entry was verified against actual
+    source usage (the EF6 namespace it replaces is shown, since the code port itself
+    is task 3.2):
+
+      Microsoft.EntityFrameworkCore
+          Replaces System.Data.Entity (12 files). DbContext/DbSet/ChangeTracker in
+          NopObjectContext.cs, EfRepository.cs, IDbContext.cs;
+          EntityTypeConfiguration -> IEntityTypeConfiguration in
+          Mapping/NopEntityTypeConfiguration.cs and all 100+ Mapping/**/*Map.cs;
+          Initializers/CreateTablesIfNotExist.cs; Extensions.cs;
+          QueryableExtensions.cs.
+
+      Microsoft.EntityFrameworkCore.Relational
+          Replaces System.Data.Entity.Infrastructure /
+          System.Data.Entity.Core.{EntityClient,Objects,Metadata.Edm}. Supplies the
+          raw-SQL and relational-metadata surface used directly by this project:
+          NopObjectContext.ExecuteStoredProcedureList/SqlQuery/ExecuteSqlCommand
+          (Database.SqlQuery / ExecuteSqlCommand -> FromSqlRaw / ExecuteSqlRaw),
+          DbContextExtensions.DropPluginTable/GetTableName/GetColumnsMaxLength/DbName,
+          and DataReaderExtensions.cs. Reachable transitively through
+          ...SqlServer, but declared because Nop.Data binds against it directly.
+
+      Microsoft.EntityFrameworkCore.SqlServer
+          Provider for SqlServerDataProvider.cs (replaces the EF6
+          SqlConnectionFactory / Database.SetInitializer path) and the source of
+          Microsoft.Data.SqlClient, which replaces the System.Data.SqlClient
+          SqlParameter returned by SqlServerDataProvider.GetParameter().
+
+    Dropped from the legacy packages.config and NOT restated:
+      EntityFramework 6.1.3               superseded by the EF Core packages above
+      EntityFramework.SqlServerCompact    SQL Server Compact has no EF Core provider
+      Microsoft.SqlServer.Compact         and is removed from scope (design section 8);
+                                          SqlCeDataProvider.cs is deleted in this task
+                                          and SQL Server support is retained
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+  </ItemGroup>
+
+  <!--
+    ProjectReference to the already-migrated SDK-style Nop.Core (Requirement 2.4).
+    The legacy <Project>{6BDA8332-...}</Project> and <Name>Nop.Core</Name> metadata
+    children are dropped - the SDK resolves references by path.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Nop.Core\Nop.Core.csproj" />
+  </ItemGroup>
+
 </Project>

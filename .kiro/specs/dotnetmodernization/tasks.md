@@ -22,61 +22,61 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
     - Create `src/Directory.Build.props` setting shared properties (`TargetFramework=net10.0`, `Nullable=disable`, `ImplicitUsings=disable`, `GenerateAssemblyInfo=false`) to keep per-project `.csproj` files minimal
     - _Requirements: 1.1, 1.2, 1.3, 5.2_
 
-- [ ] 2. Migrate Nop.Core (Leaf_Project)
-  - [ ] 2.1 Convert Nop.Core.csproj to SDK-style net10.0
+- [x] 2. Migrate Nop.Core (Leaf_Project)
+  - [x] 2.1 Convert Nop.Core.csproj to SDK-style net10.0
     - Replace the classic `.csproj` with `<Project Sdk="Microsoft.NET.Sdk">`, `<TargetFramework>net10.0</TargetFramework>`
     - Delete explicit `<Compile Include=.../>` list (rely on implicit globbing); drop `ProjectGuid`, `TargetFrameworkVersion`, Configuration/Platform blocks, `Import *.targets`, and BCL `<Reference Include="System.*"/>` entries
     - _Requirements: 1.1, 1.2, 5.1_
-  - [ ] 2.2 Convert Nop.Core packages.config to PackageReference
+  - [x] 2.2 Convert Nop.Core packages.config to PackageReference
     - Translate direct dependencies to `PackageReference` (via central versions); trim transitive entries (`Microsoft.Web.Infrastructure`, individual `System.Web.*`); advance net45-era pins to net10.0-compatible versions; delete `packages.config`
     - _Requirements: 1.3, 1.5_
-  - [ ] 2.3 Migrate Nop.Core configuration and remove obsolete files
+  - [x] 2.3 Migrate Nop.Core configuration and remove obsolete files
     - Remove `app.config` (BCL/binding-redirect noise handled by SDK); remove `Properties/AssemblyInfo.cs` if superseded by generated assembly info; surface any genuine settings through `IConfiguration`/options
     - _Requirements: 1.4, 1.5_
-  - [ ] 2.4 Rewrite unavailable-API usages in Nop.Core
+  - [x] 2.4 Rewrite unavailable-API usages in Nop.Core
     - Re-base caching implementations behind existing `ICacheManager`: `MemoryCacheManager` from `System.Runtime.Caching` → `Microsoft.Extensions.Caching.Memory.IMemoryCache` (map expirations to `MemoryCacheEntryOptions`, clear-all via `CancellationChangeToken`); `PerRequestCacheManager` from `HttpContext.Current.Items` → `IHttpContextAccessor.HttpContext.Items`; keep `NopNullCache`; keep `ICacheManager` signatures stable
     - Reimplement `IWebHelper`/`WebHelper` against `Microsoft.AspNetCore.Http` `HttpContext` (via `IHttpContextAccessor`) instead of `System.Web`
     - Replace `Fakes/Fake*` System.Web seams with `DefaultHttpContext`-based abstractions or remove where superseded
     - _Requirements: 4.2, 5.1, 5.3_
-  - [ ] 2.5 Clean-compile gate — Nop.Core
+  - [x] 2.5 Clean-compile gate — Nop.Core
     - Build `src/Libraries/Nop.Core/Nop.Core.csproj -c Debug` using the containerized .NET 10 SDK command in `build-environment.md`; resolve all errors to zero before unlocking Nop.Data; verify no `System.Web*` references remain
     - _Requirements: 3.1, 3.2, 3.3_
   - [ ]* 2.6 Migrate Nop.Core.Tests to SDK-style net10.0
     - Convert `src/Tests/Nop.Core.Tests` to SDK-style net10.0, packages.config → PackageReference (test SDK + runner), `App.config` removed, `ProjectReference` → migrated Nop.Core; require clean compile
     - _Requirements: 5.6, 1.1, 1.2, 1.3, 3.1_
 
-- [ ] 3. Migrate Nop.Data (EF6 → EF Core)
-  - [ ] 3.1 Convert Nop.Data.csproj to SDK-style net10.0 and migrate packages
+- [x] 3. Migrate Nop.Data (EF6 → EF Core)
+  - [x] 3.1 Convert Nop.Data.csproj to SDK-style net10.0 and migrate packages
     - SDK-style conversion (`Microsoft.NET.Sdk`, `net10.0`); drop legacy globbing/GUID/BCL refs; packages.config → PackageReference; replace `EntityFramework` 6 with `Microsoft.EntityFrameworkCore` + `Microsoft.EntityFrameworkCore.SqlServer`; delete `packages.config`
     - Remove SQL CE dependencies (`EntityFramework.SqlServerCompact`, `Microsoft.SqlServer.Compact`) and delete `SqlCeDataProvider.cs` (no EF Core provider; pruned from scope)
     - Remove `app.config`; fix `ProjectReference` to migrated Nop.Core
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 5.3_
-  - [ ] 3.2 Port DbContext, mappings, and repository to EF Core
+  - [x] 3.2 Port DbContext, mappings, and repository to EF Core
     - `NopObjectContext`: `System.Data.Entity.DbContext` → `Microsoft.EntityFrameworkCore.DbContext`; keep `IDbContext`, `IRepository<T>`, `EfRepository<T>` public shape so dependents compile unchanged
     - Convert fluent `Mapping/*` `EntityTypeConfiguration<T>` → `IEntityTypeConfiguration<T>` applied via `ModelBuilder.ApplyConfigurationsFromAssembly`
     - Port `DbContextExtensions`/`DataReaderExtensions` raw-SQL/stored-proc helpers to `FromSqlRaw`/`ExecuteSqlRaw`/`SqlQuery`; port `Initializers/*` to EF Core model creation (`EnsureCreated`/migrations)
     - Re-base `SqlServerDataProvider` on EF Core SqlServer
     - _Requirements: 4.2, 5.1, 5.3_
-  - [ ] 3.3 Clean-compile gate — Nop.Data
+  - [x] 3.3 Clean-compile gate — Nop.Data
     - Build `src/Libraries/Nop.Data/Nop.Data.csproj -c Debug` using the containerized .NET 10 SDK command in `build-environment.md`; resolve to zero errors before unlocking Nop.Services
     - _Requirements: 3.1, 3.2, 3.3_
   - [ ]* 3.4 Migrate Nop.Data.Tests to SDK-style net10.0
     - Convert `src/Tests/Nop.Data.Tests`; packages.config → PackageReference; remove `App.config`; `ProjectReference` → migrated Nop.Data/Nop.Core; require clean compile
     - _Requirements: 5.6, 1.1, 1.2, 1.3, 3.1_
 
-- [ ] 4. Migrate Nop.Services
-  - [ ] 4.1 Convert Nop.Services.csproj to SDK-style net10.0 and migrate packages
+- [x] 4. Migrate Nop.Services
+  - [x] 4.1 Convert Nop.Services.csproj to SDK-style net10.0 and migrate packages
     - SDK-style conversion at `net10.0`; packages.config → PackageReference (AutoMapper advanced, Autofac advanced); delete `packages.config`; remove `app.config`; fix `ProjectReference`s to migrated Nop.Core and Nop.Data
     - Add the `SixLabors.ImageSharp` `PackageReference` and **drop the `ImageResizer` and `ImageResizer.Plugins.PrettyGifs` references** (no net10.0 release exists); drop the `System.Drawing` BCL `<Reference>` — GIF quantization is covered by ImageSharp's built-in encoder (design §7)
     - Keep the target framework as cross-platform `net10.0` (not `net10.0-windows`) now that imaging no longer depends on `System.Drawing`
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 5.8, 5.10_
-  - [ ] 4.2 Rewrite unavailable-API usages across Nop.Services
+  - [x] 4.2 Rewrite unavailable-API usages across Nop.Services
     - Update every source file using APIs unavailable in net10.0: `ConfigurationManager` → injected `IConfiguration`/options; `HttpContext.Current` → `IHttpContextAccessor`; `System.Web`-based helpers → ASP.NET Core abstractions; AutoMapper API updates; caching against stable `ICacheManager`
     - Replace `ImageResizer` and `System.Drawing` in `Media/PictureService.cs` with SixLabors.ImageSharp: `ImageBuilder`/`ResizeSettings` → `Image.Load` + `image.Mutate(x => x.Resize(new ResizeOptions { … }))` + `image.Save(...)` with an ImageSharp encoder; `Bitmap`/`Graphics`/`InterpolationMode`/`PixelFormat` → `Image<TPixel>` + `Mutate`/`Resize` with an `IResampler` (design §7)
     - Replace `System.Drawing` usage in `ExportImport/ExportManager.cs` with SixLabors.ImageSharp equivalents
     - Preserve `IDependencyRegistrar` implementations (registration churn deferred to DI integration in Web.Framework)
     - _Requirements: 4.2, 5.1, 5.3, 5.8, 5.9, 5.11_
-  - [ ] 4.3 Clean-compile gate — Nop.Services
+  - [x] 4.3 Clean-compile gate — Nop.Services
     - Build `src/Libraries/Nop.Services/Nop.Services.csproj -c Debug` using the containerized .NET 10 SDK command in `build-environment.md`; resolve to zero errors before unlocking Nop.Web.Framework; verify no `ImageResizer` or `System.Drawing` references remain
     - _Requirements: 3.1, 3.2, 3.3_
   - [ ]* 4.4 Migrate Nop.Services.Tests to SDK-style net10.0
@@ -86,7 +86,7 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
     - Convert `src/Tests/Nop.Tests` (shared test infrastructure) to SDK-style net10.0; packages.config → PackageReference; replace System.Web fakes with `DefaultHttpContext`-based fakes; fix `ProjectReference`s; require clean compile
     - _Requirements: 5.6, 5.3, 1.1, 1.2, 1.3, 3.1_
 
-- [ ] 5. Checkpoint — libraries migrated
+- [x] 5. Checkpoint — libraries migrated
   - Ensure Nop.Core, Nop.Data, Nop.Services all clean-compile and dependent references point only at migrated SDK-style projects. Ensure all tests pass, ask the user if questions arise.
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.3_
 

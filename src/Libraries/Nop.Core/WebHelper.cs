@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Web;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using Nop.Core.Configuration;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
 
@@ -13,11 +14,18 @@ namespace Nop.Core
     /// <summary>
     /// Represents a common helper
     /// </summary>
+    /// <remarks>
+    /// Task 2.4 (design section 5): reimplemented against
+    /// <see cref="Microsoft.AspNetCore.Http.HttpContext"/> reached through
+    /// <see cref="IHttpContextAccessor"/>, replacing the <c>System.Web.HttpContextBase</c>
+    /// the class was originally constructed with. Every <see cref="IWebHelper"/> member is
+    /// preserved; the ASP.NET Core equivalents used for each are documented inline.
+    /// </remarks>
     public partial class WebHelper : IWebHelper
     {
         #region Fields 
 
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly string[] _staticFileExtensions;
 
         #endregion
@@ -27,10 +35,10 @@ namespace Nop.Core
         /// <summary>
         /// Ctor
         /// </summary>
-        /// <param name="httpContext">HTTP context</param>
-        public WebHelper(HttpContextBase httpContext)
+        /// <param name="httpContextAccessor">HTTP context accessor</param>
+        public WebHelper(IHttpContextAccessor httpContextAccessor)
         {
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._staticFileExtensions = new[] { ".axd", ".ashx", ".bmp", ".css", ".gif", ".htm", ".html", ".ico", ".jpeg", ".jpg", ".js", ".png", ".rar", ".zip" };
         }
 
@@ -38,8 +46,20 @@ namespace Nop.Core
 
         #region Utilities
 
-        protected virtual Boolean IsRequestAvailable(HttpContextBase httpContext)
+        /// <summary>
+        /// Gets the current HTTP context, or null when there is no current request
+        /// </summary>
+        protected virtual HttpContext HttpContext
         {
+            get { return _httpContextAccessor == null ? null : _httpContextAccessor.HttpContext; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether a request is currently available
+        /// </summary>
+        protected virtual bool IsRequestAvailable()
+        {
+            var httpContext = HttpContext;
             if (httpContext == null)
                 return false;
 
@@ -48,47 +68,30 @@ namespace Nop.Core
                 if (httpContext.Request == null)
                     return false;
             }
-            catch (HttpException)
+            catch
             {
+                //the features backing HttpContext.Request are released once the request completes
                 return false;
             }
 
             return true;
         }
-        protected virtual bool TryWriteWebConfig()
-        {
-            try
-            {
-                // In medium trust, "UnloadAppDomain" is not supported. Touch web.config
-                // to force an AppDomain restart.
-                File.SetLastWriteTimeUtc(CommonHelper.MapPath("~/web.config"), DateTime.UtcNow);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
 
-        protected virtual bool TryWriteGlobalAsax()
+        /// <summary>
+        /// Translates a classic ASP.NET server variable name to an ASP.NET Core header name
+        /// </summary>
+        /// <param name="name">Server variable name, e.g. <c>HTTP_X_FORWARDED_PROTO</c></param>
+        /// <returns>Header name, e.g. <c>X-FORWARDED-PROTO</c></returns>
+        protected virtual string ServerVariableNameToHeaderName(string name)
         {
-            try
-            {
-                //When a new plugin is dropped in the Plugins folder and is installed into nopCommerce, 
-                //even if the plugin has registered routes for its controllers, 
-                //these routes will not be working as the MVC framework couldn't 
-                //find the new controller types and couldn't instantiate the requested controller. 
-                //That's why you get these nasty errors 
-                //i.e "Controller does not implement IController".
-                //The issue is described here: http://www.nopcommerce.com/boards/t/10969/nop-20-plugin.aspx?p=4#51318
-                //The solution is to touch global.asax file
-                File.SetLastWriteTimeUtc(CommonHelper.MapPath("~/global.asax"), DateTime.UtcNow);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            if (string.IsNullOrEmpty(name))
+                return name;
+
+            //HTTP_ prefixed server variables were verbatim request headers with '-' replaced by '_'
+            if (name.StartsWith("HTTP_", StringComparison.OrdinalIgnoreCase))
+                return name.Substring("HTTP_".Length).Replace('_', '-');
+
+            return name;
         }
 
         #endregion
@@ -103,11 +106,20 @@ namespace Nop.Core
         {
             string referrerUrl = string.Empty;
 
-            //URL referrer is null in some case (for example, in IE 8)
-            if (IsRequestAvailable(_httpContext) && _httpContext.Request.UrlReferrer != null)
-                referrerUrl = _httpContext.Request.UrlReferrer.PathAndQuery;
+            if (!IsRequestAvailable())
+                return referrerUrl;
 
-            return referrerUrl;
+            //System.Web exposed this as Request.UrlReferrer; in ASP.NET Core it is the raw header
+            var referrer = HttpContext.Request.Headers["Referer"].ToString();
+            if (string.IsNullOrEmpty(referrer))
+                return referrerUrl;
+
+            //the legacy implementation returned only the path and query part
+            Uri referrerUri;
+            if (Uri.TryCreate(referrer, UriKind.Absolute, out referrerUri))
+                return referrerUri.PathAndQuery;
+
+            return referrer;
         }
 
         /// <summary>
@@ -116,47 +128,48 @@ namespace Nop.Core
         /// <returns>URL referrer</returns>
         public virtual string GetCurrentIpAddress()
         {
-            if (!IsRequestAvailable(_httpContext))
+            if (!IsRequestAvailable())
                 return string.Empty;
 
             var result = "";
             try
             {
-                if (_httpContext.Request.Headers != null)
+                var request = HttpContext.Request;
+
+                //The X-Forwarded-For (XFF) HTTP header field is a de facto standard
+                //for identifying the originating IP address of a client
+                //connecting to a web server through an HTTP proxy or load balancer.
+                var forwardedHttpHeader = "X-FORWARDED-FOR";
+                //Task 2.4: ConfigurationManager.AppSettings -> IConfiguration (see NopConfigurationManager)
+                var configuredForwardedHttpHeader = NopConfigurationManager.GetAppSetting("ForwardedHTTPheader");
+                if (!String.IsNullOrEmpty(configuredForwardedHttpHeader))
                 {
-                    //The X-Forwarded-For (XFF) HTTP header field is a de facto standard
-                    //for identifying the originating IP address of a client
-                    //connecting to a web server through an HTTP proxy or load balancer.
-                    var forwardedHttpHeader = "X-FORWARDED-FOR";
-                    if (!String.IsNullOrEmpty(ConfigurationManager.AppSettings["ForwardedHTTPheader"]))
-                    {
-                        //but in some cases server use other HTTP header
-                        //in these cases an administrator can specify a custom Forwarded HTTP header
-                        //e.g. CF-Connecting-IP, X-FORWARDED-PROTO, etc
-                        forwardedHttpHeader = ConfigurationManager.AppSettings["ForwardedHTTPheader"];
-                    }
-
-                    //it's used for identifying the originating IP address of a client connecting to a web server
-                    //through an HTTP proxy or load balancer. 
-                    string xff = _httpContext.Request.Headers.AllKeys
-                        .Where(x => forwardedHttpHeader.Equals(x, StringComparison.InvariantCultureIgnoreCase))
-                        .Select(k => _httpContext.Request.Headers[k])
-                        .FirstOrDefault();
-
-                    //if you want to exclude private IP addresses, then see http://stackoverflow.com/questions/2577496/how-can-i-get-the-clients-ip-address-in-asp-net-mvc
-                    if (!String.IsNullOrEmpty(xff))
-                    {
-                        string lastIp = xff.Split(new[] { ',' }).FirstOrDefault();
-                        result = lastIp;
-                    }
+                    //but in some cases server use other HTTP header
+                    //in these cases an administrator can specify a custom Forwarded HTTP header
+                    //e.g. CF-Connecting-IP, X-FORWARDED-PROTO, etc
+                    forwardedHttpHeader = configuredForwardedHttpHeader;
                 }
 
-                if (String.IsNullOrEmpty(result) && _httpContext.Request.UserHostAddress != null)
+                //it's used for identifying the originating IP address of a client connecting to a web server
+                //through an HTTP proxy or load balancer.
+                //ASP.NET Core header lookup is already case-insensitive
+                var xff = request.Headers[forwardedHttpHeader].ToString();
+
+                //if you want to exclude private IP addresses, then see http://stackoverflow.com/questions/2577496/how-can-i-get-the-clients-ip-address-in-asp-net-mvc
+                if (!String.IsNullOrEmpty(xff))
                 {
-                    result = _httpContext.Request.UserHostAddress;
+                    string lastIp = xff.Split(new[] { ',' }).FirstOrDefault();
+                    result = lastIp;
+                }
+
+                //System.Web's Request.UserHostAddress maps to the connection's remote IP
+                if (String.IsNullOrEmpty(result) && HttpContext.Connection != null &&
+                    HttpContext.Connection.RemoteIpAddress != null)
+                {
+                    result = HttpContext.Connection.RemoteIpAddress.ToString();
                 }
             }
-            catch 
+            catch
             {
                 return result;
             }
@@ -194,14 +207,19 @@ namespace Nop.Core
         /// <returns>Page name</returns>
         public virtual string GetThisPageUrl(bool includeQueryString, bool useSsl)
         {
-            if (!IsRequestAvailable(_httpContext))
+            if (!IsRequestAvailable())
                 return string.Empty;
             
             //get the host considering using SSL
             var url = GetStoreHost(useSsl).TrimEnd('/');
 
-            //get full URL with or without query string
-            url += includeQueryString ? _httpContext.Request.RawUrl : _httpContext.Request.Path;
+            var request = HttpContext.Request;
+
+            //get full URL with or without query string.
+            //System.Web's RawUrl == PathBase + Path + QueryString; Path included the app path
+            url += request.PathBase.ToString() + request.Path.ToString();
+            if (includeQueryString)
+                url += request.QueryString.ToString();
 
             return url.ToLowerInvariant();
         }
@@ -213,25 +231,28 @@ namespace Nop.Core
         public virtual bool IsCurrentConnectionSecured()
         {
             bool useSsl = false;
-            if (IsRequestAvailable(_httpContext))
+            if (IsRequestAvailable())
             {
-                //when your hosting uses a load balancer on their server then the Request.IsSecureConnection is never got set to true
+                //when your hosting uses a load balancer on their server then the Request.IsHttps is never got set to true
+
+                //Task 2.4: ConfigurationManager.AppSettings -> IConfiguration (see NopConfigurationManager)
+                var useHttpClusterHttps = NopConfigurationManager.GetAppSetting("Use_HTTP_CLUSTER_HTTPS");
+                var useHttpXForwardedProto = NopConfigurationManager.GetAppSetting("Use_HTTP_X_FORWARDED_PROTO");
 
                 //1. use HTTP_CLUSTER_HTTPS?
-                if (!string.IsNullOrEmpty(ConfigurationManager.AppSettings["Use_HTTP_CLUSTER_HTTPS"]) &&
-                   Convert.ToBoolean(ConfigurationManager.AppSettings["Use_HTTP_CLUSTER_HTTPS"]))
+                if (!string.IsNullOrEmpty(useHttpClusterHttps) && Convert.ToBoolean(useHttpClusterHttps))
                 {
                     useSsl = ServerVariables("HTTP_CLUSTER_HTTPS") == "on";
                 }
                 //2. use HTTP_X_FORWARDED_PROTO?
-                else if (!string.IsNullOrEmpty(ConfigurationManager.AppSettings["Use_HTTP_X_FORWARDED_PROTO"]) &&
-                   Convert.ToBoolean(ConfigurationManager.AppSettings["Use_HTTP_X_FORWARDED_PROTO"]))
+                else if (!string.IsNullOrEmpty(useHttpXForwardedProto) && Convert.ToBoolean(useHttpXForwardedProto))
                 {
                     useSsl = string.Equals(ServerVariables("HTTP_X_FORWARDED_PROTO"), "https", StringComparison.OrdinalIgnoreCase);
                 }
                 else
                 {
-                    useSsl = _httpContext.Request.IsSecureConnection;
+                    //System.Web's Request.IsSecureConnection
+                    useSsl = HttpContext.Request.IsHttps;
                 }
             }
 
@@ -243,21 +264,29 @@ namespace Nop.Core
         /// </summary>
         /// <param name="name">Name</param>
         /// <returns>Server variable</returns>
+        /// <remarks>
+        /// ASP.NET Core has no <c>Request.ServerVariables</c> collection. Classic <c>HTTP_*</c>
+        /// server variable names are mapped back onto the request header they were derived
+        /// from (<c>HTTP_X_FORWARDED_PROTO</c> -&gt; <c>X-FORWARDED-PROTO</c>); any other name
+        /// is looked up verbatim as a header. Non-header server variables
+        /// (<c>SERVER_SOFTWARE</c>, <c>LOCAL_ADDR</c>, ...) are therefore no longer resolvable
+        /// and return the empty string, exactly as an unknown variable did before.
+        /// </remarks>
         public virtual string ServerVariables(string name)
         {
             string result = string.Empty;
 
             try
             {
-                if (!IsRequestAvailable(_httpContext))
+                if (!IsRequestAvailable())
                     return result;
 
                 //put this method is try-catch 
                 //as described here http://www.nopcommerce.com/boards/t/21356/multi-store-roadmap-lets-discuss-update-done.aspx?p=6#90196
-                if (_httpContext.Request.ServerVariables[name] != null)
-                {
-                    result = _httpContext.Request.ServerVariables[name];
-                }
+                var headerName = ServerVariableNameToHeaderName(name);
+                var value = HttpContext.Request.Headers[headerName].ToString();
+                if (!string.IsNullOrEmpty(value))
+                    result = value;
             }
             catch
             {
@@ -361,13 +390,14 @@ namespace Nop.Core
         /// <returns>Store location</returns>
         public virtual string GetStoreLocation(bool useSsl)
         {
-            //return HostingEnvironment.ApplicationVirtualPath;
-
             string result = GetStoreHost(useSsl);
             if (result.EndsWith("/"))
                 result = result.Substring(0, result.Length - 1);
-            if (IsRequestAvailable(_httpContext))
-                result = result + _httpContext.Request.ApplicationPath;
+            if (IsRequestAvailable())
+            {
+                //System.Web's Request.ApplicationPath is PathBase in ASP.NET Core
+                result = result + HttpContext.Request.PathBase.ToString();
+            }
             if (!result.EndsWith("/"))
                 result += "/";
 
@@ -395,10 +425,12 @@ namespace Nop.Core
             if (request == null)
                 throw new ArgumentNullException("request");
 
-            string path = request.Path;
-            string extension = VirtualPathUtility.GetExtension(path);
+            //System.Web's VirtualPathUtility.GetExtension has no ASP.NET Core counterpart;
+            //Path.GetExtension gives the same answer for a request path
+            string path = request.Path.ToString();
+            string extension = Path.GetExtension(path);
 
-            if (extension == null) return false;
+            if (string.IsNullOrEmpty(extension)) return false;
 
             return _staticFileExtensions.Contains(extension);
         }
@@ -582,8 +614,12 @@ namespace Nop.Core
         public virtual T QueryString<T>(string name)
         {
             string queryParam = null;
-            if (IsRequestAvailable(_httpContext) && _httpContext.Request.QueryString[name] != null)
-                queryParam = _httpContext.Request.QueryString[name];
+            if (IsRequestAvailable())
+            {
+                var value = HttpContext.Request.Query[name].ToString();
+                if (!string.IsNullOrEmpty(value))
+                    queryParam = value;
+            }
 
             if (!String.IsNullOrEmpty(queryParam))
                 return CommonHelper.To<T>(queryParam);
@@ -596,57 +632,81 @@ namespace Nop.Core
         /// </summary>
         /// <param name="makeRedirect">A value indicating whether we should made redirection after restart</param>
         /// <param name="redirectUrl">Redirect URL; empty string if you want to redirect to the current page URL</param>
+        /// <remarks>
+        /// SEMANTIC CHANGE (task 2.4). .NET Core has no unloadable AppDomain, so
+        /// <c>HttpRuntime.UnloadAppDomain()</c> and the medium-trust "touch web.config /
+        /// global.asax" fallbacks are gone (there is also no <c>global.asax</c> in ASP.NET Core
+        /// and touching <c>web.config</c> does not recycle Kestrel). The closest supported
+        /// behaviour is a graceful host shutdown via
+        /// <see cref="IHostApplicationLifetime.StopApplication"/>; the process must then be
+        /// restarted by whatever supervises it (ANCM, systemd, a container orchestrator).
+        /// <see cref="IHostApplicationLifetime"/> is only resolvable once the ASP.NET Core host
+        /// wires nopCommerce's container into it (tasks 6.4 / 7.2); until then, and in any
+        /// non-hosted process, this throws <see cref="NopException"/> rather than silently
+        /// pretending to have restarted.
+        /// </remarks>
         public virtual void RestartAppDomain(bool makeRedirect = false, string redirectUrl = "")
         {
-            if (CommonHelper.GetTrustLevel() > AspNetHostingPermissionLevel.Medium)
+            IHostApplicationLifetime applicationLifetime = null;
+            try
             {
-                //full trust
-                HttpRuntime.UnloadAppDomain();
-
-                TryWriteGlobalAsax();
+                applicationLifetime = EngineContext.Current.Resolve<IHostApplicationLifetime>();
             }
-            else
+            catch
             {
-                //medium trust
-                bool success = TryWriteWebConfig();
-                if (!success)
-                {
-                    throw new NopException("nopCommerce needs to be restarted due to a configuration change, but was unable to do so." + Environment.NewLine +
-                        "To prevent this issue in the future, a change to the web server configuration is required:" + Environment.NewLine +
-                        "- run the application in a full trust environment, or" + Environment.NewLine +
-                        "- give the application write access to the 'web.config' file.");
-                }
-                success = TryWriteGlobalAsax();
-
-                if (!success)
-                {
-                    throw new NopException("nopCommerce needs to be restarted due to a configuration change, but was unable to do so." + Environment.NewLine +
-                        "To prevent this issue in the future, a change to the web server configuration is required:" + Environment.NewLine +
-                        "- run the application in a full trust environment, or" + Environment.NewLine +
-                        "- give the application write access to the 'Global.asax' file.");
-                }
+                //not registered - fall through to the exception below
             }
 
-            // If setting up extensions/modules requires an AppDomain restart, it's very unlikely the
+            if (applicationLifetime == null)
+            {
+                throw new NopException("nopCommerce needs to be restarted due to a configuration change, but was unable to do so." + Environment.NewLine +
+                    "On .NET the application domain cannot be unloaded in-process; a host restart is required." + Environment.NewLine +
+                    "To enable automatic restarts, register Microsoft.Extensions.Hosting.IHostApplicationLifetime with the nopCommerce container and " +
+                    "run the application under a supervisor that restarts the process (for example ASP.NET Core Module, systemd or a container orchestrator).");
+            }
+
+            // If setting up extensions/modules requires a restart, it's very unlikely the
             // current request can be processed correctly.  So, we redirect to the same URL, so that the
-            // new request will come to the newly started AppDomain.
-            if (_httpContext != null && makeRedirect)
+            // new request will come to the newly started host.
+            var httpContext = HttpContext;
+            if (httpContext != null && makeRedirect)
             {
                 if (String.IsNullOrEmpty(redirectUrl))
                     redirectUrl = GetThisPageUrl(true);
-                _httpContext.Response.Redirect(redirectUrl, true /*endResponse*/);
+
+                //ASP.NET Core's Redirect has no "endResponse" counterpart - the pipeline
+                //short-circuits once the response has started
+                httpContext.Response.Redirect(redirectUrl);
             }
+
+            applicationLifetime.StopApplication();
         }
 
         /// <summary>
         /// Gets a value that indicates whether the client is being redirected to a new location
         /// </summary>
+        /// <remarks>
+        /// ASP.NET Core has no <c>HttpResponse.IsRequestBeingRedirected</c>; the equivalent
+        /// signal is a 3xx redirect status code on the response.
+        /// </remarks>
         public virtual bool IsRequestBeingRedirected
         {
             get
             {
-                var response = _httpContext.Response;
-                return response.IsRequestBeingRedirected;
+                var httpContext = HttpContext;
+                if (httpContext == null || httpContext.Response == null)
+                    return false;
+
+                var redirectionStatusCodes = new[]
+                {
+                    StatusCodes.Status301MovedPermanently,
+                    StatusCodes.Status302Found,
+                    StatusCodes.Status303SeeOther,
+                    StatusCodes.Status307TemporaryRedirect,
+                    StatusCodes.Status308PermanentRedirect
+                };
+
+                return redirectionStatusCodes.Contains(httpContext.Response.StatusCode);
             }
         }
 
@@ -657,13 +717,23 @@ namespace Nop.Core
         {
             get
             {
-                if (_httpContext.Items["nop.IsPOSTBeingDone"] == null)
+                var httpContext = HttpContext;
+                if (httpContext == null)
                     return false;
-                return Convert.ToBoolean(_httpContext.Items["nop.IsPOSTBeingDone"]);
+
+                object value;
+                if (!httpContext.Items.TryGetValue("nop.IsPOSTBeingDone", out value) || value == null)
+                    return false;
+
+                return Convert.ToBoolean(value);
             }
             set
             {
-                _httpContext.Items["nop.IsPOSTBeingDone"] = value;
+                var httpContext = HttpContext;
+                if (httpContext == null)
+                    return;
+
+                httpContext.Items["nop.IsPOSTBeingDone"] = value;
             }
         }
 

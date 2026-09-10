@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using ImageResizer;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Catalog;
@@ -20,6 +23,65 @@ namespace Nop.Services.Media
     /// <summary>
     /// Picture service
     /// </summary>
+    /// <remarks>
+    /// Task 4.2 (design section 7, Requirements 5.8, 5.9, 5.11). Both legacy imaging
+    /// dependencies were removed from this file:
+    ///
+    ///   * <c>ImageResizer</c> 4.0.5 (<c>ImageBuilder.Current.Build</c> + <c>ResizeSettings</c>)
+    ///     has no net10.0 release at all - it is a net45/System.Web-era pipeline.
+    ///   * <c>System.Drawing</c> (<c>Bitmap</c>, <c>Size</c>) is Windows-only from .NET 6 and
+    ///     throws <c>PlatformNotSupportedException</c> elsewhere.
+    ///
+    /// Both are replaced by <c>SixLabors.ImageSharp</c>: <c>new Bitmap(...)</c> becomes
+    /// <c>Image.Load(path, out IImageFormat format)</c> / <c>Image.Load(stream, out format)</c>,
+    /// <c>Bitmap.Size</c> becomes <c>image.Size()</c> (which returns
+    /// <see cref="SixLabors.ImageSharp.Size"/>, also replacing <c>System.Drawing.Size</c> in
+    /// <see cref="CalculateDimensions"/>), and each <c>ImageBuilder.Current.Build</c> becomes
+    /// <c>image.Mutate(x =&gt; x.Resize(new ResizeOptions { ... }))</c> followed by
+    /// <c>image.Save(stream, encoder)</c>.
+    ///
+    /// IMAGESHARP VERSION: the package is pinned to the 2.1.x line because it is the last
+    /// line published under a plain Apache-2.0 licence (see the rationale in
+    /// src/Directory.Packages.props). Three consequences for the code below, all verified
+    /// against the 2.1.13 assembly:
+    ///   * There is no <c>ImageMetadata.DecodedImageFormat</c> (a 3.0+ addition). The decoded
+    ///     format is instead obtained from the <c>Image.Load(..., out IImageFormat format)</c>
+    ///     overloads and threaded explicitly through <see cref="ResizeImage"/> into
+    ///     <see cref="EncodeImage"/>, which is why both take an <see cref="IImageFormat"/>.
+    ///   * <c>ImageFormatManager</c> exposes <c>FindEncoder(format)</c>, not
+    ///     <c>GetEncoder(format)</c>.
+    ///   * <c>Size</c> is an extension method on <c>IImageInfo</c>
+    ///     (<c>SixLabors.ImageSharp.ImageInfoExtensions.Size</c>), so it is called as
+    ///     <c>image.Size()</c>, not read as a property.
+    /// Everything else used here - <see cref="ImageFormatException"/> (base of
+    /// <c>UnknownImageFormatException</c> and <c>InvalidImageContentException</c>),
+    /// <see cref="ResizeOptions"/>, <see cref="ResizeMode.Max"/>,
+    /// <c>KnownResamplers.Bicubic</c>, <c>JpegEncoder.Quality</c>, <c>image.Mutate(...)</c>
+    /// and <c>image.Save(stream, encoder)</c> - has the same shape in 2.1.x as in 4.x.
+    ///
+    /// RESIZE SEMANTICS - preserved, with one deliberate refinement:
+    ///   * <see cref="CalculateDimensions"/> is untouched. It is still the single place that
+    ///     decides the target box from <c>ResizeType</c> (LongestSide / Width / Height) and it
+    ///     still computes a box that already matches the source aspect ratio, still clamps to a
+    ///     minimum of 1px, and still uses <c>Math.Round</c>.
+    ///   * ImageResizer was invoked with an explicit Width AND Height, for which its default
+    ///     <c>FitMode</c> is <c>Pad</c> - it produced exactly the requested box and filled any
+    ///     sub-pixel remainder with background. The <c>Math.Round</c> comment below records that
+    ///     nopCommerce was fighting exactly that white padding. ImageSharp is therefore used
+    ///     with <see cref="ResizeMode.Max"/>, which scales to fit inside the same box preserving
+    ///     aspect ratio and never pads. Observable difference: an output edge may be up to one
+    ///     pixel shorter than ImageResizer's padded output, and no background is ever
+    ///     introduced. No image is distorted and no target-size rule changed.
+    ///   * <c>Scale = ScaleMode.Both</c> (ImageResizer: upscaling permitted) is preserved -
+    ///     <see cref="ResizeMode.Max"/> scales up as well as down.
+    ///   * <c>Quality</c> mapped onto <see cref="JpegEncoder.Quality"/>; see
+    ///     <see cref="GetImageEncoder"/> for the other formats.
+    ///   * <see cref="ValidatePicture"/> used ImageResizer's <c>MaxWidth</c>/<c>MaxHeight</c>,
+    ///     which shrink-to-fit and never enlarge. That is reproduced by only resizing when the
+    ///     source actually exceeds the limit.
+    ///   * <c>ImageResizer.Plugins.PrettyGifs</c> (GIF palette quantization) is covered by
+    ///     ImageSharp's built-in GIF encoder, which quantizes by default (design section 7).
+    /// </remarks>
     public partial class PictureService : IPictureService
     {
         #region Const
@@ -135,6 +197,91 @@ namespace Nop.Services.Media
         }
 
         /// <summary>
+        /// Gets the ImageSharp resampler used for all thumbnail generation.
+        /// </summary>
+        /// <remarks>
+        /// Bicubic is the closest match to the high-quality interpolation ImageResizer used by
+        /// default, and is ImageSharp's own default for <c>Resize</c>.
+        /// </remarks>
+        protected virtual IResampler Resampler
+        {
+            get { return KnownResamplers.Bicubic; }
+        }
+
+        /// <summary>
+        /// Gets the encoder to write an image back with
+        /// </summary>
+        /// <param name="format">The format the image was decoded from; may be null</param>
+        /// <param name="quality">Requested quality (only meaningful for lossy formats)</param>
+        /// <returns>Encoder</returns>
+        /// <remarks>
+        /// Replaces ImageResizer's implicit "save in the source format, honour
+        /// <c>ResizeSettings.Quality</c>" behaviour. JPEG is the only in-scope format for which
+        /// quality is a parameter; for every other format ImageSharp's registered default
+        /// encoder is used, which for GIF performs the palette quantization that
+        /// <c>ImageResizer.Plugins.PrettyGifs</c> used to provide. An unrecognised format falls
+        /// back to JPEG, matching <see cref="GetFileExtensionFromMimeType"/>'s own JPEG default.
+        /// </remarks>
+        protected virtual IImageEncoder GetImageEncoder(IImageFormat format, int quality)
+        {
+            if (format == null)
+                return new JpegEncoder { Quality = quality };
+
+            if (format is JpegFormat)
+                return new JpegEncoder { Quality = quality };
+
+            var encoder = SixLabors.ImageSharp.Configuration.Default.ImageFormatsManager.FindEncoder(format);
+            return encoder ?? new JpegEncoder { Quality = quality };
+        }
+
+        /// <summary>
+        /// Resizes an already-loaded image into a byte array, preserving its format
+        /// </summary>
+        /// <param name="image">Image to resize; mutated in place</param>
+        /// <param name="format">The format the image was decoded from; may be null</param>
+        /// <param name="targetSize">The target picture size (longest side)</param>
+        /// <returns>Encoded, resized image binary</returns>
+        /// <remarks>
+        /// The single replacement for
+        /// <c>ImageBuilder.Current.Build(source, destStream, new ResizeSettings { Width, Height,
+        /// Scale = ScaleMode.Both, Quality })</c>. See the class remarks for how the resize
+        /// semantics map across, and for why the decoded format has to be passed in rather than
+        /// read back off the image.
+        /// </remarks>
+        protected virtual byte[] ResizeImage(Image image, IImageFormat format, int targetSize)
+        {
+            var newSize = CalculateDimensions(image.Size(), targetSize);
+
+            image.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = newSize,
+                //aspect-ratio-preserving fit inside the computed box, no padding, upscaling
+                //allowed - see the class remarks
+                Mode = ResizeMode.Max,
+                Sampler = Resampler
+            }));
+
+            return EncodeImage(image, format);
+        }
+
+        /// <summary>
+        /// Encodes an image into a byte array using the format it was decoded from
+        /// </summary>
+        /// <param name="image">Image</param>
+        /// <param name="format">The format the image was decoded from; may be null</param>
+        /// <returns>Encoded image binary</returns>
+        protected virtual byte[] EncodeImage(Image image, IImageFormat format)
+        {
+            var encoder = GetImageEncoder(format, _mediaSettings.DefaultImageQuality);
+
+            using (var destStream = new MemoryStream())
+            {
+                image.Save(destStream, encoder);
+                return destStream.ToArray();
+            }
+        }
+
+        /// <summary>
         /// Returns the file extension from mime type.
         /// </summary>
         /// <param name="mimeType">Mime type</param>
@@ -144,7 +291,9 @@ namespace Nop.Services.Media
             if (mimeType == null)
                 return null;
 
-            //also see System.Web.MimeMapping for more mime types
+            //(3.90 pointed at System.Web.MimeMapping here for more mime types; on net10.0 the
+            //equivalent is Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider,
+            //as used by ExportImport/ImportManager.cs)
 
             string[] parts = mimeType.Split('/');
             string lastPart = parts[parts.Length - 1];
@@ -401,21 +550,11 @@ namespace Nop.Services.Media
                 var thumbFilePath = GetThumbLocalPath(thumbFileName);
                 if (!GeneratedThumbExists(thumbFilePath, thumbFileName))
                 {
-                    using (var b = new Bitmap(filePath))
+                    IImageFormat format;
+                    using (var image = Image.Load(filePath, out format))
                     {
-                        using (var destStream = new MemoryStream())
-                        {
-                            var newSize = CalculateDimensions(b.Size, targetSize);
-                            ImageBuilder.Current.Build(b, destStream, new ResizeSettings
-                            {
-                                Width = newSize.Width,
-                                Height = newSize.Height,
-                                Scale = ScaleMode.Both,
-                                Quality = _mediaSettings.DefaultImageQuality
-                            });
-                            var destBinary = destStream.ToArray();
-                            SaveThumb(thumbFilePath, thumbFileName, "", destBinary);
-                        }
+                        var destBinary = ResizeImage(image, format, targetSize);
+                        SaveThumb(thumbFilePath, thumbFileName, "", destBinary);
                     }
                 }
                 var url = GetThumbUrl(thumbFileName, storeLocation);
@@ -521,36 +660,34 @@ namespace Nop.Services.Media
                         {
                             using (var stream = new MemoryStream(pictureBinary))
                             {
-                                Bitmap b = null;
+                                Image image = null;
+                                IImageFormat format = null;
                                 try
                                 {
-                                    //try-catch to ensure that picture binary is really OK. Otherwise, we can get "Parameter is not valid" exception if binary is corrupted for some reasons
-                                    b = new Bitmap(stream);
+                                    //try-catch to ensure that picture binary is really OK. Otherwise, we can get
+                                    //an ImageFormatException if the binary is corrupted for some reasons.
+                                    //(ImageSharp's UnknownImageFormatException/InvalidImageContentException both
+                                    //derive from ImageFormatException; it replaces the GDI+ ArgumentException
+                                    //"Parameter is not valid" the original code caught.)
+                                    //the out-parameter overload is how ImageSharp 2.x reports the decoded
+                                    //format - see the class remarks
+                                    image = Image.Load(stream, out format);
                                 }
-                                catch (ArgumentException exc)
+                                catch (ImageFormatException exc)
                                 {
                                     _logger.Error(string.Format("Error generating picture thumb. ID={0}", picture.Id),
                                         exc);
                                 }
 
-                                if (b == null)
+                                if (image == null)
                                 {
-                                    //bitmap could not be loaded for some reasons
+                                    //image could not be loaded for some reasons
                                     return url;
                                 }
 
-                                using (var destStream = new MemoryStream())
+                                using (image)
                                 {
-                                    var newSize = CalculateDimensions(b.Size, targetSize);
-                                    ImageBuilder.Current.Build(b, destStream, new ResizeSettings
-                                    {
-                                        Width = newSize.Width,
-                                        Height = newSize.Height,
-                                        Scale = ScaleMode.Both,
-                                        Quality = _mediaSettings.DefaultImageQuality
-                                    });
-                                    pictureBinaryResized = destStream.ToArray();
-                                    b.Dispose();
+                                    pictureBinaryResized = ResizeImage(image, format, targetSize);
                                 }
                             }
                         }
@@ -794,17 +931,33 @@ namespace Nop.Services.Media
         /// <param name="pictureBinary">Picture binary</param>
         /// <param name="mimeType">MIME type</param>
         /// <returns>Picture binary or throws an exception</returns>
+        /// <remarks>
+        /// Replaces <c>ImageBuilder.Current.Build(pictureBinary, destStream,
+        /// new ResizeSettings { MaxWidth, MaxHeight, Quality })</c>. ImageResizer's
+        /// <c>MaxWidth</c>/<c>MaxHeight</c> meant "shrink to fit within this box, never enlarge",
+        /// which is <see cref="ResizeMode.Max"/> plus the explicit oversize guard below.
+        /// As before, the image is always re-encoded (so <c>Quality</c> is applied) even when no
+        /// resize is needed, keeping the returned binary's shape identical to 3.90's.
+        /// </remarks>
         public virtual byte[] ValidatePicture(byte[] pictureBinary, string mimeType)
         {
-            using (var destStream = new MemoryStream())
+            IImageFormat format;
+            using (var image = Image.Load(pictureBinary, out format))
             {
-                ImageBuilder.Current.Build(pictureBinary, destStream, new ResizeSettings
+                var maximumSize = _mediaSettings.MaximumImageSize;
+
+                //never upscale - ImageResizer's MaxWidth/MaxHeight only ever shrank
+                if (maximumSize > 0 && (image.Width > maximumSize || image.Height > maximumSize))
                 {
-                    MaxWidth = _mediaSettings.MaximumImageSize,
-                    MaxHeight = _mediaSettings.MaximumImageSize,
-                    Quality = _mediaSettings.DefaultImageQuality
-                });
-                return destStream.ToArray();
+                    image.Mutate(x => x.Resize(new ResizeOptions
+                    {
+                        Size = new Size(maximumSize, maximumSize),
+                        Mode = ResizeMode.Max,
+                        Sampler = Resampler
+                    }));
+                }
+
+                return EncodeImage(image, format);
             }
         }
 

@@ -1,34 +1,46 @@
-using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 
 namespace Nop.Core.Caching
 {
     /// <summary>
     /// Represents a manager for caching during an HTTP request (short term caching)
     /// </summary>
+    /// <remarks>
+    /// Task 2.4 (design section 4): the per-request store moved from
+    /// <c>System.Web.HttpContextBase.Items</c> to
+    /// <see cref="HttpContext.Items"/> reached through <see cref="IHttpContextAccessor"/>.
+    /// Outside a request (scheduled tasks, installation, unit tests) the accessor's
+    /// HttpContext is null; every operation then degrades to a no-op exactly as the legacy
+    /// implementation did when the context was null.
+    /// </remarks>
     public partial class PerRequestCacheManager : ICacheManager
     {
-        private readonly HttpContextBase _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         /// <summary>
         /// Ctor
         /// </summary>
-        /// <param name="context">Context</param>
-        public PerRequestCacheManager(HttpContextBase context)
+        /// <param name="httpContextAccessor">HTTP context accessor</param>
+        public PerRequestCacheManager(IHttpContextAccessor httpContextAccessor)
         {
-            this._context = context;
+            this._httpContextAccessor = httpContextAccessor;
         }
-        
-        /// <summary>
-        /// Creates a new instance of the NopRequestCache class
-        /// </summary>
-        protected virtual IDictionary GetItems()
-        {
-            if (_context != null)
-                return _context.Items;
 
-            return null;
+        /// <summary>
+        /// Gets the per-request item dictionary, or null when there is no current request
+        /// </summary>
+        protected virtual IDictionary<object, object> GetItems()
+        {
+            if (_httpContextAccessor == null)
+                return null;
+
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
+                return null;
+
+            return httpContext.Items;
         }
 
         /// <summary>
@@ -43,7 +55,11 @@ namespace Nop.Core.Caching
             if (items == null)
                 return default(T);
 
-            return (T)items[key];
+            object value;
+            if (!items.TryGetValue(key, out value) || value == null)
+                return default(T);
+
+            return (T)value;
         }
 
         /// <summary>
@@ -60,10 +76,9 @@ namespace Nop.Core.Caching
 
             if (data != null)
             {
-                if (items.Contains(key))
-                    items[key] = data;
-                else
-                    items.Add(key, data);
+                //HttpContext.Items is an IDictionary<object, object>; the indexer both adds
+                //and replaces, so no Contains/Add split is needed
+                items[key] = data;
             }
         }
 
@@ -77,8 +92,9 @@ namespace Nop.Core.Caching
             var items = GetItems();
             if (items == null)
                 return false;
-            
-            return (items[key] != null);
+
+            object value;
+            return items.TryGetValue(key, out value) && value != null;
         }
 
         /// <summary>
@@ -104,7 +120,10 @@ namespace Nop.Core.Caching
             if (items == null)
                 return;
 
-            this.RemoveByPattern(pattern, items.Keys.Cast<object>().Select(p => p.ToString()));
+            this.RemoveByPattern(pattern, items.Keys
+                .Where(p => p != null)
+                .Select(p => p.ToString())
+                .ToList());
         }
 
         /// <summary>

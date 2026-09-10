@@ -1,107 +1,70 @@
-using System;
-using System.Configuration;
-using System.Xml;
-
 namespace Nop.Core.Configuration
 {
     /// <summary>
     /// Represents a NopConfig
     /// </summary>
-    public partial class NopConfig : IConfigurationSectionHandler
+    /// <remarks>
+    /// Migrated from the classic <c>System.Configuration.IConfigurationSectionHandler</c>
+    /// mechanism (task 2.3, Requirement 1.4). The type has no net10.0 counterpart, so this
+    /// class is now a plain options POCO that binds from any <c>IConfiguration</c> source -
+    /// for example:
+    /// <code>
+    /// services.Configure&lt;NopConfig&gt;(configuration.GetSection(NopConfig.SectionName));
+    /// // or, for the non-DI startup path:
+    /// var config = new NopConfig();
+    /// configuration.GetSection(NopConfig.SectionName).Bind(config);
+    /// </code>
+    /// Every setting name and type is unchanged from the section-handler version so existing
+    /// consumers (<c>RedisCacheManager</c>, <c>RedisConnectionWrapper</c>, <c>NopEngine</c>,
+    /// <c>UserAgentHelper</c>, <c>AzurePictureService</c>, <c>Task</c>, and the Nop.Web /
+    /// Nop.Admin controllers) compile and behave unchanged. Property setters were widened
+    /// from <c>private set</c> to <c>set</c> because <c>ConfigurationBinder</c> only assigns
+    /// publicly settable properties.
+    ///
+    /// Producing the matching <c>appsettings.json</c> section and registering the binding is
+    /// owned by task 7.4 (web.config -> appsettings.json / IConfiguration); this class
+    /// intentionally contains no configuration-source knowledge of its own.
+    /// </remarks>
+    public partial class NopConfig
     {
         /// <summary>
-        /// Creates a configuration section handler.
+        /// The configuration section this options class binds from. Matches the legacy
+        /// <c>configSections</c> name used in Web.config / App.config.
         /// </summary>
-        /// <param name="parent">Parent object.</param>
-        /// <param name="configContext">Configuration context object.</param>
-        /// <param name="section">Section XML node.</param>
-        /// <returns>The created section handler object.</returns>
-        public object Create(object parent, object configContext, XmlNode section)
-        {
-            var config = new NopConfig();
-
-            var startupNode = section.SelectSingleNode("Startup");
-            config.IgnoreStartupTasks = GetBool(startupNode, "IgnoreStartupTasks");
-           
-            var redisCachingNode = section.SelectSingleNode("RedisCaching");
-            config.RedisCachingEnabled = GetBool(redisCachingNode, "Enabled");
-            config.RedisCachingConnectionString = GetString(redisCachingNode, "ConnectionString");
-
-            var userAgentStringsNode = section.SelectSingleNode("UserAgentStrings");
-            config.UserAgentStringsPath = GetString(userAgentStringsNode, "databasePath");
-            config.CrawlerOnlyUserAgentStringsPath = GetString(userAgentStringsNode, "crawlersOnlyDatabasePath");
-
-            var supportPreviousNopcommerceVersionsNode = section.SelectSingleNode("SupportPreviousNopcommerceVersions");
-            config.SupportPreviousNopcommerceVersions = GetBool(supportPreviousNopcommerceVersionsNode, "Enabled");
-            
-            var webFarmsNode = section.SelectSingleNode("WebFarms");
-            config.MultipleInstancesEnabled = GetBool(webFarmsNode, "MultipleInstancesEnabled");
-            config.RunOnAzureWebApps = GetBool(webFarmsNode, "RunOnAzureWebApps");
-
-            var azureBlobStorageNode = section.SelectSingleNode("AzureBlobStorage");
-            config.AzureBlobStorageConnectionString = GetString(azureBlobStorageNode, "ConnectionString");
-            config.AzureBlobStorageContainerName = GetString(azureBlobStorageNode, "ContainerName");
-            config.AzureBlobStorageEndPoint = GetString(azureBlobStorageNode, "EndPoint");
-
-            var installationNode = section.SelectSingleNode("Installation");
-            config.DisableSampleDataDuringInstallation = GetBool(installationNode, "DisableSampleDataDuringInstallation");
-            config.UseFastInstallationService = GetBool(installationNode, "UseFastInstallationService");
-            config.PluginsIgnoredDuringInstallation = GetString(installationNode, "PluginsIgnoredDuringInstallation");
-
-            return config;
-        }
-
-        private string GetString(XmlNode node, string attrName)
-        {
-            return SetByXElement<string>(node, attrName, Convert.ToString);
-        }
-
-        private bool GetBool(XmlNode node, string attrName)
-        {
-            return SetByXElement<bool>(node, attrName, Convert.ToBoolean);
-        }
-
-        private T SetByXElement<T>(XmlNode node, string attrName, Func<string, T> converter)
-        {
-            if (node == null || node.Attributes == null) return default(T);
-            var attr = node.Attributes[attrName];
-            if (attr == null) return default(T);
-            var attrVal = attr.Value;
-            return converter(attrVal);
-        }
+        public const string SectionName = "NopConfig";
 
         /// <summary>
         /// Indicates whether we should ignore startup tasks
         /// </summary>
-        public bool IgnoreStartupTasks { get; private set; }
+        public bool IgnoreStartupTasks { get; set; }
 
         /// <summary>
         /// Path to database with user agent strings
         /// </summary>
-        public string UserAgentStringsPath { get; private set; }
+        public string UserAgentStringsPath { get; set; }
 
         /// <summary>
         /// Path to database with crawler only user agent strings
         /// </summary>
-        public string CrawlerOnlyUserAgentStringsPath { get; private set; }
+        public string CrawlerOnlyUserAgentStringsPath { get; set; }
 
 
 
         /// <summary>
         /// Indicates whether we should use Redis server for caching (instead of default in-memory caching)
         /// </summary>
-        public bool RedisCachingEnabled { get; private set; }
+        public bool RedisCachingEnabled { get; set; }
         /// <summary>
         /// Redis connection string. Used when Redis caching is enabled
         /// </summary>
-        public string RedisCachingConnectionString { get; private set; }
+        public string RedisCachingConnectionString { get; set; }
 
 
 
         /// <summary>
         /// Indicates whether we should support previous nopCommerce versions (it can slightly improve performance)
         /// </summary>
-        public bool SupportPreviousNopcommerceVersions { get; private set; }
+        public bool SupportPreviousNopcommerceVersions { get; set; }
 
 
 
@@ -109,38 +72,38 @@ namespace Nop.Core.Configuration
         /// A value indicating whether the site is run on multiple instances (e.g. web farm, Windows Azure with multiple instances, etc).
         /// Do not enable it if you run on Azure but use one instance only
         /// </summary>
-        public bool MultipleInstancesEnabled { get; private set; }
+        public bool MultipleInstancesEnabled { get; set; }
 
         /// <summary>
         /// A value indicating whether the site is run on Windows Azure Web Apps
         /// </summary>
-        public bool RunOnAzureWebApps { get; private set; }
+        public bool RunOnAzureWebApps { get; set; }
 
         /// <summary>
         /// Connection string for Azure BLOB storage
         /// </summary>
-        public string AzureBlobStorageConnectionString { get; private set; }
+        public string AzureBlobStorageConnectionString { get; set; }
         /// <summary>
         /// Container name for Azure BLOB storage
         /// </summary>
-        public string AzureBlobStorageContainerName { get; private set; }
+        public string AzureBlobStorageContainerName { get; set; }
         /// <summary>
         /// End point for Azure BLOB storage
         /// </summary>
-        public string AzureBlobStorageEndPoint { get; private set; }
+        public string AzureBlobStorageEndPoint { get; set; }
 
 
         /// <summary>
         /// A value indicating whether a store owner can install sample data during installation
         /// </summary>
-        public bool DisableSampleDataDuringInstallation { get; private set; }
+        public bool DisableSampleDataDuringInstallation { get; set; }
         /// <summary>
         /// By default this setting should always be set to "False" (only for advanced users)
         /// </summary>
-        public bool UseFastInstallationService { get; private set; }
+        public bool UseFastInstallationService { get; set; }
         /// <summary>
         /// A list of plugins ignored during nopCommerce installation
         /// </summary>
-        public string PluginsIgnoredDuringInstallation { get; private set; }
+        public string PluginsIgnoredDuringInstallation { get; set; }
     }
 }

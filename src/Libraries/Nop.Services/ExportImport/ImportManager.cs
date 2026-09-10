@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Web;
-using System.Web.WebPages;
+using Microsoft.AspNetCore.StaticFiles;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Catalog;
@@ -35,6 +34,18 @@ namespace Nop.Services.ExportImport
     /// </summary>
     public partial class ImportManager : IImportManager
     {
+        #region Const
+
+        /// <summary>
+        /// Extension-to-MIME-type map replacing <c>System.Web.MimeMapping</c> (task 4.2).
+        /// <see cref="FileExtensionContentTypeProvider"/> is stateless after construction
+        /// and thread-safe for lookups, so a single shared instance is used.
+        /// </summary>
+        private static readonly FileExtensionContentTypeProvider MimeTypeProvider =
+            new FileExtensionContentTypeProvider();
+
+        #endregion
+
         #region Fields
 
         private readonly IProductService _productService;
@@ -148,7 +159,15 @@ namespace Nop.Services.ExportImport
 
         protected virtual string GetMimeTypeFromFilePath(string filePath)
         {
-            var mimeType = MimeMapping.GetMimeMapping(filePath);
+            //Task 4.2: System.Web.MimeMapping has no ASP.NET Core counterpart.
+            //FileExtensionContentTypeProvider (Microsoft.AspNetCore.StaticFiles, in the
+            //shared framework) is the supported replacement; like MimeMapping it is
+            //extension-driven, and its "unknown" case is represented by TryGetContentType
+            //returning false, which is mapped onto the same application/octet-stream value
+            //the original code tested for so the hack below still fires.
+            string mimeType;
+            if (!MimeTypeProvider.TryGetContentType(filePath, out mimeType))
+                mimeType = MimeTypes.ApplicationOctetStream;
 
             //little hack here because MimeMapping does not contain all mappings (e.g. PNG)
             if (mimeType == MimeTypes.ApplicationOctetStream)
@@ -447,7 +466,7 @@ namespace Nop.Services.ExportImport
                     { 
                         var categoryIds = worksheet.Cells[endRow, categoryCellNum].Value.Return(p => p.ToString(), string.Empty);
 
-                        if (!categoryIds.IsEmpty())
+                        if (!String.IsNullOrEmpty(categoryIds))
                             allCategoriesNames.AddRange(categoryIds.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()));
                     }
 
@@ -455,14 +474,14 @@ namespace Nop.Services.ExportImport
                     {
                         var sku = worksheet.Cells[endRow, skuCellNum].Value.Return(p => p.ToString(), string.Empty);
 
-                        if (!sku.IsEmpty())
+                        if (!String.IsNullOrEmpty(sku))
                             allSku.Add(sku);
                     }
 
                     if (manufacturerCellNum > 0)
                     { 
                         var manufacturerIds = worksheet.Cells[endRow, manufacturerCellNum].Value.Return(p => p.ToString(), string.Empty);
-                        if (!manufacturerIds.IsEmpty())
+                        if (!String.IsNullOrEmpty(manufacturerIds))
                             allManufacturersNames.AddRange(manufacturerIds.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()));
                     }
 

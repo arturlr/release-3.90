@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Blob;
 using Nop.Core;
 using Nop.Core.Configuration;
 using Nop.Core.Data;

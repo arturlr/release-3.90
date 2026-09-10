@@ -1,5 +1,4 @@
-﻿using System.Configuration;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Nop.Core.Configuration;
 
 namespace Nop.Core.Infrastructure
@@ -22,7 +21,11 @@ namespace Nop.Core.Infrastructure
             {
                 Singleton<IEngine>.Instance = new NopEngine();
 
-                var config = ConfigurationManager.GetSection("NopConfig") as NopConfig;
+                //Task 2.4: ConfigurationManager.GetSection("NopConfig") (an
+                //IConfigurationSectionHandler, removed in task 2.3) is replaced by binding the
+                //NopConfig options POCO from IConfiguration. The configuration source itself is
+                //supplied by the host in tasks 7.2 / 7.4; see NopConfigurationManager.
+                var config = NopConfigurationManager.GetNopConfig();
                 Singleton<IEngine>.Instance.Initialize(config);
             }
             return Singleton<IEngine>.Instance;

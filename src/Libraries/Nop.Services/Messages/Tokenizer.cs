@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Dynamic;
+using System.Linq.Dynamic.Core;
+using System.Net;
 using System.Text.RegularExpressions;
-using System.Web;
 using Nop.Core.Domain.Messages;
 
 namespace Nop.Services.Messages
@@ -91,7 +91,10 @@ namespace Nop.Services.Messages
                 {
                     //do not encode URLs
                     if (htmlEncode && !token.NeverHtmlEncoded)
-                        tokenValue = HttpUtility.HtmlEncode(tokenValue);
+                        //Task 4.2: System.Web.HttpUtility.HtmlEncode had an object overload that
+                        //ToString()'d its argument; System.Net.WebUtility.HtmlEncode is
+                        //string-only, so the conversion is now explicit. Same result.
+                        tokenValue = WebUtility.HtmlEncode(tokenValue.ToString());
                 }
 
                 template = Replace(template, string.Format(@"%{0}%", token.Key), tokenValue.ToString());
@@ -136,7 +139,11 @@ namespace Nop.Services.Messages
                     {
                         //replace tokens (string values are wrap in quotes)
                         var conditionString = ReplaceTokens(statement.Condition, tokens, stringWithQuotes: true);
-                        conditionIsMet = new[] { statement }.Where(conditionString).Any();
+                        //Task 4.2: System.Linq.Dynamic exposed the string-predicate Where() on
+                        //IEnumerable; its maintained successor System.Linq.Dynamic.Core exposes it
+                        //on IQueryable (DynamicQueryableExtensions), hence the AsQueryable() hop.
+                        //The expression language and evaluation semantics are unchanged.
+                        conditionIsMet = new[] { statement }.AsQueryable().Where(conditionString).Any();
                     }
                     catch { }
 

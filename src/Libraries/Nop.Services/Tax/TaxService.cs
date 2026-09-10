@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Common;
@@ -22,6 +25,56 @@ namespace Nop.Services.Tax
     /// </summary>
     public partial class TaxService : ITaxService
     {
+        #region Constants
+
+        /// <summary>
+        /// Default endpoint of the EU VIES <c>checkVatService</c> SOAP service.
+        /// </summary>
+        /// <remarks>
+        /// Task 4.2. In 3.90 this URL lived in <c>Properties\Settings.settings</c> and was read
+        /// through <c>System.Configuration.ApplicationSettingsBase</c> by the generated ASMX
+        /// proxy; both files were deleted with the proxy. The value is restated here so the
+        /// endpoint is not buried inside <see cref="CheckVatEuropa"/>, and
+        /// <see cref="EuropaCheckVatServiceUrl"/> is virtual so a subclass can point it
+        /// elsewhere.
+        ///
+        /// FOLLOW-UP FOR TASK 7.4 (web.config -&gt; appsettings.json): this belongs in
+        /// configuration. The natural home is a new key on <c>Nop.Core.Domain.Tax.TaxSettings</c>
+        /// (a nopCommerce settings entity, already injected here as <c>_taxSettings</c>) or an
+        /// <c>appsettings.json</c> entry bound through <c>IConfiguration</c>. Overriding
+        /// <see cref="EuropaCheckVatServiceUrl"/> to read that value is then a one-line change.
+        /// Note the service is plain HTTP in the WSDL; the HTTPS host
+        /// (<c>https://ec.europa.eu/taxation_customs/vies/services/checkVatService</c>) should be
+        /// preferred when this becomes configurable.
+        /// </remarks>
+        public const string DefaultEuropaCheckVatServiceUrl =
+            "http://ec.europa.eu/taxation_customs/vies/services/checkVatService";
+
+        /// <summary>
+        /// SOAP 1.1 envelope namespace
+        /// </summary>
+        private static readonly XNamespace SoapEnvelopeNamespace =
+            XNamespace.Get("http://schemas.xmlsoap.org/soap/envelope/");
+
+        /// <summary>
+        /// Namespace of the <c>checkVat</c> / <c>checkVatResponse</c> message elements
+        /// (<c>tns1</c> in the retired WSDL; the schema is <c>elementFormDefault="qualified"</c>,
+        /// so the child elements are in this namespace too).
+        /// </summary>
+        private static readonly XNamespace CheckVatTypesNamespace =
+            XNamespace.Get("urn:ec.europa.eu:taxud:vies:services:checkVat:types");
+
+        /// <summary>
+        /// Shared client for the EU VAT service. A single long-lived
+        /// <see cref="HttpClient"/> avoids the socket exhaustion that per-call instances cause.
+        /// The 30 second timeout stands in for the ASMX proxy's inherited
+        /// <c>SoapHttpClientProtocol.Timeout</c>.
+        /// </summary>
+        private static readonly HttpClient EuropaHttpClient =
+            new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+
+        #endregion
+
         #region Fields
 
         private readonly IAddressService _addressService;
@@ -753,14 +806,11 @@ namespace Nop.Services.Tax
                 //The service returns INVALID_INPUT for country codes that are not uppercase.
                 twoLetterIsoCode = twoLetterIsoCode.ToUpper();
 
-            EuropaCheckVatService.checkVatService s = null;
-
             try
             {
                 bool valid;
 
-                s = new EuropaCheckVatService.checkVatService();
-                s.checkVat(ref twoLetterIsoCode, ref vatNumber, out valid, out name, out address);
+                CheckVatEuropa(twoLetterIsoCode, vatNumber, out valid, out name, out address);
                 exception = null;
                 return valid ? VatNumberStatus.Valid : VatNumberStatus.Invalid;
             }
@@ -777,9 +827,128 @@ namespace Nop.Services.Tax
 
                 if (address == null)
                     address = string.Empty;
+            }
+        }
 
-                if (s != null)
-                    s.Dispose();
+        /// <summary>
+        /// Gets the endpoint of the EU VIES <c>checkVat</c> SOAP service.
+        /// Override to source it from configuration (see
+        /// <see cref="DefaultEuropaCheckVatServiceUrl"/>).
+        /// </summary>
+        protected virtual string EuropaCheckVatServiceUrl
+        {
+            get { return DefaultEuropaCheckVatServiceUrl; }
+        }
+
+        /// <summary>
+        /// Calls the EU VIES <c>checkVat</c> SOAP operation
+        /// </summary>
+        /// <param name="twoLetterIsoCode">Two letter ISO code of a country (uppercase)</param>
+        /// <param name="vatNumber">VAT number</param>
+        /// <param name="valid">Whether the VAT number is valid</param>
+        /// <param name="name">Company name, if the service returned one</param>
+        /// <param name="address">Address, if the service returned one</param>
+        /// <remarks>
+        /// Task 4.2. Replaces the generated ASMX proxy
+        /// <c>Web References\EuropaCheckVatService\Reference.cs</c>, which derived from
+        /// <c>System.Web.Services.Protocols.SoapHttpClientProtocol</c> - a type that exists in
+        /// no net10.0 framework or NuGet package. The wire contract is reproduced by hand with
+        /// <see cref="HttpClient"/> and <see cref="System.Xml.Linq"/>, both of which are in the
+        /// shared framework, so no new dependency was added.
+        ///
+        /// Contract (from the retired <c>checkVatService.wsdl</c>, SOAP 1.1,
+        /// <c>soapAction=""</c>, <c>elementFormDefault="qualified"</c>):
+        ///   request  <c>checkVat</c>         -&gt; countryCode, vatNumber
+        ///   response <c>checkVatResponse</c> -&gt; countryCode, vatNumber, requestDate, valid,
+        ///                                       name?, address?
+        /// Only the five fields the caller consumes are read.
+        ///
+        /// FAILURE BEHAVIOUR IS PRESERVED. A SOAP Fault (the WSDL documents INVALID_INPUT,
+        /// SERVICE_UNAVAILABLE, MS_UNAVAILABLE, TIMEOUT, SERVER_BUSY), a transport failure, a
+        /// non-success status code, a timeout, or an unparsable body all throw - exactly as
+        /// the ASMX proxy did - and <see cref="DoVatCheck"/>'s existing try/catch turns that
+        /// into <see cref="VatNumberStatus.Unknown"/> plus the out <c>exception</c>. The
+        /// declared exception types differ (<see cref="HttpRequestException"/> /
+        /// <see cref="NopException"/> instead of <c>SoapException</c>/<c>WebException</c>), but
+        /// the catch is <c>catch (Exception)</c>, so no call site is affected.
+        /// </remarks>
+        protected virtual void CheckVatEuropa(string twoLetterIsoCode, string vatNumber,
+            out bool valid, out string name, out string address)
+        {
+            valid = false;
+            name = string.Empty;
+            address = string.Empty;
+
+            var requestEnvelope = new XDocument(
+                new XDeclaration("1.0", "utf-8", null),
+                new XElement(SoapEnvelopeNamespace + "Envelope",
+                    new XAttribute(XNamespace.Xmlns + "soap", SoapEnvelopeNamespace.NamespaceName),
+                    new XElement(SoapEnvelopeNamespace + "Body",
+                        new XElement(CheckVatTypesNamespace + "checkVat",
+                            new XElement(CheckVatTypesNamespace + "countryCode", twoLetterIsoCode),
+                            new XElement(CheckVatTypesNamespace + "vatNumber", vatNumber)))));
+
+            var request = new HttpRequestMessage(HttpMethod.Post, EuropaCheckVatServiceUrl)
+            {
+                Content = new StringContent(requestEnvelope.ToString(SaveOptions.DisableFormatting),
+                    Encoding.UTF8, "text/xml")
+            };
+            //the WSDL declares soapAction="", but SOAP 1.1 requires the header to be present
+            request.Headers.TryAddWithoutValidation("SOAPAction", "\"\"");
+
+            //DoVatCheck and the whole ITaxService surface are synchronous, so the async call is
+            //blocked on here. ASP.NET Core installs no SynchronizationContext, so this cannot
+            //deadlock - it only occupies the calling thread for the duration of the call.
+            using (var response = EuropaHttpClient.Send(request, HttpCompletionOption.ResponseContentRead))
+            {
+                var responseBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+                XDocument responseEnvelope;
+                try
+                {
+                    responseEnvelope = XDocument.Parse(responseBody);
+                }
+                catch (System.Xml.XmlException ex)
+                {
+                    throw new NopException(string.Format(
+                        "The EU VAT validation service returned an unparsable response (HTTP {0}).",
+                        (int)response.StatusCode), ex);
+                }
+
+                //a SOAP Fault carries the error in the body and may arrive with either a 500 or
+                //a 200 status, so it is checked before the status code
+                var fault = responseEnvelope.Descendants(SoapEnvelopeNamespace + "Fault").FirstOrDefault();
+                if (fault != null)
+                {
+                    //faultstring/faultcode are unqualified in SOAP 1.1
+                    var faultString = fault.Elements().FirstOrDefault(x => x.Name.LocalName == "faultstring");
+                    var faultCode = fault.Elements().FirstOrDefault(x => x.Name.LocalName == "faultcode");
+                    throw new NopException(string.Format("The EU VAT validation service returned a fault: {0}",
+                        faultString != null ? faultString.Value
+                            : (faultCode != null ? faultCode.Value : "unspecified")));
+                }
+
+                //no fault: any non-success status is a transport-level failure
+                response.EnsureSuccessStatusCode();
+
+                var result = responseEnvelope.Descendants(CheckVatTypesNamespace + "checkVatResponse").FirstOrDefault();
+                if (result == null)
+                    throw new NopException("The EU VAT validation service response contained no checkVatResponse element.");
+
+                var validElement = result.Element(CheckVatTypesNamespace + "valid");
+                if (validElement == null || !bool.TryParse(validElement.Value.Trim(), out valid))
+                    throw new NopException("The EU VAT validation service response contained no readable 'valid' value.");
+
+                //name and address are minOccurs="0" nillable="true" - absent/nil stays string.Empty,
+                //matching what the XmlSerializer-backed proxy produced followed by DoVatCheck's
+                //null-normalising finally block
+                var nameElement = result.Element(CheckVatTypesNamespace + "name");
+                if (nameElement != null)
+                    name = nameElement.Value;
+
+                var addressElement = result.Element(CheckVatTypesNamespace + "address");
+                if (addressElement != null)
+                    address = addressElement.Value;
             }
         }
 

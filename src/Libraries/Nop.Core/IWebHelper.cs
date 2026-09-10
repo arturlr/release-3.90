@@ -1,4 +1,4 @@
-using System.Web;
+using Microsoft.AspNetCore.Http;
 
 namespace Nop.Core
 {
@@ -45,6 +45,12 @@ namespace Nop.Core
         /// </summary>
         /// <param name="name">Name</param>
         /// <returns>Server variable</returns>
+        /// <remarks>
+        /// ASP.NET Core has no server-variable collection. Classic <c>HTTP_*</c> server
+        /// variable names are resolved against the request headers instead (see
+        /// <c>WebHelper.ServerVariables</c>); anything else is looked up as a literal header
+        /// name.
+        /// </remarks>
         string ServerVariables(string name);
 
         /// <summary>
@@ -115,6 +121,12 @@ namespace Nop.Core
         /// </summary>
         /// <param name="makeRedirect">A value indicating whether we should made redirection after restart</param>
         /// <param name="redirectUrl">Redirect URL; empty string if you want to redirect to the current page URL</param>
+        /// <remarks>
+        /// .NET Core has no unloadable application domain, so this now requests a host
+        /// shutdown through <c>IHostApplicationLifetime.StopApplication()</c> and relies on the
+        /// process supervisor (ANCM, systemd, container orchestrator) to start a new process.
+        /// See <c>WebHelper.RestartAppDomain</c> for the exact behaviour and its limits.
+        /// </remarks>
         void RestartAppDomain(bool makeRedirect = false, string redirectUrl = "");
         
         /// <summary>

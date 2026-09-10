@@ -13,16 +13,46 @@
     All versions below were verified to ship net10.0-compatible assets
     (lib/net10.0 or lib/netstandardX.Y).
 
-    Later migration stages (Nop.Data, Nop.Services, presentation, plugins, tests) extend
+    Later migration stages (Nop.Services, presentation, plugins, tests) extend
     this file with additional PackageVersion entries as each project's packages.config is
-    translated.
+    translated. Nop.Data (task 3.1) needed no additions; Nop.Services (task 4.1) added
+    EPPlus, iTextSharp.LGPLv2.Core, MaxMind.GeoIP2, Microsoft.Azure.Storage.Blob,
+    Microsoft.Data.SqlClient, SixLabors.ImageSharp and System.Linq.Dynamic.Core.
   -->
 
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Fail the restore loudly instead of silently honouring a per-project Version="" override. -->
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
+    <!--
+      Allow a <PackageVersion> entry below to pin a package that is only reached
+      TRANSITIVELY, so a vulnerable transitive dependency can be lifted without having
+      to declare it as a direct <PackageReference> in every consuming project.
+      Required by the System.Drawing.Common pin further down.
+    -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
+
+  <!-- ==========================================================
+       SECURITY PIN - transitive only, not referenced by any project directly.
+
+       EPPlus 4.5.3.3 (see the spreadsheet section below) depends on
+       System.Drawing.Common >= 4.7.0 through its netstandard2.0 asset.
+       System.Drawing.Common 4.7.0 carries GHSA-rxg9-xrhp-64gj (CRITICAL,
+       CVE-2021-24112 - remote code execution via a crafted metafile), which NuGet
+       surfaces as NU1904 during restore. The advisory is fixed in 4.7.2, which is the
+       lowest stable release that clears it (4.7.1 is still affected).
+
+       4.7.2 is API-identical to 4.7.0 for our purposes: nothing in this repository
+       calls into System.Drawing.Common at all. Nop.Services only names
+       System.Drawing.Color (ExportImport/ExportManager.cs, Color.FromArgb for an
+       EPPlus cell fill), which lives in the cross-platform System.Drawing.Primitives
+       in the net10.0 shared framework - not in this package. The pin exists purely to
+       stop a vulnerable assembly from being resolved into the output.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="System.Drawing.Common" Version="4.7.2" />
+  </ItemGroup>
 
   <!-- ==========================================================
        Dependency injection  (replaces Autofac 4.4.0 + Autofac.Mvc5 4.0.1)
@@ -78,6 +108,179 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       SQL Server client  (added for Nop.Services task 4.1)
+
+       Nop.Services/Common/MaintenanceService.cs binds directly to SqlConnection /
+       SqlCommand / SqlConnection.ClearAllPools (legacy "using System.Data.SqlClient",
+       which has no net10.0 implementation). Microsoft.Data.SqlClient is the supported
+       successor and is already what Nop.Data's SqlServerDataProvider returns.
+
+       Version 6.1.6 is deliberately the exact version that
+       Microsoft.EntityFrameworkCore.SqlServer 10.0.12 depends on, so the direct
+       reference cannot introduce a resolution conflict with EF Core. Stable release;
+       ships lib/net8.0 + lib/net9.0 + lib/netstandard2.0, all net10.0-compatible.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.6" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       Image processing  (replaces ImageResizer 4.0.5 +
+       ImageResizer.Plugins.PrettyGifs 4.0.5 and the Windows-only System.Drawing
+       Bitmap/Graphics surface - design section 7, Requirements 5.8, 5.10, 5.11)
+
+       Task 1.1 intended to seed this entry and did not; it is added here for
+       Nop.Services task 4.1 and it also serves Nop.Admin (task 8.6) - those are the
+       only two consumers, so this single pin governs all ImageSharp usage in the repo.
+
+       ***** DELIBERATE VERSION PIN - 2.1.13. DO NOT ADVANCE TO 3.x OR 4.x. *****
+
+       2.1.13 is the newest patch of the 2.1 line, which is the LAST line published
+       under a plain OSI licence: its nuspec declares
+       <license type="expression">Apache-2.0</license>. It ships lib/netstandard2.0,
+       lib/netstandard2.1, lib/netcoreapp3.1 and lib/net472; net10.0 consumes the
+       netstandard2.1 asset normally. NuGet audit (NuGetAuditMode=all) reports no
+       known vulnerabilities for it. Its built-in GifEncoder performs the palette
+       quantization (Wu / Octree IQuantizer) that ImageResizer.Plugins.PrettyGifs
+       provided, so no separate quantizer package is needed.
+
+       WHY NOT 3.x / 4.x - two distinct problems:
+
+         1. LICENCE. From 3.0.0 the nuspec switches to
+            <license type="file">LICENSE</license>, that file being the "Six Labors
+            Split License v1.0": Apache-2.0 terms only for open-source projects and
+            small organisations, otherwise a paid commercial licence from Six Labors.
+            Whether nopCommerce deployments qualify is a per-deployer question, which
+            makes it unsafe to bake into a shared dependency pin.
+
+         2. BUILD-TIME LICENCE ENFORCEMENT. 3.0+ ships a build/ MSBuild task
+            (SixLabors.Licensing.dll / ValidateLicenseTask, hooked into the
+            SixLabors_ValidateLicense target before CoreCompile) that FAILS the task
+            when no $(SixLaborsLicenseKey), $(SixLaborsLicenseFile) or sixlabors.lic
+            is present. It runs with ContinueOnError=true, so MSBuild downgrades the
+            failure to two warnings plus "The previous error was converted to a
+            warning..." - i.e. a build that looks clean at normal verbosity is in fact
+            failing a task on every compile. Under 4.1.1 this produced 2 extra
+            warnings on Nop.Services; 2.1.13 has no build/ targets at all and the
+            diagnostic disappears entirely.
+
+       Advancing this pin to 3.x/4.x therefore requires an explicit LICENSING DECISION
+       (purchase a Six Labors licence and wire the key into the build, or accept the
+       Split License terms), not just a routine version bump. Code impact of staying on
+       2.x is confined to Media/PictureService.cs and is documented there: 2.x has no
+       ImageMetadata.DecodedImageFormat (the decoded format comes from the
+       Image.Load(..., out IImageFormat format) overloads), ImageFormatManager exposes
+       FindEncoder rather than GetEncoder, and Image.Size is an extension method
+       (image.Size()) rather than a property.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="SixLabors.ImageSharp" Version="2.1.13" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       Spreadsheet export/import  (replaces EPPlus 4.1.0, Nop.Services)
+
+       4.5.3.3 is the LAST LGPL-3.0 release of EPPlus and the first 4.x build shipping
+       lib/netstandard2.0 + lib/netstandard2.1 assets, so it is net10.0-compatible while
+       keeping the 4.x OfficeOpenXml API that ExportManager / ImportManager /
+       PropertyManager already use - zero code churn.
+
+       LICENCE FLAG: EPPlus 5.0.0 and later moved to the Polyform Noncommercial
+       licence, which requires a paid commercial licence for commercial use, and also
+       breaks the API (mandatory ExcelPackage.LicenseContext). 4.5.3.3 is therefore
+       preferred here. Trade-off: its netstandard2.0 dependency set includes
+       System.Drawing.Common 4.7.0 (Windows-only at runtime). EPPlus uses it for
+       autofit column measurement and embedded images; Nop.Services calls neither
+       (no AutoFitColumns / Drawings / AddPicture usage), and the only System.Drawing
+       type Nop.Services itself names in the export path is Color.FromArgb, which is in
+       the cross-platform System.Drawing.Primitives. Revisit if autofit is ever used on
+       Linux.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="EPPlus" Version="4.5.3.3" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       PDF generation  (replaces iTextSharp 5.5.10, Nop.Services/Common/PdfService.cs)
+
+       iTextSharp 5.x has NO net10.0 path: the last release (5.5.13.6) ships
+       .NETFramework4.6.1 assets only. Two successors exist and both have caveats, so
+       the choice is documented rather than silent:
+
+         * itext7 / itext 9.x - the official successor, netstandard2.0, but a totally
+           different API (iText.Kernel.*, iText.Layout.*) requiring a full rewrite of
+           PdfService.cs, and it is AGPL-3.0: linking it into a closed-source
+           deployment requires buying a commercial licence from iText Group.
+         * iTextSharp.LGPLv2.Core 3.8.5 - a maintained community .NET port of the
+           LGPL-era iTextSharp tree that KEEPS the iTextSharp.text /
+           iTextSharp.text.pdf namespaces and type names (Document, PdfWriter,
+           PdfPTable, PdfPCell, Paragraph, Phrase, Font, BaseFont, BaseColor, PageSize,
+           Rectangle, Image, Anchor - all verified present in its lib/net10.0
+           assembly). LGPL-2.0-only, i.e. no AGPL copyleft reach into the application.
+
+       CHOSEN: iTextSharp.LGPLv2.Core 3.8.5 - least semantic change plus the friendlier
+       licence. Stable release, ships a native lib/net10.0 asset.
+       CAVEAT for task 4.2: it is a port of the 4.1.6-era tree with 5.x features
+       backported, not a drop-in for 5.5.10, so a residue of missing overloads in
+       PdfService.cs is expected. It is also a third-party (non-iText-Group) package -
+       flagged for approval.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="iTextSharp.LGPLv2.Core" Version="3.8.5" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       GeoIP lookup  (replaces MaxMind.GeoIP2 2.7.2 + MaxMind.Db 2.1.3, Nop.Services)
+
+       5.4.1 is the last release of the 5.x line; 5.4.0 added net10.0 as an explicit
+       target, and the package ships lib/net10.0. Apache-2.0.
+
+       5.x is preferred over 6.x on purpose: 6.0.0 converted every model/response type
+       from class to record, replaced constructor deserialization, and changed
+       SetLocales to WithLocales. None of those breaks touch the surface
+       GeoLookupService.cs uses (new DatabaseReader(path), reader.Country(ip),
+       CountryResponse.Country.IsoCode/Name, GeoIP2Exception), but 5.4.1 keeps the
+       migration risk at zero. MaxMind.Db comes in transitively and is not declared -
+       no source file references its namespace.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="MaxMind.GeoIP2" Version="5.4.1" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       Dynamic LINQ  (replaces System.Linq.Dynamic 1.0.7, Nop.Services/Messages/Tokenizer.cs)
+
+       System.Linq.Dynamic 1.0.7 is net40-only and unmaintained.
+       System.Linq.Dynamic.Core 1.7.4 is its maintained successor - stable, Apache-2.0,
+       ships a native lib/net10.0 asset. Task 4.2 changes the using directive from
+       System.Linq.Dynamic to System.Linq.Dynamic.Core.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="System.Linq.Dynamic.Core" Version="1.7.4" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       Azure blob storage  (replaces WindowsAzure.Storage 8.1.1,
+       Nop.Services/Media/AzurePictureService.cs)
+
+       WindowsAzure.Storage tops out at 9.3.3 with netstandard1.3 assets and is
+       deprecated. Microsoft.Azure.Storage.Blob 11.2.3 is the same codebase renamed by
+       Microsoft: MIT, stable, ships lib/netstandard2.0, and keeps the
+       CloudStorageAccount / CloudBlobClient / CloudBlobContainer API intact. Task 4.2
+       only has to change the using directives from Microsoft.WindowsAzure.Storage[.Blob]
+       to Microsoft.Azure.Storage[.Blob].
+
+       FLAG: Microsoft has itself deprecated this package in favour of
+       Azure.Storage.Blobs 12.x (BlobServiceClient / BlobContainerClient), which is a
+       full API rewrite of AzurePictureService.cs. 11.2.3 is chosen as the
+       least-semantic-change step that restores cleanly on net10.0; moving to
+       Azure.Storage.Blobs is a follow-up worth scheduling.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Azure.Storage.Blob" Version="11.2.3" />
   </ItemGroup>
 
   <!-- ==========================================================

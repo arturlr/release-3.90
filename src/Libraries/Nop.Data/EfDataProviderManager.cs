@@ -21,8 +21,10 @@ namespace Nop.Data
             {
                 case "sqlserver":
                     return new SqlServerDataProvider();
-                case "sqlce":
-                    return new SqlCeDataProvider();
+                //SQL Server Compact ("sqlce") was removed in the .NET 10 migration:
+                //EF Core has no SQL CE provider, so SqlCeDataProvider no longer exists.
+                //A DataSettings file still naming "sqlce" now falls through to the
+                //NopException below rather than silently binding a dead provider.
                 default:
                     throw new NopException(string.Format("Not supported dataprovider name: {0}", providerName));
             }

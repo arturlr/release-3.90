@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Validation;
 using System.Linq;
+using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using Nop.Core.Data;
 
@@ -16,7 +16,7 @@ namespace Nop.Data
         #region Fields
 
         private readonly IDbContext _context;
-        private IDbSet<T> _entities;
+        private DbSet<T> _entities;
 
         #endregion
 
@@ -40,13 +40,29 @@ namespace Nop.Data
         /// </summary>
         /// <param name="exc">Exception</param>
         /// <returns>Error</returns>
-        protected string GetFullErrorText(DbEntityValidationException exc)
+        /// <remarks>
+        /// EF6 -> EF Core (task 3.2). The parameter type was
+        /// <c>System.Data.Entity.Validation.DbEntityValidationException</c>. EF Core performs no
+        /// client-side validation on SaveChanges and ships no such exception type, so the
+        /// signature widens to <see cref="DbUpdateException"/> and the message is built from the
+        /// exception chain plus the offending entity entries instead of per-property validation
+        /// errors.
+        /// </remarks>
+        protected string GetFullErrorText(DbUpdateException exc)
         {
-            var msg = string.Empty;
-            foreach (var validationErrors in exc.EntityValidationErrors)
-                foreach (var error in validationErrors.ValidationErrors)
-                    msg += string.Format("Property: {0} Error: {1}", error.PropertyName, error.ErrorMessage) + Environment.NewLine;
-            return msg;
+            if (exc == null)
+                return string.Empty;
+
+            var msg = new StringBuilder();
+
+            foreach (var entry in exc.Entries)
+                msg.AppendFormat("Entity: {0} State: {1}", entry.Entity.GetType().Name, entry.State)
+                   .Append(Environment.NewLine);
+
+            for (var inner = (Exception)exc; inner != null; inner = inner.InnerException)
+                msg.Append(inner.Message).Append(Environment.NewLine);
+
+            return msg.ToString();
         }
 
         #endregion
@@ -80,7 +96,7 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
                 throw new Exception(GetFullErrorText(dbEx), dbEx);
             }
@@ -102,7 +118,7 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
                 throw new Exception(GetFullErrorText(dbEx), dbEx);
             }
@@ -121,7 +137,7 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
                 throw new Exception(GetFullErrorText(dbEx), dbEx);
             }
@@ -140,7 +156,7 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
                 throw new Exception(GetFullErrorText(dbEx), dbEx);
             }
@@ -161,7 +177,7 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
                 throw new Exception(GetFullErrorText(dbEx), dbEx);
             }
@@ -183,7 +199,7 @@ namespace Nop.Data
 
                 this._context.SaveChanges();
             }
-            catch (DbEntityValidationException dbEx)
+            catch (DbUpdateException dbEx)
             {
                 throw new Exception(GetFullErrorText(dbEx), dbEx);
             }
@@ -218,7 +234,11 @@ namespace Nop.Data
         /// <summary>
         /// Entities
         /// </summary>
-        protected virtual IDbSet<T> Entities
+        /// <remarks>
+        /// EF6 -> EF Core (task 3.2): type was <c>System.Data.Entity.IDbSet&lt;T&gt;</c>, which
+        /// EF Core does not define. <see cref="DbSet{TEntity}"/> supplies every member used here.
+        /// </remarks>
+        protected virtual DbSet<T> Entities
         {
             get
             {

@@ -2,7 +2,6 @@
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Web;
 using System.Xml;
 
 namespace Nop.Core.Plugins
@@ -84,7 +83,10 @@ namespace Nop.Core.Plugins
 
             //pageSize parameter is currently ignored by official site (set to 15)
             var xmlDoc = GetDocument("category={0}&version={1}&price={2}&pageIndex={3}&pageSize={4}&searchTerm={5}",
-                categoryId, versionId, price, pageIndex, pageSize, HttpUtility.UrlEncode(searchTerm));
+                //Task 2.4: System.Web.HttpUtility.UrlEncode -> System.Net.WebUtility.UrlEncode.
+                //SEMANTIC NOTE: WebUtility encodes a space as "%20" where HttpUtility used "+".
+                //Both are valid query-string encodings and decode to a space server-side.
+                categoryId, versionId, price, pageIndex, pageSize, WebUtility.UrlEncode(searchTerm));
 
             var list = xmlDoc.SelectNodes(@"//extensions/extension").Cast<XmlNode>().Select(node => new OfficialFeedPlugin
             {

@@ -1,20 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using System.Web;
-using System.Web.Compilation;
 using Nop.Core.ComponentModel;
+using Nop.Core.Configuration;
 using Nop.Core.Plugins;
 
 //Contributor: Umbraco (http://www.umbraco.com). Thanks a lot! 
 //SEE THIS POST for full details of what this does - http://shazwazza.com/post/Developing-a-plugin-framework-in-ASPNET-with-medium-trust.aspx
 
-[assembly: PreApplicationStartMethod(typeof(PluginManager), "Initialize")]
+//Task 2.4 (design section 5): the
+//    [assembly: PreApplicationStartMethod(typeof(PluginManager), "Initialize")]
+//attribute was REMOVED - System.Web.PreApplicationStartMethodAttribute is an ASP.NET
+//(System.Web) hosting hook with no ASP.NET Core equivalent.
+//RUNTIME DEFERRAL: PluginManager.Initialize() is therefore no longer invoked automatically.
+//The ASP.NET Core host must call it explicitly during startup, before the engine is
+//initialized (task 7.2, Program.cs / Startup). Until then, PluginManager.ReferencedPlugins
+//stays null at runtime and no plugin is discovered.
 namespace Nop.Core.Plugins
 {
     /// <summary>
@@ -65,8 +70,10 @@ namespace Nop.Core.Plugins
                 var referencedPlugins = new List<PluginDescriptor>();
                 var incompatiblePlugins = new List<string>();
 
-                _clearShadowDirectoryOnStartup = !String.IsNullOrEmpty(ConfigurationManager.AppSettings["ClearPluginsShadowDirectoryOnStartup"]) &&
-                   Convert.ToBoolean(ConfigurationManager.AppSettings["ClearPluginsShadowDirectoryOnStartup"]);
+                //Task 2.4: ConfigurationManager.AppSettings -> IConfiguration (see NopConfigurationManager)
+                var clearShadowDirectorySetting = NopConfigurationManager.GetAppSetting("ClearPluginsShadowDirectoryOnStartup");
+                _clearShadowDirectoryOnStartup = !String.IsNullOrEmpty(clearShadowDirectorySetting) &&
+                   Convert.ToBoolean(clearShadowDirectorySetting);
 
                 try
                 {
@@ -336,29 +343,26 @@ namespace Nop.Core.Plugins
 
             FileInfo shadowCopiedPlug;
 
-            if (CommonHelper.GetTrustLevel() != AspNetHostingPermissionLevel.Unrestricted)
-            {
-                //all plugins will need to be copied to ~/Plugins/bin/
-                //this is absolutely required because all of this relies on probingPaths being set statically in the web.config
-                
-                //were running in med trust, so copy to custom bin folder
-                var shadowCopyPlugFolder = Directory.CreateDirectory(_shadowCopyFolder.FullName);
-                shadowCopiedPlug = InitializeMediumTrust(plug, shadowCopyPlugFolder);
-            }
-            else
-            {
-                var directory = AppDomain.CurrentDomain.DynamicDirectory;
-                Debug.WriteLine(plug.FullName + " to " + directory);
-                //were running in full trust so copy to standard dynamic folder
-                shadowCopiedPlug = InitializeFullTrust(plug, new DirectoryInfo(directory));
-            }
+            //Task 2.4 (design section 5): the trust-level branch is gone.
+            //CommonHelper.GetTrustLevel()/AspNetHostingPermissionLevel do not exist on .NET -
+            //there is no medium trust and no Code Access Security - so the shadow copy always
+            //goes to ~/Plugins/bin. The former full-trust branch used
+            //AppDomain.CurrentDomain.DynamicDirectory, which returns null on .NET (Core) and
+            //would throw; the medium-trust destination is the only usable one, and it also
+            //skips re-copying files that are already up to date.
+            var shadowCopyPlugFolder = Directory.CreateDirectory(_shadowCopyFolder.FullName);
+            shadowCopiedPlug = InitializeMediumTrust(plug, shadowCopyPlugFolder);
 
             //we can now register the plugin definition
             var shadowCopiedAssembly = Assembly.Load(AssemblyName.GetAssemblyName(shadowCopiedPlug.FullName));
 
-            //add the reference to the build manager
-            Debug.WriteLine("Adding to BuildManager: '{0}'", shadowCopiedAssembly.FullName);
-            BuildManager.AddReferencedAssembly(shadowCopiedAssembly);
+            //Task 2.4: System.Web.Compilation.BuildManager.AddReferencedAssembly has no
+            //ASP.NET Core counterpart. It existed so that the System.Web Razor/MVC build
+            //manager could compile views against dynamically loaded plugin assemblies.
+            //RUNTIME DEFERRAL: making plugin assemblies visible to the Razor compiler is now
+            //done by contributing them as application parts / MetadataReferences when the
+            //ASP.NET Core MVC pipeline is configured (tasks 6.4 / 7.2).
+            Debug.WriteLine("Loaded plugin assembly: '{0}'", shadowCopiedAssembly.FullName);
 
             return shadowCopiedAssembly;
         }

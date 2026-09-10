@@ -1,25 +1,29 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.News;
 
 namespace Nop.Data.Mapping.News
 {
     public partial class NewsCommentMap : NopEntityTypeConfiguration<NewsComment>
     {
-        public NewsCommentMap()
+        public override void Configure(EntityTypeBuilder<NewsComment> builder)
         {
-            this.ToTable("NewsComment");
-            this.HasKey(comment => comment.Id);
+            builder.ToTable("NewsComment");
+            builder.HasKey(comment => comment.Id);
 
-            this.HasRequired(comment => comment.NewsItem)
+            builder.HasOne(comment => comment.NewsItem)
                 .WithMany(news => news.NewsComments)
                 .HasForeignKey(comment => comment.NewsItemId);
 
-            this.HasRequired(comment => comment.Customer)
+            builder.HasOne(comment => comment.Customer)
                 .WithMany()
                 .HasForeignKey(comment => comment.CustomerId);
 
-            this.HasRequired(comment => comment.Store)
+            builder.HasOne(comment => comment.Store)
                 .WithMany()
                 .HasForeignKey(comment => comment.StoreId);
+
+            base.Configure(builder);
         }
     }
 }

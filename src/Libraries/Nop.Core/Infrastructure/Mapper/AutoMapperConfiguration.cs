@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using AutoMapper;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Nop.Core.Infrastructure.Mapper
 {
@@ -21,11 +22,15 @@ namespace Nop.Core.Infrastructure.Mapper
             if (configurationActions == null)
                 throw new ArgumentNullException("configurationActions");
 
+            //Task 2.4: AutoMapper 5.x accepted MapperConfiguration(Action<IMapperConfigurationExpression>);
+            //from AutoMapper 12 onwards an ILoggerFactory is also required. Nop.Core has no
+            //logging configuration of its own at this point, so logging is disabled here;
+            //the host can supply a real factory when DI is wired up (tasks 6.4 / 7.2).
             _mapperConfiguration = new MapperConfiguration(cfg =>
             {
                 foreach (var ca in configurationActions)
                     ca(cfg);
-            });
+            }, NullLoggerFactory.Instance);
 
             _mapper = _mapperConfiguration.CreateMapper();
         }

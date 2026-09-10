@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Media;
 using Nop.Services.Catalog;
@@ -11,6 +11,14 @@ namespace Nop.Services.Media
     /// <summary>
     /// Extensions
     /// </summary>
+    /// <remarks>
+    /// Task 4.2 (design section 5): <c>System.Web.HttpPostedFileBase</c> -&gt;
+    /// <see cref="IFormFile"/>. <c>InputStream</c> becomes
+    /// <see cref="IFormFile.OpenReadStream"/> and <c>ContentLength</c> (int) becomes
+    /// <see cref="IFormFile.Length"/> (long). The original single <c>Read</c> call was also
+    /// replaced by <see cref="Stream.CopyTo(Stream)"/> because a single <c>Read</c> is not
+    /// guaranteed to fill the buffer on a non-buffered ASP.NET Core request stream.
+    /// </remarks>
     public static class Extensions
     {
         /// <summary>
@@ -18,13 +26,9 @@ namespace Nop.Services.Media
         /// </summary>
         /// <param name="postedFile">Posted file</param>
         /// <returns>Download binary array</returns>
-        public static byte[] GetDownloadBits(this HttpPostedFileBase postedFile)
+        public static byte[] GetDownloadBits(this IFormFile postedFile)
         {
-            Stream fs = postedFile.InputStream;
-            int size = postedFile.ContentLength;
-            var binary = new byte[size];
-            fs.Read(binary, 0, size);
-            return binary;
+            return ReadAllBytes(postedFile);
         }
 
         /// <summary>
@@ -32,13 +36,27 @@ namespace Nop.Services.Media
         /// </summary>
         /// <param name="postedFile">Posted file</param>
         /// <returns>Picture binary array</returns>
-        public static byte[] GetPictureBits(this HttpPostedFileBase postedFile)
+        public static byte[] GetPictureBits(this IFormFile postedFile)
         {
-            Stream fs = postedFile.InputStream;
-            int size = postedFile.ContentLength;
-            var img = new byte[size];
-            fs.Read(img, 0, size);
-            return img;
+            return ReadAllBytes(postedFile);
+        }
+
+        /// <summary>
+        /// Reads a posted file in full
+        /// </summary>
+        /// <param name="postedFile">Posted file</param>
+        /// <returns>File binary</returns>
+        private static byte[] ReadAllBytes(IFormFile postedFile)
+        {
+            if (postedFile == null)
+                throw new ArgumentNullException("postedFile");
+
+            using (var stream = postedFile.OpenReadStream())
+            using (var destination = new MemoryStream())
+            {
+                stream.CopyTo(destination);
+                return destination.ToArray();
+            }
         }
 
         /// <summary>

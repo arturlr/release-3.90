@@ -9,8 +9,6 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Web;
-using System.Web.Hosting;
 
 namespace Nop.Core
 {
@@ -175,41 +173,16 @@ namespace Nop.Core
             return true;
         }
 
-        private static AspNetHostingPermissionLevel? _trustLevel;
-        /// <summary>
-        /// Finds the trust level of the running application (http://blogs.msdn.com/dmitryr/archive/2007/01/23/finding-out-the-current-trust-level-in-asp-net.aspx)
-        /// </summary>
-        /// <returns>The current trust level.</returns>
-        public static AspNetHostingPermissionLevel GetTrustLevel()
-        {
-            if (!_trustLevel.HasValue)
-            {
-                //set minimum
-                _trustLevel = AspNetHostingPermissionLevel.None;
-
-                //determine maximum
-                foreach (AspNetHostingPermissionLevel trustLevel in new[] {
-                                AspNetHostingPermissionLevel.Unrestricted,
-                                AspNetHostingPermissionLevel.High,
-                                AspNetHostingPermissionLevel.Medium,
-                                AspNetHostingPermissionLevel.Low,
-                                AspNetHostingPermissionLevel.Minimal
-                            })
-                {
-                    try
-                    {
-                        new AspNetHostingPermission(trustLevel).Demand();
-                        _trustLevel = trustLevel;
-                        break; //we've set the highest permission we can
-                    }
-                    catch (System.Security.SecurityException)
-                    {
-                        continue;
-                    }
-                }
-            }
-            return _trustLevel.Value;
-        }
+        //Task 2.4 (design section 5): CommonHelper.GetTrustLevel() and the
+        //System.Web.AspNetHostingPermissionLevel it returned have been REMOVED.
+        //Code Access Security and ASP.NET trust levels do not exist on .NET (Core); every
+        //application runs in what used to be called full trust, and
+        //AspNetHostingPermission.Demand() is a no-op that only exists in the
+        //System.Security.Permissions compatibility package.
+        //Call sites that branched on trust level now take the full-trust path unconditionally
+        //(see WebHelper.RestartAppDomain and Plugins/PluginManager.PerformFileDeploy).
+        //Remaining downstream call site to fix in task 8.x:
+        //  src/Presentation/Nop.Web/Administration/Controllers/CommonController.cs (SystemInfo)
 
         /// <summary>
         /// Sets a property on an object to a valuae.
@@ -340,18 +313,44 @@ namespace Nop.Core
         /// </summary>
         /// <param name="path">The path to map. E.g. "~/bin"</param>
         /// <returns>The physical path. E.g. "c:\inetpub\wwwroot\bin"</returns>
+        /// <remarks>
+        /// Task 2.4 (design section 5): <c>System.Web.Hosting.HostingEnvironment.MapPath</c> has
+        /// no ASP.NET Core counterpart. Paths are now resolved against
+        /// <see cref="BaseDirectory"/>, which defaults to the process base directory and can be
+        /// pointed at the host's content root by startup code (tasks 6.5 / 7.2) so that "~/"
+        /// keeps resolving to the web application root rather than to the bin folder.
+        /// The separator normalisation is also platform-neutral now (the legacy code hard-coded
+        /// '\\'), because the migration targets cross-platform net10.0.
+        /// </remarks>
         public static string MapPath(string path)
         {
-            if (HostingEnvironment.IsHosted)
-            {
-                //hosted
-                return HostingEnvironment.MapPath(path);
-            }
+            if (string.IsNullOrEmpty(path))
+                return BaseDirectory;
 
-            //not hosted. For example, run in unit tests
-            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            path = path.Replace("~/", "").TrimStart('/').Replace('/', '\\');
-            return Path.Combine(baseDirectory, path);
-        }        
+            var relativePath = path.Replace("~/", string.Empty)
+                .TrimStart('/', '\\')
+                .Replace('\\', '/')
+                .Replace('/', Path.DirectorySeparatorChar);
+
+            return Path.Combine(BaseDirectory, relativePath);
+        }
+
+        private static string _baseDirectory;
+
+        /// <summary>
+        /// Gets or sets the root directory that <see cref="MapPath"/> resolves "~/" against.
+        /// Defaults to the current application base directory.
+        /// </summary>
+        public static string BaseDirectory
+        {
+            get
+            {
+                return _baseDirectory ?? AppDomain.CurrentDomain.BaseDirectory;
+            }
+            set
+            {
+                _baseDirectory = value;
+            }
+        }
     }
 }

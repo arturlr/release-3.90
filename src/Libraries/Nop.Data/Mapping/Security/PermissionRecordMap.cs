@@ -1,20 +1,24 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Security;
 
 namespace Nop.Data.Mapping.Security
 {
     public partial class PermissionRecordMap : NopEntityTypeConfiguration<PermissionRecord>
     {
-        public PermissionRecordMap()
+        public override void Configure(EntityTypeBuilder<PermissionRecord> builder)
         {
-            this.ToTable("PermissionRecord");
-            this.HasKey(pr => pr.Id);
-            this.Property(pr => pr.Name).IsRequired();
-            this.Property(pr => pr.SystemName).IsRequired().HasMaxLength(255);
-            this.Property(pr => pr.Category).IsRequired().HasMaxLength(255);
+            builder.ToTable("PermissionRecord");
+            builder.HasKey(pr => pr.Id);
+            builder.Property(pr => pr.Name).IsRequired();
+            builder.Property(pr => pr.SystemName).IsRequired().HasMaxLength(255);
+            builder.Property(pr => pr.Category).IsRequired().HasMaxLength(255);
 
-            this.HasMany(pr => pr.CustomerRoles)
+            builder.HasMany(pr => pr.CustomerRoles)
                 .WithMany(cr => cr.PermissionRecords)
-                .Map(m => m.ToTable("PermissionRecord_Role_Mapping"));
+                .UsingEntity(j => j.ToTable("PermissionRecord_Role_Mapping"));
+
+            base.Configure(builder);
         }
     }
 }

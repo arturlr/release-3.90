@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Web;
-using System.Web.Hosting;
 
 namespace Nop.Core.Infrastructure
 {
@@ -38,15 +36,15 @@ namespace Nop.Core.Infrastructure
         /// Gets a physical disk path of \Bin directory
         /// </summary>
         /// <returns>The physical path. E.g. "c:\inetpub\wwwroot\bin"</returns>
+        /// <remarks>
+        /// Task 2.4 (design section 5): <c>System.Web.Hosting.HostingEnvironment.IsHosted</c> and
+        /// <c>System.Web.HttpRuntime.BinDirectory</c> have no ASP.NET Core counterpart. On .NET
+        /// there is no separate shadow-copied bin probing directory: the application's managed
+        /// assemblies sit in the base directory for both hosted and non-hosted (unit test)
+        /// processes, so the two branches collapse into one.
+        /// </remarks>
         public virtual string GetBinDirectory()
         {
-            if (HostingEnvironment.IsHosted)
-            {
-                //hosted
-                return HttpRuntime.BinDirectory;
-            }
-
-            //not hosted. For example, run either in unit tests
             return AppDomain.CurrentDomain.BaseDirectory;
         }
 

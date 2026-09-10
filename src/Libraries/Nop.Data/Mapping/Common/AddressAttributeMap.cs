@@ -1,16 +1,20 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nop.Core.Domain.Common;
 
 namespace Nop.Data.Mapping.Common
 {
     public partial class AddressAttributeMap : NopEntityTypeConfiguration<AddressAttribute>
     {
-        public AddressAttributeMap()
+        public override void Configure(EntityTypeBuilder<AddressAttribute> builder)
         {
-            this.ToTable("AddressAttribute");
-            this.HasKey(aa => aa.Id);
-            this.Property(aa => aa.Name).IsRequired().HasMaxLength(400);
+            builder.ToTable("AddressAttribute");
+            builder.HasKey(aa => aa.Id);
+            builder.Property(aa => aa.Name).IsRequired().HasMaxLength(400);
 
-            this.Ignore(aa => aa.AttributeControlType);
+            builder.Ignore(aa => aa.AttributeControlType);
+
+            base.Configure(builder);
         }
     }
 }

@@ -1,18 +1,22 @@
-﻿using Nop.Core.Domain.Shipping;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Nop.Core.Domain.Shipping;
 
 namespace Nop.Data.Mapping.Shipping
 {
     public class ShippingMethodMap : NopEntityTypeConfiguration<ShippingMethod>
     {
-        public ShippingMethodMap()
+        public override void Configure(EntityTypeBuilder<ShippingMethod> builder)
         {
-            this.ToTable("ShippingMethod");
-            this.HasKey(sm => sm.Id);
-            this.Property(sm => sm.Name).IsRequired().HasMaxLength(400);
+            builder.ToTable("ShippingMethod");
+            builder.HasKey(sm => sm.Id);
+            builder.Property(sm => sm.Name).IsRequired().HasMaxLength(400);
 
-            this.HasMany(sm => sm.RestrictedCountries)
+            builder.HasMany(sm => sm.RestrictedCountries)
                 .WithMany(c => c.RestrictedShippingMethods)
-                .Map(m => m.ToTable("ShippingMethodRestrictions"));
+                .UsingEntity(j => j.ToTable("ShippingMethodRestrictions"));
+
+            base.Configure(builder);
         }
     }
 }
