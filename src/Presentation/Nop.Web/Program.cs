@@ -123,7 +123,23 @@ namespace Nop.Web
             //<system.webServer> static handling, 3.90's "ignore static resources" early exit in
             //Application_BeginRequest, and the DenyAccessToPluginDLLs HttpForbiddenHandler (.dll
             //is not in the default content-type map, so static files refuses it and it 404s).
-            app.UseStaticFiles();
+            //
+            //task 7.4 replaced the bare UseStaticFiles() with this call, at the SAME pipeline
+            //position. It does three things a bare call cannot (see NopStaticFilesExtensions):
+            //  * runtime deferral 40/7.1-5 - repoints IWebHostEnvironment.WebRootFileProvider at
+            //    an ALLOW-LISTED provider over the content root, because 3.90's static assets
+            //    (~/Content, ~/Scripts, ~/Themes/<theme>/Content, ~/favicon.ico) are still at
+            //    their 3.90 locations and there is no wwwroot - so until now NOTHING served.
+            //    The allow-list is what keeps App_Data/Settings.txt (the database connection
+            //    string), *.cshtml, Web.config and Administration/db_backups/*.bak out of it -
+            //    System.Web blocked App_Data implicitly and ASP.NET Core does not (deferral 39).
+            //  * runtime deferral 33/14.33 - because it is the SAME provider instance on
+            //    WebRootFileProvider, IFileVersionProvider can see every asset it serves, so
+            //    PageHeadBuilder's "?v=<hash>" cache busting actually fires instead of silently
+            //    returning unversioned URLs.
+            //  * reproduces <staticContent>: the 7-day <clientCache> max-age and the <mimeMap>
+            //    additions. NOT the .bak mapping - see the note in CreateNopStaticFileOptions.
+            app.UseNopStaticFiles();
 
             //install redirect, SEO-friendly URLs, routing, slug redirect, session,
             //authentication, working culture, authorization, endpoints - in that exact order.

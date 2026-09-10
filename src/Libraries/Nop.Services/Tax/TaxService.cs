@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Nop.Core;
+using Nop.Core.Configuration;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
@@ -31,24 +32,45 @@ namespace Nop.Services.Tax
         /// Default endpoint of the EU VIES <c>checkVatService</c> SOAP service.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Task 4.2. In 3.90 this URL lived in <c>Properties\Settings.settings</c> and was read
         /// through <c>System.Configuration.ApplicationSettingsBase</c> by the generated ASMX
         /// proxy; both files were deleted with the proxy. The value is restated here so the
         /// endpoint is not buried inside <see cref="CheckVatEuropa"/>, and
         /// <see cref="EuropaCheckVatServiceUrl"/> is virtual so a subclass can point it
         /// elsewhere.
-        ///
-        /// FOLLOW-UP FOR TASK 7.4 (web.config -&gt; appsettings.json): this belongs in
-        /// configuration. The natural home is a new key on <c>Nop.Core.Domain.Tax.TaxSettings</c>
-        /// (a nopCommerce settings entity, already injected here as <c>_taxSettings</c>) or an
-        /// <c>appsettings.json</c> entry bound through <c>IConfiguration</c>. Overriding
-        /// <see cref="EuropaCheckVatServiceUrl"/> to read that value is then a one-line change.
-        /// Note the service is plain HTTP in the WSDL; the HTTPS host
-        /// (<c>https://ec.europa.eu/taxation_customs/vies/services/checkVatService</c>) should be
-        /// preferred when this becomes configurable.
+        /// </para>
+        /// <para>
+        /// <b>TASK 7.4 CLOSED runtime deferral 16 / 7.16.</b> The endpoint is now configurable
+        /// through <see cref="EuropaCheckVatServiceUrlConfigurationKey"/>, so it can be pointed
+        /// at a test double or an updated URL without a recompile. This constant is only the
+        /// fallback used when no configuration value is supplied.
+        /// </para>
+        /// <para>
+        /// <b>DELIBERATE BEHAVIOUR CHANGE, recorded rather than silent.</b> The retired WSDL
+        /// declared the endpoint over plain <c>http</c>, and 3.90 therefore sent VAT numbers and
+        /// received company names and addresses in the clear. The default is now <c>https</c>, as
+        /// runtime deferral 7.16 itself recommended. VIES serves the same operation over TLS at
+        /// the same path. Because the value is configurable, a deployment that must go back to
+        /// plain HTTP can do so from <c>appsettings.json</c>.
+        /// </para>
+        /// <para>
+        /// A key on <c>Nop.Core.Domain.Tax.TaxSettings</c> was the other candidate the deferral
+        /// named and was NOT chosen: that entity is persisted in the database, so the endpoint
+        /// would become unreadable in exactly the situation an operator most needs to change it
+        /// (a store whose database is unreachable), and adding a property would mean editing
+        /// <c>Nop.Core</c>, which passed its clean-compile gate at 2.5.
+        /// </para>
         /// </remarks>
         public const string DefaultEuropaCheckVatServiceUrl =
-            "http://ec.europa.eu/taxation_customs/vies/services/checkVatService";
+            "https://ec.europa.eu/taxation_customs/vies/services/checkVatService";
+
+        /// <summary>
+        /// Configuration key that overrides <see cref="DefaultEuropaCheckVatServiceUrl"/> —
+        /// the <c>Tax:EuropaCheckVatServiceUrl</c> entry authored in <c>appsettings.json</c>
+        /// by task 7.4.
+        /// </summary>
+        public const string EuropaCheckVatServiceUrlConfigurationKey = "Tax:EuropaCheckVatServiceUrl";
 
         /// <summary>
         /// SOAP 1.1 envelope namespace
@@ -831,13 +853,40 @@ namespace Nop.Services.Tax
         }
 
         /// <summary>
-        /// Gets the endpoint of the EU VIES <c>checkVat</c> SOAP service.
-        /// Override to source it from configuration (see
-        /// <see cref="DefaultEuropaCheckVatServiceUrl"/>).
+        /// Gets the endpoint of the EU VIES <c>checkVat</c> SOAP service, from the
+        /// <c>Tax:EuropaCheckVatServiceUrl</c> configuration key when one is supplied and
+        /// otherwise from <see cref="DefaultEuropaCheckVatServiceUrl"/>.
         /// </summary>
+        /// <remarks>
+        /// Task 7.4, closing runtime deferral 16 / 7.16 (Requirements 1.4, 5.3).
+        /// <para>
+        /// The read goes through the static <c>NopConfigurationManager</c> seam rather than an
+        /// injected <see cref="Microsoft.Extensions.Configuration.IConfiguration"/> on purpose:
+        /// adding a constructor parameter to <c>TaxService</c> would be a breaking signature
+        /// change to one of the most widely consumed services in the application, for a single
+        /// string. The seam is assigned once during host startup by
+        /// <c>UseNopHostingEnvironment(builder.Configuration)</c> and returns a documented
+        /// fallback when it is not (unit tests, background hosts) — which is exactly this
+        /// property's <see cref="DefaultEuropaCheckVatServiceUrl"/> fallback.
+        /// </para>
+        /// <para>
+        /// Still <c>protected virtual</c>, so a subclass may continue to override it outright.
+        /// </para>
+        /// </remarks>
         protected virtual string EuropaCheckVatServiceUrl
         {
-            get { return DefaultEuropaCheckVatServiceUrl; }
+            get
+            {
+                var configuration = NopConfigurationManager.Configuration;
+                if (configuration != null)
+                {
+                    var configuredUrl = configuration[EuropaCheckVatServiceUrlConfigurationKey];
+                    if (!string.IsNullOrWhiteSpace(configuredUrl))
+                        return configuredUrl.Trim();
+                }
+
+                return DefaultEuropaCheckVatServiceUrl;
+            }
         }
 
         /// <summary>

@@ -1,0 +1,16 @@
+This file exists so that the (otherwise empty) generated-thumbnail directory is present in
+source control and in the published output.
+
+nopCommerce 3.90 shipped it and referenced it from Nop.Web.csproj as
+    <Content Include="Content\Images\Thumbs\placeholder.txt" />
+while the 3.90 ExcludeFilesFromDeployment list withheld only the GENERATED images
+(Content\Images\Thumbs\*.jpg, *.jpeg, *.png, *.gif).
+
+The directory is not optional. Nop.Services.Media.PictureService.DeletePictureThumbs calls
+Directory.GetFiles(CommonHelper.MapPath("~/content/images/thumbs"), ...), which throws
+DirectoryNotFoundException when the directory is absent, and GetThumbLocalPath only creates
+the per-prefix SUBdirectory used when MediaSettings.MultipleThumbDirectories is enabled.
+
+Restored by task 7.4 together with the publish-shaping re-expression of that exclusion list
+(runtime deferral 39 / 7.1-4): the file had been swallowed by a .gitignore rule that ignored
+the whole Thumbs directory rather than just the generated image extensions.

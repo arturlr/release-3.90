@@ -255,6 +255,150 @@
 
   <!--
     ===================================================================================
+    PUBLISH SHAPING - TASK 7.4, RUNTIME DEFERRAL 39 / 7.1-4. SECURITY RELEVANT.
+    ===================================================================================
+    3.90 shaped its publish output with two custom targets, ExcludeRootBinariesDeployment
+    and ExcludeRootBinariesPackage, which built a ~25 entry ExcludeFilesFromDeployment list
+    and fed it to ExcludeFromPackageFiles. Both hooked ExcludeFilesFromPackage - an
+    MSDeploy / Web Application Project target that DOES NOT EXIST in the Web SDK - so task
+    7.1 deleted them and recorded the consequence as deferral 39. This block re-expresses
+    the surviving entries in the SDK's own model.
+
+    THE MECHANISM. Both directions are needed, and for opposite reasons:
+
+      (a) The asset trees must be ADDED to publish. Under the classic project ~700 explicit
+          <Content Include=.../> entries copied App_Data, Content, Scripts and Themes. The
+          SDK classifies .css/.js/.png/.xml/.sql/.ttf/.mmdb as `None`, and `None` items have
+          CopyToPublishDirectory=Never by default - so WITHOUT the first ItemGroup below a
+          published application would have NO static assets, NO installation scripts, NO
+          browscap database and NO PDF font. That is a functional regression, not just
+          untidiness, and it is not something the deferral called out.
+
+      (b) Specific files must be WITHHELD. Two of them are the reason this is tagged
+          security relevant:
+            App_Data/Settings.txt            <- the DATABASE CONNECTION STRING
+            Administration/db_backups/*.bak  <- DATABASE BACKUPS
+          Publishing either into a web served directory is a data exposure bug.
+
+    `Update` is used rather than `Include` throughout: every one of these files is ALREADY
+    an item (the SDK's implicit globbing put it in `None`, or in `Content` for .config and
+    .json). `Include` would produce duplicates and fail the build with NETSDK1022; `Update`
+    only changes metadata on the existing item, and silently no-ops for a path that does not
+    exist - which matters because most of the withheld files are gitignored and only appear
+    on a running instance.
+
+    ALREADY HANDLED STRUCTURALLY, no entry needed:
+      **\*.cs, **\*.csproj, **\*.csproj.user, **\obj\**, **\bin\*.xml
+                              the SDK never publishes source or intermediate output.
+      **\packages.config      deleted by task 7.1.
+      Administration\bin\**, Administration\db_backups\*.bak
+                              `Administration\**` is in DefaultItemExcludes (see the note at
+                              the top of this file), so NOTHING under it is an item of this
+                              project and it cannot be published from here at all. NOTE FOR
+                              TASK 8.x: Nop.Admin is a separate project that in 3.90 dropped
+                              its output into Nop.Web\bin, so the db_backups exclusion must
+                              be re-expressed in Nop.Admin.csproj, not here.
+      bin\Nop.Admin.dll.config, bin\Nop.Web.dll.config
+                              app.config derived output; there is no app.config any more.
+      **\*.Debug.config, **\*.Release.config
+                              Web.Debug.config and Web.Release.config were deleted by task
+                              7.4 (unmodified XDT boilerplate; the Web SDK does not run XDT).
+
+    STILL OPEN, and NOT solvable in this file: nothing here stops the static file middleware
+    from SERVING a file at runtime. That is the other half of deferral 39 and it is solved by
+    the allow-list in Infrastructure\NopStaticFileProvider.cs, which is why App_Data is not
+    reachable over HTTP even though it sits under the content root (System.Web blocked
+    App_Data implicitly; ASP.NET Core does not).
+  -->
+  <ItemGroup>
+    <!--
+      (a) Runtime assets that MUST reach the publish output.
+
+      App_Data - read through CommonHelper.MapPath("~/App_Data/...") against the content root
+      (runtime deferral 1.5, closed by task 7.2). Contains browscap.xml (NopConfig
+      .UserAgentStringsPath), GeoLite2-Country.mmdb (the geo lookup), Install\*.sql and
+      Localization\Installation\*.xml (the installer), and Pdf\FreeSerif.ttf (PdfService).
+      Content / Scripts / Themes - served by the static file middleware through
+      NopStaticFileProvider, and Themes additionally scanned by ThemeProvider for theme.config.
+      The three root files - favicon.ico is what CommonModelFactory falls back to; ErrorPage.htm
+      is the file <customErrors defaultRedirect> named and is sent by Program.cs's exception
+      handler; FileNotFound.htm is kept for existing links.
+    -->
+    <None Update="App_Data\**" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Content\**" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Scripts\**" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Themes\**" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="favicon.ico" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="ErrorPage.htm" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="FileNotFound.htm" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      (b) Withheld. These Update items come AFTER the ones above, so they win.
+      Every path here is either a SECRET, a machine specific state file, or generated content
+      that must not be baked into a deployment.
+    -->
+
+    <!-- THE DATABASE CONNECTION STRING. Written by the installer, read by DataSettingsManager. -->
+    <None Update="App_Data\Settings.txt" CopyToPublishDirectory="Never" />
+    <!-- per-instance installed plugin state -->
+    <None Update="App_Data\InstalledPlugins.txt" CopyToPublishDirectory="Never" />
+    <!-- generated by BrowscapXmlHelper on first use from browscap.xml; regenerates itself -->
+    <None Update="App_Data\browscap.crawlersonly.xml" CopyToPublishDirectory="Never" />
+    <!-- database files / backups that may be dropped into App_Data -->
+    <None Update="App_Data\*.sdf" CopyToPublishDirectory="Never" />
+    <None Update="App_Data\*.mdf" CopyToPublishDirectory="Never" />
+    <None Update="App_Data\*.ldf" CopyToPublishDirectory="Never" />
+    <None Update="App_Data\*.bak" CopyToPublishDirectory="Never" />
+
+    <!--
+      generated picture thumbnails (PictureService writes here at runtime).
+      Narrowed to 3.90's exact four extensions rather than the whole directory, because
+      Content\Images\Thumbs\placeholder.txt MUST publish: PictureService.DeletePictureThumbs
+      calls Directory.GetFiles on this directory and throws DirectoryNotFoundException if it
+      does not exist, and GetThumbLocalPath only creates the per-prefix SUBdirectory used when
+      MediaSettings.MultipleThumbDirectories is on. The legacy project shipped the placeholder
+      via <Content Include="Content\Images\Thumbs\placeholder.txt" /> for the same reason.
+      The MultipleThumbDirectories sub-directories are covered by the recursive **\ patterns.
+    -->
+    <None Update="Content\Images\Thumbs\**\*.jpg" CopyToPublishDirectory="Never" />
+    <None Update="Content\Images\Thumbs\**\*.jpeg" CopyToPublishDirectory="Never" />
+    <None Update="Content\Images\Thumbs\**\*.png" CopyToPublishDirectory="Never" />
+    <None Update="Content\Images\Thumbs\**\*.gif" CopyToPublishDirectory="Never" />
+    <!--
+      generated export / feed output. Index.htm in the same folder is the directory listing
+      placeholder and IS still published, because Nop.Plugin.Feed.GoogleShopping links into
+      this folder and expects it to exist.
+    -->
+    <None Update="Content\files\ExportImport\*.txt" CopyToPublishDirectory="Never" />
+    <None Update="Content\files\ExportImport\*.xml" CopyToPublishDirectory="Never" />
+    <None Update="Content\files\ExportImport\*.xls" CopyToPublishDirectory="Never" />
+    <None Update="Content\files\ExportImport\*.xlsx" CopyToPublishDirectory="Never" />
+    <None Update="Content\files\ExportImport\*.pdf" CopyToPublishDirectory="Never" />
+
+    <!--
+      NOT in 3.90's list, added deliberately by task 7.4 because the SDK publishes .json and
+      .config as Content and these three would otherwise ship.
+
+      The two Views\Web.config files are the important ones and this is NOT cosmetic: both
+      declare a <configSections> sectionGroup for System.Web.WebPages.Razor. IIS parses every
+      file literally named web.config in the served tree, so publishing them would produce an
+      HTTP 500.19 configuration error on an IIS hosted deployment. Task 7.3 recorded both as
+      fully superseded by Views\_ViewImports.cshtml and task 7.5 DELETES them; these two
+      entries keep publish output correct in the meantime and become harmless no-ops
+      afterwards.
+
+      launchSettings.json is developer machine launch configuration and never belongs in a
+      deployment.
+    -->
+    <Content Update="Views\Web.config" CopyToPublishDirectory="Never" />
+    <Content Update="Themes\DefaultClean\Views\Web.config" CopyToPublishDirectory="Never" />
+    <Content Update="Properties\launchSettings.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
+  <!--
+    ===================================================================================
     DROPPED IN THE CLASSIC -> SDK CONVERSION - full inventory
     ===================================================================================
     Nothing below was lost silently; each item is either subsumed by the SDK, replaced by an
@@ -361,38 +505,49 @@
       blocks carried no content.)
 
     ===================================================================================
-    STATIC ASSETS: LEFT IN PLACE ON PURPOSE - FOLLOW-UP FOR TASKS 7.3 / 7.4
+    STATIC ASSETS - RESOLVED BY TASK 7.4 (deferrals 40 / 7.1-5 and 33 / 14.33)
     ===================================================================================
     Content\, Scripts\, Themes\DefaultClean\Content\, favicon.ico, ErrorPage.htm and
-    FileNotFound.htm are still at their 3.90 locations. In 3.90 System.Web's handler
-    pipeline served them straight from the application root; ASP.NET Core's static-file
-    middleware serves IWebHostEnvironment.WebRootPath, i.e. wwwroot\.
+    FileNotFound.htm are STILL at their 3.90 locations, and that is now the decision rather
+    than a deferral. In 3.90 System.Web's handler pipeline served them straight from the
+    application root; ASP.NET Core's static-file middleware serves
+    IWebHostEnvironment.WebRootFileProvider, i.e. wwwroot\ - which this application does not
+    have, so nothing served at all after task 7.2.
 
-    MOVING THEM IS EXPLICITLY OUT OF SCOPE FOR 7.1. They do not break the build: none of
-    those extensions is in a default Compile or Content glob, so the SDK classifies them as
-    None items with no copy action. Two things must happen later and are recorded as
-    deferral 7.1-5:
-      * task 7.3/7.4 must either relocate the trees under wwwroot\ or point
-        WebRootFileProvider at them with a composite IFileProvider;
-      * whichever is chosen must ALSO cover the versioning provider, or the cache busting
-        task 6.3 added to PageHeadBuilder silently no-ops - that is already recorded as
-        runtime deferral 33 (section 14.33), and this is the project where it is decided.
+    Task 7.4 chose the second of the two options the deferral offered: it repoints the
+    PROVIDER instead of moving the files. Infrastructure\NopStaticFileProvider.cs is an
+    allow-listed IFileProvider over the content root, installed onto
+    IWebHostEnvironment.WebRootFileProvider by Infrastructure\NopStaticFilesExtensions.cs and
+    registered from Program.cs as app.UseNopStaticFiles(). Relocation was rejected because
+    three code paths require the files to remain physically under the content root:
+    ThemeProvider enumerates MapPath("~/Themes/") for theme.config and keeps the resolved
+    directory; CommonModelFactory PROBES MapPath("~/favicon.ico") before emitting a URL, so a
+    relocated favicon would be served but never found; and PictureService WRITES generated
+    thumbnails to MapPath("~/Content/Images/Thumbs"). Because the same provider instance is on
+    WebRootFileProvider, IFileVersionProvider sees exactly the files that are served, which is
+    what makes PageHeadBuilder's "?v=" cache busting fire - deferral 33 closed by the same
+    line of code.
 
     App_Data\ (browscap.xml, GeoLite2-Country.mmdb, Install\*.sql,
-    Localization\Installation\*.xml) is likewise untouched and needs no copy action: it is
-    read through CommonHelper.MapPath("~/App_Data/..."), which resolves against
+    Localization\Installation\*.xml, Pdf\FreeSerif.ttf) is likewise read through
+    CommonHelper.MapPath("~/App_Data/..."), which resolves against
     CommonHelper.BaseDirectory - set to the content root by
     builder.Environment.UseNopHostingEnvironment(builder.Configuration) at task 7.2
-    (runtime deferral 5, mechanism supplied by task 6.5). Files therefore stay in the
-    content root and are found there, which is why the ~700 legacy <Content> entries that
-    existed to copy them are not re-created.
+    (runtime deferral 5, mechanism supplied by task 6.5). It is deliberately OUTSIDE the
+    static-file allow-list: System.Web blocked App_Data implicitly, ASP.NET Core does not, and
+    App_Data\Settings.txt is the database connection string. What DID change at 7.4 is publish
+    metadata - see the PUBLISH SHAPING block above, which is where the ~700 legacy <Content>
+    entries are actually re-expressed (as `None Update` metadata rather than new items).
 
-    Web.config, Web.Debug.config, Web.Release.config, Views\Web.config,
-    Themes\DefaultClean\Views\Web.config and Themes\DefaultClean\theme.config are all
-    picked up by the Web SDK's **\*.config default Content glob. They are READ-ONLY as far
-    as this task is concerned - 7.4 owns Web.config (including removing the ImageResizer
-    'resizer' configSections declaration) and 7.5 owns deleting the two Views\Web.config
-    files.
+    CONFIG FILES. Web.Debug.config and Web.Release.config were DELETED by task 7.4 (unmodified
+    XDT boilerplate; the Web SDK does not run XDT transforms). Web.config was reduced to the
+    IIS/ANCM hosting shim, which is where the ImageResizer 'resizer' configSections
+    declaration was removed per design section 7. Views\Web.config and
+    Themes\DefaultClean\Views\Web.config are still on disk and remain TASK 7.5's to delete;
+    7.4 only set CopyToPublishDirectory="Never" on them, because both declare a
+    System.Web.WebPages.Razor <configSections> group that would cause an IIS 500.19 if
+    published. Themes\DefaultClean\theme.config stays - ThemeProvider reads it, and IIS only
+    parses files literally named web.config.
   -->
 
 </Project>

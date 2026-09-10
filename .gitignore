@@ -159,7 +159,15 @@ glob:*.user
 *.patch
 *.hg
 src/Presentation/Nop.Web/Plugins/*
-src/Presentation/Nop.Web/Content/Images/Thumbs/*
+# Task 7.4: narrowed from "Thumbs/*" to the four GENERATED image extensions, which is exactly
+# what 3.90's ExcludeFilesFromDeployment list named. The old blanket rule also swallowed
+# Content/Images/Thumbs/placeholder.txt, without which the directory does not exist in a fresh
+# clone or a publish and PictureService.DeletePictureThumbs throws DirectoryNotFoundException.
+src/Presentation/Nop.Web/Content/Images/Thumbs/*.jpg
+src/Presentation/Nop.Web/Content/Images/Thumbs/*.jpeg
+src/Presentation/Nop.Web/Content/Images/Thumbs/*.png
+src/Presentation/Nop.Web/Content/Images/Thumbs/*.gif
+src/Presentation/Nop.Web/Content/Images/Thumbs/*/
 src/Presentation/Nop.Web/App_Data/InstalledPlugins.txt
 src/Presentation/Nop.Web/App_Data/Settings.txt
 src/Presentation/Nop.Web/App_Data/browscap.crawlersonly.xml
