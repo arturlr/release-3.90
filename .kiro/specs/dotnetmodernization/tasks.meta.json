@@ -1,0 +1,379 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Establish central package management and shared build props": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112373
+      },
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001120398
+      },
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001346664
+      }
+    ],
+    "2.1 Convert Nop.Core.csproj to SDK-style net10.0": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112377
+      }
+    ],
+    "2.2 Convert Nop.Core packages.config to PackageReference": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112380
+      }
+    ],
+    "2.3 Migrate Nop.Core configuration and remove obsolete files": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112383
+      }
+    ],
+    "2.4 Rewrite unavailable-API usages in Nop.Core": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112388
+      }
+    ],
+    "2.5 Clean-compile gate — Nop.Core": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112390
+      }
+    ],
+    "3.1 Convert Nop.Data.csproj to SDK-style net10.0 and migrate packages": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112393
+      }
+    ],
+    "3.2 Port DbContext, mappings, and repository to EF Core": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112396
+      }
+    ],
+    "3.3 Clean-compile gate — Nop.Data": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112399
+      }
+    ],
+    "4.1 Convert Nop.Services.csproj to SDK-style net10.0 and migrate packages": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112402
+      }
+    ],
+    "4.2 Rewrite unavailable-API usages across Nop.Services": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112405
+      }
+    ],
+    "4.3 Clean-compile gate — Nop.Services": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112407
+      }
+    ],
+    "5. Checkpoint — libraries migrated": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112411
+      }
+    ],
+    "6.1 Convert Nop.Web.Framework.csproj to SDK-style net10.0 and migrate packages": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112414
+      }
+    ],
+    "6.2 Port HTTP context, WebHelper, and controllers/filters": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112417
+      }
+    ],
+    "6.3 Port Razor infrastructure and HTML/URL helpers": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112420
+      }
+    ],
+    "6.4 Port routing, modules/handlers, and DI integration": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112423
+      }
+    ],
+    "6.5 Migrate Nop.Web.Framework configuration and remove obsolete files": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112425
+      }
+    ],
+    "6.6 Clean-compile gate — Nop.Web.Framework": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112428
+      }
+    ],
+    "7.1 Convert Nop.Web.csproj to SDK-style Web project at net10.0": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112431
+      }
+    ],
+    "7.2 Replace hosting model (Global.asax → Program/Startup)": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112435
+      }
+    ],
+    "7.3 Port Nop.Web controllers, views, routing, and pipeline": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112437
+      }
+    ],
+    "7.4 Migrate web.config to appsettings.json / IConfiguration": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112440
+      }
+    ],
+    "7.5 Remove obsolete Nop.Web files": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112443
+      }
+    ],
+    "7.6 Clean-compile gate — Nop.Web": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112446
+      }
+    ],
+    "8. Checkpoint — presentation ported": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112449
+      }
+    ],
+    "9.1 Migrate Nop.Plugin.DiscountRules.CustomerRoles": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112451
+      }
+    ],
+    "9.2 Migrate Nop.Plugin.DiscountRules.HasOneProduct": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112454
+      }
+    ],
+    "9.3 Migrate Nop.Plugin.ExchangeRate.EcbExchange": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112458
+      }
+    ],
+    "10.1 Migrate Nop.Plugin.ExternalAuth.Facebook": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112460
+      }
+    ],
+    "10.2 Migrate Nop.Plugin.Feed.GoogleShopping": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112463
+      }
+    ],
+    "11.1 Migrate Nop.Plugin.Payments.CheckMoneyOrder": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112466
+      }
+    ],
+    "11.2 Migrate Nop.Plugin.Payments.Manual": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112469
+      }
+    ],
+    "11.3 Migrate Nop.Plugin.Payments.PayPalDirect": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112472
+      }
+    ],
+    "11.4 Migrate Nop.Plugin.Payments.PayPalStandard": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112475
+      }
+    ],
+    "11.5 Migrate Nop.Plugin.Payments.PurchaseOrder": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112477
+      }
+    ],
+    "12.1 Migrate Nop.Plugin.Pickup.PickupInStore": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112481
+      }
+    ],
+    "13.1 Migrate Nop.Plugin.Shipping.AustraliaPost": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112484
+      }
+    ],
+    "13.2 Migrate Nop.Plugin.Shipping.CanadaPost": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112487
+      }
+    ],
+    "13.3 Migrate Nop.Plugin.Shipping.Fedex": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112490
+      }
+    ],
+    "13.4 Migrate Nop.Plugin.Shipping.FixedOrByWeight": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112493
+      }
+    ],
+    "13.5 Migrate Nop.Plugin.Shipping.UPS": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112495
+      }
+    ],
+    "13.6 Migrate Nop.Plugin.Shipping.USPS": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112498
+      }
+    ],
+    "14.1 Migrate Nop.Plugin.Tax.FixedOrByCountryStateZip": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112501
+      }
+    ],
+    "14.2 Migrate Nop.Plugin.Widgets.GoogleAnalytics": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112505
+      }
+    ],
+    "14.3 Migrate Nop.Plugin.Widgets.NivoSlider": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112508
+      }
+    ],
+    "15. Checkpoint — all plugins migrated": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112510
+      }
+    ],
+    "16.1 Migrate Nop.Web.MVC.Tests to SDK-style net10.0": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112513
+      }
+    ],
+    "17.1 Update NopCommerce.sln to reference migrated projects": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112516
+      }
+    ],
+    "17.2 Full-solution clean-compile verification": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112518
+      }
+    ],
+    "18. Final checkpoint — migration complete": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001112521
+      }
+    ],
+    "1. Solution-wide migration scaffolding": [
+      {
+        "executionId": "1e99ef69-2921-47a3-aa3e-948b6f51d23d",
+        "chatSessionId": "sess_89f7212b-18db-4617-8ad3-806f0cd4139b",
+        "timestamp": 1789001346667
+      }
+    ]
+  }
+}

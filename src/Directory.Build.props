@@ -1,0 +1,50 @@
+<Project>
+
+  <!--
+    Shared build properties for the .NET 10 modernization of nopCommerce release-3.90.
+
+    Imported automatically by every SDK-style project under src/ so that individual
+    .csproj files stay minimal (Requirements 1.1, 1.2, 5.2).
+
+    Per-project overrides are still possible - a project may redefine any property
+    after the implicit import (for example Nop.Web using Microsoft.NET.Sdk.Web).
+
+    Note on not-yet-migrated projects: most legacy .csproj files here do not import
+    Microsoft.Common.props and so never see this file. Four still do - Nop.Web,
+    Nop.Admin, Nop.Plugin.Shipping.FixedOrByWeight and Nop.Plugin.Widgets.NivoSlider -
+    and will therefore inherit TargetFramework=net10.0 while still declaring
+    TargetFrameworkVersion=v4.5.1. Legacy MSBuild targets key off
+    TargetFrameworkVersion, so the inherited value is inert; each of those projects is
+    converted to SDK-style later in the plan, at which point the inheritance becomes
+    the intended one.
+  -->
+
+  <PropertyGroup>
+    <!-- Single target framework for the whole solution (Requirement 1.2). -->
+    <TargetFramework>net10.0</TargetFramework>
+
+    <!-- Keep the migration diff structural: nullable reference types and implicit
+         global usings stay off so ported source files compile unchanged. -->
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+
+    <!-- Hand-maintained Properties/AssemblyInfo.cs files are retained where they still
+         exist; the SDK must not emit a duplicate generated set. -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+    <!-- Shared assembly identity metadata that AssemblyInfo.cs used to carry per project. -->
+    <Company>nopCommerce</Company>
+    <Product>nopCommerce</Product>
+    <Copyright>Copyright © nopCommerce</Copyright>
+
+    <!-- Migration hygiene: warnings are recorded but never gate a stage - Clean_Compile
+         (zero errors) is the completion criterion (Requirement 3.3). -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Deterministic, reproducible builds across the many projects/plugins. -->
+    <Deterministic>true</Deterministic>
+    <NeutralLanguage>en-US</NeutralLanguage>
+  </PropertyGroup>
+
+</Project>

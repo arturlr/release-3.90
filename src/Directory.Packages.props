@@ -1,0 +1,93 @@
+<Project>
+
+  <!--
+    Central Package Management for the .NET 10 modernization of nopCommerce release-3.90.
+
+    Every migrated SDK-style project declares dependencies as version-less
+    <PackageReference Include="..." /> items; the single source of truth for versions
+    lives here (Requirements 1.3, 5.2).
+
+    Only *direct* dependencies need an entry - PackageReference is transitive by default,
+    so the transitive closure that packages.config used to enumerate is not restated.
+
+    All versions below were verified to ship net10.0-compatible assets
+    (lib/net10.0 or lib/netstandardX.Y).
+
+    Later migration stages (Nop.Data, Nop.Services, presentation, plugins, tests) extend
+    this file with additional PackageVersion entries as each project's packages.config is
+    translated.
+  -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Fail the restore loudly instead of silently honouring a per-project Version="" override. -->
+    <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
+  </PropertyGroup>
+
+  <!-- ==========================================================
+       Dependency injection  (replaces Autofac 4.4.0 + Autofac.Mvc5 4.0.1)
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="Autofac" Version="9.3.2" />
+    <PackageVersion Include="Autofac.Extensions.DependencyInjection" Version="11.0.2" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       Object mapping  (replaces AutoMapper 5.2.0)
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="AutoMapper" Version="16.2.0" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       Serialization  (replaces Newtonsoft.Json 9.0.1; System.Text.Json preferred for new code)
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.12" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       Caching  (replaces the System.Runtime.Caching BCL reference)
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.12" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       Configuration and options  (replaces the System.configuration BCL reference
+       and ConfigurationManager-based app.config/web.config access)
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       Data access  (replaces EntityFramework 6.1.3; SQL Server Compact is dropped
+       from scope - no EF Core provider exists, see design section 6)
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       Redis cache and distributed lock
+       (replaces StackExchange.Redis.StrongName 1.2.1 and RedLock.net.StrongName 1.7.4;
+       the StrongName variants are discontinued - the mainline packages are used)
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="RedLock.net" Version="2.3.2" />
+    <PackageVersion Include="StackExchange.Redis" Version="3.1.31" />
+  </ItemGroup>
+
+</Project>
