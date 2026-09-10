@@ -90,7 +90,7 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
   - Ensure Nop.Core, Nop.Data, Nop.Services all clean-compile and dependent references point only at migrated SDK-style projects. Ensure all tests pass, ask the user if questions arise.
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.3_
 
-- [ ] 6. Port Nop.Web.Framework to ASP.NET Core
+- [x] 6. Port Nop.Web.Framework to ASP.NET Core
   - [x] 6.1 Convert Nop.Web.Framework.csproj to SDK-style net10.0 and migrate packages
     - SDK-style conversion (`Microsoft.NET.Sdk`, with Razor/ASP.NET Core MVC framework reference as needed) at `net10.0`; packages.config → PackageReference; replace `Microsoft.AspNet.Mvc/Razor/WebPages`, `Autofac.Mvc5` with ASP.NET Core MVC + `Autofac.Extensions.DependencyInjection`; delete `packages.config`; fix `ProjectReference`s to migrated libraries
     - _Requirements: 1.1, 1.2, 1.3, 2.4, 4.1, 4.2_
@@ -101,15 +101,15 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
   - [x] 6.3 Port Razor infrastructure and HTML/URL helpers
     - `WebViewPage`/`@model` base → `RazorPage<TModel>`; `System.Web.Mvc.HtmlHelper` → `IHtmlHelper`, `UrlHelper` → `IUrlHelper`; `@Html.Action`/`[ChildActionOnly]` → View Components; port custom view-page extensions and templates to Tag Helpers where appropriate
     - _Requirements: 4.1, 4.4, 4.2_
-  - [ ] 6.4 Port routing, modules/handlers, and DI integration
+  - [x] 6.4 Port routing, modules/handlers, and DI integration
     - `IRouteProvider`/`RouteCollection`/area registration → ASP.NET Core endpoint routing (`MapControllerRoute`, area conventions) over `IEndpointRouteBuilder`
     - `IHttpModule`/`IHttpHandler` (URL rewrite/SEO, culture/localization, auth, install-mode redirect) → middleware components preserving ordering
     - Integrate Autofac via `Autofac.Extensions.DependencyInjection`; remove `Autofac.Integration.Mvc` per-request plumbing (`AutofacDependencyResolver`, `RequestLifetimeScopeProvider`); keep `IEngine`/`NopEngine`/`ContainerManager` shape
     - _Requirements: 4.2, 4.5, 4.6_
-  - [ ] 6.5 Migrate Nop.Web.Framework configuration and remove obsolete files
+  - [x] 6.5 Migrate Nop.Web.Framework configuration and remove obsolete files
     - Move settings to `IConfiguration`/typed options; remove obsolete `AssemblyInfo`/`app.config`/View `web.config` fragments owned by the framework project
     - _Requirements: 1.4, 1.5, 5.3_
-  - [ ] 6.6 Clean-compile gate — Nop.Web.Framework
+  - [x] 6.6 Clean-compile gate — Nop.Web.Framework
     - Build `src/Presentation/Nop.Web.Framework/Nop.Web.Framework.csproj -c Debug` using the containerized .NET 10 SDK command in `build-environment.md`; resolve to zero errors before unlocking **both** Nop.Web and Nop.Admin; verify no `System.Web*` references remain
     - _Requirements: 3.1, 3.2, 3.3, 4.2_
 

@@ -54,6 +54,21 @@ namespace Nop.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
+            //LAZY LOADING (runtime deferral 4.7). EF6 created dynamic proxies by default, so
+            //every `public virtual` navigation on Nop.Core.Domain.** loaded on first access.
+            //EF Core has no proxy layer in the core package; Microsoft.EntityFrameworkCore.Proxies
+            //plus this call restores that behavior.
+            //
+            //DELIBERATELY OUTSIDE the IsConfigured guard below. DbContextOptionsBuilder.IsConfigured
+            //reports whether a DATABASE PROVIDER has been selected - it is true for a context built
+            //from a DbContextOptions<NopObjectContext> instance (tests, alternate hosts). Putting
+            //this call inside the guard would therefore give proxies to the connection-string
+            //constructor ONLY and leave options-built contexts with the silent null-navigation
+            //behavior this fix exists to remove. Lazy loading is orthogonal to provider selection,
+            //so it is applied on every construction path. The call is idempotent - a caller that
+            //already enabled proxies on the options is unaffected.
+            optionsBuilder.UseLazyLoadingProxies();
+
             //when the context was built from a DbContextOptions instance the provider is
             //already configured and _nameOrConnectionString is null - do not override it.
             if (!optionsBuilder.IsConfigured && !string.IsNullOrEmpty(_nameOrConnectionString))
@@ -393,13 +408,25 @@ namespace Nop.Data
         /// Gets or sets a value indicating whether proxy creation setting is enabled (used in EF)
         /// </summary>
         /// <remarks>
-        /// EF6 mapped this straight onto <c>DbContextConfiguration.ProxyCreationEnabled</c>.
-        /// EF Core has no dynamic-proxy layer in the core package (proxies are opt-in via the
-        /// separate Microsoft.EntityFrameworkCore.Proxies package and are configured on the
-        /// options, not toggled at runtime), so the setter is mapped onto the closest runtime
-        /// analogue - <c>ChangeTracker.LazyLoadingEnabled</c> - and the flag is remembered so
-        /// the getter round-trips. Call sites (PictureService) use this only as a
-        /// lazy-load/perf switch, which this preserves.
+        /// EF6 mapped this straight onto <c>DbContextConfiguration.ProxyCreationEnabled</c>,
+        /// where <c>false</c> suppressed proxy creation for subsequently materialized entities
+        /// and therefore also suppressed their lazy loading.
+        /// <para>
+        /// Lazy-loading proxies ARE now enabled - see <see cref="OnConfiguring"/> and runtime
+        /// deferral 4.7. In EF Core proxy creation itself is an immutable options-level decision
+        /// and cannot be toggled per-instance at runtime, so the setter maps onto the runtime
+        /// analogue <c>ChangeTracker.LazyLoadingEnabled</c> and the flag is remembered so the
+        /// getter round-trips. Entities materialized while this is <c>false</c> are still proxy
+        /// instances, but their navigations will not self-load.
+        /// </para>
+        /// <para>
+        /// This now reproduces the observable intent of the EF6 call site:
+        /// <c>PictureService.GetPictureHashes</c> sets it to <c>false</c> as a deliberate
+        /// performance hack so a bulk picture scan does not trigger per-row navigation loads.
+        /// Under EF6 that avoided proxy creation; here it avoids the lazy loads. The residual
+        /// difference is allocation-level only (a proxy object is still created), not
+        /// query-level - no extra SELECT is issued either way.
+        /// </para>
         /// </remarks>
         public virtual bool ProxyCreationEnabled
         {

@@ -175,15 +175,33 @@ namespace Nop.Web.Framework
             if (httpContext == null || httpContext.Request == null)
                 return null;
 
-            //System.Web's AppRelativeCurrentExecutionFilePath was "~" + the app-relative path
-            string virtualPath = "~" + httpContext.Request.Path.Value;
-            string applicationPath = httpContext.Request.PathBase.HasValue
-                ? httpContext.Request.PathBase.Value
-                : "/";
-            if (!virtualPath.IsLocalizedUrl(applicationPath, false))
-                return null;
+            string seoCode = null;
 
-            var seoCode = virtualPath.GetLanguageSeoCodeFromUrl(applicationPath, false);
+            //Task 6.4: SeoFriendlyUrlsMiddleware strips the language SEO code out of
+            //Request.Path (moving it into Request.PathBase, which is what makes generated
+            //URLs carry it back - see LocalizedRoute). By the time this runs the code is no
+            //longer in the path, so read what the middleware recorded first and only fall
+            //back to parsing the path when the middleware did not run.
+            object recordedSeoCode;
+            if (httpContext.Items != null &&
+                httpContext.Items.TryGetValue(LocalizedRoute.LanguageSeoCodeItemKey, out recordedSeoCode))
+            {
+                seoCode = recordedSeoCode as string;
+            }
+
+            if (String.IsNullOrEmpty(seoCode))
+            {
+                //System.Web's AppRelativeCurrentExecutionFilePath was "~" + the app-relative path
+                string virtualPath = "~" + httpContext.Request.Path.Value;
+                string applicationPath = httpContext.Request.PathBase.HasValue
+                    ? httpContext.Request.PathBase.Value
+                    : "/";
+                if (!virtualPath.IsLocalizedUrl(applicationPath, false))
+                    return null;
+
+                seoCode = virtualPath.GetLanguageSeoCodeFromUrl(applicationPath, false);
+            }
+
             if (String.IsNullOrEmpty(seoCode))
                 return null;
 

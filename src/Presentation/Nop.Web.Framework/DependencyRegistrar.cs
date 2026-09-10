@@ -2,16 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Web;
 using Autofac;
 using Autofac.Builder;
 using Autofac.Core;
-using Autofac.Integration.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Configuration;
 using Nop.Core.Data;
-using Nop.Core.Fakes;
 using Nop.Core.Infrastructure;
 using Nop.Core.Infrastructure.DependencyManagement;
 using Nop.Core.Plugins;
@@ -51,6 +50,7 @@ using Nop.Services.Tax;
 using Nop.Services.Topics;
 using Nop.Services.Vendors;
 using Nop.Web.Framework.Mvc.Routes;
+using Nop.Web.Framework.Seo;
 using Nop.Web.Framework.Themes;
 using Nop.Web.Framework.UI;
 
@@ -59,6 +59,35 @@ namespace Nop.Web.Framework
     /// <summary>
     /// Dependency registrar
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Task 6.4 reworked the DI integration. <c>Autofac.Integration.Mvc</c> (Autofac.Mvc5) is
+    /// gone: it has no net10.0 release, and its two responsibilities are now covered
+    /// elsewhere —
+    /// <list type="bullet">
+    /// <item><c>AutofacDependencyResolver</c> / <c>RequestLifetimeScopeProvider</c> →
+    /// <c>Autofac.Extensions.DependencyInjection</c>'s <c>AutofacServiceProviderFactory</c>,
+    /// wired by the host (task 7.2:
+    /// <c>builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory())</c> +
+    /// <c>ConfigureContainer</c>). ASP.NET Core's own per-request scope becomes the Autofac
+    /// per-request <c>ILifetimeScope</c>, and <c>ContainerManager.CurrentScopeProvider</c> is
+    /// pointed at it below (runtime deferral 1.3);</item>
+    /// <item><c>ContainerBuilder.RegisterControllers(assemblies)</c> → an explicit
+    /// <c>RegisterAssemblyTypes(...).Where(ControllerBase)</c> below.</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// <b>What is deliberately NOT here.</b> <c>IDependencyRegistrar.Register</c> receives an
+    /// Autofac <see cref="ContainerBuilder"/>, not an <c>IServiceCollection</c>, so
+    /// <c>AddHttpContextAccessor()</c>, <c>AddMemoryCache()</c>, <c>AddSession()</c>,
+    /// <c>AddAuthentication().AddCookie()</c>, the MVC model-validator/metadata/binder
+    /// providers, the JSON naming policy and the Razor view-location expander cannot be
+    /// registered from here. They live in
+    /// <see cref="Nop.Web.Framework.Infrastructure.NopServiceCollectionExtensions.AddNopFramework"/>,
+    /// which task 7.2 calls; they then reach this container through
+    /// <c>AutofacServiceProviderFactory</c>'s <c>Populate</c>.
+    /// </para>
+    /// </remarks>
     public class DependencyRegistrar : IDependencyRegistrar
     {
         /// <summary>
@@ -70,36 +99,85 @@ namespace Nop.Web.Framework
         public virtual void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
             //HTTP context and other related stuff
-            builder.Register(c => 
-                //register FakeHttpContext when HttpContext is not available
-                HttpContext.Current != null ?
-                (new HttpContextWrapper(HttpContext.Current) as HttpContextBase) :
-                (new FakeHttpContext("~/") as HttpContextBase))
-                .As<HttpContextBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Request)
-                .As<HttpRequestBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Response)
-                .As<HttpResponseBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Server)
-                .As<HttpServerUtilityBase>()
-                .InstancePerLifetimeScope();
-            builder.Register(c => c.Resolve<HttpContextBase>().Session)
-                .As<HttpSessionStateBase>()
-                .InstancePerLifetimeScope();
+            //
+            //Task 6.4: the five System.Web registrations that used to live here -
+            //HttpContextBase (including the "new FakeHttpContext(\"~/\")" fallback for when
+            //HttpContext.Current was null), HttpRequestBase, HttpResponseBase,
+            //HttpServerUtilityBase and HttpSessionStateBase - were DELETED. None of the five
+            //types exists on net10.0 in a usable form, and task 6.2 verified that no consumer
+            //remains in Nop.Core, Nop.Data, Nop.Services or this project: every one of them now
+            //takes IHttpContextAccessor (runtime deferrals section 3 and 9a).
+            //
+            //The FakeHttpContext branch existed only because HttpContext.Current is a static
+            //ambient value that is null outside a request. IHttpContextAccessor already models
+            //that correctly by returning null, so the fake is not needed and is not registered.
+            //(WebWorkContext still tests "httpContext is FakeHttpContext" for the background-task
+            //customer; with nothing constructing a FakeHttpContext that branch is now reached
+            //through the null test beside it, which is the correct ASP.NET Core signal.)
+            //
+            //IHttpContextAccessor itself is an IServiceCollection registration and is made by
+            //NopServiceCollectionExtensions.AddNopFramework() - see the class remarks.
+
+            //deferral 1.3 - share the ASP.NET Core per-request scope with ContainerManager.
+            //
+            //WHY HERE: this is the earliest place that (a) runs unconditionally as part of
+            //NopEngine initialization and (b) can see the IHttpContextAccessor the host
+            //registered, because Populate() has already copied the IServiceCollection
+            //registrations into this builder by the time the build callback fires. Assigning it
+            //from Program.cs (task 7.2) would work too but would put an Autofac-specific detail
+            //in the host and leave this project's own container unusable standalone.
+            //ResolveOptional, not Resolve: a standalone container (tests) has no
+            //IHttpContextAccessor and must not fail to build because of it.
+            builder.RegisterBuildCallback(scope =>
+            {
+                var httpContextAccessor = scope.ResolveOptional<IHttpContextAccessor>();
+                if (httpContextAccessor == null)
+                    return;
+
+                ContainerManager.CurrentScopeProvider = () =>
+                {
+                    var httpContext = httpContextAccessor.HttpContext;
+                    if (httpContext == null)
+                        return null;
+
+                    var requestServices = httpContext.RequestServices;
+                    if (requestServices == null)
+                        return null;
+
+                    //under AutofacServiceProviderFactory, RequestServices is an
+                    //AutofacServiceProvider over the request lifetime scope, and Autofac
+                    //self-registers ILifetimeScope in every scope.
+                    return requestServices.GetService(typeof(ILifetimeScope)) as ILifetimeScope;
+                };
+            });
 
             //web helper
             builder.RegisterType<WebHelper>().As<IWebHelper>().InstancePerLifetimeScope();
             //user agent helper
             builder.RegisterType<UserAgentHelper>().As<IUserAgentHelper>().InstancePerLifetimeScope();
 
-            
+
             //controllers
-            builder.RegisterControllers(typeFinder.GetAssemblies().ToArray());
+            //Autofac.Mvc5's ContainerBuilder.RegisterControllers(assemblies) is gone; this is the
+            //equivalent over ASP.NET Core's ControllerBase. Paired with
+            //IMvcBuilder.AddControllersAsServices() in AddNopFramework(), it makes MVC activate
+            //controllers through this container and keeps EngineContext.Current.Resolve<TController>()
+            //working (3.90's Application_Error resolved CommonController that way).
+            builder.RegisterAssemblyTypes(typeFinder.GetAssemblies().ToArray())
+                .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
+                .InstancePerLifetimeScope();
+
+            //SEO slug routing (task 6.4). ASP.NET Core resolves a DynamicRouteValueTransformer
+            //from HttpContext.RequestServices and requires a transient lifetime.
+            builder.RegisterType<SlugRouteTransformer>().InstancePerDependency();
 
             //data layer
+            //
+            //Nop.Data deferral 4.9: NopObjectContext now needs a real connection string, not a
+            //database name - EF Core has no ambient Database.DefaultConnectionFactory. Verified
+            //for this project: both branches below already pass DataConnectionString, so the
+            //production path is correct and 4.9 is CLOSED as far as Nop.Web.Framework is
+            //concerned (it stays open only for the Nop.Data.Tests fixtures, task 3.4).
             var dataSettingsManager = new DataSettingsManager();
             var dataProviderSettings = dataSettingsManager.LoadSettings();
             builder.Register(c => dataSettingsManager.LoadSettings()).As<DataSettings>();
@@ -371,6 +449,21 @@ namespace Nop.Web.Framework
     }
 
 
+    /// <summary>
+    /// Autofac registration source that materialises any <see cref="ISettings"/> type on demand
+    /// by loading it for the current store.
+    /// </summary>
+    /// <remarks>
+    /// Task 6.4: <c>IRegistrationSource.RegistrationsFor</c>'s second parameter changed in
+    /// modern Autofac (this project is on 9.3.2) from
+    /// <c>Func&lt;Service, IEnumerable&lt;IComponentRegistration&gt;&gt;</c> to
+    /// <c>Func&lt;Service, IEnumerable&lt;ServiceRegistration&gt;&gt;</c> — Autofac split the
+    /// "how do I resolve this" pipeline (<c>ServiceRegistration</c>) out of the component
+    /// registration itself. The parameter was never used here, so the body is unchanged;
+    /// the return type is still <c>IEnumerable&lt;IComponentRegistration&gt;</c>.
+    /// <c>RegistrationBuilder.ForDelegate(...).InstancePerLifetimeScope().CreateRegistration()</c>
+    /// is unchanged — verified against Autofac 9.3.2.
+    /// </remarks>
     public class SettingsSource : IRegistrationSource
     {
         static readonly MethodInfo BuildMethod = typeof(SettingsSource).GetMethod(
@@ -379,7 +472,7 @@ namespace Nop.Web.Framework
 
         public IEnumerable<IComponentRegistration> RegistrationsFor(
                 Service service,
-                Func<Service, IEnumerable<IComponentRegistration>> registrations)
+                Func<Service, IEnumerable<ServiceRegistration>> registrationAccessor)
         {
             var ts = service as TypedService;
             if (ts != null && typeof(ISettings).IsAssignableFrom(ts.ServiceType))

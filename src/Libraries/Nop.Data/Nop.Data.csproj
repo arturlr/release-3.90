@@ -102,6 +102,22 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <!--
+      Microsoft.EntityFrameworkCore.Proxies - restores EF6's DEFAULT lazy-loading
+      behavior, which EF Core does not have (runtime deferral 4.7).
+
+      EF6 proxied every entity automatically, so `public virtual` navigations on
+      Nop.Core.Domain.** loaded on first touch. EF Core ships no proxy layer in the core
+      package, so without this reference every navigation walk that has no explicit
+      Include(...) returns null or an empty collection silently. This package supplies
+      the Castle DynamicProxy-based entity proxies and the
+      DbContextOptionsBuilder.UseLazyLoadingProxies() extension that
+      NopObjectContext.OnConfiguring now calls unconditionally.
+
+      Version-less, per this project's central-package-management convention; the pin
+      (10.0.12, aligned with the EF Core pins) lives in src/Directory.Packages.props.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" />
   </ItemGroup>
 
   <!--

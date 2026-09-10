@@ -27,12 +27,12 @@ All items below originate from **Nop.Core task 2.4**.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 1 | Plugin discovery never runs | 7.2 | **Highest** |
-| 2 | Plugin assemblies invisible to the Razor compiler | 6.4, 7.2 | High |
-| 3 | Per-request DI scope not shared within a request | 6.4 | High |
-| 4 | Configuration source unset — all `NopConfig` settings at defaults | 7.2, 7.4 | High |
-| 5 | `CommonHelper.MapPath` resolves relative to `bin/` | 6.5, 7.2 | High |
-| 6 | `WebHelper.RestartAppDomain` throws instead of restarting | 6.4, 7.2 | Medium |
+| 1 | Plugin discovery never runs | 7.2 | **Highest** — **6.5 mechanism DONE**, see §18.1 |
+| 2 | Plugin assemblies invisible to the Razor compiler | ~~6.4~~, 7.2 | High — **6.4 mechanism DONE**, see §17.1 |
+| 3 | ~~Per-request DI scope not shared within a request~~ | — | **RESOLVED by 6.4** (§17.1) |
+| 4 | Configuration source unset — all `NopConfig` settings at defaults | 7.2, 7.4 | High — **6.5 mechanism DONE**, see §18.1 |
+| 5 | `CommonHelper.MapPath` resolves relative to `bin/` | ~~6.5~~, 7.2 | High — **6.5 mechanism DONE and verified live**, see §18.1 |
+| 6 | `WebHelper.RestartAppDomain` throws instead of restarting | ~~6.4~~, 7.2 | Medium — **no 6.4 work needed**, see §17.1 |
 
 ### 1.1 Plugin discovery never runs — HIGHEST IMPACT
 
@@ -102,6 +102,8 @@ All items below originate from **Nop.Core task 2.4**.
 - **Scope:** roughly **30 downstream call sites** across Nop.Data, Nop.Services and the
   presentation projects.
 - **Fix (tasks 6.5 and 7.2):** set `CommonHelper.BaseDirectory` to the content root during startup.
+  **6.5 supplied the mechanism and verified it live — see §18.1.** 7.2 gets it from
+  `builder.Environment.UseNopHostingEnvironment(builder.Configuration)`.
 - **Impact if unfixed:** widespread wrong paths — install files, `App_Data`, plugin directories and
   file uploads all point into the output folder.
 
@@ -197,38 +199,205 @@ database is attached. Everything below was introduced knowingly.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 7 | Lazy loading is off — all `virtual` navigations return null | 4.2 + decision at 7.2 | **Highest** |
+| 7 | ~~Lazy loading is off — all `virtual` navigations return null~~ | — | **RESOLVED** (see 4.7) |
 | 8 | Schema initializer is never invoked — a fresh install creates no tables | 4.2, 7.2 | **Highest** |
-| 9 | `NopObjectContext` now needs a real connection string, not a database name | 3.4, 6.4 | Medium |
+| 9 | `NopObjectContext` now needs a real connection string, not a database name | 3.4, ~~6.4~~ | Medium — **6.4 verified clean**, see §17.1 |
 | 10 | `CreateDatabaseScript()` output is `GO`-batched — 4 plugin contexts will fail | 11.2, 13.1, 14.4, 15.1 | Medium |
 | 11 | `ExecuteSqlCommand(doNotEnsureTransaction: false)` now opens a real transaction | 4.2 | Medium |
 | 12 | Many-to-many join **column** names follow EF Core conventions, not 3.90's | 4.2 / schema review | Medium |
 
-### 4.7 Lazy loading is off — all `virtual` navigation properties return null — HIGHEST IMPACT
+### 4.7 Lazy loading — ✅ **RESOLVED** (fixed ahead of task 7.2)
 
-- **What changed:** EF6 created dynamic proxies by default, so every `public virtual` navigation
+**Status: RESOLVED.** Fixed deliberately ahead of task 7.2 rather than at it, because the change
+lands in `Nop.Data`, which had already passed its clean-compile gate (3.3) and was committed —
+doing it knowingly here is preferable to discovering empty product listings at the 7.7 smoke check.
+
+- **What was wrong:** EF6 created dynamic proxies by default, so every `public virtual` navigation
   on `Nop.Core.Domain.**` lazy-loaded on first access. EF Core has **no proxy layer in the core
-  package**; lazy loading is opt-in and requires either
-  `Microsoft.EntityFrameworkCore.Proxies` + `optionsBuilder.UseLazyLoadingProxies()`, or an
-  `ILazyLoader` injection, or explicit `Include(...)` at every query site.
-- **`IDbContext.ProxyCreationEnabled` no longer means what it meant.** The property is preserved
-  on the interface (so `Nop.Services` compiles unchanged) but is now backed by a private field
-  that also drives `ChangeTracker.LazyLoadingEnabled`. Setting it to `false` — which
-  `PictureService.GetPictureHashes` does deliberately as a perf hack — has no proxy effect
-  because there were no proxies to suppress.
-- **Impact if unfixed:** the single largest behavioral regression of the whole data-layer move.
-  Every service that walks a navigation without `Include` (`order.Customer`,
-  `product.ProductCategories`, `customer.CustomerRoles`, …) sees `null` or an empty collection
-  instead of loaded data. This is silent — no exception.
-- **Fix — pick one, at task 7.2:**
-  1. Add `Microsoft.EntityFrameworkCore.Proxies`, call `UseLazyLoadingProxies()` in
-     `NopObjectContext.OnConfiguring`, and mark all navigations `virtual` (they already are).
-     Lowest-churn, closest to 3.90 behavior. **Recommended.**
-  2. Add explicit `Include`/`ThenInclude` at every query site in `Nop.Services`. Faithful to
-     modern EF Core practice, but touches hundreds of methods.
-  Note that option 1 makes `Extensions.GetUnproxiedEntityType` meaningful again — it was
-  re-implemented to detect Castle DynamicProxy subclasses precisely so it keeps working if
-  proxies are switched on.
+  package**, so `order.Customer`, `product.ProductCategories`, `customer.CustomerRoles` and
+  hundreds of similar walks returned `null` or an empty collection **silently, with no exception**.
+
+#### What was done — option 1 of the two choices above
+
+Option 2 (explicit `Include`/`ThenInclude` at hundreds of query sites in `Nop.Services`) was
+**explicitly rejected** as too invasive for this migration.
+
+1. `src/Directory.Packages.props` — added
+   `<PackageVersion Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.12" />`
+   to the *Data access* group, aligned with the three EF Core 10.0.12 pins. Verified on nuget.org:
+   stable (`isPrerelease: false`), listed, MIT, published by Microsoft, native **`lib/net10.0`**
+   asset. Its `net10.0` dependency group requires `Microsoft.EntityFrameworkCore [10.0.12, )`,
+   `Castle.Core [5.2.1, )`, `Microsoft.Extensions.Caching.Memory [10.0.12, )` and
+   `Microsoft.Extensions.Logging [10.0.12, )`. Only **Castle.Core 5.2.1** is genuinely new to the
+   graph; the other two already resolve to the pinned 10.0.12.
+2. `src/Libraries/Nop.Data/Nop.Data.csproj` — added a version-less
+   `<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" />`.
+3. `NopObjectContext.OnConfiguring` — calls `optionsBuilder.UseLazyLoadingProxies()`.
+
+No other file was touched. `Nop.Core`, `Nop.Services` and `Nop.Web.Framework` are unmodified.
+
+#### `UseLazyLoadingProxies()` is OUTSIDE the `IsConfigured` guard — and must be
+
+`DbContextOptionsBuilder.IsConfigured` reports whether a **database provider** has been selected,
+so it is **`true`** for a context built from `DbContextOptions<NopObjectContext>` (the tests' /
+alternate-host path added in 4.9). Placing the call inside
+`if (!optionsBuilder.IsConfigured && !string.IsNullOrEmpty(_nameOrConnectionString))` would
+therefore have given proxies to the **connection-string constructor only** and left every
+options-built context with exactly the silent null-navigation behavior this fix exists to remove.
+Lazy loading is orthogonal to provider selection, so it is applied unconditionally on every
+construction path; the call is idempotent, so a caller that already enabled proxies is unaffected.
+Both paths were verified live (see the probe below).
+
+#### Proxy-requirement audit across `Nop.Core.Domain` — no violations
+
+Castle DynamicProxy must be able to subclass each entity. EF Core enforces this at
+**model-build time**, and both failure modes were confirmed empirically to be **BLOCKING (throw),
+not degrading** — the error is
+`Property 'X.Y' is not virtual. … 'UseLazyLoadingProxies' requires only the navigation properties
+be virtual.` / `Entity type 'X' is sealed. …`, both `InvalidOperationException`. A violation would
+therefore have converted a silent regression into a **hard startup failure**.
+
+Audited surface: **105 mapped entity types** — 103 `Mapping/**/*Map.cs` plus two configurations
+not following the `*Map.cs` naming (`Mapping/Orders/ReturnRequestAction.cs`,
+`Mapping/Orders/ReturnRequestReason.cs`).
+
+| Requirement | Result |
+|---|---|
+| public, not sealed | **105 / 105 pass** — zero `sealed` and zero non-public classes anywhere under `Nop.Core/Domain` |
+| accessible parameterless constructor | **105 / 105 pass** — only 4 entities declare a constructor at all (`Customer`, `CustomerPassword`, `ExchangeRate`, `Setting`) and every one is parameterless; `Setting` additionally has `Setting(string, string, int)` alongside it |
+| navigations `public virtual` | **140 / 140 pass** — 89 reference navigations `{ get; set; }` and 51 collection navigations with `get`/`protected set`; **zero** non-virtual, **zero** non-public, **zero** get-only |
+| no entity dragged in by convention | **0** — every CLR entity type in the finalized model has an explicit `IEntityTypeConfiguration<>`; no navigation points at an unmapped `Nop.Core` class |
+
+`protected set` on the 51 collection navigations is fine — proxies only require the member be
+overridable, not publicly settable.
+
+**`BaseEntity` itself:** `public abstract partial`, not mapped (no configuration targets it), so it
+is never proxied. `abstract` is irrelevant to proxying a *derived* concrete type. It has no
+declared constructor, so it has an implicit public parameterless one. Its `Equals(BaseEntity)` is
+`virtual` and `GetUnproxiedType()` returns `GetType()` — i.e. the **proxy** type for a proxied
+instance — but the comparison is
+`thisType.IsAssignableFrom(otherType) || otherType.IsAssignableFrom(thisType)`, and a proxy derives
+from its entity type, so proxy-vs-plain equality still holds. **No change needed.**
+
+There are also **8 implicit shared-type join entities** (`Dictionary<string, object>`) for the
+many-to-many tables listed in 4.12 — `CustomerAddresses`, `Customer_CustomerRole_Mapping`,
+`PermissionRecord_Role_Mapping`, `ShippingMethodRestrictions`,
+`Discount_AppliedToCategories`, `Discount_AppliedToManufacturers`, `Discount_AppliedToProducts`,
+`Product_ProductTag_Mapping` — reached through 16 skip navigations. All 8 proxy successfully.
+
+#### Probe result — the model demonstrably builds with proxies
+
+A compile cannot prove this. A throwaway console probe (created outside the repository, run in the
+`mcr.microsoft.com/dotnet/sdk:10.0` container, referencing `Nop.Data.csproj`, with
+`Microsoft.EntityFrameworkCore.Sqlite` added **to the probe only**) forced model creation and
+exercised the live behavior. It has since been deleted; `git status` shows only the three
+intended files. **Result: PASS**, all checks green:
+
+| Check | Outcome |
+|---|---|
+| `DbContextOptions<NopObjectContext>` path: proxies in effect | ✅ `ProxiesOptionsExtension` present, `UseLazyLoadingProxies = true` |
+| `NopObjectContext(string)` path: proxies in effect | ✅ same, provider `Microsoft.EntityFrameworkCore.SqlServer` |
+| model builds (SQLite **and** SqlServer) | ✅ **113 entity types** (105 CLR + 8 shared-type), 126 navigations + 16 skip navigations, no exception |
+| Castle can subclass every entity | ✅ **105/105** CLR types and **8/8** shared-type join entities instantiate as `Castle.Proxies.*` |
+| reference navigation lazy-loads with no `Include` | ✅ `LocaleStringResource.Language` → `'English'` |
+| collection navigation lazy-loads with no `Include` | ✅ `Language.LocaleStringResources` → count 1 |
+| `GetUnproxiedEntityType()` peels the proxy | ✅ `Castle.Proxies.LocaleStringResourceProxy` → `Nop.Core.Domain.Localization.LocaleStringResource`, for all 105 |
+
+#### `IDbContext.ProxyCreationEnabled` now does what EF6's did — verified
+
+The property still cannot map onto EF Core proxy *creation* (that is an immutable options-level
+decision, not a per-instance runtime toggle), so it remains backed by a private field that drives
+`ChangeTracker.LazyLoadingEnabled`. Verified live: setting it to `false` leaves the entity a proxy
+instance but makes its navigations return `null`; the getter round-trips; setting it back restores
+loading. `PictureService.GetPictureHashes` therefore once again achieves its stated intent — a bulk
+picture scan that does not trigger per-row navigation loads. The residual difference from EF6 is
+allocation-level only (a proxy object is still constructed), never query-level: **no extra `SELECT`
+is issued either way.** The XML doc comment on the property was updated accordingly.
+
+#### `Extensions.GetUnproxiedEntityType` — verified correct on its first real proxy
+
+This is the first time the helper can actually encounter a proxy. Confirmed working for all 105
+entity types: proxies land in namespace `Castle.Proxies`, assembly `DynamicProxyGenAssembly2` with
+`IsDynamic == true`, so **both** of its detection predicates fire, and it walks up exactly one
+level to the declared entity type. Plain (unproxied) instances are still returned unchanged.
+
+#### Performance note — N+1 is restored, not introduced
+
+Lazy loading reintroduces the N+1 query patterns that were latent in 3.90. Every navigation walk
+inside a loop without `Include` is now one query per iteration. This is a **restoration of 3.90
+behavior**, not a new problem, and it is the price of option 1. If a specific hot path shows up in
+the 7.7 smoke check or later profiling, the targeted remedy is to add `Include` at that one query
+site — option 2 applied surgically rather than wholesale.
+
+---
+
+### 4.7a `AsNoTracking` and lazy loading — the expected gap does **not** exist, but disposal now throws
+
+This was expected to be a residual gap and it turns out **not** to be one, so it is recorded here
+rather than as an open deferral.
+
+- **The assumption:** EF Core lazy loading requires a *tracked* entity, so navigations on
+  `EfRepository.TableNoTracking` and `NopObjectContext.ExecuteStoredProcedureList` results (both
+  use `AsNoTracking()`) would not load.
+- **Verified false on EF Core 10.** With `ChangeTracker.Entries()` empty and
+  `Entry(x).State == Detached`, both a reference navigation and a collection navigation still
+  lazy-loaded correctly. EF Core injects the `ILazyLoader` service into the proxy during
+  materialization independently of change tracking. `TableNoTracking` consumers are therefore
+  **not** degraded. (`ExecuteStoredProcedureList` is doubly safe — it re-attaches every row through
+  `AttachEntityToContext`, so those entities are tracked anyway.)
+- **The real residual risk is lifetime, not tracking.** A proxy whose originating
+  `NopObjectContext` has been **disposed** throws `InvalidOperationException` on first navigation
+  access instead of returning `null` (verified). Anything that lets an entity outlive its context —
+  entities placed in `ICacheManager`, `PerRequestCacheManager` or `TempData` — is exposed. This is
+  **3.90 parity**: EF6 raised the equivalent *"The ObjectContext instance has been disposed"*, so it
+  is a restored behavior, not a new one. It becomes reachable again only because navigations are
+  live again.
+
+### 4.7b Serialization of entities can now cycle — new, caused by this fix
+
+**Confirmed by direct A/B measurement, and this one is genuinely new.** Serializing an entity
+instance with `System.Text.Json`:
+
+| `ChangeTracker.LazyLoadingEnabled` | Result |
+|---|---|
+| `false` | serialized fine, 220 bytes |
+| `true` | **`JsonException`: "A possible object cycle was detected"** |
+
+The serializer walks `Language.LocaleStringResources`, which triggers a lazy load; each child's
+`Language` back-reference lazy-loads the parent again, and the graph never terminates. Before this
+fix, navigations were empty/null and the same object serialized cleanly — so **any code path that
+serializes a `Nop.Core.Domain` entity directly is now at risk**, whether or not the declared
+generic type argument is the entity type (both `Serialize<Language>(x)` and `Serialize(x)` fail
+identically — this is not a proxy-type-name problem).
+
+Secondary, lower-severity serialization notes:
+
+- **Type identity.** A materialized entity's `GetType().Name` is now e.g. `LanguageProxy`, in the
+  dynamic assembly `DynamicProxyGenAssembly2`. Anything that emits or switches on a runtime type
+  name — `$type`-style polymorphic serializers, `TempData` round-trips, type-keyed caches, log
+  formatting — will see the proxy name rather than the declared entity name. `GetUnproxiedEntityType()`
+  is the fix for such call sites and it works.
+- `XmlSerializer` also fails on these entities, but that is **pre-existing and unrelated**: it
+  throws for the *declared* type (`Nop.Core.Domain.Localization.Language`) because of its
+  `ICollection<>` members, with or without proxies.
+- **Mitigation:** nopCommerce's own convention already avoids this — controllers map entities to
+  view models rather than serializing entities. Tasks 7.x / 8.x should keep to that, and any place
+  that must serialize an entity should either project to a DTO or set
+  `ReferenceHandler.Preserve` / `MaxDepth`.
+
+#### Verification performed (containerized, `mcr.microsoft.com/dotnet/sdk:10.0`)
+
+`obj/` and `bin/` for `Nop.Core` and `Nop.Data` were deleted first (`dotnet clean` is unreliable
+with the ephemeral container NuGet cache).
+
+| Build | Result |
+|---|---|
+| **GATE 3.3** `Nop.Data` `-c Debug --no-incremental` | **0 errors**, 3 warnings — gate re-passed. The 3 warnings are the pre-existing `Nop.Core` `SYSLIB0011`/`SYSLIB0051`/`SYSLIB0014` obsolescence notices, unchanged |
+| `Nop.Services` | **0 errors**, 10 warnings — no downstream regression |
+| `Nop.Web.Framework` | **exactly 79 errors** (128 `CS0246` + 28 `CS0234` + 2 `CS0535` diagnostic lines), 10 warnings — matches the known task-6.4 residual exactly, not one more |
+| restore advisories | **no `NU1901`–`NU1904`** |
+| swallowed-error check | verbose log grep for `"converted to a warning"` and `"ContinueOnError"` → **0 hits each** |
+| probe residue | `git status` shows only `src/Directory.Packages.props`, `src/Libraries/Nop.Data/Nop.Data.csproj`, `src/Libraries/Nop.Data/NopObjectContext.cs` |
 
 ### 4.8 Schema initializer is never invoked — a fresh install creates no tables
 
@@ -394,9 +563,10 @@ database is attached. Everything below was introduced knowingly.
   model (EF6 threw from `First()`).
 
 - **`Extensions.GetUnproxiedEntityType`** no longer calls `ObjectContext.GetObjectType`. It walks
-  up past dynamically emitted / `Castle.Proxies` subclasses instead. With EF Core's default
-  (no proxies) it returns the type unchanged; if the Proxies package is added (see 4.7) it
-  behaves as before.
+  up past dynamically emitted / `Castle.Proxies` subclasses instead. **Proxies are now enabled
+  (deferral 4.7 is RESOLVED)**, so this path is live and was verified against real
+  `Castle.Proxies.*` instances for all 105 mapped entity types; plain instances are still returned
+  unchanged.
 
 - **`SqlServerDataProvider.GetParameter()` returns `Microsoft.Data.SqlClient.SqlParameter`**
   instead of `System.Data.SqlClient.SqlParameter`. `IDataProvider.GetParameter()` declares
@@ -433,7 +603,8 @@ database is attached. Everything below was introduced knowingly.
   **Nop.Core was not modified by this task.**
 - `IDbContext.SaveChanges`, `ExecuteStoredProcedureList<T>`, `SqlQuery<T>`, `ExecuteSqlCommand`,
   `Detach`, `ProxyCreationEnabled`, `AutoDetectChangesEnabled` — all signatures preserved
-  (behavior notes in §5 and 4.7).
+  (behavior notes in §5, and §4.7 / §4.7a / §4.7b for `ProxyCreationEnabled` now that lazy
+  loading is enabled).
 - `NopObjectContext(string nameOrConnectionString)` — preserved (see 4.9 for the value it now
   needs).
 - `DataReaderExtensions` — unchanged; it was already pure ADO.NET/reflection and is now also
@@ -470,9 +641,9 @@ one. Everything below was introduced knowingly by task 4.2.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 13 | Cookie authentication is not configured — nobody can sign in | 6.4, 7.2 | **Highest** |
-| 14 | `IHttpContextAccessor` is not registered — 4 services see a null context | 6.4 | **Highest** |
-| 15 | Session state is not configured — external authentication round-trip fails closed | 6.4, 7.2 | High |
+| 13 | Cookie authentication is not configured — nobody can sign in | ~~6.4~~, 7.2 | **Highest** — **6.4 supplied the registration**, see §17.1 |
+| 14 | ~~`IHttpContextAccessor` is not registered~~ | 7.2 (one call) | **6.4 supplied the registration**, see §17.1 |
+| 15 | Session state is not configured — external authentication round-trip fails closed | ~~6.4~~, 7.2 | High — **6.4 supplied the registration**, see §17.1 |
 | 16 | EU VAT service endpoint is a compiled-in constant, not configuration | 7.4 | Medium |
 | 17 | Compare / recently-viewed cookie payload format changed — stale cookies ignored | none (accept) | Low |
 | 18 | ImageSharp emits a licence *error*, currently downgraded to a warning | business decision | **Blocking for release** |
@@ -606,15 +777,14 @@ one. Everything below was introduced knowingly by task 4.2.
 Task 4.2 is listed as an owner of Nop.Data deferrals **4.7, 4.8 and 4.11**. Each was
 investigated and left open, for the reasons below.
 
-- **4.7 lazy loading is off.** The two available fixes are (1) add
-  `Microsoft.EntityFrameworkCore.Proxies` and call `UseLazyLoadingProxies()` in
-  `NopObjectContext.OnConfiguring` — that is a `Nop.Data` edit, and `Nop.Data` has already
-  passed its gate; or (2) add explicit `Include`/`ThenInclude` at hundreds of `Nop.Services`
-  query sites. Neither is required for the compile gate and (2) should not be undertaken
-  before the (1)-versus-(2) decision is made. **Still owned by the decision at 7.2.**
-  Note `Media/PictureService.cs`'s `StoreInDb` setter still toggles
-  `IDbContext.ProxyCreationEnabled` as a performance hack; per 4.7 that is now a no-op with
-  respect to proxies, and it becomes meaningful again if option (1) is taken.
+- **4.7 lazy loading is off.** ✅ **RESOLVED** — no longer open. Option (1) was approved and
+  applied ahead of task 7.2: `Microsoft.EntityFrameworkCore.Proxies` 10.0.12 was added and
+  `NopObjectContext.OnConfiguring` now calls `UseLazyLoadingProxies()` unconditionally (see the
+  RESOLVED §4.7 above, plus the new §4.7a and §4.7b). Option (2) — explicit `Include`/`ThenInclude`
+  at hundreds of `Nop.Services` query sites — was **rejected as too invasive** and must not be
+  undertaken wholesale. `Media/PictureService.cs`'s `StoreInDb` setter, which toggles
+  `IDbContext.ProxyCreationEnabled` as a performance hack, is **meaningful again**: it now
+  genuinely suppresses lazy loading (verified). No `Nop.Services` edit is required.
 - **4.8 schema initializer never invoked.** `Nop.Services` never constructs a
   `NopObjectContext` and contains no reference to `SqlServerDataProvider.DatabaseInitializer`;
   `SetDatabaseInitializer()` is called from `Nop.Data/EfStartUpTask`. The
@@ -938,16 +1108,16 @@ Everything below was introduced knowingly.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 20 | FluentValidation is not hooked into model validation — server-side validation gap | 7.2 | **Highest** |
-| 21 | `NopMetadataProvider` is not registered — `AdditionalValues` is empty | 7.2 | High |
-| 22 | `NopModelBinderProvider` is not registered — string inputs are no longer trimmed | 7.2 | Medium |
-| 23 | `JsonResult` property naming will change to camelCase unless the host is configured | 7.2 | **High** |
-| 24 | `LanguageSeoCodeAttribute` no-ops until localizable endpoints carry `LocalizedRoute` metadata | 6.4 | Medium |
-| 25 | `ChallengeResult` throws until cookie authentication is registered | 6.4 / 7.2 | Medium |
-| 26 | `IAntiforgery` must be registered or the XSRF filters throw | 7.2 | Medium |
+| 20 | FluentValidation is not hooked into model validation — server-side validation gap | 7.2 | **Highest** — **6.4 supplied the registration**, see §17.1 |
+| 21 | `NopMetadataProvider` is not registered — `AdditionalValues` is empty | 7.2 | High — **6.4 supplied the registration**, see §17.1 |
+| 22 | `NopModelBinderProvider` is not registered — string inputs are no longer trimmed | 7.2 | Medium — **6.4 supplied the registration**, see §17.1 |
+| 23 | `JsonResult` property naming will change to camelCase unless the host is configured | 7.2 | **High** — **6.4 chose System.Text.Json + `PropertyNamingPolicy = null`**, see §17.1 |
+| 24 | ~~`LanguageSeoCodeAttribute` no-ops until localizable endpoints carry `LocalizedRoute` metadata~~ | — | **RESOLVED by 6.4** (§17.1) |
+| 25 | `ChallengeResult` throws until cookie authentication is registered | ~~6.4~~ / 7.2 | Medium — **6.4 supplied the registration**, see §17.1 |
+| 26 | `IAntiforgery` must be registered or the XSRF filters throw | 7.2 | Medium — **6.4 supplied the registration**, see §17.1 |
 | 27 | `BaseNopModel.BindModel` is no longer invoked by the framework | none (accept) | Low |
 | 28 | `TempData` notification lists round-trip through a serializer | 7.3 / 8.4 | Low |
-| 29 | `IWebHelper.IsCurrentConnectionSecured()` behind a TLS-terminating proxy | 6.4 / 7.2 | Medium |
+| 29 | `IWebHelper.IsCurrentConnectionSecured()` behind a TLS-terminating proxy | ~~6.4~~ / 7.2 | Medium — **6.4 supplied `UseForwardedHeaders` + options**, see §17.1 |
 
 ### 11.20 FluentValidation is not hooked into model validation — HIGHEST IMPACT
 
@@ -1326,11 +1496,11 @@ Everything below was introduced knowingly.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 30 | Theming stops working until the view-location expander is registered | 6.4 / 7.2 | **Highest** |
-| 31 | `PageHeadBuilder` needs `IFileVersionProvider` + `IHttpContextAccessor` resolvable | 6.4 / 7.2 | High |
+| 30 | Theming stops working until the view-location expander is registered | ~~6.4~~ / 7.2 | **Highest** — **6.4 supplied the registration**, see §17.1 |
+| 31 | `PageHeadBuilder` needs `IFileVersionProvider` + `IHttpContextAccessor` resolvable | ~~6.4~~ / 7.2 | High — **6.4 supplied both registrations**, see §17.1 |
 | 32 | No `Widget` view component exists — `@Html.Widget(...)` throws | 7.3 | High |
 | 33 | Cache busting silently no-ops for assets outside the web root | 7.2 / 8.x | Medium |
-| 34 | `Security/FilePermissionHelper.cs` has a body-level compile error nobody owns | **6.6** | **Blocks the gate** |
+| 34 | ~~`Security/FilePermissionHelper.cs` has a body-level compile error nobody owns~~ | — | **RESOLVED by 6.4** (§17.1) — gate 6.6 residual is **0**, not 1 |
 | 35 | Minification is gone; no build-time replacement is scheduled | post-migration | Low |
 
 ### 14.30 Theming stops working until the expander is registered — HIGHEST IMPACT
@@ -1675,3 +1845,650 @@ lose the leading `~`: ASP.NET Core location formats are rooted `/`.
 
 No mobile/desktop variants, no `.Mobile.cshtml`, no custom `IDisplayMode`. Checked, not assumed.
 
+
+
+---
+
+# Nop.Web.Framework — System.Web → ASP.NET Core, part 3: routing, modules → middleware, DI (task 6.4)
+
+Task 6.4 took the project from **79 errors to 0** — the **6.6 gate is a formality**. It also
+folded in deferral **34** (`FilePermissionHelper`), which 6.3 had left for 6.6, so the residual
+error count at 6.6 is **0, not 1**.
+
+| Measurement | Value |
+|---|---|
+| errors at start (per 6.3's handover, re-measured) | **79**, all declaration-phase, in the 12 files 6.4 owns |
+| errors at end | **0** |
+| **body-level wave after declarations cleared** | **1** — only `FilePermissionHelper.cs` line 43, i.e. exactly the one item 6.3's probe had already predicted (deferral 34). **No other file produced a body-level error.** |
+| warnings at end | **59** — 10 pre-existing `SYSLIB*` obsolescence notices from `Nop.Core`/`Nop.Services` (unchanged since 6.3) plus **49 new `CA1416`**, all in `Security/FilePermissionHelper.cs`, which the analyser could not see until the file compiled. They are the Windows-only ACL/`WindowsIdentity` surface the `.csproj` already documents as an accepted Windows-first trade-off. Non-blocking (Req 3.3). |
+| swallowed-error check | verbose log grep for `"converted to a warning"` → **0**, `"ContinueOnError"` → **0**, `NU19*` restore advisories → **0** |
+| residual legacy references in `Nop.Web.Framework.dll` | **none** — no `System.Web*`, no `Autofac.Integration.Mvc`, no `System.Web.Optimization`, no `ImageResizer`, no `System.Drawing*`. The only `System.Web` string left anywhere in the project is inside a doc comment in `IRouteProvider.cs` telling implementers what to replace. |
+
+> **The zero body-level wave is a result, not luck.** 6.3 warned to budget for a fresh crop of
+> body errors once declarations cleared. 6.4 verified bodies really were binding by planting a
+> deliberate `CS0103` in `Menu/Extensions.cs` and confirming it was reported, then reverting
+> (`git status` clean of it). Bodies bind, and they are clean — because 6.2 and 6.3 each
+> pre-validated theirs with a throwaway probe. The technique paid for itself twice.
+>
+> 6.4 used the same probe technique **before** writing any code, to verify eleven API shapes
+> against the real net10.0 reference assemblies and Autofac 9.3.2 rather than assuming them.
+> One assumption was wrong and it changed the design — see §17.3.
+
+---
+
+## 17. Task 6.4 — what changed, deferral by deferral
+
+### 17.1 Deferrals CLOSED, and deferrals handed to 7.2 with the work already done
+
+| # | Status after 6.4 | How |
+|---|---|---|
+| **3** (1.3) per-request DI scope | ✅ **RESOLVED** | `DependencyRegistrar` now calls `builder.RegisterBuildCallback(...)` and assigns `ContainerManager.CurrentScopeProvider` — see §17.5 for why that location. |
+| **24** `LanguageSeoCodeAttribute` no-ops | ✅ **RESOLVED** | `LocalizedRoute` is now an endpoint-metadata marker attached by `MapLocalizedRoute`; the filter calls the new `LocalizedRoute.IsLocalizableRequest(HttpContext)`. |
+| **34** `FilePermissionHelper` | ✅ **RESOLVED** | `Directory.GetAccessControl(path)` → `new DirectoryInfo(path).GetAccessControl()`. One line, in this project, folded in so 6.6 is clean. |
+| **9** (4.9) `NopObjectContext` connection string | ✅ **verified clean for this project** | Both `IDbContext` registrations already pass `DataConnectionString`. Still open only for the `Nop.Data.Tests` fixtures (task 3.4, skipped). |
+| **6** (1.6) `IHostApplicationLifetime` | ✅ **no 6.4 work possible or needed** | The .NET generic host registers it on the `IServiceCollection`, and `Autofac.Extensions.DependencyInjection`'s `Populate` copies it into the nopCommerce container. It becomes resolvable the moment 7.2 uses `AutofacServiceProviderFactory`. Documented in `NopServiceCollectionExtensions`. |
+| **2** (1.2) plugin application parts | ⚠️ **mechanism written, ordering is 7.2's** | `NopServiceCollectionExtensions.AddPluginApplicationParts(ApplicationPartManager)` adds an `AssemblyPart` for every `PluginManager.ReferencedPlugins` assembly, and `AddNopFramework()` wires it via `ConfigureApplicationPartManager`. It is a **silent no-op until `PluginManager.Initialize()` has run** (deferral 1, task 7.2), so `Program.cs` must call `PluginManager.Initialize()` **before** `AddNopFramework()`. |
+| **13** cookie auth · **15** session · **20** FluentValidation · **21** metadata provider · **22** model-binder provider · **23** JSON naming · **25** `ChallengeResult` · **26** `IAntiforgery` · **29/11.29** forwarded headers · **30** theming expander · **31** `PageHeadBuilder` services | ⚠️ **all written, all host-side** | Every one is an `IServiceCollection`/`IApplicationBuilder` concern and therefore cannot live in `DependencyRegistrar`, which receives an Autofac `ContainerBuilder`. They are all implemented in the two new helper classes described in §17.6. 7.2 closes them by calling two methods. |
+
+**Deferrals 6.4 explicitly does NOT close and does not own:** 1 (plugin discovery), 4 (config
+source), 5 (`CommonHelper.MapPath`), 8 (schema initializer), 32 (`Widget` view component),
+33 (cache busting outside `wwwroot`), 35 (minification). All remain with 6.5/7.2/7.3/8.x as
+already recorded.
+
+### 17.2 The routing redesign, class by class
+
+`RouteBase`, `Route`, `IRouteHandler`, `MvcRouteHandler`, `RouteCollection`, `RouteTable` and
+`VirtualPathData` have **no ASP.NET Core counterparts and nothing to subclass**. Endpoint
+routing inverts the model: you register URL *patterns* on an `IEndpointRouteBuilder` and
+customise behaviour with metadata, parameter policies, `DynamicRouteValueTransformer`, or
+middleware around `UseRouting()`. Each class below was therefore reimplemented against the
+mechanism that owns its behaviour, and the dead legacy class was removed rather than left as a
+half-ported shell.
+
+#### `Localization/LocalizedRoute.cs` — `Route` subclass → **metadata marker + middleware + `PathBase`**
+
+3.90 did two things in one class. They split:
+
+| 3.90 behaviour | Now | Preserved? |
+|---|---|---|
+| `GetRouteData`: if SEO-friendly language URLs are on and the path is localized, `httpContext.RewritePath(...)` to strip `/en` so the ordinary patterns match | **`Localization/SeoFriendlyUrlsMiddleware`** (new), registered **before** `UseRouting()` | ✅ **fully**, including shape-only detection (a two-character first segment is stripped whether or not it names an installed language — 3.90 relied on `LanguageSeoCodeAttribute` to redirect away from an unknown code, and still does) |
+| `GetVirtualPath`: prefix the generated path with the current language code | the same middleware moves the stripped segment into **`HttpRequest.PathBase`**; ASP.NET Core prefixes `PathBase` onto every URL from `LinkGenerator`/`IUrlHelper`/`Url.Content` | ✅ **behaviourally**, ❌ **not per-route** — see the note below |
+| `ClearSeoFriendlyUrlsCachedValue()` clearing a per-route cached copy of the setting | there are no route instances; the middleware resolves `LocalizationSettings` per request, already served from nopCommerce's static settings cache (exactly what `LanguageSeoCodeAttribute` does). `LocalizedRoute.ClearSeoFriendlyUrlsCachedValue()` is retained as a **no-op** | ✅ same observable behaviour, cheaper |
+| being a `LocalizedRoute` was the marker `LanguageSeoCodeAttribute` tested | `LocalizedRoute` survives as a **plain marker class** placed in endpoint metadata by `MapLocalizedRoute`, plus the new static `LocalizedRoute.IsLocalizableRequest(HttpContext)` | ✅ deferral 24 closed |
+
+**BEHAVIOUR NOT PRESERVED — outbound prefixing is now request-scoped, not route-scoped.** In
+3.90 only URLs generated *through a `LocalizedRoute`* got the `/en` prefix. With `PathBase`,
+**every** URL generated during a request that arrived on a localized URL is prefixed — including
+non-localized routes such as `widgetsbyzone`. Those URLs still resolve, because the inbound
+middleware strips a leading two-character segment from any request. Requests that arrive without
+a language segment (the whole admin area, and the public store with the setting off) have an
+empty `PathBase` and are bit-for-bit unaffected. The alternative — a `LinkGenerator` decorator —
+was rejected: it cannot tell which endpoint a link is being generated for either, so it would
+have had exactly the same scope while adding four abstract-method overrides and a service
+decoration to the host.
+
+**One consequential knock-on, fixed in the same task.** `WebWorkContext.GetLanguageFromUrl()`
+(a 6.2 file) detected the language by re-parsing `Request.Path`. Once the middleware moves the
+code into `PathBase` that parse finds nothing, and language-from-URL detection would have
+**silently** fallen back to cookie/browser — the exact class of defect this register exists for.
+`GetLanguageFromUrl()` now reads `HttpContext.Items["nop.LanguageSeoCode"]`, which the middleware
+sets, and keeps the old path-parsing as a fallback for when the middleware did not run.
+
+#### `Seo/GenericPathRoute.cs` — **DELETED**, replaced by `Seo/SlugRouteTransformer.cs` + `Seo/SlugRedirectMiddleware.cs`
+
+**Decision: `DynamicRouteValueTransformer` + `MapDynamicControllerRoute<T>`.** Verified present
+in the net10.0 reference assemblies before committing to it. This is the idiomatic ASP.NET Core
+mechanism for database-driven route resolution and maps almost one-to-one onto what
+`GetRouteData` did: the transformer receives the values matched by `{generic_se_name}` and
+returns the values MVC should use for action selection.
+
+Preserved **verbatim**: the `GetBySlugCached` lookup and its commented-out non-cached
+alternative; `urlRecord == null` → `Common/PageNotFound`; inactive record → `GetActiveSlug` →
+**301**; no active slug → `Common/PageNotFound`; slug differs for the working language →
+**302**; all seven entity-name cases with their exact route-value key names (`productid`,
+`categoryid`, `manufacturerid`, `vendorid`, `newsItemId`, `blogPostId`, `topicId`, plus
+`SeName`); and the `CustomUrlRecordEntityNameRequested` event for unknown entity names.
+
+Two things had to be rebuilt rather than renamed:
+
+1. **The two redirects.** 3.90 wrote `Response.Status`/`RedirectLocation` and called
+   `Response.End()` *from inside route matching*, returning `null`. A transformer cannot
+   terminate the pipeline, and setting a status code then returning `null` would be **clobbered
+   by ASP.NET Core's terminal 404 middleware**, which assigns 404 unconditionally when no
+   endpoint matched. The transformer therefore parks a
+   `SlugRouteTransformer.PendingRedirect` on `HttpContext.Items` and returns `null`, and
+   **`SlugRedirectMiddleware` — registered immediately after `UseRouting()`, where middleware
+   runs whether or not an endpoint matched** — issues `Response.Redirect(location, permanent)`
+   and short-circuits. Same status codes, same `Location`, same "nothing else runs".
+2. **Localizability.** `GenericPathRoute` derived from `LocalizedRoute`, so slug URLs were
+   localizable. `MapDynamicControllerRoute<T>` **returns `void`** (verified — this was the one
+   assumption that turned out wrong, see §17.3), so the dynamic route cannot be given endpoint
+   metadata. The transformer instead sets
+   `HttpContext.Items["nop.LocalizableRequest"]`, and `LocalizedRoute.IsLocalizableRequest`
+   checks both sources. The transformer runs during routing, so the flag is set before any
+   action filter.
+
+**Nothing about slug routing is lost.** `SlugRouteTransformer.Transform` is `protected virtual`,
+preserving the fact that 3.90's `GetRouteData` was overridable.
+
+#### `Mvc/Routes/GuidConstraint.cs` — `IRouteConstraint`, new signature
+
+`IRouteConstraint` exists in `Microsoft.AspNetCore.Routing`; `Match` changed to
+`Match(HttpContext, IRouter, string routeKey, RouteValueDictionary, RouteDirection)`. Both
+`httpContext` and `route` may be null during link generation; 3.90's body touched neither, so
+the logic is byte-for-byte identical (plus a null guard on `values`/`routeKey`). Instances
+remain usable in a `constraints` object because `IRouteConstraint : IParameterPolicy` and the
+route-pattern factory accepts a policy instance — verified. The four
+`new GuidConstraint(false)` call sites in `Nop.Web/Infrastructure/RouteProvider.cs` need no
+change beyond that file's own port.
+
+#### `Menu/SiteMapNode.cs`, `Menu/XmlSiteMap.cs`, `Seo/CustomUrlRecordEntityNameRequested.cs`
+
+`System.Web.Routing.RouteValueDictionary` → `Microsoft.AspNetCore.Routing.RouteValueDictionary`
+— same name, same members, `using` change only for `SiteMapNode`/`XmlSiteMap` and for the
+admin `Menu.cshtml` and any `IAdminMenuPlugin`. `CustomUrlRecordEntityNameRequested` is a real
+break, see §17.4.
+
+### 17.3 The one wrong assumption, and the eleven verified right ones
+
+Before writing code, a throwaway probe project (repo root, `Microsoft.AspNetCore.App`
+`FrameworkReference` + Autofac 9.3.2 / Autofac.Extensions.DependencyInjection 11.0.2, built in
+`mcr.microsoft.com/dotnet/sdk:10.0`, since deleted — `git status` verified clean) compiled every
+API shape the redesign depends on.
+
+| Checked | Result |
+|---|---|
+| `MapDynamicControllerRoute<TTransformer>(pattern)` returns an `IEndpointConventionBuilder` so the slug route can carry metadata | **FALSE — it returns `void`.** This is why localizability is carried on `HttpContext.Items` rather than endpoint metadata. Had it been assumed, `LanguageSeoCodeAttribute` would have silently stopped working on exactly the URLs nopCommerce's SEO exists for. |
+| `IRouteConstraint.Match(HttpContext, IRouter, string, RouteValueDictionary, RouteDirection)` | TRUE |
+| `DynamicRouteValueTransformer.TransformAsync(HttpContext, RouteValueDictionary) → ValueTask<RouteValueDictionary>` | TRUE |
+| `MapControllerRoute(name, pattern, defaults, constraints, dataTokens)` → `IEndpointConventionBuilder`; `WithMetadata`, `WithOrder`, `WithName` | TRUE |
+| `MapAreaControllerRoute(name, areaName, pattern)` (task 8.2's area registration) | TRUE |
+| `Request.Path.StartsWithSegments(PathString, out PathString)` and assigning `Request.PathBase`/`Request.Path` | TRUE |
+| `Response.Redirect(url, permanent)` from a middleware placed after `UseRouting()` | TRUE |
+| Autofac 9.3.2 `IRegistrationSource.RegistrationsFor(Service, Func<Service, IEnumerable<ServiceRegistration>>)` | TRUE — the signature really did change (see §17.5) |
+| Autofac 9.3.2 `RegistrationBuilder.ForDelegate(...).InstancePerLifetimeScope().CreateRegistration()` | TRUE, unchanged |
+| `ContainerBuilder.RegisterBuildCallback(Action<ILifetimeScope>)`, `Populate`, `AutofacServiceProviderFactory` | TRUE |
+| `new DirectoryInfo(path).GetAccessControl().GetAccessRules(true, true, typeof(SecurityIdentifier))` | TRUE — the extension lives in `System.IO.FileSystemAclExtensions`, so `FilePermissionHelper.cs`'s existing `using System.IO;` is sufficient |
+
+### 17.4 Breaking signature changes — task 6.4
+
+#### 17.4a THE PLUGIN CONTRACT — `IRouteProvider` (tasks 7.3, 8.2, 10.x–15.x)
+
+```csharp
+namespace Nop.Web.Framework.Mvc.Routes
+{
+    public interface IRouteProvider
+    {
+        void RegisterRoutes(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder routeBuilder);
+        int Priority { get; }
+    }
+}
+```
+
+`Priority` is **unchanged** (`int`, providers still invoked in descending order, so
+`GenericUrlRouteProvider` at `-1000000` still runs last). **14 implementations must change**:
+`Nop.Web/Infrastructure/RouteProvider.cs`, `GenericUrlRouteProvider.cs`,
+`BackwardCompatibility1XRouteProvider.cs`, `BackwardCompatibility2XRouteProvider.cs`, plus
+`RouteProvider.cs` in `DiscountRules.CustomerRoles`, `DiscountRules.HasOneProduct`,
+`ExternalAuth.Facebook`, `Payments.PayPalDirect`, `Payments.PayPalStandard`,
+`Pickup.PickupInStore`, `Shipping.FixedOrByWeight`, `Tax.FixedOrByCountryStateZip` — and
+`Nop.Admin` gains one at task 8.2.
+
+The mechanical edit per file:
+
+```csharp
+// before
+using System.Web.Mvc;
+using System.Web.Routing;
+public void RegisterRoutes(RouteCollection routes)
+{
+    routes.MapRoute("Plugin.X.Y", "Plugins/X/Y",
+        new { controller = "X", action = "Y" },
+        new[] { "Nop.Plugin.X.Controllers" });
+}
+
+// after
+using Microsoft.AspNetCore.Builder;   // MapControllerRoute lives here
+using Microsoft.AspNetCore.Routing;
+public void RegisterRoutes(IEndpointRouteBuilder routeBuilder)
+{
+    routeBuilder.MapControllerRoute("Plugin.X.Y", "Plugins/X/Y",
+        new { controller = "X", action = "Y" });
+}
+```
+
+Four gotchas, in order of how much damage they do if missed:
+
+1. **`string[] namespaces` is gone.** It became `DataTokens["Namespaces"]` in MVC 5 and has no
+   ASP.NET Core counterpart — controller discovery is application-part based. Just delete the
+   argument. `MapLocalizedRoute`/`MapGenericPathRoute` keep their `namespaces` overloads for
+   source compatibility and **ignore** the value, so those call sites need no edit at all.
+2. **`UrlParameter.Optional` is gone.** `"p/{productId}/{SeName}"` +
+   `new { …, SeName = UrlParameter.Optional }` becomes `"p/{productId}/{SeName?}"`. This is
+   `BackwardCompatibility2XRouteProvider`'s five routes and `Global.asax`'s `Default` route.
+3. **Equal-precedence patterns now throw instead of resolving by registration order.**
+   MVC 5's `RouteCollection` stopped at the first match. Endpoint routing raises
+   `AmbiguousMatchException`. **This is a live defect in `GenericUrlRouteProvider`**: it maps
+   `"{generic_se_name}"` and then seven `"{SeName}"` routes (`Product`, `Category`,
+   `Manufacturer`, `Vendor`, `NewsItem`, `BlogPost`, `Topic`) that exist purely so views can
+   generate URLs by route *name* and were never matched in 3.90. Task 7.3 must give each of the
+   seven a losing order:
+   ```csharp
+   routeBuilder.MapLocalizedRoute("Product", "{SeName}",
+           new { controller = "Product", action = "ProductDetails" })
+       .WithOrder(1000);
+   ```
+   (`Microsoft.AspNetCore.Builder.RoutingEndpointConventionBuilderExtensions.WithOrder` — this
+   is why `MapLocalizedRoute` returns the convention builder.) The generic-path route keeps
+   order 0 and wins, reproducing 3.90's effective behaviour.
+4. **An empty route name.** `BackwardCompatibility2XRouteProvider` registers five routes named
+   `""`. `MapLocalizedRoute` normalises an empty/null name to `null` (unnamed) because endpoint
+   route names must be unique; a direct `MapControllerRoute("")` call would not.
+
+#### 17.4b Other signature changes
+
+| Member | Before | After | Consumers to fix |
+|---|---|---|---|
+| `IRoutePublisher.RegisterRoutes` | `RouteCollection` | `IEndpointRouteBuilder` | `Nop.Web/Global.asax.cs` line 34 — deleted by 7.2 anyway. `RoutePublisher` (impl) is otherwise unchanged apart from a new null guard, see §17.7. |
+| `GuidConstraint.Match` | `(HttpContextBase, Route, string parameterName, RouteValueDictionary, RouteDirection)` | `(HttpContext, IRouter, string routeKey, RouteValueDictionary, RouteDirection)` | none — no in-tree subclass; the four construction sites are unaffected |
+| `LocalizedRouteExtensions.MapLocalizedRoute` ×6 | `this RouteCollection` → `System.Web.Routing.Route` | `this IEndpointRouteBuilder` → `IEndpointConventionBuilder` | the 14 route providers (parameter type + `using` only); no caller uses the return value |
+| `LocalizedRouteExtensions.ClearSeoFriendlyUrlsCachedValueForRoutes` | `this RouteCollection` | `this IEndpointRouteBuilder`, now a **no-op** | **`Nop.Web/Administration/Controllers/SettingController.cs` line ~2024** does `System.Web.Routing.RouteTable.Routes.ClearSeoFriendlyUrlsCachedValueForRoutes();`. Task 8.x: replace with `LocalizedRoute.ClearSeoFriendlyUrlsCachedValue();` or delete the line — equivalent. |
+| `GenericPathRouteExtensions.MapGenericPathRoute` ×6 | `this RouteCollection` → `Route` | `this IEndpointRouteBuilder` → **`void`** | `Nop.Web/Infrastructure/GenericUrlRouteProvider.cs`, which discards the result. `void` because `MapDynamicControllerRoute<T>` is `void`. `name`/`defaults`/`constraints`/`namespaces` are accepted and **ignored** — a dynamic controller route takes its controller/action from the transformer, which is exactly what `GenericPathRoute.GetRouteData` did by overwriting them unconditionally. |
+| `LocalizedRoute` | `class LocalizedRoute : System.Web.Routing.Route` with 4 ctors, `GetRouteData`, `GetVirtualPath`, `virtual ClearSeoFriendlyUrlsCachedValue()`, `protected SeoFriendlyUrlsForLanguagesEnabled` | `partial class LocalizedRoute` — a marker with `const LocalizableRequestItemKey`, `const LanguageSeoCodeItemKey`, `static IsLocalizableRequest(HttpContext)`, `static SeoFriendlyUrlsForLanguagesEnabled`, `static ClearSeoFriendlyUrlsCachedValue()` | **any plugin that subclassed `LocalizedRoute` or constructed one has no migration path** — the base class does not exist. Verified: no such subclass in this solution (`GenericPathRoute` was the only one and it is deleted). Third-party route subclasses must be rewritten as an `IEndpointRouteBuilder` registration plus, if they customised matching, an `IViewLocationExpander`-style policy or middleware. |
+| `GenericPathRoute` | `partial class GenericPathRoute : LocalizedRoute` | **DELETED** — file removed | nothing in tree constructs it (only `MapGenericPathRoute` did). Behaviour lives in `SlugRouteTransformer`. |
+| `CustomUrlRecordEntityNameRequested(RouteData, UrlRecordForCaching)`; `RouteData RouteData { get; }` | `System.Web.Routing.RouteData` | `CustomUrlRecordEntityNameRequested(RouteValueDictionary, UrlRecordForCaching)`; `RouteValueDictionary RouteValues { get; }` | **no consumer anywhere in this solution** (verified by grep across `Nop.Web`, `Nop.Admin` and all 20 plugins). `Microsoft.AspNetCore.Routing.RouteData` does exist, so keeping the old type would have compiled — and broken the extension point **silently**, because `new RouteData(values)` *copies* the dictionary, so a consumer writing `RouteData.Values["controller"] = …` would have mutated a throwaway. Exposing the live dictionary is what keeps "developers could insert their own types" working. |
+| `SiteMapNode.RouteValues` | `System.Web.Routing.RouteValueDictionary` | `Microsoft.AspNetCore.Routing.RouteValueDictionary` | `using` change only — `Nop.Web/Administration/Views/Shared/Menu.cshtml` (task 8.4) and any `IAdminMenuPlugin` |
+| `SettingsSource.RegistrationsFor` | `Func<Service, IEnumerable<IComponentRegistration>>` | `Func<Service, IEnumerable<ServiceRegistration>>` | none — internal to `DependencyRegistrar.cs`. Autofac split the resolve pipeline (`ServiceRegistration`) out of the component registration. The parameter was never used, so the body is unchanged. |
+| — | — | **additive** `Seo.SlugRouteTransformer` (+ nested `PendingRedirect`), `Seo.SlugRedirectMiddleware`, `Localization.SeoFriendlyUrlsMiddleware`, `Localization.WorkingCultureMiddleware`, `Infrastructure.InstallUrlMiddleware`, `Infrastructure.NopServiceCollectionExtensions`, `Infrastructure.NopApplicationBuilderExtensions` | new public surface, nothing to fix |
+
+**Unchanged — do not touch:** `IEngine`, `NopEngine`, `EngineContext`, `ContainerManager`,
+`IDependencyRegistrar` — **no signature change**, as promised in §3. `DependencyRegistrar.Order`
+still returns 0. `IRouteProvider.Priority`, `Menu/Extensions.cs`, `Menu/IAdminMenuPlugin.cs`,
+`Localization/LocalizedUrlExtenstions.cs` (pure string handling, needed no edit — the new
+middleware calls exactly the same four methods with exactly the same arguments 3.90 passed).
+
+### 17.5 DI integration — what was done, and where
+
+**`Autofac.Integration.Mvc` (Autofac.Mvc5) is gone from the source.** Its two jobs:
+
+- `AutofacDependencyResolver` + `RequestLifetimeScopeProvider` → `AutofacServiceProviderFactory`
+  from `Autofac.Extensions.DependencyInjection`, wired by the host (task 7.2). ASP.NET Core's
+  own per-request scope *is* the Autofac per-request `ILifetimeScope`.
+- `ContainerBuilder.RegisterControllers(assemblies)` → an explicit
+  `builder.RegisterAssemblyTypes(typeFinder.GetAssemblies().ToArray()).Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract).InstancePerLifetimeScope()`.
+  Paired with `AddControllersAsServices()` in `AddNopFramework()`, this makes MVC activate
+  controllers through the nopCommerce container and keeps
+  `EngineContext.Current.Resolve<SomeController>()` working — which 3.90's `Application_Error`
+  relied on to render `CommonController.PageNotFound`.
+
+**The five dead registrations were deleted**, as §9a instructed: `HttpContextBase` (including
+the `HttpContext.Current != null ? new HttpContextWrapper(...) : new FakeHttpContext("~/")`
+branch), `HttpRequestBase`, `HttpResponseBase`, `HttpServerUtilityBase`,
+`HttpSessionStateBase`.
+
+**The `FakeHttpContext` branch is resolved by deletion.** It existed only because
+`HttpContext.Current` is a static ambient value that is null outside a request;
+`IHttpContextAccessor` models that correctly by returning null, so nothing constructs a
+`FakeHttpContext` any more. `WebWorkContext` line ~265's `httpContext == null || httpContext is FakeHttpContext`
+background-task test therefore now fires through its **`== null`** half, which is the correct
+ASP.NET Core signal. The `is FakeHttpContext` half is dead but harmless and compiles — it was
+6.2's deliberate choice to keep `FakeHttpContext` alive for the test seams, and removing the
+test would be churn with no behavioural gain.
+
+**`ContainerManager.CurrentScopeProvider` — decision and reasoning (deferral 3/1.3).**
+Assigned **inside `DependencyRegistrar.Register`, via `builder.RegisterBuildCallback(...)`**:
+
+```csharp
+builder.RegisterBuildCallback(scope =>
+{
+    var httpContextAccessor = scope.ResolveOptional<IHttpContextAccessor>();
+    if (httpContextAccessor == null) return;
+    ContainerManager.CurrentScopeProvider = () =>
+        httpContextAccessor.HttpContext?.RequestServices?.GetService(typeof(ILifetimeScope)) as ILifetimeScope;
+});
+```
+
+Why here rather than deferring the whole thing to 7.2:
+
+- It needs `IHttpContextAccessor` **from the container**, and a build callback is the earliest
+  point at which that is available: `AutofacServiceProviderFactory.CreateBuilder(services)`
+  runs `Populate(services)` *first*, then the `ConfigureContainer` callbacks (which is where
+  `NopEngine` runs the `IDependencyRegistrar`s), then `Build()` — which fires the callback. So
+  the host's `AddHttpContextAccessor()` is already visible.
+- It runs unconditionally as part of `NopEngine` initialization, so no host can forget it.
+- Doing it in `Program.cs` would work but would put an Autofac-specific detail in the host and
+  leave this project's container unusable standalone.
+- `ResolveOptional`, not `Resolve`: a standalone container (tests) has no `IHttpContextAccessor`
+  and must not fail to build because of it. In that case `CurrentScopeProvider` stays null and
+  `ContainerManager.Scope()` keeps its documented fresh-scope fallback.
+- `RequestServices.GetService(typeof(ILifetimeScope))` is correct because under
+  `AutofacServiceProviderFactory` `RequestServices` is an `AutofacServiceProvider` over the
+  request lifetime scope, and Autofac self-registers `ILifetimeScope` in every scope.
+
+**Also registered on the Autofac side:** `SlugRouteTransformer` as
+`InstancePerDependency()` — ASP.NET Core resolves a `DynamicRouteValueTransformer` from
+`HttpContext.RequestServices` (Autofac-backed) and requires a transient lifetime.
+
+### 17.6 What is left for task 7.2, and exactly how to call it
+
+Two new classes in `Nop.Web.Framework/Infrastructure/`. They exist so the *knowledge* of what
+the host must register stays where the types live, instead of 7.2 rediscovering it.
+
+**`NopServiceCollectionExtensions.AddNopFramework(this IServiceCollection services, bool requireSsl = false, Action<CookieAuthenticationOptions> configureCookie = null, Action<MvcOptions> configureMvc = null)`**
+returns the `IMvcBuilder`. It performs: `AddHttpContextAccessor`, `AddMemoryCache`,
+`AddDistributedMemoryCache` + `AddSession`, `AddAuthentication(Cookies).AddCookie(...)` with
+3.90's `<forms>` values (`NOPCOMMERCE.AUTH`, `/login`, 43200-minute `ExpireTimeSpan`, path `/`,
+`SlidingExpiration = true`, `SecurePolicy` from `requireSsl`), `AddAntiforgery`,
+`Configure<ForwardedHeadersOptions>`, `AddControllersWithViews(...)` adding
+`NopFluentValidationModelValidatorProvider`, `NopMetadataProvider` and `NopModelBinderProvider`,
+`AddJsonOptions(PropertyNamingPolicy = null)`, `AddControllersAsServices()`,
+`ConfigureApplicationPartManager(AddPluginApplicationParts)`, and
+`Configure<RazorViewEngineOptions>` inserting `ThemeableViewLocationExpander` at index 0.
+
+**`NopApplicationBuilderExtensions.UseNopPipeline(this IApplicationBuilder app)`** — the whole
+request pipeline in the required order. Plus granular `UseNopInstallUrl`,
+`UseNopSeoFriendlyUrls`, `UseNopSlugRedirect`, `UseNopWorkingCulture`, `UseNopEndpoints` for a
+host that wants to interleave its own middleware.
+
+Intended `Program.cs` (task 7.2):
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
+
+// deferrals 1, 4, 5 - MUST precede AddNopFramework (plugin application parts need
+// ReferencedPlugins) and engine initialization
+CommonHelper.BaseDirectory = builder.Environment.ContentRootPath;      // deferral 5
+NopConfigurationManager.Configuration = builder.Configuration;          // deferral 4
+PluginManager.Initialize();                                             // deferral 1
+
+builder.Services.AddNopFramework(requireSsl: false);                    // <-- one line
+builder.Host.ConfigureContainer<ContainerBuilder>(c => { /* EngineContext.Initialize */ });
+
+var app = builder.Build();
+app.UseForwardedHeaders();                                              // deferral 29
+app.UseExceptionHandler("/error");                                      // Application_Error
+app.UseStatusCodePagesWithReExecute("/page-not-found");                 //   "
+app.UseStaticFiles();
+app.UseNopPipeline();                                                   // <-- one line
+app.Run();
+```
+
+`requireSsl` is a deliberate parameter, not a default: 3.90's shipped `Web.config` has
+`requireSSL="false"`, but any deployment that had it `true` **must** pass `true` or the port is
+a security downgrade (deferral 13).
+
+### 17.7 Middleware inventory and the order it must run in
+
+| # | Component | Replaces | Owner |
+|---|---|---|---|
+| 1 | `UseForwardedHeaders()` | nothing in 3.90 — required so `IsCurrentConnectionSecured()` is right behind a TLS proxy, else `ForceSslForAllPages` **loops** (deferral 29) | 7.2 (options supplied by 6.4) |
+| 2 | `UseExceptionHandler` / `UseStatusCodePagesWithReExecute` | `Application_Error` (logging + re-execute `CommonController.PageNotFound`) | **7.2 — not ported by 6.4** |
+| 3 | `UseStaticFiles()` | `system.webServer` static handling; `Application_BeginRequest`'s "ignore static resources" exit; **and** the `DenyAccessToPluginDLLs` `HttpForbiddenHandler` (`.dll` is not in the default content-type map, so static files refuses it and the request 404s) | 7.2 |
+| 4 | **`UseNopInstallUrl()`** — `InstallUrlMiddleware` | the install-mode redirect in `Application_BeginRequest`, with both early exits (static resources, keep-alive URL) preserved | **6.4** |
+| 5 | **`UseNopSeoFriendlyUrls()`** — `SeoFriendlyUrlsMiddleware` | `LocalizedRoute.GetRouteData`'s `RewritePath`. **MUST be before `UseRouting`** | **6.4** |
+| 6 | `UseRouting()` | `System.Web.Routing.UrlRoutingModule`, and with it the three `system.webServer/handlers` entries `SitemapXml`, `RobotsTxt` and `MiniProfiler` whose only job was forcing those extensionless paths through `UrlRoutingModule` — in ASP.NET Core every path goes through routing, so all three vanish with nothing to replace | 7.2 |
+| 7 | **`UseNopSlugRedirect()`** — `SlugRedirectMiddleware` | `GenericPathRoute`'s 301/302 + `Response.End()`. **MUST be immediately after `UseRouting`** | **6.4** |
+| 8 | `UseSession()` | `<sessionState>` (deferral 15) | 7.2 |
+| 9 | `UseAuthentication()` | `<authentication mode="Forms">` / `FormsAuthenticationModule` (deferrals 13, 25) | 7.2 |
+| 10 | **`UseNopWorkingCulture()`** — `WorkingCultureMiddleware` | `Application_AuthenticateRequest` → `SetWorkingCulture()`. **MUST be after `UseAuthentication`** — 3.90's own comment says *"we don't do it in Application_BeginRequest because a user is not authenticated yet"* | **6.4** |
+| 11 | `UseAuthorization()` | framework requirement between routing and endpoints | 7.2 |
+| 12 | **`UseNopEndpoints()`** | `Global.asax`'s `RegisterRoutes(RouteTable.Routes)` + `AreaRegistration.RegisterAllAreas()`; runs `IRoutePublisher` then appends the `Default` `{controller=Home}/{action=Index}/{id?}` route at `WithOrder(int.MaxValue)` so it stays last | **6.4** |
+
+`UseNopPipeline()` performs steps 4–12 in exactly that order.
+
+**`WorkingCultureMiddleware` behaviour note.** `Thread.CurrentThread.CurrentCulture` /
+`CurrentUICulture` became `CultureInfo.CurrentCulture` / `CurrentUICulture`. On .NET these are
+the async-local ambient culture and are what flows across `await`; assigning the *thread's*
+culture would be lost the moment the request resumed on another thread. This is deliberately
+**not** `UseRequestLocalization()`, which would resolve the culture from its own provider chain
+instead of `IWorkContext.WorkingLanguage` (URL SEO code → customer setting → store default →
+browser). Reproducing the 3.90 rule is the point.
+
+**Handlers and modules with nothing to port, confirmed rather than assumed:** `<modules>` in
+`Nop.Web/Web.config` is **empty** (the only entries are commented out), and the four `<handlers>`
+entries are accounted for above. `httpProtocol/customHeaders` `<remove name="X-Powered-By"/>`,
+the `staticContent` `mimeMap` edits and `<customErrors>` are IIS/host configuration and belong to
+task **7.4**. `Nop.Web/Web.config` was **read, not modified** — it is 7.4's file.
+
+### 17.8 Deliberately NOT ported, with the reason
+
+- **MiniProfiler.** `Application_BeginRequest`/`EndRequest` started and stopped it, and
+  `Application_Start` added `new ProfilingActionFilter()` to `GlobalFilters`. MiniProfiler 3.x /
+  `StackExchange.Profiling.Mvc` is MVC5-only and is not a `PackageReference` of any migrated
+  project (task 6.1 confirmed its absence from this project's `packages.config`). Profiling is
+  **dropped**, and `StoreInformationSettings.DisplayMiniProfilerInPublicStore` becomes **inert** —
+  the same treatment as `SeoSettings.EnableJsBundling` in §8. Note for task 7.3:
+  `Nop.Web/Views/Shared/_Root.Head.cshtml` lines 10–11 and 54–56 compute
+  `displayMiniProfiler` and call `@StackExchange.Profiling.MiniProfiler.RenderIncludes()`; that
+  block must go.
+- **`ServicePointManager.SecurityProtocol = Tls12`** — TLS 1.2+ is the .NET default.
+- **`MvcHandler.DisableMvcResponseHeader = true`** — the `X-AspNetMvc-Version` header does not
+  exist in ASP.NET Core.
+- **`routes.IgnoreRoute("favicon.ico")` / `IgnoreRoute("{resource}.axd/{*pathInfo}")`** — there
+  are no `.axd` handlers, and `UseStaticFiles` serves `favicon.ico` before routing.
+- **`AreaRegistration.RegisterAllAreas()`** — no counterpart; areas are
+  `MapAreaControllerRoute` from an `IRouteProvider` (task 8.2).
+
+### 17.9 One small robustness fix made along the way
+
+`RoutePublisher.FindPlugin` iterated `PluginManager.ReferencedPlugins`, which is **null** until
+`PluginManager.Initialize()` runs (deferral 1, owned by 7.2). 3.90 could not observe this because
+`[PreApplicationStartMethod]` guaranteed initialization before `Application_Start`. Left as-is it
+would `NullReferenceException` on the very first route registration and take the whole host down
+before anything else could report the real cause. It now returns `null` when the list is absent,
+which means every discovered provider is treated as "not from a plugin" and registered — exactly
+the outcome 3.90 produced for the `Nop.Web`/`Nop.Admin` providers. It is not a substitute for
+fixing deferral 1: with no plugin list, no plugin's routes can be filtered by installed state.
+
+
+---
+
+# Nop.Web.Framework — configuration migration and obsolete-file removal (task 6.5)
+
+Task 6.5 was largely an **audit**, and the audit is the primary deliverable: task 6.1 had already
+removed this project's `app.config` and `packages.config`, and had already reported that the
+project has no `Views/` folder and no `ConfigurationManager` call site. All four of those findings
+were re-verified independently and **all four hold** — see §18.2. Almost nothing needed removing.
+
+What did need doing was the part of 6.5 that is not about deleting files: providing the mechanism
+for **runtime deferral 5** (`CommonHelper.MapPath` resolving under `bin/`), which the register
+names 6.5 and 7.2 as joint owners of.
+
+| Measurement | Value |
+|---|---|
+| errors before / after | **0 / 0** |
+| warnings before / after | **59 / 10** |
+| warnings originating in `Nop.Web.Framework` after | **0** — the 10 remaining are the pre-existing `SYSLIB0014`/`SYSLIB0021`/`SYSLIB0023`/`SYSLIB0045`/`SYSLIB0051` obsolescence notices in `Nop.Core` and `Nop.Services`, unchanged since 6.3 |
+| swallowed-error check | verbose log grep: `"converted to a warning"` → **0**, `"ContinueOnError"` → **0**, `NU1901`–`NU1904` → **0** |
+| residual legacy references in `Nop.Web.Framework.dll` | **none** — `System.Web*`, `Autofac.Integration.Mvc`, `System.Web.Optimization`, `ImageResizer`, `System.Drawing*` all 0 occurrences |
+
+## 18. Task 6.5 — what changed
+
+### 18.1 Deferral 5 (`CommonHelper.MapPath`) — mechanism DONE, verified live; deferrals 1 and 4 narrowed
+
+**New file: `Nop.Web.Framework/Infrastructure/NopHostingExtensions.cs`.** Same pattern 6.4
+established with `AddNopFramework` / `UseNopPipeline`: host-side knowledge lives next to the code
+that depends on it, so 7.2 writes one line instead of rediscovering an ordering constraint.
+
+```csharp
+// task 7.2, Program.cs — FIRST nopCommerce statement, before AddNopFramework()
+builder.Environment.UseNopHostingEnvironment(builder.Configuration);
+```
+
+That single call replaces the three separate lines the §17.6 draft `Program.cs` showed, and does
+them in the **one order that is correct**:
+
+1. `CommonHelper.BaseDirectory = environment.ContentRootPath` — **deferral 5**
+2. `NopConfigurationManager.Configuration = configuration` — **deferral 4** (when a configuration
+   is passed; omit the argument to skip)
+3. `PluginManager.Initialize()` — **deferral 1** (`initializePlugins: false` to skip)
+
+**The ordering is the whole reason this is a separate call and not folded into
+`AddNopFramework`.** `PluginManager.Initialize()` calls `CommonHelper.MapPath` in its first three
+statements (`~/Plugins`, `~/Plugins/bin`, `~/App_Data/InstalledPlugins.txt`) and it must run
+*before* `AddNopFramework()`, because `AddPluginApplicationParts` needs
+`PluginManager.ReferencedPlugins` to be populated (deferral 2, §17.1). Assigning the content root
+inside `AddNopFramework` would therefore have been **too late**: plugin discovery would already
+have shadow-copied every plugin assembly into `bin/Debug/net10.0/Plugins/bin` instead of
+`<contentroot>/Plugins/bin`, and `ReferencedPlugins` would have been empty. Step 2 must also
+precede step 3, because `PluginManager.Initialize()` reads the
+`ClearPluginsShadowDirectoryOnStartup` app setting through `NopConfigurationManager`.
+
+Also public:
+
+- **`NopHostingExtensions.SetContentRoot(string)`** — step 1 alone, for a host that has a
+  content-root path but no `IHostEnvironment` (test fixtures). Throws `NopException` with an
+  explicit remedy when handed null/blank, rather than silently leaving `MapPath` on `bin/`.
+- **`NopHostingExtensions.ContentRootConfigured`** — a `bool` the **task 7.7 smoke check should
+  assert**. `CommonHelper.BaseDirectory` cannot answer this itself: its getter falls back to
+  `AppDomain.CurrentDomain.BaseDirectory`, so from outside, "never assigned" and "assigned to the
+  output folder" are indistinguishable. Deliberately **not** enforced by `AddNopFramework` — a host
+  that assigns `CommonHelper.BaseDirectory` directly (legitimate, and what §17.6 originally
+  documented) would then fail spuriously.
+
+The parameter is `IHostEnvironment`, not `IWebHostEnvironment`: only `ContentRootPath` is needed,
+and the narrower dependency keeps the method usable from a non-web host.
+
+**Status of each deferral after 6.5:**
+
+| # | Before 6.5 | After 6.5 |
+|---|---|---|
+| **5** | open, owners 6.5 + 7.2 | **6.5's half is DONE.** Nothing further in this project. 7.2 closes it with the one line above. |
+| **4** | open, owners 7.2 + 7.4 | **narrowed.** The *assignment* is now part of the same one line. 7.4 still owns authoring the `NopConfig` and `appSettings` sections in `appsettings.json` — without them the seam is set but there is nothing to read. |
+| **1** | open, owner 7.2 | **narrowed.** `PluginManager.Initialize()` now runs as part of that one line, in the right place relative to both the content root and `AddNopFramework`. 7.2 no longer has to know the ordering — only to make the call. |
+
+**Verified live, not just compiled.** A throwaway `Microsoft.NET.Sdk.Web` probe outside the
+repository (`ProjectReference` to `Nop.Web.Framework.csproj`, run in the
+`mcr.microsoft.com/dotnet/sdk:10.0` container, since deleted — `git status` confirmed no residue)
+executed the intended `Program.cs` prologue:
+
+| Check | Result |
+|---|---|
+| `ContentRootConfigured` after `UseNopHostingEnvironment` | ✅ `True` |
+| `CommonHelper.BaseDirectory` | ✅ the content root, **not** `bin/Debug/net10.0` |
+| `CommonHelper.MapPath("~/App_Data/x")` | ✅ `<contentroot>/App_Data/x` — deferral 5 demonstrably fixed |
+| `SetContentRoot("   ")` | ✅ throws `NopException` with the remedy in the message |
+| all four `AddNopFramework` overloads resolve unambiguously from a real call site | ✅ |
+| `NopAuthenticationConfig` defaults | ✅ `NOPCOMMERCE.AUTH` / `/login` / `43200` / sliding `true` / path `/` / `requireSsl false` — byte-for-byte 3.90's `<forms>` |
+
+### 18.2 The audit — four items, four findings, no invented work
+
+1. **Legacy config files: NONE remain.** Recursive `find` under the project for `*.config`,
+   `*.asax`, `*.ashx`, `*.axd` and `Global.asax*` (excluding `bin`/`obj`) returns **0 hits**.
+   `app.config` and `packages.config` were the only two and 6.1 deleted both. There is no
+   `Views/`, `Areas/` or `App_Start/` directory anywhere in the project, so there is **no View
+   `web.config`**, no `_ViewStart` to re-base, and no `Web.Debug.config`/`Web.Release.config`
+   transform. 6.1's report was accurate.
+2. **Config-reading API surface: NONE.** No file names `ConfigurationManager`,
+   `WebConfigurationManager` or `System.Configuration`. The only occurrences of those words in the
+   project are inside comments — this project's `.csproj` and a doc comment in
+   `Infrastructure/NopApplicationBuilderExtensions.cs`. There was therefore **no `appSettings`
+   surface to route through `NopConfigurationManager`**, and none of that machinery was
+   duplicated.
+3. **`Properties/AssemblyInfo.cs` is KEPT**, consistent with the solution-wide decision in task
+   2.3 (`Directory.Build.props` sets `GenerateAssemblyInfo=false` so hand-kept files stay
+   authoritative) and with `Nop.Core`, `Nop.Data` and `Nop.Services`. Every attribute in it is
+   valid on net10.0 and none is duplicated by the SDK while `GenerateAssemblyInfo` is false:
+   `AssemblyTitle`, `AssemblyDescription`, `AssemblyConfiguration`, `AssemblyCompany`,
+   `AssemblyProduct`, `AssemblyCopyright`, `AssemblyTrademark`, `AssemblyCulture`, `ComVisible`,
+   `Guid`, `AssemblyVersion`, `AssemblyFileVersion`. **It carries no System.Web hosting hook** —
+   no `[assembly: PreApplicationStartMethod]`, no `[assembly: WebActivator...]` — so unlike
+   `Nop.Core`'s `PluginManager` (task 2.4 / deferral 1.1) nothing had to be removed. The only
+   `PreApplicationStartMethod` string left in the project is inside an explanatory comment in
+   `Mvc/Routes/RoutePublisher.cs`.
+4. **No orphans from 6.3/6.4.** `Seo/GenericPathRoute.cs`, the two themeable view engines and
+   `UI/AsIsBundleOrderer.cs` were deleted with every reference to them removed; the project
+   compiles at 0 errors with no unreferenced residue.
+
+### 18.3 The one genuine settings surface — `<forms>` → typed options
+
+**New file: `Nop.Web.Framework/Infrastructure/NopAuthenticationConfig.cs`.**
+
+Task 6.4 had to transcribe `Nop.Web/Web.config`'s `<authentication mode="Forms"><forms .../>`
+element into constants on `NopServiceCollectionExtensions` plus a `requireSsl` method parameter,
+because no configuration model existed yet. Requirement 1.4 says configuration must move to the
+.NET 10 configuration model, so 6.5 made them bindable:
+
+```jsonc
+// appsettings.json — authored by task 7.4
+"Authentication": {
+  "CookieName":        "NOPCOMMERCE.AUTH",
+  "LoginPath":         "/login",
+  "TimeoutMinutes":    43200,
+  "RequireSsl":        false,
+  "SlidingExpiration": true,
+  "CookiePath":        "/"
+}
+```
+
+```csharp
+builder.Services.AddNopFramework(builder.Configuration);   // <-- new overload
+```
+
+`AddNopFramework` now has **three** overloads, all funnelling through the third:
+
+| Overload | Purpose |
+|---|---|
+| `AddNopFramework(IConfiguration, …)` | **what 7.2 should call.** Binds `NopAuthenticationConfig` from the `Authentication` section and also registers `services.Configure<NopAuthenticationConfig>(section)` so it is injectable as `IOptions<NopAuthenticationConfig>`. A missing section is not an error — every value falls back to 3.90's shipped default. |
+| `AddNopFramework(bool requireSsl = false, …)` | **unchanged signature**, 6.4's original. Still compiles and behaves identically. |
+| `AddNopFramework(NopAuthenticationConfig, …)` | explicit options, for tests and for a host that composes the values itself. |
+
+This removes the hardcoded `requireSsl:` literal from `Program.cs` that **deferral 7.13** flags as
+a security hazard — `RequireSsl` still defaults to `false` to match 3.90's shipped `Web.config`,
+but it is now a configuration value a deployment can set without recompiling.
+
+**Why a new POCO rather than extending `NopConfig`:** `NopConfig` is the migrated `<NopConfig>`
+custom section and is a deliberate byte-for-byte translation of it; adding members would change a
+committed, gated project and blur which legacy element each setting came from. `<forms>` is a
+different legacy section (`system.web`) with a different owner. No configuration *machinery* is
+duplicated — binding uses the same `IConfiguration`/`Bind` mechanism, and the pre-container static
+seam remains `Nop.Core.Configuration.NopConfigurationManager`.
+
+### 18.4 `CA1416` — 49 warnings cleared declaratively, and the intended knock-on for 7.3 / 8.3
+
+`Security/FilePermissionHelper.CheckPermissions` now carries
+**`[SupportedOSPlatform("windows")]`**, which is the documented way to declare a per-member
+platform constraint. This clears **all 49 `CA1416`** warnings — the entire delta between 59 and
+10 — and it was done **without** a `NoWarn` suppression and **without changing a single statement
+of the method body**. The attribute is purely declarative; it states the constraint the code has
+always had, which the migration already records as an accepted Windows-first trade-off
+(design §7).
+
+It is on the **method, not the class**: `GetDirectoriesWrite` and `GetFilesWrite` are plain path
+arithmetic and are platform-neutral, so annotating the class would export a constraint they do not
+have and would double the downstream noise.
+
+**Intended knock-on — tasks 7.3 and 8.3 will each see new `CA1416` warnings.** The four call sites
+are `Nop.Web/Controllers/InstallController.cs` lines ~288 and ~293 and
+`Nop.Web/Administration/Controllers/CommonController.cs` lines ~420 and ~439. They are reachable
+on all platforms, so each now warns. **That is the attribute working as designed**: it surfaces at
+compile time what is otherwise a runtime `PlatformNotSupportedException` from
+`WindowsIdentity.GetCurrent()` on Linux (note that call is *outside* the method's `try`, so today
+it propagates rather than being swallowed by the `catch { return true; }`). Recommended fix at
+those four sites — and it is a genuine improvement, not just warning suppression:
+
+```csharp
+if (OperatingSystem.IsWindows() && !FilePermissionHelper.CheckPermissions(dir, false, true, true, false))
+    ...
+```
+
+The analyser recognises `OperatingSystem.IsWindows()` as a platform guard, so the warning clears,
+**and** the install page and admin System Info page start working off Windows instead of throwing.
+Alternatively annotate the containing action. Either is a two-line change per file.
+
+### 18.5 Noted, not changed — `FilePermissionHelper`'s file/directory lists are stale
+
+`GetFilesWrite()` still asks for write permission on `~/Global.asax` and `~/web.config`, and
+`GetDirectoriesWrite()` builds its paths with hard-coded `\\` separators. Both are pre-existing and
+**neither was touched**, because changing them alters what the installer and the admin System Info
+page report — a behaviour change outside 6.5's scope.
+
+It is **harmless today**: `CheckPermissions` wraps the ACL read in `try { … } catch { return true; }`,
+so a path that does not exist is reported as "permission OK". But it is dead weight once task 7.5
+deletes `Global.asax` and task 7.4 reduces `web.config` to an optional ANCM shim.
+
+**Recommendation for task 7.5** (which owns removing obsolete `Nop.Web` files): drop `Global.asax`
+from `GetFilesWrite()`, and decide whether `web.config` stays (keep it only if the ANCM shim is
+kept). The `\\` separators should become `Path.Combine` segments if any non-Windows deployment is
+ever in scope — but that is coupled to the `CA1416` guard decision in §18.4 and belongs with it.

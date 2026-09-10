@@ -83,6 +83,33 @@
         fragments) - this project has no Views/ folder and therefore no View
         web.config to remove.
 
+    TASK 6.5 AUDIT RESULT (Requirements 1.4, 1.5, 5.3) - all four items verified:
+      1. Legacy config files: NONE remain anywhere under this project (recursive find for
+         *.config / *.asax / *.ashx / *.axd / Global.asax*, excluding bin+obj: 0 hits).
+         app.config and packages.config were the only two and 6.1 deleted both. There is
+         no Views/ folder, no Areas/ folder and no App_Start/ folder, so there is no View
+         web.config and no Web.Debug/Web.Release transform to remove.
+      2. Config-reading API surface: NONE. No file names ConfigurationManager,
+         WebConfigurationManager or System.Configuration - confirming 6.1's finding. The
+         only appearances of those words in the project are inside comments (this file,
+         and a doc comment in Infrastructure\NopApplicationBuilderExtensions.cs).
+      3. Properties\AssemblyInfo.cs is KEPT. src/Directory.Build.props sets
+         GenerateAssemblyInfo=false (task 2.3) precisely so the hand-kept files stay
+         authoritative, matching Nop.Core, Nop.Data and Nop.Services. Every attribute in
+         it (AssemblyTitle/Description/Configuration/Company/Product/Copyright/Trademark/
+         Culture, ComVisible, Guid, AssemblyVersion, AssemblyFileVersion) is valid on
+         net10.0 and none is duplicated by the SDK while GenerateAssemblyInfo is false.
+         It carries NO System.Web hosting hook - no [assembly: PreApplicationStartMethod]
+         and no [assembly: WebActivator...] - so nothing had to be removed (unlike
+         Nop.Core's PluginManager, task 2.4 / runtime deferral 1.1).
+      4. Orphans from 6.4: none. GenericPathRoute.cs, ThemeableRazorViewEngine.cs,
+         ThemeableVirtualPathProviderViewEngine.cs and AsIsBundleOrderer.cs were deleted
+         by 6.3/6.4 with every reference to them removed; the project compiles at 0
+         errors with no unreferenced residue.
+    The only genuine settings surface this project owns is the <forms> element that task
+    6.4 transcribed into constants; 6.5 moved it to typed options bound from
+    IConfiguration - see Infrastructure\NopAuthenticationConfig.cs.
+
     Properties/AssemblyInfo.cs is retained (matching Nop.Core, Nop.Data and
     Nop.Services); GenerateAssemblyInfo=false in src/Directory.Build.props keeps the SDK
     from emitting a duplicate attribute set.
@@ -98,6 +125,14 @@
     so they need no package and no OS-specific TFM - they merely throw at runtime off
     Windows, exactly as the rest of the migration already accepts for Windows-first
     testing (design section 7).
+    Task 6.5 made that intent explicit rather than implicit: FilePermissionHelper's
+    CheckPermissions method now carries [SupportedOSPlatform("windows")], the documented
+    way to declare a per-member platform constraint. This is purely declarative - no
+    behaviour changed - and it takes this project from 59 warnings to 10 by clearing all
+    49 CA1416 platform-compatibility warnings. It was NOT done with a NoWarn suppression,
+    and the attribute is on the method rather than the class so that GetDirectoriesWrite /
+    GetFilesWrite, which are platform-neutral path arithmetic, keep no constraint.
+    See that file's remarks for the (intended) knock-on for tasks 7.3 / 8.3.
   -->
 
   <PropertyGroup>

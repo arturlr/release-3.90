@@ -33,13 +33,15 @@ namespace Nop.Web.Framework
     /// <item>the <c>IsChildAction</c> guard is removed (View Components do not execute
     /// action filters).</item>
     /// </list>
-    /// RUNTIME DEFERRAL for task 6.4 (routing): the "is this route localizable?" test now reads
-    /// endpoint metadata. When 6.4 reimplements <see cref="LocalizedRoute"/> over endpoint
-    /// routing it MUST add a <see cref="LocalizedRoute"/> instance (or, if the class is retired,
-    /// an equivalent marker type - and then update the <c>GetMetadata</c> call below) to the
-    /// metadata of every localizable endpoint. Until that happens this filter finds no metadata
-    /// and returns early, i.e. SEO language codes are never injected into or validated on URLs.
-    /// It fails open with respect to redirects only - no authorization decision depends on it.
+    /// RUNTIME DEFERRAL for task 6.4 (routing): RESOLVED by task 6.4. The "is this route
+    /// localizable?" test now calls <see cref="LocalizedRoute.IsLocalizableRequest"/>, which
+    /// reads the <see cref="LocalizedRoute"/> marker that
+    /// <c>LocalizedRouteExtensions.MapLocalizedRoute</c> attaches to endpoint metadata, or the
+    /// <c>HttpContext.Items</c> flag set by <c>SlugRouteTransformer</c> for the generic-path
+    /// route. Note the SEO code is stripped out of <c>Request.Path</c> into
+    /// <c>Request.PathBase</c> by <c>SeoFriendlyUrlsMiddleware</c> before routing, and
+    /// <c>GetEncodedPathAndQuery()</c> yields <c>PathBase + Path + QueryString</c>, so the
+    /// <c>pageUrl</c> read below still contains the code exactly as 3.90's <c>RawUrl</c> did.
     /// </remarks>
     public class LanguageSeoCodeAttribute : ActionFilterAttribute
     {
@@ -64,8 +66,11 @@ namespace Nop.Web.Framework
                 return;
 
             //ensure that this route is registered and localizable (LocalizedRoute in RouteProvider.cs)
-            var endpoint = filterContext.HttpContext.GetEndpoint();
-            if (endpoint == null || endpoint.Metadata.GetMetadata<LocalizedRoute>() == null)
+            //Task 6.4: LocalizedRoute is now an endpoint-metadata marker attached by
+            //MapLocalizedRoute, plus an HttpContext.Items flag for the generic-path (slug)
+            //route, which cannot carry metadata because MapDynamicControllerRoute returns void.
+            //LocalizedRoute.IsLocalizableRequest checks both. Runtime deferral 24 is CLOSED.
+            if (!LocalizedRoute.IsLocalizableRequest(filterContext.HttpContext))
                 return;
 
 

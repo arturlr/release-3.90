@@ -111,6 +111,30 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
+    <!--
+      LAZY LOADING - resolves runtime deferral 4.7 ("Lazy loading is off - all virtual
+      navigations return null"), the largest behavioral regression of the EF6 -> EF Core
+      data-layer move.
+
+      EF6 created dynamic proxies BY DEFAULT, so every `public virtual` navigation on
+      Nop.Core.Domain.** lazy-loaded on first access. EF Core has no proxy layer in the
+      core package at all: without this package `order.Customer`,
+      `product.ProductCategories`, `customer.CustomerRoles` and every other unincluded
+      navigation walk returns null / an empty collection SILENTLY, with no exception.
+
+      Option 1 of deferral 4.7 was chosen (this package + UseLazyLoadingProxies() in
+      NopObjectContext.OnConfiguring). Option 2 - explicit Include/ThenInclude at every
+      query site in Nop.Services - was rejected as too invasive for this migration.
+
+      10.0.12 verified on nuget.org: stable (isPrerelease=false), listed, MIT, published
+      by Microsoft, and ships a NATIVE lib/net10.0 asset. Version deliberately aligned
+      with the three EF Core 10.0.12 pins above - its net10.0 dependency group requires
+      Microsoft.EntityFrameworkCore [10.0.12, ), so any other pin would risk a lift.
+      Transitive additions: Castle.Core 5.2.1 (the DynamicProxy implementation),
+      Microsoft.Extensions.Caching.Memory 10.0.12 and Microsoft.Extensions.Logging
+      10.0.12 - the latter two already resolve to the versions pinned in this file.
+    -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.12" />
   </ItemGroup>
 
   <!-- ==========================================================

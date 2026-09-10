@@ -3,8 +3,8 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Web.Routing;
 using System.Xml;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Infrastructure;
 using Nop.Services.Localization;

@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core.Infrastructure;
 using Nop.Core.Plugins;
 
@@ -10,6 +10,11 @@ namespace Nop.Web.Framework.Mvc.Routes
     /// <summary>
     /// Route publisher
     /// </summary>
+    /// <remarks>
+    /// Task 6.4: <c>RouteCollection</c> → <see cref="IEndpointRouteBuilder"/>. Discovery,
+    /// the "ignore not-installed plugins" filter and the descending-priority ordering are
+    /// unchanged.
+    /// </remarks>
     public class RoutePublisher : IRoutePublisher
     {
         protected readonly ITypeFinder typeFinder;
@@ -33,7 +38,19 @@ namespace Nop.Web.Framework.Mvc.Routes
             if (providerType == null)
                 throw new ArgumentNullException("providerType");
 
-            foreach (var plugin in PluginManager.ReferencedPlugins)
+            //NOTE (task 6.4): PluginManager.ReferencedPlugins is null until
+            //PluginManager.Initialize() runs, which no longer happens automatically
+            //(runtime deferral 1.1, owned by task 7.2). 3.90 could not observe this because
+            //[PreApplicationStartMethod] guaranteed initialization before Application_Start.
+            //Guard rather than NullReferenceException: with no plugin list, no provider can
+            //be attributed to a plugin, so every discovered provider is treated as
+            //"not from a plugin" and registered - which is the same outcome 3.90 produced
+            //for the Nop.Web/Nop.Admin providers.
+            var referencedPlugins = PluginManager.ReferencedPlugins;
+            if (referencedPlugins == null)
+                return null;
+
+            foreach (var plugin in referencedPlugins)
             {
                 if (plugin.ReferencedAssembly == null)
                     continue;
@@ -48,9 +65,12 @@ namespace Nop.Web.Framework.Mvc.Routes
         /// <summary>
         /// Register routes
         /// </summary>
-        /// <param name="routes">Routes</param>
-        public virtual void RegisterRoutes(RouteCollection routes)
+        /// <param name="routeBuilder">Endpoint route builder</param>
+        public virtual void RegisterRoutes(IEndpointRouteBuilder routeBuilder)
         {
+            if (routeBuilder == null)
+                throw new ArgumentNullException("routeBuilder");
+
             var routeProviderTypes = typeFinder.FindClassesOfType<IRouteProvider>();
             var routeProviders = new List<IRouteProvider>();
             foreach (var providerType in routeProviderTypes)
@@ -64,7 +84,7 @@ namespace Nop.Web.Framework.Mvc.Routes
                 routeProviders.Add(provider);
             }
             routeProviders = routeProviders.OrderByDescending(rp => rp.Priority).ToList();
-            routeProviders.ForEach(rp => rp.RegisterRoutes(routes));
+            routeProviders.ForEach(rp => rp.RegisterRoutes(routeBuilder));
         }
     }
 }

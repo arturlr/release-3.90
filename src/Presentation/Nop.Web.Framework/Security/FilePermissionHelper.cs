@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Nop.Core;
@@ -20,6 +21,42 @@ namespace Nop.Web.Framework.Security
         /// <param name="checkModify">Check modify</param>
         /// <param name="checkDelete">Check delete</param>
         /// <returns>Result</returns>
+        /// <remarks>
+        /// <para>
+        /// <b>Windows only.</b> The whole body is Windows ACL evaluation:
+        /// <see cref="WindowsIdentity"/>, <see cref="FileSystemAccessRule"/>,
+        /// <see cref="FileSystemRights"/> and <see cref="DirectoryInfo"/>'s
+        /// <c>GetAccessControl()</c> are all annotated
+        /// <c>[SupportedOSPlatform("windows")]</c> in the net10.0 reference assemblies. POSIX
+        /// permissions have no equivalent model, and nopCommerce 3.90 had no other
+        /// implementation to port.
+        /// </para>
+        /// <para>
+        /// The <c>[SupportedOSPlatform("windows")]</c> attribute below is <b>purely
+        /// declarative and changes no behaviour</b> — it states the constraint the code has
+        /// always had, which is what the migration already records as an accepted Windows-first
+        /// trade-off (design section 7, and the <c>.csproj</c> note on why the TFM stays the
+        /// OS-agnostic <c>net10.0</c>). It resolves 49 <c>CA1416</c> platform-compatibility
+        /// warnings in this file that were previously suppressed by nothing at all.
+        /// It is deliberately placed on this method and NOT on the class:
+        /// <see cref="GetDirectoriesWrite"/> and <see cref="GetFilesWrite"/> are plain path
+        /// arithmetic and are platform-neutral, so annotating the class would export a
+        /// constraint they do not have.
+        /// </para>
+        /// <para>
+        /// <b>Consequence for tasks 7.3 and 8.3:</b> the four call sites —
+        /// <c>Nop.Web/Controllers/InstallController.cs</c> and
+        /// <c>Nop.Web/Administration/Controllers/CommonController.cs</c> — will now each raise
+        /// a <c>CA1416</c> warning of their own, because they are reachable on all platforms.
+        /// That is the attribute working as intended: it surfaces at compile time what would
+        /// otherwise be a <c>PlatformNotSupportedException</c> from
+        /// <c>WindowsIdentity.GetCurrent()</c> at runtime on Linux. Those tasks should either
+        /// guard the call with <c>OperatingSystem.IsWindows()</c> (which the analyser
+        /// recognises, and which would also make the install/system-info page work off
+        /// Windows) or annotate their own member.
+        /// </para>
+        /// </remarks>
+        [SupportedOSPlatform("windows")]
         public static bool CheckPermissions(string path, bool checkRead, bool checkWrite, bool checkModify, bool checkDelete)
         {
             bool flag = false;
@@ -34,7 +71,13 @@ namespace Nop.Web.Framework.Security
             AuthorizationRuleCollection rules;
             try
             {
-                rules = Directory.GetAccessControl(path).GetAccessRules(true, true, typeof(SecurityIdentifier));
+                //.NET Framework had the static System.IO.Directory.GetAccessControl(string).
+                //On .NET the ACL API moved to extension methods on DirectoryInfo/FileInfo
+                //(System.IO.FileSystemAclExtensions), so the static overload no longer exists.
+                //Verified against the net10.0 reference assemblies: GetAccessControl() and
+                //GetAccessControl(AccessControlSections) both hang off DirectoryInfo.
+                //(runtime deferral 34, folded in by task 6.4 so gate 6.6 is a clean zero)
+                rules = new DirectoryInfo(path).GetAccessControl().GetAccessRules(true, true, typeof(SecurityIdentifier));
             }
             catch
             {
