@@ -114,10 +114,10 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
     - _Requirements: 3.1, 3.2, 3.3, 4.2_
 
 - [ ] 7. Port Nop.Web to ASP.NET Core
-  - [ ] 7.1 Convert Nop.Web.csproj to SDK-style Web project at net10.0
+  - [x] 7.1 Convert Nop.Web.csproj to SDK-style Web project at net10.0
     - Convert to `<Project Sdk="Microsoft.NET.Sdk.Web">`, `net10.0`; packages.config → PackageReference; delete `packages.config`; fix `ProjectReference`s to all migrated upstream projects
     - _Requirements: 1.1, 1.2, 1.3, 2.4, 4.1_
-  - [ ] 7.2 Replace hosting model (Global.asax → Program/Startup)
+  - [x] 7.2 Replace hosting model (Global.asax → Program/Startup)
     - Replace `Global.asax`/`Global.asax.cs` and `System.Web` application events with `Program.cs` (`WebApplication` generic host) and `ConfigureServices`/`Configure`; invoke `IEngine`/`NopEngine`/`EngineContext` startup from host; wire `UseServiceProviderFactory(new AutofacServiceProviderFactory())` + `ConfigureContainer`
     - _Requirements: 4.1, 4.5, 4.6_
   - [ ] 7.3 Port Nop.Web controllers, views, routing, and pipeline
@@ -131,6 +131,7 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
     - _Requirements: 1.4, 4.6, 5.3, 5.8_
   - [ ] 7.5 Remove obsolete Nop.Web files
     - Remove `AssemblyInfo`, `Global.asax`, `RouteConfig`/`*Config` App_Start files, and `Views/web.config` files rendered obsolete by the SDK/ASP.NET Core model
+    - **SCOPE REDUCED BY TASK 7.2:** `Global.asax` and `Global.asax.cs` are already deleted — they carried the `System.Web.Mvc` / `FluentValidation.Mvc` / `StackExchange.Profiling` references that blocked 7.2's own compile. See runtime-deferrals.md §20.
     - _Requirements: 1.5_
   - [ ] 7.6 Clean-compile gate — Nop.Web
     - Build `src/Presentation/Nop.Web/Nop.Web.csproj -c Debug` using the containerized .NET 10 SDK command in `build-environment.md`; resolve to zero errors; verify no `System.Web*` references remain. Plugins remain blocked until the Nop.Admin gate (8.8) also passes

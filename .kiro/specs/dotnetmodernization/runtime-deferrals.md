@@ -23,16 +23,17 @@ Three sections:
 
 ## 1. Open deferrals
 
-All items below originate from **Nop.Core task 2.4**.
+All items below originate from **Nop.Core task 2.4**. **Every one is now RESOLVED by task 7.2 —
+see §24 for the resolving line of code and §19.1 for the runtime verification.**
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 1 | Plugin discovery never runs | 7.2 | **Highest** — **6.5 mechanism DONE**, see §18.1 |
-| 2 | Plugin assemblies invisible to the Razor compiler | ~~6.4~~, 7.2 | High — **6.4 mechanism DONE**, see §17.1 |
-| 3 | ~~Per-request DI scope not shared within a request~~ | — | **RESOLVED by 6.4** (§17.1) |
-| 4 | Configuration source unset — all `NopConfig` settings at defaults | 7.2, 7.4 | High — **6.5 mechanism DONE**, see §18.1 |
-| 5 | `CommonHelper.MapPath` resolves relative to `bin/` | ~~6.5~~, 7.2 | High — **6.5 mechanism DONE and verified live**, see §18.1 |
-| 6 | `WebHelper.RestartAppDomain` throws instead of restarting | ~~6.4~~, 7.2 | Medium — **no 6.4 work needed**, see §17.1 |
+| 1 | ~~Plugin discovery never runs~~ | — | ✅ **RESOLVED by 7.2** (§24) — `UseNopHostingEnvironment`, verified fired |
+| 2 | ~~Plugin assemblies invisible to the Razor compiler~~ | — | ✅ **RESOLVED by 6.4 + 7.2** (§24) — call order guaranteed in `Program.cs` |
+| 3 | ~~Per-request DI scope not shared within a request~~ | — | ✅ **RESOLVED by 6.4**, made live by 7.2's `AutofacServiceProviderFactory` (§21) — single container verified |
+| 4 | Configuration source unset — all `NopConfig` settings at defaults | 7.4 | ✅ **seam RESOLVED by 7.2** (§24); 7.4 still owns authoring `appsettings.json` — see new deferral 7.2-4 |
+| 5 | ~~`CommonHelper.MapPath` resolves relative to `bin/`~~ | — | ✅ **RESOLVED by 7.2** (§24), verified: `MapPath("~/App_Data/x")` lands under the content root |
+| 6 | ~~`WebHelper.RestartAppDomain` throws instead of restarting~~ | — | ✅ **RESOLVED by 7.2** (§24) — `IHostApplicationLifetime` verified resolvable from the nop container |
 
 ### 1.1 Plugin discovery never runs — HIGHEST IMPACT
 
@@ -200,10 +201,10 @@ database is attached. Everything below was introduced knowingly.
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
 | 7 | ~~Lazy loading is off — all `virtual` navigations return null~~ | — | **RESOLVED** (see 4.7) |
-| 8 | Schema initializer is never invoked — a fresh install creates no tables | 4.2, 7.2 | **Highest** |
+| 8 | ~~Schema initializer is never invoked — a fresh install creates no tables~~ | — | ✅ **RESOLVED by 7.2** (§24) — `Program.InitializeDatabaseSchema()`; see new deferral 7.2-1 |
 | 9 | `NopObjectContext` now needs a real connection string, not a database name | 3.4, ~~6.4~~ | Medium — **6.4 verified clean**, see §17.1 |
 | 10 | `CreateDatabaseScript()` output is `GO`-batched — 4 plugin contexts will fail | 11.2, 13.1, 14.4, 15.1 | Medium |
-| 11 | `ExecuteSqlCommand(doNotEnsureTransaction: false)` now opens a real transaction | 4.2 | Medium |
+| 11 | `ExecuteSqlCommand(doNotEnsureTransaction: false)` now opens a real transaction | ~~4.2~~, 7.7 | Medium — **reviewed at 7.2, no change made** (§24.2); needs a real database |
 | 12 | Many-to-many join **column** names follow EF Core conventions, not 3.90's | 4.2 / schema review | Medium |
 
 ### 4.7 Lazy loading — ✅ **RESOLVED** (fixed ahead of task 7.2)
@@ -641,13 +642,13 @@ one. Everything below was introduced knowingly by task 4.2.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 13 | Cookie authentication is not configured — nobody can sign in | ~~6.4~~, 7.2 | **Highest** — **6.4 supplied the registration**, see §17.1 |
-| 14 | ~~`IHttpContextAccessor` is not registered~~ | 7.2 (one call) | **6.4 supplied the registration**, see §17.1 |
-| 15 | Session state is not configured — external authentication round-trip fails closed | ~~6.4~~, 7.2 | High — **6.4 supplied the registration**, see §17.1 |
+| 13 | ~~Cookie authentication is not configured — nobody can sign in~~ | — | ✅ **RESOLVED by 6.4 + 7.2** (§24, §24.1) — scheme and all four `<forms>` values verified |
+| 14 | ~~`IHttpContextAccessor` is not registered~~ | — | ✅ **RESOLVED by 6.4 + 7.2** (§24) — verified resolvable |
+| 15 | ~~Session state is not configured — external authentication round-trip fails closed~~ | — | ✅ **RESOLVED by 6.4 + 7.2** (§24) — `ISessionStore` verified; **distributed store still 7.4's**, see deferral 36 |
 | 16 | EU VAT service endpoint is a compiled-in constant, not configuration | 7.4 | Medium |
 | 17 | Compare / recently-viewed cookie payload format changed — stale cookies ignored | none (accept) | Low |
 | 18 | ImageSharp emits a licence *error*, currently downgraded to a warning | business decision | **Blocking for release** |
-| 19 | `Nop.Data` deferrals 4.7 / 4.8 / 4.11 name task 4.2 as an owner but are **not** fixable inside `Nop.Services` | 7.2 | see below |
+| 19 | `Nop.Data` deferrals 4.7 / 4.8 / 4.11 name task 4.2 as an owner but are **not** fixable inside `Nop.Services` | ~~7.2~~ | ✅ 4.7 resolved; 4.8 **RESOLVED by 7.2** (§24); 4.11 reviewed, moved to 7.7 (§24.2) |
 
 ### 7.13 Cookie authentication is not configured — nobody can sign in — HIGHEST IMPACT
 
@@ -1108,16 +1109,16 @@ Everything below was introduced knowingly.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 20 | FluentValidation is not hooked into model validation — server-side validation gap | 7.2 | **Highest** — **6.4 supplied the registration**, see §17.1 |
-| 21 | `NopMetadataProvider` is not registered — `AdditionalValues` is empty | 7.2 | High — **6.4 supplied the registration**, see §17.1 |
-| 22 | `NopModelBinderProvider` is not registered — string inputs are no longer trimmed | 7.2 | Medium — **6.4 supplied the registration**, see §17.1 |
-| 23 | `JsonResult` property naming will change to camelCase unless the host is configured | 7.2 | **High** — **6.4 chose System.Text.Json + `PropertyNamingPolicy = null`**, see §17.1 |
+| 20 | ~~FluentValidation is not hooked into model validation — server-side validation gap~~ | — | ✅ **RESOLVED by 6.4 + 7.2** (§24) — **asserted present in `MvcOptions.ModelValidatorProviders`**, §19.1 |
+| 21 | ~~`NopMetadataProvider` is not registered — `AdditionalValues` is empty~~ | — | ✅ **RESOLVED by 7.2** (§24), verified |
+| 22 | ~~`NopModelBinderProvider` is not registered — string inputs are no longer trimmed~~ | — | ✅ **RESOLVED by 7.2** (§24), verified at index 0 |
+| 23 | ~~`JsonResult` property naming will change to camelCase unless the host is configured~~ | — | ✅ **RESOLVED by 7.2** (§24) — `PropertyNamingPolicy == null` verified |
 | 24 | ~~`LanguageSeoCodeAttribute` no-ops until localizable endpoints carry `LocalizedRoute` metadata~~ | — | **RESOLVED by 6.4** (§17.1) |
-| 25 | `ChallengeResult` throws until cookie authentication is registered | ~~6.4~~ / 7.2 | Medium — **6.4 supplied the registration**, see §17.1 |
-| 26 | `IAntiforgery` must be registered or the XSRF filters throw | 7.2 | Medium — **6.4 supplied the registration**, see §17.1 |
+| 25 | ~~`ChallengeResult` throws until cookie authentication is registered~~ | — | ✅ **RESOLVED by 7.2** (§24) — same handler as deferral 13 |
+| 26 | ~~`IAntiforgery` must be registered or the XSRF filters throw~~ | — | ✅ **RESOLVED by 7.2** (§24), verified resolvable |
 | 27 | `BaseNopModel.BindModel` is no longer invoked by the framework | none (accept) | Low |
-| 28 | `TempData` notification lists round-trip through a serializer | 7.3 / 8.4 | Low |
-| 29 | `IWebHelper.IsCurrentConnectionSecured()` behind a TLS-terminating proxy | ~~6.4~~ / 7.2 | Medium — **6.4 supplied `UseForwardedHeaders` + options**, see §17.1 |
+| 28 | ~~`TempData` notification lists round-trip through a serializer~~ | 7.3 / 8.4 (consumers) | ✅ **provider RESOLVED by 7.2** (§24) — `CookieTempDataProvider` verified. Views must still read `IList<string>`, not cast to `List<string>` |
+| 29 | ~~`IWebHelper.IsCurrentConnectionSecured()` behind a TLS-terminating proxy~~ | — | ✅ **RESOLVED by 7.2** (§24) — `app.UseForwardedHeaders()` |
 
 ### 11.20 FluentValidation is not hooked into model validation — HIGHEST IMPACT
 
@@ -1496,10 +1497,10 @@ Everything below was introduced knowingly.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 30 | Theming stops working until the view-location expander is registered | ~~6.4~~ / 7.2 | **Highest** — **6.4 supplied the registration**, see §17.1 |
-| 31 | `PageHeadBuilder` needs `IFileVersionProvider` + `IHttpContextAccessor` resolvable | ~~6.4~~ / 7.2 | High — **6.4 supplied both registrations**, see §17.1 |
+| 30 | ~~Theming stops working until the view-location expander is registered~~ | — | ✅ **RESOLVED by 6.4 + 7.2** (§24) — `ThemeableViewLocationExpander` verified at index 0 |
+| 31 | ~~`PageHeadBuilder` needs `IFileVersionProvider` + `IHttpContextAccessor` resolvable~~ | — | ✅ **RESOLVED by 7.2** (§24) — both verified resolvable |
 | 32 | No `Widget` view component exists — `@Html.Widget(...)` throws | 7.3 | High |
-| 33 | Cache busting silently no-ops for assets outside the web root | 7.2 / 8.x | Medium |
+| 33 | Cache busting silently no-ops for assets outside the web root | 7.3 / 7.4 / 8.x | Medium — `UseStaticFiles()` is registered by 7.2, but the asset trees have not moved (§26) |
 | 34 | ~~`Security/FilePermissionHelper.cs` has a body-level compile error nobody owns~~ | — | **RESOLVED by 6.4** (§17.1) — gate 6.6 residual is **0**, not 1 |
 | 35 | Minification is gone; no build-time replacement is scheduled | post-migration | Low |
 
@@ -2492,3 +2493,646 @@ deletes `Global.asax` and task 7.4 reduces `web.config` to an optional ANCM shim
 from `GetFilesWrite()`, and decide whether `web.config` stays (keep it only if the ANCM shim is
 kept). The `\\` separators should become `Path.Combine` segments if any non-Windows deployment is
 ever in scope — but that is coupled to the `CA1416` guard decision in §18.4 and belongs with it.
+
+
+---
+
+# Nop.Web — SDK-style project conversion and package migration (task 7.1)
+
+Task 7.1 is project-file plumbing only: no `.cs`, no `.cshtml`, no `Global.asax` and no
+`Web.config` was edited. Unlike every earlier stage, **its success criterion was never a clean
+compile** — it is a clean *restore* plus a project that MSBuild evaluates, with the surviving
+errors being the CS\*/RZ\* inventory tasks 7.2–7.5 consume.
+
+| Measurement | Value |
+|---|---|
+| restore | **clean** — all 5 projects, **0** `NU*` diagnostics of any severity |
+| project load / MSBuild evaluation | **clean** — **0** `MSB*`, **0** `NETSDK*` |
+| upstream projects | **all 4 still build at 0 errors** — `Nop.Core`, `Nop.Data`, `Nop.Services`, `Nop.Web.Framework`. The 10 warnings are the pre-existing `SYSLIB0014`/`SYSLIB0021`/`SYSLIB0023`/`SYSLIB0045`/`SYSLIB0051` obsolescence notices, unchanged since 6.5 |
+| `Nop.Web` errors | **1117** (2234 diagnostic lines — MSBuild prints each twice), **42 unique**, **100% `CS*`/`RZ*`** across **87 source files**. Zero errors of any other category |
+| new central package pins added | **0** — all four `PackageReference`s already had a `PackageVersion` entry |
+| packages removed | **40 of 44** |
+
+## 19. Task 7.1 — what changed
+
+### 19.1 The error inventory handed to 7.2 / 7.3
+
+All 1117 errors trace to **four** missing legacy namespaces plus one Razor-syntax family.
+Nothing is a packaging problem; every one is source that a later task owns.
+
+| Root cause | Unique errors | Owner |
+|---|---|---|
+| `System.Web.Mvc` (144 `CS0234` lines) — `ActionResult`, `AllowHtml`, `HttpPost`, `ChildActionOnly`, `ValidateInput`, `ActionName`, `NonAction`, `FormCollection`, `SelectListItem`, `HttpContextBase`, `HttpPostedFileBase`, `HtmlHelper<>`, `MvcHtmlString`, `JsonResult`, `UrlHelper`, `RedirectResult`, `HttpVerbs` | the bulk | **7.3** |
+| `System.Web.Routing` (28 lines) — `RouteCollection`, `RouteValueDictionary` | — | **7.2** (`Global.asax.cs`) / **7.3** (`Infrastructure/*RouteProvider.cs`, now `IEndpointRouteBuilder` per §17.4a) |
+| `StackExchange.Profiling` (4 lines) | — | **7.2** (`Global.asax.cs`) / **7.3** (`Views/Shared/_Root.Head.cshtml`) — MiniProfiler is dropped, §17.8 |
+| `FluentValidation.Mvc` (2 lines) | — | **7.2** — `Global.asax.cs` line 74 only; the file is deleted |
+| `WebGrease.Css.Extensions` (2 lines) | — | **7.3** — **not** an orphan `using`; see 19.4 |
+| Razor: **20** `RZ` errors — 8 `RZ1002` "the helper directive is not supported", 16-line `RZ1011`, 16-line `RZ2005` "the 'attribute' directive must appear at the start of the line" | 20 | **7.3** |
+
+Distribution by directory (diagnostic lines): `Controllers/` 1560, `Models/` 520,
+`Factories/` 46, `Views/` 40, `Infrastructure/` 30, `Extensions/` 24.
+
+**The Razor SDK ran and reported independently of the failed C# pass** — a useful difference
+from tasks 6.2/6.3, where Roslyn's refusal to bind method bodies during declaration errors
+forced a throwaway probe. Modern Razor parsing is not gated on the C# compilation, so 7.3
+already has a real (if partial) `.cshtml` inventory: the 8 `@helper` directives are the notable
+one, since ASP.NET Core removed `@helper` outright and each must become a local function,
+partial view or tag helper.
+
+### 19.2 `Administration\**` had to be excluded from the default globs — structural, not hygiene
+
+`Nop.Admin` is **nested inside** `Nop.Web` (`src/Presentation/Nop.Web/Administration/Nop.Admin.csproj`).
+Under the classic project this was invisible because every compiled file was listed explicitly.
+Under SDK implicit globbing it is a correctness problem: the default `Compile`/`Content`/`None`
+globs would swallow Nop.Admin's whole tree into Nop.Web.
+
+Measured: **508** `.cs` files under this directory of which only **231** are Nop.Web's, and
+**518** `.cshtml` of which only **193** are Nop.Web's. Left unexcluded the result would be
+duplicate type definitions, two `IDependencyRegistrar` implementations, admin views compiled
+into the storefront assembly, and task 8 pre-empted by an unreviewed half-migration.
+
+`<DefaultItemExcludes>$(DefaultItemExcludes);Administration\**;Plugins\**</DefaultItemExcludes>`
+was chosen over per-glob `<Compile Remove=…/>` items so it applies to **every** default glob the
+SDK and Razor SDK derive, present and future.
+
+Verified by evaluating the resolved item lists rather than trusting the exclusion:
+
+| Item | Count | Leakage |
+|---|---|---|
+| `Compile` | **231** — `Models` 127, `Factories` 42, `Controllers` 28, `Validators` 20, `Infrastructure` 9, `Extensions` 3, `Global.asax.cs`, `Properties/AssemblyInfo.cs` | **0** |
+| `Content` | **199** — 193 `.cshtml` (192 `Views/`, 1 `Themes/`) + 6 `.config` | **0** |
+
+231 is exactly the length of the legacy explicit `<Compile>` list, so the glob reproduces the
+old compilation set precisely — no file silently gained or lost. Zero `Administration/` or
+`Plugins/` paths appear anywhere in the 2234 diagnostic lines.
+
+`Plugins\**` is excluded for the same reason although the directory is absent from source
+control: `PluginManager` shadow-copies plugin assemblies into `~/Plugins/bin` at startup, and
+deployed plugin folders carry their own `.cshtml` and `.config`.
+
+### 19.3 Open deferrals — Nop.Web task 7.1
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 36 | Redis session state provider dropped with no successor | 7.4 (decision) | Medium |
+| 37 | ~~MiniProfiler packages removed — two source sites still reference them~~ | 7.3 | ✅ `Global.asax.cs` half **RESOLVED by 7.2** (file deleted, §20); `Views/Shared/_Root.Head.cshtml` lines 10–11 / 54–56 still open |
+| 38 | ~~No `launchSettings.json` — the IIS Express / dev-server settings were discarded~~ | — | ✅ **RESOLVED by 7.2** (§24) — `Properties/launchSettings.json` |
+| 39 | `ExcludeFilesFromDeployment` publish shaping lost with the Web Application Project targets | 7.4 | **Medium — security-relevant** |
+| 40 | Static asset trees still at their 3.90 locations, outside `wwwroot` | 7.3 / 7.4 | High — `UseStaticFiles()` registered by 7.2 but `WebRootFileProvider` is empty (§26) |
+| 41 | `WebGrease.Css.Extensions.ForEach` is load-bearing at two call sites | 7.3 | Low but **will not compile** |
+
+#### 7.1-1 (deferral 36) Redis session state provider dropped, no successor
+
+`Microsoft.Web.RedisSessionStateProvider` 2.2.3 is a `System.Web`
+`<sessionState mode="Custom" customProvider=…>` implementation. **There is no ASP.NET Core
+equivalent and no successor package** — Core's session is `IDistributedCache`-backed via
+`services.AddSession()` plus a distributed store. `StackExchange.Redis.StrongName` 1.2.1 went
+with it (it was only the transport); the mainline `StackExchange.Redis` still reaches the graph
+transitively through `Nop.Core`'s `RedisCacheManager`.
+
+- **Current state:** nothing is broken *today* — task 6.4's `AddNopFramework` already calls
+  `AddDistributedMemoryCache()` + `AddSession()`, so session works **in-process**.
+- **What 7.4 must decide:** whether the deployment needs a distributed session store. §17.7
+  step 8 and deferral **15** (external-authentication round-trip) already note that a
+  multi-instance deployment requires one. The replacement is
+  `services.AddStackExchangeRedisCache(...)` reading the connection string 3.90 kept in
+  `Web.config`'s `<sessionState>` element — **that element is the only place that connection
+  string exists, so 7.4 must harvest it before reducing `Web.config`.**
+- **Impact if unfixed:** in-memory session on a multi-instance deployment means sessions bound
+  to one instance — external logins fail intermittently rather than cleanly.
+
+#### 7.1-2 (deferral 37) MiniProfiler removed — two source sites still reference it
+
+Already recorded as §17.8; restated here because 7.1 is where the packages actually left the
+graph, making it a compile error rather than a latent decision. `MiniProfiler` 3.2.0.157 and
+`MiniProfiler.MVC4` 3.0.11 are MVC5-only with no net10.0 release. The 4 `CS0234` lines are
+`Global.asax.cs` (`MiniProfiler.Start`/`Stop`, `ProfilingActionFilter`, lines 21–22, 83,
+128–143) and `Views/Shared/_Root.Head.cshtml` (lines 10–11 and 54–56,
+`MiniProfiler.RenderIncludes()`). 7.2 deletes the first file; **7.3 must delete the
+`_Root.Head.cshtml` block** or the view will not compile.
+`StoreInformationSettings.DisplayMiniProfilerInPublicStore` and
+`DisplayMiniProfilerForAdminOnly` become inert, same treatment as
+`SeoSettings.EnableJsBundling` (§8) and `SeoSettings.EnableCssBundling`.
+
+#### 7.1-3 (deferral 38) No `launchSettings.json`
+
+The classic project carried its dev-server configuration in properties and in
+`<ProjectExtensions><VisualStudio><WebProjectProperties>`: `UseIISExpress=true`,
+`UseIIS=False`, `AutoAssignPort=True`, `DevelopmentServerPort=15536`,
+`IISUrl=http://localhost:2451/`, `DevelopmentServerVPath=/`, `NTLMAuthentication=False`,
+`IISExpressAnonymousAuthentication=enabled`, `IISExpressWindowsAuthentication=enabled`,
+`IISExpressUseClassicPipelineMode=false`. **All discarded** — none has an SDK property
+counterpart; the ASP.NET Core equivalent is `Properties/launchSettings.json`.
+
+Deliberately **not** created by 7.1: it is hosting configuration, which is 7.2/7.4's remit, and
+authoring it here would have meant guessing the profile shape before `Program.cs` exists.
+
+- **Impact if unfixed:** `dotnet run` binds Kestrel's default ports instead of 2451/15536, and
+  there is no F5 profile. Cosmetic, but note the interaction with **deferral 13**: if the
+  chosen dev URL is `http://` while `NopAuthenticationConfig.RequireSsl` is `true`, the auth
+  cookie will not be set and login will appear broken for a configuration reason.
+
+#### 7.1-4 (deferral 39) `ExcludeFilesFromDeployment` publish shaping is gone — SECURITY-RELEVANT
+
+Two deleted targets, `ExcludeRootBinariesDeployment` and `ExcludeRootBinariesPackage`, built a
+~25-entry exclusion list and fed it to `ExcludeFromPackageFiles`. Both hook
+`ExcludeFilesFromPackage`, an **MSDeploy / Web Application Project** target that **does not
+exist in the Web SDK**, and `dotnet publish` has an entirely different model — so they are not
+portable and were not re-expressed.
+
+What 3.90 deliberately withheld from a publish, and now would not be:
+
+```
+**\*.cs   **\*.csproj   **\*.csproj.user   **\obj\**   **\bin\*.xml   **\packages.config
+Administration\bin\**            Administration\db_backups\*.bak
+App_Data\InstalledPlugins.txt    App_Data\Settings.txt    App_Data\Nop.Db.sdf
+App_Data\browscap.crawlersonly.xml
+bin\Nop.Admin.dll.config         bin\Nop.Web.dll.config
+Content\Files\ExportImport\*.txt Content\Files\ExportImport\*.xml
+Content\Images\Thumbs\*.{jpg,jpeg,png,gif}
+Properties\**\*                  **\*.Debug.config   **\*.Release.config
+```
+
+Some of this the SDK handles for free (`.cs`, `.csproj`, `obj/`, and `packages.config` no longer
+exists). **The rest does not, and two entries matter:**
+
+- **`App_Data\Settings.txt` is `DataSettings` — it contains the database connection string.**
+- **`Administration\db_backups\*.bak` are database backups.**
+
+Publishing either into a web-served directory is a data-exposure bug, not untidiness.
+
+**Fix (task 7.4):** re-express the surviving entries as `<Content Remove=…/>` /
+`<None Remove=…/>` items or as `ExcludeFromSingleFile`/publish-time excludes, **and** confirm
+`App_Data` is not reachable by the static-file middleware (in 3.90 `System.Web` blocked
+`App_Data` implicitly; ASP.NET Core does not, and `App_Data` sits under the content root, so it
+is only safe as long as `wwwroot` is the static root — which interacts directly with deferral
+40 below).
+
+#### 7.1-5 (deferral 40) Static assets still outside `wwwroot`
+
+`Content/`, `Scripts/`, `Themes/DefaultClean/Content/`, `favicon.ico`, `ErrorPage.htm` and
+`FileNotFound.htm` remain at their 3.90 locations. **Moving them was explicitly out of 7.1's
+scope**; they do not break the build (none of those extensions is in a default `Compile` or
+`Content` glob, so the SDK classifies them as `None` with no copy action).
+
+In 3.90 `System.Web`'s handler pipeline served them from the application root. ASP.NET Core's
+static-file middleware serves `IWebHostEnvironment.WebRootPath`, i.e. `wwwroot/`.
+
+**Fix (7.3/7.4):** either relocate the trees under `wwwroot/`, or point `WebRootFileProvider` at
+them with a composite `IFileProvider`. **Whichever is chosen must also cover the file-version
+provider**, or the cache busting task 6.3 added to `PageHeadBuilder` silently no-ops — that is
+already **deferral 33 (§14.33)**, and Nop.Web is where it gets decided. Note the tension with
+7.1-4: widening the static root to the content root would expose `App_Data`.
+
+`App_Data/` needs **no** copy action and none was configured: it is read through
+`CommonHelper.MapPath("~/App_Data/...")`, which resolves against `CommonHelper.BaseDirectory`,
+set to the content root by `builder.Environment.UseNopHostingEnvironment(builder.Configuration)`
+at 7.2 (deferral **5**, mechanism from 6.5). This is why the ~700 legacy `<Content>` entries
+that existed only to copy `App_Data`, `Content` and `Scripts` into the output were not
+recreated. Also note `OutputPath` moves from the flat 3.90 `bin\` to `bin\Debug\net10.0\`.
+
+#### 7.1-6 (deferral 41) `WebGrease.Css.Extensions.ForEach` is load-bearing
+
+`WebGrease` 1.6.0 had to go — it is bundling's minifier and design §8 drops bundling with no
+successor. It turns out **one source file depends on it for something unrelated to bundling**:
+
+`Factories/CustomerModelFactory.cs` line 29 has `using WebGrease.Css.Extensions;`, and lines
+**393** and **496** both do:
+
+```csharp
+var customAttributes = PrepareCustomCustomerAttributes(...);
+customAttributes.ForEach(model.CustomerAttributes.Add);
+```
+
+**This was checked rather than assumed to be a stale `using`.**
+`PrepareCustomCustomerAttributes` returns `IList<CustomerAttributeModel>`, **not** `List<T>` —
+so this is *not* `List<T>.ForEach`; it resolves to WebGrease's `IEnumerable<T>` extension. The
+`using` is the only WebGrease reference left anywhere in the solution.
+
+**Fix (7.3):** replace both lines with a plain loop and delete the `using`:
+
+```csharp
+foreach (var attribute in customAttributes)
+    model.CustomerAttributes.Add(attribute);
+```
+
+No package, no `System.Linq` equivalent needed — `IEnumerable<T>` has no `ForEach` in the BCL by
+design.
+
+### 19.4 Final notes — intentional, no future fix needed
+
+- **`CopySqlCeBinaries` deleted.** It copied `Microsoft.SqlServer.Compact` `x86`/`amd64`
+  `NativeBinaries` into the output. SQL CE is out of scope project-wide (design §10, and the
+  `Nop.Data` note that `EfDataProviderManager` now throws `NopException` for a `"sqlce"`
+  provider name), and both `EntityFramework.SqlServerCompact` and `Microsoft.SqlServer.Compact`
+  are gone.
+- **`CreatePluginsBinDirectory` deleted, and the `<Folder Include="Plugins\bin\" />`
+  placeholder with it.** Verified harmless: `PluginManager.Initialize()` calls
+  `Directory.CreateDirectory` for both `~/Plugins` and `~/Plugins/bin`
+  (`Nop.Core/Plugins/PluginManager.cs` lines 84–85), so the directory is created on demand. The
+  target was already vestigial in 3.90 — it copied `Content\Files\Index.htm`, and
+  `Content/Files/` **does not exist in this tree**, so the `Copy` was a no-op saved only by
+  `ContinueOnError="true"`.
+- **`MvcBuildViews` deleted.** It ran `<AspNetCompiler VirtualPath="temp" …/>`. There is no
+  `aspnet_compiler` on .NET; the Razor SDK compiles views as part of the build. The property was
+  `false` in this project, so the target never fired.
+- **No explicit `FrameworkReference`.** `Microsoft.NET.Sdk.Web` adds
+  `Microsoft.AspNetCore.App` implicitly and restating it fails with **`NETSDK1086`**. This is
+  the one place the `Nop.Web.Framework` pattern must *not* be copied — that project is on
+  `Microsoft.NET.Sdk` and therefore declares it by hand.
+- **`Properties/AssemblyInfo.cs` KEPT** (deletion is task 7.5), consistent with the
+  solution-wide `GenerateAssemblyInfo=false` decision from task 2.3. `RootNamespace` and
+  `AssemblyName` were both dropped as redundant — both were `Nop.Web`, which is the SDK default
+  derived from the file name.
+- **No solution-file edit was needed.** `NopCommerce.sln` already records `Nop.Web` under the
+  plain C# project GUID `{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}`; the Web Application Project
+  flavour GUID `{349c5851-…}` lived only in the csproj's `ProjectTypeGuids`. Task **18.1** owns
+  the solution file.
+- **No `Nop.Admin` `ProjectReference` was added, and none was removed.** The legacy file had
+  exactly four project references (`Nop.Core`, `Nop.Data`, `Nop.Services`,
+  `Nop.Web.Framework`) and no admin reference — confirming design §6's sibling relationship. In
+  3.90 `Nop.Admin` merely dropped its build output into `Nop.Web\bin` as the MVC `Admin` area,
+  a build/deploy relationship that task **8.2** re-expresses as `MapAreaControllerRoute`
+  contributed through `IRouteProvider`.
+- **`Web.config`, `Web.Debug.config`, `Web.Release.config`, `Views/Web.config`,
+  `Themes/DefaultClean/Views/Web.config` and `Themes/DefaultClean/theme.config` are all picked
+  up by the Web SDK's `**\*.config` default `Content` glob** and were left untouched. They are
+  read-only as far as 7.1 is concerned: **7.4** owns `Web.config` (including removing the
+  ImageResizer `resizer` `configSections` declaration) and **7.5** owns deleting the two
+  `Views/Web.config` files. Harmless during build; the XDT `.Debug`/`.Release` transforms are a
+  Web Application Project feature the Web SDK does not run.
+- **Confirmed absent, nothing to decide:** no file under `Nop.Web` (excluding `Administration/`)
+  references `System.Drawing`, `ImageResizer`, `System.Runtime.Caching`, `AutoMapper`,
+  `System.Configuration`/`ConfigurationManager`, `System.Data.Entity`, `OfficeOpenXml`,
+  `iTextSharp`, `MaxMind`, `Newtonsoft.Json`, `System.Linq.Dynamic`, `Owin`, `System.Web.Http`,
+  `Microsoft.Data.OData` or `System.Web.Optimization`. In particular **Nop.Web never bound to
+  the bundling API at all** — that binding lived entirely in `Nop.Web.Framework`'s
+  `UI/PageHeadBuilder.cs`, already re-based by task 6.3 — and **no `SixLabors.ImageSharp`
+  reference is needed here** (unlike `Nop.Admin` at task 8.1, whose `RoxyFilemanController`
+  does use imaging).
+
+
+
+---
+
+# Nop.Web — hosting model: Global.asax → Program.cs (task 7.2)
+
+Task 7.2 is the task every earlier stage deferred its host-side wiring to. It **closes 17 open
+deferrals** and narrows two more. It does **not** reach a clean compile and was not meant to:
+gate 7.6 is 7.3's and 7.4's to reach.
+
+| Measurement | Value |
+|---|---|
+| errors at start (7.1 handover, re-measured) | **1117** across 86 files |
+| errors after deleting `Global.asax`/`Global.asax.cs` (stage A) | **1110** |
+| errors at end (stages B, C, D) | **1110** — every host file added by this task contributes **0** |
+| errors in files 7.2 owns | **0** — `Program.cs`, `Infrastructure/NopHostedEngine.cs`, `Infrastructure/NopErrorLoggingMiddleware.cs`, `Infrastructure/SuppressImplicitRequiredValueTypeMetadataProvider.cs` |
+| residual error composition (unique, MSBuild double-prints) | **1001 `CS0246` + 84 `CS0234` + 8 `RZ2005` + 8 `RZ1011` + 4 `RZ1002` + 4 `CS0535` + 1 `CS0103`** |
+| residual root causes | **only two**: `System.Web.Mvc` (71 sites) and `System.Web.Routing` (13 sites), plus the Razor `@helper`/attribute-directive family and `WebGrease` (deferral 41). **`StackExchange.Profiling`, `FluentValidation.Mvc` and `System.Web.Optimization` are now at zero occurrences** |
+| residual error distribution | `Models` 32 files, `Controllers` 28, `Factories` 11, `Views` 8, `Infrastructure` 4 (the route providers), `Extensions` 2 — i.e. **100% task 7.3**, nothing left for the host |
+| restore | clean — **0** `NU19*`, **0** `error MSB*` |
+
+## 19. Verification — the probe, and the masking it exposed
+
+**Roslyn masking is not theoretical here, and it was measured.** 1110 declaration-phase errors
+remain, so method bodies in `Program.cs` never bind during a `Nop.Web` build. A throwaway probe
+project (`/tmp/probe72`, `Microsoft.NET.Sdk.Web`, compiling **only** this task's four files against
+`Nop.Core`/`Nop.Data`/`Nop.Services`/`Nop.Web.Framework` — **no stubs were needed**, because none of
+the four references any type owned by 7.3/7.4) was built in the
+`mcr.microsoft.com/dotnet/sdk:10.0` container.
+
+The probe was validated the way 6.2/6.3/6.4 validated theirs — by planting a deliberate bad call:
+
+| Build | Sees `app.DeliberateProbeCanaryDoesNotExist()` |
+|---|---|
+| `Nop.Web.csproj` | **NO** — error count stayed at exactly **1110** |
+| probe | **YES** — `CS1061` at `Program.cs(132,17)` |
+
+So the probe binds bodies and the main build does not. Canary reverted, probe deleted;
+`git status` shows only the intended files.
+
+**With bodies binding, the probe reported 0 errors / 0 warnings in all four files.**
+
+### 19.1 The probe was then RUN, and asserted 28 runtime facts — all PASS
+
+A compile cannot show that a registration is *reached*. Deferral 11.20 in particular is
+security-relevant (`ModelState.IsValid` returns **true for invalid input** until the
+FluentValidation provider is in `MvcOptions`), so it was asserted rather than assumed. The probe
+executed the real `Program.cs` prologue against a scratch content root:
+
+| Assertion | Result |
+|---|---|
+| `NopHostingExtensions.ContentRootConfigured` | ✅ |
+| `CommonHelper.MapPath("~/App_Data/x")` resolves under the content root, not `bin/` | ✅ |
+| `NopConfigurationManager.Configuration` non-null | ✅ |
+| `PluginManager.ReferencedPlugins` non-null (deferral 1.1 — plugin discovery **fired**) | ✅ 0 plugins in the scratch root |
+| `engine.ContainerManager` assigned by the build callback | ✅ |
+| **`engine.ContainerManager.Container` is reference-equal to `app.Services.GetAutofacRoot()`** | ✅ **ONE container** |
+| `ContainerManager.CurrentScopeProvider` assigned (deferral 1.3) | ✅ |
+| `EngineContext.Current` is the hosted engine, and resolves `IWebHelper` | ✅ |
+| `MvcOptions.ModelValidatorProviders` contains `NopFluentValidationModelValidatorProvider` | ✅ `Default…, DataAnnotations…, NopFluentValidation…` |
+| `NopMetadataProvider` in `ModelMetadataDetailsProviders` | ✅ |
+| `NopModelBinderProvider` at `ModelBinderProviders[0]` | ✅ |
+| the implicit-required suppressor runs **after** `DataAnnotationsMetadataProvider` | ✅ `… → DataAnnotationsMetadataProvider → SuppressImplicitRequiredValueTypeMetadataProvider → HasValidators…` |
+| a non-nullable `int` member has `IsRequired == false` (3.90 parity) | ✅ |
+| a non-nullable `int` member with explicit `[Required]` still has `IsRequired == true` | ✅ |
+| `JsonOptions.JsonSerializerOptions.PropertyNamingPolicy == null` (PascalCase) | ✅ |
+| `RazorViewEngineOptions.ViewLocationExpanders[0] is ThemeableViewLocationExpander` | ✅ |
+| `Cookies` scheme registered → `CookieAuthenticationHandler` | ✅ |
+| the four `<forms>` values carried over | ✅ `NOPCOMMERCE.AUTH` / `/login` / `30.00:00:00` (43200 min) / sliding `True` / `SecurePolicy=SameAsRequest` |
+| `IHttpContextAccessor`, `IAntiforgery`, `IFileVersionProvider` resolvable | ✅ |
+| `IHostApplicationLifetime` resolvable **from the nopCommerce container** (deferral 1.6) | ✅ |
+| `ITempDataProvider` registered (deferral 11.28) | ✅ `CookieTempDataProvider` |
+| `ISessionStore` registered (deferral 7.15) | ✅ |
+| `SqlServerDataProvider.DatabaseInitializer` null **before** startup tasks | ✅ confirms the ordering constraint in `InitializeDatabaseSchema` |
+| `engine.RunStartupTasks(nopConfig)` executes without throwing | ✅ |
+
+## 20. `Global.asax` / `Global.asax.cs` are DELETED — task 7.5's scope shrinks
+
+Both files carried `System.Web.Mvc`, `System.Web.Routing`, `FluentValidation.Mvc` and
+`StackExchange.Profiling` and were the subject of this task, so deleting them here rather than at
+7.5 was unavoidable. `tasks.md` step 7.5 has been annotated. `Properties/AssemblyInfo.cs` and the
+`Views/Web.config` files are **untouched** and remain 7.5's.
+
+Where each of the eight `MvcApplication` members went:
+
+| 3.90 member | Now |
+|---|---|
+| `Application_Start` → `EngineContext.Initialize(false)` | `Program.Main`: `new NopHostedEngine()` + `EngineContext.Replace` + `ConfigureContainer` + `engine.RunStartupTasks(nopConfig)` (§21) |
+| `Application_Start` → `ViewEngines.Engines.Clear()/Add(new ThemeableRazorViewEngine())` | `AddNopFramework` → `RazorViewEngineOptions.ViewLocationExpanders.Insert(0, new ThemeableViewLocationExpander())` (deferral 30) |
+| `Application_Start` → `ModelMetadataProviders.Current = new NopMetadataProvider()` | `AddNopFramework` → `MvcOptions.ModelMetadataDetailsProviders` (deferral 11.21) |
+| `Application_Start` → `AreaRegistration.RegisterAllAreas()` + `RegisterRoutes(RouteTable.Routes)` | `app.UseNopPipeline()` → `UseNopEndpoints()` → `IRoutePublisher` + the `Default` route at `WithOrder(int.MaxValue)` |
+| `Application_Start` → `DataAnnotationsModelValidatorProvider.AddImplicitRequiredAttributeForValueTypes = false` | new `SuppressImplicitRequiredValueTypeMetadataProvider` (§22) |
+| `Application_Start` → `ModelValidatorProviders.Providers.Add(new FluentValidationModelValidatorProvider(new NopValidatorFactory()))` | `AddNopFramework` → `MvcOptions.ModelValidatorProviders` (deferral 11.20) |
+| `Application_Start` → `TaskManager.Instance.Initialize()/Start()` | `Program.StartScheduledTasks()` |
+| `Application_Start` → `logger.Information("Application started")` | `Program.LogApplicationStart()` |
+| `Application_Start` → `ServicePointManager.SecurityProtocol = Tls12`, `MvcHandler.DisableMvcResponseHeader = true`, `GlobalFilters.Add(new ProfilingActionFilter())` | **not ported** — TLS 1.2+ is the .NET default, `X-AspNetMvc-Version` does not exist, MiniProfiler is dropped (§17.8) |
+| `RegisterRoutes` → `IgnoreRoute("favicon.ico")`, `IgnoreRoute("{resource}.axd/{*pathInfo}")` | **not ported** — `UseStaticFiles` serves `favicon.ico` before routing; there are no `.axd` handlers |
+| `Application_BeginRequest` (install redirect + both early exits) | `InstallUrlMiddleware`, via `UseNopInstallUrl()` (written by 6.4) |
+| `Application_BeginRequest`/`EndRequest` MiniProfiler start/stop | **not ported** (§17.8). `StoreInformationSettings.DisplayMiniProfilerInPublicStore` is now inert |
+| `Application_AuthenticateRequest` → `SetWorkingCulture()` | `WorkingCultureMiddleware`, via `UseNopWorkingCulture()` (written by 6.4), placed **after** `UseAuthentication()` |
+| `Application_Error` presentation | `UseDeveloperExceptionPage()` in Development, else `UseExceptionHandler(...)` serving `~/ErrorPage.htm` — the file `<customErrors defaultRedirect>` named (§23) |
+| `Application_Error` 404 → `errorController.Execute(routeData)` | `UseStatusCodePagesWithReExecute("/page-not-found")` — the route `RouteProvider` registers for `Common/PageNotFound` |
+| `Application_Error` → `LogException` | new `NopErrorLoggingMiddleware` (§23) |
+
+## 21. `NopHostedEngine` — why a new type, and why two phases
+
+**File: `src/Presentation/Nop.Web/Infrastructure/NopHostedEngine.cs`.**
+
+§17.5 records the intended integration exactly: *"`CreateBuilder(services)` runs
+`Populate(services)` first, then the `ConfigureContainer` callbacks (which is where `NopEngine` runs
+the `IDependencyRegistrar`s), then `Build()`"*. **But `NopEngine.Initialize` as written constructs
+its own `ContainerBuilder` and calls `Build()` on it**, and §17.4b forbids changing
+`IEngine`/`NopEngine`/`ContainerManager` — all three live in `Nop.Core`, which passed gate 2.5 and is
+committed.
+
+So a naive `EngineContext.Initialize(false)` from `Program.cs` would produce **two containers**, and
+that is a correctness failure, not untidiness:
+
+1. every `SingleInstance()` registration would exist twice — two `MemoryCacheManager`s, two settings
+   caches, two `IWorkContext` graphs;
+2. **deferral 1.3 would regress into something worse than it was.** 6.4's `DependencyRegistrar`
+   build callback sets `ContainerManager.CurrentScopeProvider` to
+   `() => HttpContext.RequestServices.GetService<ILifetimeScope>()` — a scope of the **host's**
+   container — while `ContainerManager.Container` would be nopCommerce's. Every
+   `EngineContext.Current.Resolve<T>()` during a request would resolve out of a container with no
+   nopCommerce registrations in it. Silently, and only at runtime.
+
+`NopHostedEngine` is therefore a `NopEngine` subclass **in `Nop.Web`** that registers into the
+host's builder and never builds. `Nop.Core` is untouched. The probe asserted reference-equality of
+the two containers (§19.1).
+
+Two phases, because container construction straddles the host's build boundary:
+
+| Phase | Called from | Does |
+|---|---|---|
+| `RegisterInto(ContainerBuilder, NopConfig)` | `builder.Host.ConfigureContainer<ContainerBuilder>(...)` | overridden `RegisterDependencies` (base body minus the two statements that create and build a private container) + base `RegisterMapperConfiguration`, plus a `RegisterBuildCallback` that captures the built `IContainer` into `ContainerManager` |
+| `RunStartupTasks(NopConfig)` | `Program.Main`, after `builder.Build()` | honours `NopConfig.IgnoreStartupTasks`, then runs `IStartupTask`s |
+
+`RunStartupTasks()` (the protected, parameterless one) is also overridden: the base version reads
+`NopEngine`'s **private** container-manager field, which this subclass deliberately leaves null, so
+inheriting it would `NullReferenceException`.
+
+`IEngine`, `NopEngine`, `EngineContext`, `ContainerManager` and `IDependencyRegistrar` all keep
+their exact signatures, as §17.4b requires. `Nop.Web`'s own
+`Infrastructure/DependencyRegistrar.cs` is **unmodified** and is still found by the
+`typeFinder.FindClassesOfType<IDependencyRegistrar>()` scan — `NopEngine` is not bypassed, it is
+subclassed.
+
+**Autofac.Mvc5 is fully gone at the host level too:** `builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory())`
+replaces `AutofacDependencyResolver`/`RequestLifetimeScopeProvider`, and ASP.NET Core's per-request
+scope **is** the Autofac request `ILifetimeScope`.
+
+## 22. `SuppressImplicitRequiredValueTypeMetadataProvider` — a parity item that would otherwise regress silently
+
+**File: `src/Presentation/Nop.Web/Infrastructure/SuppressImplicitRequiredValueTypeMetadataProvider.cs`.**
+
+`Global.asax.cs` line 71 set
+`DataAnnotationsModelValidatorProvider.AddImplicitRequiredAttributeForValueTypes = false`, so a
+blank `int`/`decimal`/`bool` field produced **no** validation error and FluentValidation was the
+single source of truth for what is mandatory.
+
+ASP.NET Core has no such switch, and its `DataAnnotationsMetadataProvider` sets
+`ValidationMetadata.IsRequired = true` for every non-nullable value-typed member. Dropping the line
+would have been a **behaviour regression across the whole storefront** — registration, checkout and
+every admin form rejecting input 3.90 accepted, with messages no nopCommerce validator produced.
+
+The supported fix is a later `IValidationMetadataProvider` that clears the flag. Ordering is
+load-bearing and was verified live, not reasoned about:
+`AddControllersWithViews(configure)` applies the caller's `MvcOptions` delegate **after** the
+framework's own option setups, so a provider contributed through
+`AddNopFramework(..., configureMvc: ...)` runs after `DataAnnotationsMetadataProvider` and wins.
+An explicit `[Required]` is respected — the MVC 5 switch only suppressed the *implicit* attribute.
+
+## 23. `Application_Error` split three ways, and `Log404Errors` rescued
+
+**File: `src/Presentation/Nop.Web/Infrastructure/NopErrorLoggingMiddleware.cs`** plus the pipeline
+block in `Program.cs`.
+
+`Application_Error` did three things that belong to three different ASP.NET Core mechanisms
+(presentation, 404 re-execution, logging). The non-obvious part is the third.
+
+3.90's `LogException` had a 404 rule — *"ignore 404 HTTP errors ... unless
+`CommonSettings.Log404Errors`"* — and in System.Web a 404 arrived as an `HttpException`, so one
+`catch` covered both cases. **In ASP.NET Core a 404 is a status code, not an exception: nothing
+throws.** An exception-only handler would therefore have left `CommonSettings.Log404Errors`
+permanently dead — a setting the admin UI still exposes. `NopErrorLoggingMiddleware` observes both
+paths: a `catch` for real exceptions (logged, then **rethrown** — it observes, it does not handle),
+and an inspection of `Response.StatusCode == 404` after `_next`, which applies the `Log404Errors`
+check and the static-resource skip.
+
+Everything else is 3.90 verbatim: nothing is logged before the database is installed, the customer
+comes from `IWorkContext.CurrentCustomer`, and a failure *inside* logging is swallowed (the database
+is the log sink and is usually the thing that just failed).
+
+**Presentation:** `<customErrors defaultRedirect="errorpage.htm" mode="RemoteOnly"/>` becomes
+`UseDeveloperExceptionPage()` in Development and, otherwise, an `UseExceptionHandler` branch that
+sends `~/ErrorPage.htm` — the very file `defaultRedirect` named. It is sent with
+`Response.SendFileAsync(CommonHelper.MapPath("~/ErrorPage.htm"))` rather than resolved through the
+static-file middleware, because the static asset trees are still at their 3.90 locations outside
+`wwwroot` (deferral 7.1-5/40).
+
+**Known imprecision, accepted:** `UseStatusCodePagesWithReExecute("/page-not-found")` re-executes
+for *any* empty-bodied 4xx/5xx, where 3.90 special-cased 404 and sent everything else to
+`errorpage.htm`. In practice 500s already have a body from the exception handler, so only the
+uncommon bare 403/400 differs.
+
+## 24. Deferrals CLOSED by task 7.2
+
+Each row names the line of code that closes it. All are in
+`src/Presentation/Nop.Web/Program.cs` unless stated.
+
+| # | Deferral | Closed by |
+|---|---|---|
+| **1.1** | Plugin discovery never runs | `builder.Environment.UseNopHostingEnvironment(builder.Configuration)` — `initializePlugins` defaults to `true`. **Verified fired** (§19.1): `PluginManager.ReferencedPlugins` is non-null after the call. Placed **before** `AddNopFramework()`, which is what deferral 1.2 requires |
+| **1.2** | Plugin assemblies invisible to the Razor compiler | the call-order guarantee above + `AddNopFramework` → `ConfigureApplicationPartManager(AddPluginApplicationParts)` |
+| **1.3** | Per-request DI scope not shared within a request | `builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory())` makes 6.4's build callback fire on the **host's** container. **Verified**: single container, `CurrentScopeProvider` assigned |
+| **1.4** | Configuration source unset | the `UseNopHostingEnvironment(builder.Configuration)` argument. Narrowed only — 7.4 still owns authoring `appsettings.json` |
+| **1.5** | `CommonHelper.MapPath` resolves under `bin/` | same call, first statement. **Verified**: `MapPath("~/App_Data/x")` lands under the content root |
+| **1.6** | `WebHelper.RestartAppDomain` throws | `UseServiceProviderFactory` + `Populate`. **Verified**: `IHostApplicationLifetime` resolvable from the nopCommerce container |
+| **4.8** | Schema initializer never invoked | `Program.InitializeDatabaseSchema()` — `SqlServerDataProvider.DatabaseInitializer.InitializeDatabase(context)`, called **after** `RunStartupTasks` because `EfStartUpTask` (Order −1000) is what publishes the initializer. Resolved through an explicitly disposed `ILifetimeScope` (`IDbContext` is `InstancePerLifetimeScope` and there is no request scope at startup) |
+| **7.13** | Cookie authentication not configured | `AddNopFramework(builder.Configuration)` + `UseNopPipeline()`'s `UseAuthentication()`. **Verified**: scheme present, all four `<forms>` values correct |
+| **7.14** | `IHttpContextAccessor` not registered | `AddNopFramework`. **Verified resolvable** |
+| **7.15** | Session state not configured | `AddNopFramework` + `UseNopPipeline()`'s `UseSession()`. **Verified**: `ISessionStore` registered |
+| **11.20** | FluentValidation not hooked into model validation (**SECURITY**) | `AddNopFramework`. **Verified present in `MvcOptions.ModelValidatorProviders`** — asserted, not assumed |
+| **11.21** | `NopMetadataProvider` not registered | `AddNopFramework`. **Verified** |
+| **11.22** | `NopModelBinderProvider` not registered | `AddNopFramework`. **Verified at index 0** |
+| **11.23** | `JsonResult` camelCase | `AddNopFramework` → `AddJsonOptions(PropertyNamingPolicy = null)`. **Verified** |
+| **11.25** | `ChallengeResult` throws | `UseNopPipeline()`'s `UseAuthentication()` (same handler as 7.13) |
+| **11.26** | `IAntiforgery` must be resolvable | `AddNopFramework`. **Verified resolvable** |
+| **11.28** | `TempData` needs a provider | satisfied by the framework default. **Verified**: `CookieTempDataProvider`. Note it does **not** depend on session, so it is independent of 7.15 |
+| **11.29 / 29** | `IsCurrentConnectionSecured()` behind a TLS proxy | `app.UseForwardedHeaders()`, first in the pipeline; options from `AddNopFramework` |
+| **14.30** | Theming stops working (**was HIGHEST**) | `AddNopFramework` → `RazorViewEngineOptions`. **Verified**: `ThemeableViewLocationExpander` at index 0 |
+| **14.31** | `PageHeadBuilder` needs two services | `AddNopFramework`. **Verified**: `IFileVersionProvider` and `IHttpContextAccessor` both resolvable |
+| **38 / 7.1-3** | No `launchSettings.json` | `src/Presentation/Nop.Web/Properties/launchSettings.json` — `Project` and `IIS Express` profiles on 3.90's `http://localhost:2451`, `ASPNETCORE_ENVIRONMENT=Development`, anonymous auth, no Windows auth |
+| **37 / 7.1-2** | MiniProfiler — the `Global.asax.cs` half | file deleted. `Views/Shared/_Root.Head.cshtml` lines 10–11 and 54–56 **remain open for 7.3** |
+
+### 24.1 `<forms requireSSL>` — what 3.90's `Web.config` actually said
+
+**`requireSSL="false"`.** Read directly from `src/Presentation/Nop.Web/Web.config`:
+
+```xml
+<forms name="NOPCOMMERCE.AUTH" loginUrl="~/login" protection="All"
+       timeout="43200" path="/" requireSSL="false" slidingExpiration="true" />
+```
+
+So `CookieSecurePolicy.Always` is **not** set, and `NopAuthenticationConfig.RequireSsl`'s `false`
+default is correct parity. Critically, `Program.cs` calls the **`IConfiguration` overload** of
+`AddNopFramework`, not the `bool requireSsl` one — so the value is a configuration setting bindable
+from an `Authentication:RequireSsl` key rather than a literal in `Program.cs`. **Any deployment
+whose own `Web.config` had `requireSSL="true"` MUST set that key to `true`, or the port is a
+security downgrade** (deferral 7.13). `protection="All"` has no counterpart and needs none — the
+claims cookie is protected by ASP.NET Core Data Protection; §7.13's key-ring caveat for
+multi-instance deployments still stands and is 7.4's.
+
+### 24.2 Deferral 4.11 — reviewed at 7.2 as §7.19 asked, no change made
+
+`ExecuteSqlCommand(doNotEnsureTransaction: false)` now opens a real transaction, and §7.19 flagged
+`SqlFileInstallationService.ExecuteSqlFile` for review "at 7.2 when installation is first exercised
+against a real database". Installation has **not** been exercised against a real database in this
+task (no database is reachable from the build container), so the per-batch atomicity question is
+**still open** and moves to task **7.7** (smoke check). No code was changed.
+
+## 25. NEW deferrals opened by task 7.2
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 7.2-1 | Startup now fails fast on an unreachable database | 7.7 (decision) | Medium |
+| 7.2-2 | `IRouteProvider` implementations still unported, so `UseNopEndpoints()` cannot run | 7.3 | **High — blocks any request** |
+| 7.2-3 | `TaskManager.Instance.Stop()` is never called on shutdown | none (3.90 parity) | Low |
+| 7.2-4 | `appsettings.json` does not exist, so every bindable setting is at its default | 7.4 | Medium |
+
+### 7.2-1 Startup now fails fast on an unreachable database
+
+`Program.InitializeDatabaseSchema()` deliberately does **not** swallow exceptions.
+`CreateTablesIfNotExist.InitializeDatabase` throws `NopException("No database instance")` when
+`Database.CanConnect()` is false, so a misconfigured or temporarily unreachable database now takes
+the **host** down at startup, where EF6 deferred the failure to the first query and 3.90 rendered an
+error page.
+
+- **Why it was left this way:** silently continuing recreates precisely the failure mode deferral 4.8
+  exists to prevent — a store that boots happily and then throws "Invalid object name" on the first
+  page.
+- **The cost:** a supervised process (ANCM / systemd / container orchestrator) will restart-loop
+  instead of serving `ErrorPage.htm` while the database is down.
+- **Decision for 7.7:** either accept it, or wrap the call and defer to a health check. It is a
+  three-line change either way.
+- The call is otherwise cheap and idempotent on an installed store — it probes
+  `INFORMATION_SCHEMA.TABLES` for `Customer`/`Discount`/`Order`/`Product`/`ShoppingCartItem` and
+  returns immediately.
+
+### 7.2-2 The four `IRouteProvider` implementations are still unported — `UseNopEndpoints()` cannot run
+
+`UseNopEndpoints()` resolves `IRoutePublisher` and calls `RegisterRoutes(IEndpointRouteBuilder)`.
+`Nop.Web`'s four providers still implement the **MVC 5** signature and are the source of the four
+`CS0535` errors in the residual count:
+
+- `Infrastructure/RouteProvider.cs`
+- `Infrastructure/GenericUrlRouteProvider.cs`
+- `Infrastructure/BackwardCompatibility1XRouteProvider.cs`
+- `Infrastructure/BackwardCompatibility2XRouteProvider.cs`
+
+These were **left to task 7.3 on purpose** — `tasks.md` step 7.3 owns *"Register routing over
+endpoint routing"*, and §17.4a already documents the exact mechanical recipe plus its four gotchas
+(drop `string[] namespaces`; `UrlParameter.Optional` → `{id?}`; **`GenericUrlRouteProvider` needs
+`.WithOrder(1000)` on its seven by-name routes or endpoint routing raises
+`AmbiguousMatchException` where MVC 5 resolved by registration order**; and the five
+empty-named routes in `BackwardCompatibility2XRouteProvider`).
+
+Until they are ported the host builds its pipeline but no request can be routed. This is the single
+largest thing standing between 7.2's output and a running store.
+
+Also still owned by 7.3, from the same §17.4a list:
+`Nop.Web/Administration/Controllers/SettingController.cs` ~line 2024's
+`RouteTable.Routes.ClearSeoFriendlyUrlsCachedValueForRoutes()` (now a no-op; replace with
+`LocalizedRoute.ClearSeoFriendlyUrlsCachedValue()` or delete) — though that file is `Nop.Admin`'s,
+i.e. task 8.x.
+
+### 7.2-3 `TaskManager.Instance.Stop()` is never called on shutdown
+
+`Program.StartScheduledTasks()` reproduces `Application_Start`'s
+`TaskManager.Instance.Initialize()` + `Start()`, and `TaskManager` was deliberately **not** rebased
+onto `IHostedService`: it owns its own `TaskThread`/`System.Threading.Timer` machinery and lives in
+`Nop.Services`, which has passed its clean-compile gate. Nothing calls `Stop()` — which is **3.90
+parity**, since `Application_End` did not call it either. Converting `TaskManager` to an
+`IHostedService` (which would give it ordered shutdown for free) is a legitimate post-migration
+follow-up.
+
+### 7.2-4 `appsettings.json` does not exist
+
+`WebApplication.CreateBuilder` already wires the configuration **sources**
+(`appsettings.json` and `appsettings.{Environment}.json`, both optional, plus environment variables,
+command line, and user secrets in Development), and `Program.cs` publishes that `IConfiguration` on
+`NopConfigurationManager` — so deferral 1.4's *seam* is closed. But **no `appsettings.json` file was
+authored**: that is explicitly task **7.4**'s scope (`tasks.md` step 7.4), and guessing at it here
+would collide with 7.4's `Web.config` harvest.
+
+Consequence today: every bound setting is at its default. The sections 7.4 must author, and where
+each comes from:
+
+| Section | Source in `Nop.Web/Web.config` | Consumer |
+|---|---|---|
+| `NopConfig` | the `<NopConfig>` custom section | `NopConfigurationManager.GetNopConfig()` — Redis, Azure blob, `UserAgentStringsPath`, web farms, installation |
+| `appSettings` | `<appSettings>` — `Use_HTTP_CLUSTER_HTTPS`, `Use_HTTP_X_FORWARDED_PROTO`, `ForwardedHTTPheader`, `ClearPluginsShadowDirectoryOnStartup` | `NopConfigurationManager.GetAppSetting` |
+| `Authentication` | `<system.web><authentication><forms>` | `NopAuthenticationConfig` (§18.3) — **including `RequireSsl`, see §24.1** |
+
+Note the four legacy `appSettings` keys `owin:AutomaticAppStartup`, `webpages:Version`,
+`webpages:Enabled` and `PreserveLoginUrl` are System.Web/OWIN artifacts with no counterpart and
+should not be carried over. `ClientValidationEnabled` and `UnobtrusiveJavaScriptEnabled` are MVC 5
+view-level switches; their ASP.NET Core equivalent is
+`HtmlHelperOptions.ClientValidationEnabled`/`MvcViewOptions`, a 7.3/7.4 decision.
+
+## 26. Deferrals explicitly NOT closed by 7.2, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **32** | No `Widget` view component — `@Html.Widget(...)` throws | 7.3: `WidgetController.WidgetsByZone` → `WidgetViewComponent` |
+| **33 / 40 / 7.1-5** | Cache busting no-ops for assets outside `wwwroot`; static trees still at 3.90 locations | 7.3/7.4. `app.UseStaticFiles()` is registered, but `WebRootFileProvider` has nothing under it until the trees move or a composite `IFileProvider` is supplied. **This also interacts with 7.1-4**: widening the static root to the content root would expose `App_Data/Settings.txt` (the connection string) |
+| **35** | Minification is gone, nothing replaces it | post-migration |
+| **36 / 7.1-1** | Redis session state provider dropped | 7.4 — and 7.4 must harvest the connection string from `Web.config`'s commented-out `<sessionState>` **before** reducing that file, because it exists nowhere else |
+| **39 / 7.1-4** | `ExcludeFilesFromDeployment` publish shaping lost (**security-relevant**) | 7.4 |
+| **41** | `WebGrease.Css.Extensions.ForEach` load-bearing in `CustomerModelFactory` | 7.3 — still 1 error in the residual count |
+| **9 / 4.9** | `NopObjectContext` needs a real connection string | 3.4 (`Nop.Data.Tests` fixtures only) |
+| **4.10** | `GO`-batched `CreateDatabaseScript()` in four plugin contexts | 11.2, 13.1, 14.4, 15.1 |
+| **11.27** | `BaseNopModel.BindModel` no longer invoked | accepted, no override exists anywhere |
+| **18 / 7.18** | ImageSharp licence diagnostic | business decision |
