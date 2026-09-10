@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Web.Framework.Security;
 
 namespace Nop.Web.Controllers

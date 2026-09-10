@@ -1,10 +1,11 @@
-﻿using System;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Linq;
 using System.Security.Principal;
 using System.Threading;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Configuration;
@@ -177,8 +178,14 @@ namespace Nop.Web.Controllers
             if (DataSettingsHelper.DatabaseIsInstalled())
                 return RedirectToRoute("HomePage");
 
-            //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
+            //task 7.3: HttpServerUtility.ScriptTimeout has no ASP.NET Core counterpart and is
+            //not needed. It raised System.Web's per-request execution timeout, which only ever
+            //applied when <httpRuntime executionTimeout> was in force (i.e. not in debug builds).
+            //ASP.NET Core / Kestrel has no request execution timeout at all - the closest
+            //equivalents are the host's KeepAlive/RequestHeaders timeouts and IIS/ANCM's
+            //requestTimeout, both of which are host configuration (task 7.4), not something an
+            //action can set. Installation therefore runs untimed, which is strictly more
+            //permissive than 3.90 and cannot cause a premature abort.
 
 
             var model = new InstallModel
@@ -215,8 +222,14 @@ namespace Nop.Web.Controllers
             if (DataSettingsHelper.DatabaseIsInstalled())
                 return RedirectToRoute("HomePage");
 
-            //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
+            //task 7.3: HttpServerUtility.ScriptTimeout has no ASP.NET Core counterpart and is
+            //not needed. It raised System.Web's per-request execution timeout, which only ever
+            //applied when <httpRuntime executionTimeout> was in force (i.e. not in debug builds).
+            //ASP.NET Core / Kestrel has no request execution timeout at all - the closest
+            //equivalents are the host's KeepAlive/RequestHeaders timeouts and IIS/ANCM's
+            //requestTimeout, both of which are host configuration (task 7.4), not something an
+            //action can set. Installation therefore runs untimed, which is strictly more
+            //permissive than 3.90 and cannot cause a premature abort.
 
             if (model.DatabaseConnectionString != null)
                 model.DatabaseConnectionString = model.DatabaseConnectionString.Trim();
@@ -283,15 +296,27 @@ namespace Nop.Web.Controllers
             //the identity will be the anonymous user (typically IUSR_MACHINENAME) or the authenticated request user.
             var webHelper = EngineContext.Current.Resolve<IWebHelper>();
             //validate permissions
-            var dirsToCheck = FilePermissionHelper.GetDirectoriesWrite();
-            foreach (string dir in dirsToCheck)
-                if (!FilePermissionHelper.CheckPermissions(dir, false, true, true, false))
-                    ModelState.AddModelError("", string.Format(_locService.GetResource("ConfigureDirectoryPermissions"), WindowsIdentity.GetCurrent().Name, dir));
+            //task 7.3: guarded with OperatingSystem.IsWindows(), as task 6.5 recommended when it
+            //annotated FilePermissionHelper.CheckPermissions with [SupportedOSPlatform("windows")]
+            //(runtime-deferrals.md section 18.4). This is a real fix, not warning suppression:
+            //the ACL APIs behind CheckPermissions throw PlatformNotSupportedException off
+            //Windows, and WindowsIdentity.GetCurrent() sits OUTSIDE that method's swallowing
+            //try/catch - so on Linux the install page threw instead of rendering. Skipping the
+            //check off Windows is also the correct semantic: POSIX file permissions are not
+            //expressible as Windows ACLs, and the installer's subsequent writes will fail loudly
+            //if the directories really are not writable.
+            if (OperatingSystem.IsWindows())
+            {
+                var dirsToCheck = FilePermissionHelper.GetDirectoriesWrite();
+                foreach (string dir in dirsToCheck)
+                    if (!FilePermissionHelper.CheckPermissions(dir, false, true, true, false))
+                        ModelState.AddModelError("", string.Format(_locService.GetResource("ConfigureDirectoryPermissions"), WindowsIdentity.GetCurrent().Name, dir));
 
-            var filesToCheck = FilePermissionHelper.GetFilesWrite();
-            foreach (string file in filesToCheck)
-                if (!FilePermissionHelper.CheckPermissions(file, false, true, true, true))
-                    ModelState.AddModelError("", string.Format(_locService.GetResource("ConfigureFilePermissions"), WindowsIdentity.GetCurrent().Name, file));
+                var filesToCheck = FilePermissionHelper.GetFilesWrite();
+                foreach (string file in filesToCheck)
+                    if (!FilePermissionHelper.CheckPermissions(file, false, true, true, true))
+                        ModelState.AddModelError("", string.Format(_locService.GetResource("ConfigureFilePermissions"), WindowsIdentity.GetCurrent().Name, file));
+            }
 
             if (ModelState.IsValid)
             {

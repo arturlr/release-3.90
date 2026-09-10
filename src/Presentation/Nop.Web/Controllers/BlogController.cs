@@ -1,7 +1,7 @@
-﻿using System;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.ServiceModel.Syndication;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Blogs;
 using Nop.Core.Domain.Customers;
@@ -219,7 +219,6 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult BlogTags()
         {
             if (!_blogSettings.Enabled)
@@ -229,7 +228,6 @@ namespace Nop.Web.Controllers
             return PartialView(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult BlogMonths()
         {
             if (!_blogSettings.Enabled)
@@ -239,7 +237,6 @@ namespace Nop.Web.Controllers
             return PartialView(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult RssHeaderLink()
         {
             if (!_blogSettings.Enabled || !_blogSettings.ShowHeaderRssUrl)

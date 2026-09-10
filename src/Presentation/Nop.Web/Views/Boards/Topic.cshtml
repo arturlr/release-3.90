@@ -1,4 +1,4 @@
-﻿@model ForumTopicPageModel
+@model ForumTopicPageModel
 @using Nop.Web.Models.Boards;
 @using Nop.Web.Models.Common;
 @{
@@ -11,7 +11,7 @@
 }
 <div class="page forum-topic-page">
     @Html.Action("ForumBreadcrumb", new { forumTopicId = Model.Id })
-    @Html.Partial("_ForumHeader")
+    @await Html.PartialAsync("_ForumHeader")
     @Html.Widget("boards_topic_after_header", Model.Id)
     @Html.AntiForgeryToken()
     <div class="topic-name">
@@ -93,7 +93,7 @@
             });
         }
         @Html.Widget("boards_topic_top", Model.Id)
-        @if (!MvcHtmlString.IsNullOrEmpty(pager))
+        @if (!pager.IsNullOrEmpty())
         {
             <div class="pager upper">
                 @pager
@@ -104,7 +104,7 @@
     <div class="topic-posts">
         @foreach (var post in @Model.ForumPostModels)
         {
-            Html.RenderPartial("_ForumPost", post);
+            await Html.RenderPartialAsync("_ForumPost", post);
         }
     </div>
 
@@ -139,7 +139,7 @@
                 </script>
             }
         </div>
-        @if (!MvcHtmlString.IsNullOrEmpty(pager))
+        @if (!pager.IsNullOrEmpty())
         {
             <div class="pager lower">
                 @pager

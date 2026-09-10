@@ -1,4 +1,4 @@
-﻿@model InstallModel
+@model InstallModel
 @using Nop.Core.Infrastructure;
 @using Nop.Web.Models.Install;
 @using Nop.Web.Infrastructure.Installation;
@@ -68,7 +68,7 @@
                         $('#installation-form').submit(function () {
                             if ($('#installation-form').valid()) {
                                 $("html, body").animate({ scrollTop: 0 }, 400);
-                                showThrobber('@Html.Raw(HttpUtility.JavaScriptStringEncode(ILS.GetResource("Installing")))');
+                                showThrobber('@Html.Raw(JavaScriptHelper.Encode(ILS.GetResource("Installing")))');
                                 $('input[type=submit]', this).attr('disabled', 'disabled');
                             }
                         });
@@ -77,7 +77,7 @@
                     $(document).ready(function () {
                         $('#restart-form').submit(function () {
                             $("html, body").animate({ scrollTop: 0 }, 400);
-                            showThrobber('@Html.Raw(HttpUtility.JavaScriptStringEncode("Restarting..."))');
+                            showThrobber('@Html.Raw(JavaScriptHelper.Encode("Restarting..."))');
                             $('input[type=submit]', this).attr('disabled', 'disabled');
                         });
                     });

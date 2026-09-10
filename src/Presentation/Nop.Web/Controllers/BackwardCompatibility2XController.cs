@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Services.Blogs;
 using Nop.Services.Catalog;
 using Nop.Services.News;

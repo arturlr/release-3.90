@@ -1,4 +1,4 @@
-﻿@model SearchBoxModel
+@model SearchBoxModel
 @using Nop.Web.Models.Catalog;
 @using (Html.BeginRouteForm("ProductSearch", FormMethod.Get, new { id = "small-search-box-form" }))
 {
@@ -10,7 +10,7 @@
         <script type="text/javascript">
             $("#small-search-box-form").submit(function(event) {
                 if ($("#small-searchterms").val() == "") {
-                    alert('@Html.Raw(HttpUtility.JavaScriptStringEncode(T("Search.EnterSearchTerms").Text))');
+                    alert('@Html.Raw(JavaScriptHelper.Encode(T("Search.EnterSearchTerms").Text))');
                     $("#small-searchterms").focus();
                     event.preventDefault();
                 }

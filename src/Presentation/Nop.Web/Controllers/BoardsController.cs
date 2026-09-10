@@ -1,8 +1,9 @@
-﻿using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel.Syndication;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Forums;
@@ -66,7 +67,6 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult ActiveDiscussionsSmall()
         {
             if (!_forumSettings.ForumsEnabled)
@@ -396,7 +396,7 @@ namespace Nop.Web.Controllers
             {
                 if (!_forumService.IsCustomerAllowedToDeleteTopic(_workContext.CurrentCustomer, forumTopic))
                 {
-                    return new HttpUnauthorizedResult();
+                    return new ChallengeResult();
                 }
                 var forum = _forumService.GetForumById(forumTopic.ForumId);
 
@@ -432,7 +432,7 @@ namespace Nop.Web.Controllers
 
             if (_forumService.IsCustomerAllowedToCreateTopic(_workContext.CurrentCustomer, forum) == false)
             {
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
             }
 
             var model = new EditForumTopicModel();
@@ -442,7 +442,6 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
         public virtual ActionResult TopicCreate(EditForumTopicModel model)
         {
             if (!_forumSettings.ForumsEnabled)
@@ -463,7 +462,7 @@ namespace Nop.Web.Controllers
                 {
                     if (!_forumService.IsCustomerAllowedToCreateTopic(_workContext.CurrentCustomer, forum))
                     {
-                        return new HttpUnauthorizedResult();
+                        return new ChallengeResult();
                     }
 
                     string subject = model.Subject;
@@ -568,7 +567,7 @@ namespace Nop.Web.Controllers
 
             if (!_forumService.IsCustomerAllowedToEditTopic(_workContext.CurrentCustomer, forumTopic))
             {
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
             }
 
             var model = new EditForumTopicModel();
@@ -578,7 +577,6 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
         public virtual ActionResult TopicEdit(EditForumTopicModel model)
         {
             if (!_forumSettings.ForumsEnabled)
@@ -604,7 +602,7 @@ namespace Nop.Web.Controllers
                 {
                     if (!_forumService.IsCustomerAllowedToEditTopic(_workContext.CurrentCustomer, forumTopic))
                     {
-                        return new HttpUnauthorizedResult();
+                        return new ChallengeResult();
                     }
 
                     string subject = model.Subject;
@@ -722,7 +720,7 @@ namespace Nop.Web.Controllers
             {
                 if (!_forumService.IsCustomerAllowedToDeletePost(_workContext.CurrentCustomer, forumPost))
                 {
-                    return new HttpUnauthorizedResult();
+                    return new ChallengeResult();
                 }
 
                 var forumTopic = forumPost.ForumTopic;
@@ -767,7 +765,7 @@ namespace Nop.Web.Controllers
 
             if (!_forumService.IsCustomerAllowedToCreatePost(_workContext.CurrentCustomer, forumTopic))
             {
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
             }
 
 
@@ -777,7 +775,6 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
         public virtual ActionResult PostCreate(EditForumPostModel model)
         {
             if (!_forumSettings.ForumsEnabled)
@@ -796,7 +793,7 @@ namespace Nop.Web.Controllers
                 try
                 {
                     if (!_forumService.IsCustomerAllowedToCreatePost(_workContext.CurrentCustomer, forumTopic))
-                        return new HttpUnauthorizedResult();
+                        return new ChallengeResult();
 
                     var text = model.Text;
                     var maxPostLength = _forumSettings.PostMaxLength;
@@ -887,7 +884,7 @@ namespace Nop.Web.Controllers
 
             if (!_forumService.IsCustomerAllowedToEditPost(_workContext.CurrentCustomer, forumPost))
             {
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
             }
 
             var model = _forumModelFactory.PreparePostEditModel(forumPost, false);
@@ -896,7 +893,6 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
         public virtual ActionResult PostEdit(EditForumPostModel model)
         {
             if (!_forumSettings.ForumsEnabled)
@@ -912,7 +908,7 @@ namespace Nop.Web.Controllers
 
             if (!_forumService.IsCustomerAllowedToEditPost(_workContext.CurrentCustomer, forumPost))
             {
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
             }
 
             var forumTopic = forumPost.ForumTopic;
@@ -1008,7 +1004,6 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult LastPost(int forumPostId, bool showTopic)
         {
             var forumPost = _forumService.GetPostById(forumPostId);
@@ -1016,7 +1011,6 @@ namespace Nop.Web.Controllers
             return PartialView(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult ForumBreadcrumb(int? forumGroupId, int? forumId, int? forumTopicId)
         {
             var model = _forumModelFactory.PrepareForumBreadcrumbModel(forumGroupId, forumId, forumTopicId);
@@ -1035,9 +1029,9 @@ namespace Nop.Web.Controllers
             return View(model);
         }
         [HttpPost, ActionName("CustomerForumSubscriptions")]
-        public virtual ActionResult CustomerForumSubscriptionsPOST(FormCollection formCollection)
+        public virtual ActionResult CustomerForumSubscriptionsPOST(IFormCollection formCollection)
         {
-            foreach (var key in formCollection.AllKeys)
+            foreach (var key in formCollection.Keys)
             {
                 var value = formCollection[key];
 

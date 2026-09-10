@@ -1,4 +1,3 @@
-﻿using System.Web.Mvc;
 using FluentValidation.Attributes;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
@@ -15,15 +14,12 @@ namespace Nop.Web.Models.Catalog
 
         public string ProductSeName { get; set; }
 
-        [AllowHtml]
         [NopResourceDisplayName("Products.EmailAFriend.FriendEmail")]
         public string FriendEmail { get; set; }
 
-        [AllowHtml]
         [NopResourceDisplayName("Products.EmailAFriend.YourEmailAddress")]
         public string YourEmailAddress { get; set; }
 
-        [AllowHtml]
         [NopResourceDisplayName("Products.EmailAFriend.PersonalMessage")]
         public string PersonalMessage { get; set; }
 

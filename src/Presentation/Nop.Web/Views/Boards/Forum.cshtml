@@ -1,4 +1,4 @@
-﻿@model ForumPageModel
+@model ForumPageModel
 @using Nop.Core.Domain.Forums;
 @using Nop.Web.Models.Boards;
 @using Nop.Web.Models.Common;
@@ -12,7 +12,7 @@
 }
 <div class="page forum-page">
     @Html.Action("ForumBreadcrumb", new { forumId = Model.Id })
-    @Html.Partial("_ForumHeader")
+    @await Html.PartialAsync("_ForumHeader")
     @Html.Widget("boards_forum_after_header", Model.Id)
     <div class="forum-info">
         <div class="forum-name">
@@ -65,7 +65,7 @@
                 RouteValues = new RouteValues { id = Model.Id, slug = Model.SeName }
             });
         }
-        @if (!MvcHtmlString.IsNullOrEmpty(pager))
+        @if (!pager.IsNullOrEmpty())
         {
             <div class="pager upper">
                 @pager
@@ -183,7 +183,7 @@
             </div>
         }
     </div>
-    @if (!MvcHtmlString.IsNullOrEmpty(pager))
+    @if (!pager.IsNullOrEmpty())
     {
         <div class="pager lower">
             @pager

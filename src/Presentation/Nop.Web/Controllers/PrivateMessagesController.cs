@@ -1,5 +1,6 @@
-﻿using System;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Forums;
@@ -64,7 +65,7 @@ namespace Nop.Web.Controllers
 
             if (_workContext.CurrentCustomer.IsGuest())
             {
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
             }
 
             var model = _privateMessagesModelFactory.PreparePrivateMessageIndexModel(page, tab);
@@ -72,7 +73,6 @@ namespace Nop.Web.Controllers
         }
 
         //inbox tab
-        [ChildActionOnly]
         public virtual ActionResult Inbox(int page, string tab)
         {
             var model = _privateMessagesModelFactory.PrepareInboxModel(page, tab);
@@ -80,7 +80,6 @@ namespace Nop.Web.Controllers
         }
 
         //sent items tab
-        [ChildActionOnly]
         public virtual ActionResult SentItems(int page, string tab)
         {
             var model = _privateMessagesModelFactory.PrepareSentModel(page, tab);
@@ -89,9 +88,9 @@ namespace Nop.Web.Controllers
 
         [HttpPost, FormValueRequired("delete-inbox"), ActionName("InboxUpdate")]
         [PublicAntiForgery]
-        public virtual ActionResult DeleteInboxPM(FormCollection formCollection)
+        public virtual ActionResult DeleteInboxPM(IFormCollection formCollection)
         {
-            foreach (var key in formCollection.AllKeys)
+            foreach (var key in formCollection.Keys)
             {
                 var value = formCollection[key];
 
@@ -118,9 +117,9 @@ namespace Nop.Web.Controllers
 
         [HttpPost, FormValueRequired("mark-unread"), ActionName("InboxUpdate")]
         [PublicAntiForgery]
-        public virtual ActionResult MarkUnread(FormCollection formCollection)
+        public virtual ActionResult MarkUnread(IFormCollection formCollection)
         {
-            foreach (var key in formCollection.AllKeys)
+            foreach (var key in formCollection.Keys)
             {
                 var value = formCollection[key];
 
@@ -148,9 +147,9 @@ namespace Nop.Web.Controllers
         //updates sent items (deletes PrivateMessages)
         [HttpPost, FormValueRequired("delete-sent"), ActionName("SentUpdate")]
         [PublicAntiForgery]
-        public virtual ActionResult DeleteSentPM(FormCollection formCollection)
+        public virtual ActionResult DeleteSentPM(IFormCollection formCollection)
         {
-            foreach (var key in formCollection.AllKeys)
+            foreach (var key in formCollection.Keys)
             {
                 var value = formCollection[key];
 
@@ -182,7 +181,7 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("HomePage");
 
             if (_workContext.CurrentCustomer.IsGuest())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var customerTo = _customerService.GetCustomerById(toCustomerId);
             if (customerTo == null || customerTo.IsGuest())
@@ -210,7 +209,7 @@ namespace Nop.Web.Controllers
 
             if (_workContext.CurrentCustomer.IsGuest())
             {
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
             }
 
             Customer toCustomer = null;
@@ -298,7 +297,7 @@ namespace Nop.Web.Controllers
 
             if (_workContext.CurrentCustomer.IsGuest())
             {
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
             }
 
             var pm = _forumService.GetPrivateMessageById(privateMessageId);
@@ -333,7 +332,7 @@ namespace Nop.Web.Controllers
 
             if (_workContext.CurrentCustomer.IsGuest())
             {
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
             }
 
             var pm = _forumService.GetPrivateMessageById(privateMessageId);

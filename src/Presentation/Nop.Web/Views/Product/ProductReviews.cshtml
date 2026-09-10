@@ -1,4 +1,4 @@
-﻿@model ProductReviewsModel
+@model ProductReviewsModel
 @using Nop.Web.Models.Catalog;
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
@@ -31,7 +31,7 @@
                 {
                     @Html.AntiForgeryToken()
                     var validationSummary = Html.ValidationSummary(true);
-                    if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+                    if (!validationSummary.IsNullOrEmpty())
                     {
                         <div class="message-error">@validationSummary</div>
                     }
@@ -120,7 +120,7 @@
                                     <span>@review.WrittenOnStr</span>
                                 </span>
                             </div>
-                            @Html.Partial("_ProductReviewHelpfulness", review.Helpfulness, new ViewDataDictionary())
+                            @await Html.PartialAsync("_ProductReviewHelpfulness", review.Helpfulness, Html.NewViewData())
                             @Html.Widget("productreviews_page_inside_review", review.Id)
                             @if (!String.IsNullOrEmpty(review.ReplyText))
                             {

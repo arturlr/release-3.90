@@ -1,4 +1,3 @@
-﻿using System.Web.Mvc;
 using FluentValidation.Attributes;
 using Nop.Core.Domain.Forums;
 using Nop.Web.Validators.Boards;
@@ -13,7 +12,6 @@ namespace Nop.Web.Models.Boards
 
         public bool IsEdit { get; set; }
 
-        [AllowHtml]
         public string Text { get; set; }
         public EditorType ForumEditor { get; set; }
 

@@ -1,4 +1,4 @@
-﻿@model ContactVendorModel
+@model ContactVendorModel
 @using Nop.Web.Models.Common;
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
@@ -26,7 +26,7 @@
             {
                 @Html.AntiForgeryToken()
                 var validationSummary = Html.ValidationSummary(true);
-                if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+                if (!validationSummary.IsNullOrEmpty())
                 {
                     <div class="message-error">@validationSummary</div>
                 }

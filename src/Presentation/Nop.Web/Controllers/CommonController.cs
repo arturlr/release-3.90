@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using Nop.Core;
 using Nop.Core.Domain;
 using Nop.Core.Domain.Common;
@@ -106,14 +106,16 @@ namespace Nop.Web.Controllers
         public virtual ActionResult PageNotFound()
         {
             this.Response.StatusCode = 404;
-            this.Response.TrySkipIisCustomErrors = true;
+            //task 7.3: HttpResponse.TrySkipIisCustomErrors has no ASP.NET Core counterpart and
+            //needs none. It existed to stop IIS replacing a response that already had a body
+            //with its own error page; ASP.NET Core responses are written by the app and IIS
+            //(via ANCM) does not substitute them.
             this.Response.ContentType = "text/html";
 
             return View();
         }
 
         //logo
-        [ChildActionOnly]
         public virtual ActionResult Logo()
         {
             var model = _commonModelFactory.PrepareLogoModel();
@@ -121,7 +123,6 @@ namespace Nop.Web.Controllers
         }
 
         //language
-        [ChildActionOnly]
         public virtual ActionResult LanguageSelector()
         {
             var model = _commonModelFactory.PrepareLanguageSelectorModel();
@@ -154,7 +155,14 @@ namespace Nop.Web.Controllers
             //language part in URL
             if (_localizationSettings.SeoFriendlyUrlsForLanguagesEnabled)
             {
-                string applicationPath = HttpContext.Request.ApplicationPath;
+                //task 7.3: HttpRequest.ApplicationPath -> PathBase. System.Web returned "/"
+                //for an application at the site root; PathBase is EMPTY in that case, and
+                //LocalizedUrlExtenstions.IsVirtualDirectory THROWS on an empty string, so the
+                //empty case must be mapped back to "/" - the same mapping task 6.2 applied in
+                //WebWorkContext.
+                string applicationPath = HttpContext.Request.PathBase.HasValue
+                    ? HttpContext.Request.PathBase.Value
+                    : "/";
                 if (returnUrl.IsLocalizedUrl(applicationPath, true))
                 {
                     //already localized URL
@@ -166,7 +174,6 @@ namespace Nop.Web.Controllers
         }
 
         //currency
-        [ChildActionOnly]
         public virtual ActionResult CurrencySelector()
         {
             var model = _commonModelFactory.PrepareCurrencySelectorModel();
@@ -195,7 +202,6 @@ namespace Nop.Web.Controllers
         }
 
         //tax type
-        [ChildActionOnly]
         public virtual ActionResult TaxTypeSelector()
         {
             if (!_taxSettings.AllowCustomersToSelectTaxDisplayType)
@@ -223,7 +229,6 @@ namespace Nop.Web.Controllers
         }
 
         //footer
-        [ChildActionOnly]
         public virtual ActionResult JavaScriptDisabledWarning()
         {
             if (!_commonSettings.DisplayJavaScriptDisabledWarning)
@@ -233,13 +238,11 @@ namespace Nop.Web.Controllers
         }
 
         //header links
-        [ChildActionOnly]
         public virtual ActionResult HeaderLinks()
         {
             var model = _commonModelFactory.PrepareHeaderLinksModel();
             return PartialView(model);
         }
-        [ChildActionOnly]
         public virtual ActionResult AdminHeaderLinks()
         {
             var model = _commonModelFactory.PrepareAdminHeaderLinksModel();
@@ -248,7 +251,6 @@ namespace Nop.Web.Controllers
 
 
         //social
-        [ChildActionOnly]
         public virtual ActionResult Social()
         {
             var model = _commonModelFactory.PrepareSocialModel();
@@ -257,7 +259,6 @@ namespace Nop.Web.Controllers
 
 
         //footer
-        [ChildActionOnly]
         public virtual ActionResult Footer()
         {
             var model = _commonModelFactory.PrepareFooterModel();
@@ -386,7 +387,6 @@ namespace Nop.Web.Controllers
         }
 
         //store theme
-        [ChildActionOnly]
         public virtual ActionResult StoreThemeSelector()
         {
             if (!_storeInformationSettings.AllowCustomerToSelectTheme)
@@ -411,7 +411,6 @@ namespace Nop.Web.Controllers
         }
 
         //favicon
-        [ChildActionOnly]
         public virtual ActionResult Favicon()
         {
             var model = _commonModelFactory.PrepareFaviconModel();
@@ -422,7 +421,6 @@ namespace Nop.Web.Controllers
         }
 
         //EU Cookie law
-        [ChildActionOnly]
         public virtual ActionResult EuCookieLaw()
         {
             if (!_storeInformationSettings.DisplayEuCookieLawWarning)
@@ -468,9 +466,13 @@ namespace Nop.Web.Controllers
         public virtual ActionResult RobotsTextFile()
         {
             var content = _commonModelFactory.PrepareRobotsTextFile();
-            Response.ContentType = MimeTypes.TextPlain;
-            Response.Write(content);
-            return null;
+            //task 7.3: HttpResponse.Write() does not exist (the ASP.NET Core equivalent is the
+            //async WriteAsync). Returning a ContentResult is the idiomatic form and emits the
+            //identical response - same body, same "text/plain" content type - without writing
+            //to the response from inside the action. The original "return null" relied on MVC 5
+            //treating a null ActionResult as "response already written"; ASP.NET Core throws for
+            //a null result, so this had to change regardless.
+            return Content(content, MimeTypes.TextPlain);
         }
 
         public virtual ActionResult GenericUrl()

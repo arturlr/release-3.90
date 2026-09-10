@@ -1,10 +1,11 @@
-﻿using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Catalog;
@@ -146,8 +147,30 @@ namespace Nop.Web.Controllers
 
         #region Utilities
 
+        /// <summary>
+        /// Read a request value the way <c>System.Web.HttpRequest</c>'s indexer did.
+        /// </summary>
+        /// <remarks>
+        /// Task 7.3. <c>Microsoft.AspNetCore.Http.HttpRequest</c> has no indexer. MVC 5's
+        /// searched QueryString, then Form, then Cookies, then ServerVariables; only the first
+        /// two are reachable for the call sites this replaces, and the form is guarded because
+        /// ASP.NET Core throws on <c>Request.Form</c> for a non-form request.
+        /// </remarks>
+        /// <param name="key">Value name</param>
+        /// <returns>Value, or null when absent</returns>
+        protected virtual string GetRequestValue(string key)
+        {
+            if (Request.Query.ContainsKey(key))
+                return Request.Query[key];
+
+            if (Request.HasFormContentType && Request.Form.ContainsKey(key))
+                return Request.Form[key];
+
+            return null;
+        }
+
         [NonAction]
-        protected virtual void ParseAndSaveCheckoutAttributes(List<ShoppingCartItem> cart, FormCollection form)
+        protected virtual void ParseAndSaveCheckoutAttributes(List<ShoppingCartItem> cart, IFormCollection form)
         {
             if (cart == null)
                 throw new ArgumentNullException("cart");
@@ -167,7 +190,7 @@ namespace Nop.Web.Controllers
                     case AttributeControlType.ColorSquares:
                     case AttributeControlType.ImageSquares:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 int selectedAttributeId = int.Parse(ctrlAttributes);
@@ -179,7 +202,7 @@ namespace Nop.Web.Controllers
                         break;
                     case AttributeControlType.Checkboxes:
                         {
-                            var cblAttributes = form[controlId];
+                            string cblAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(cblAttributes))
                             {
                                 foreach (var item in cblAttributes.Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -209,7 +232,7 @@ namespace Nop.Web.Controllers
                     case AttributeControlType.TextBox:
                     case AttributeControlType.MultilineTextbox:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 string enteredText = ctrlAttributes.Trim();
@@ -220,9 +243,9 @@ namespace Nop.Web.Controllers
                         break;
                     case AttributeControlType.Datepicker:
                         {
-                            var date = form[controlId + "_day"];
-                            var month = form[controlId + "_month"];
-                            var year = form[controlId + "_year"];
+                            string date = form[controlId + "_day"];
+                            string month = form[controlId + "_month"];
+                            string year = form[controlId + "_year"];
                             DateTime? selectedDate = null;
                             try
                             {
@@ -273,7 +296,7 @@ namespace Nop.Web.Controllers
         /// <param name="errors">Errors</param>
         /// <returns>Parsed attributes</returns>
         [NonAction]
-        protected virtual string ParseProductAttributes(Product product, FormCollection form, List<string> errors)
+        protected virtual string ParseProductAttributes(Product product, IFormCollection form, List<string> errors)
         {
             string attributesXml = "";
 
@@ -290,7 +313,7 @@ namespace Nop.Web.Controllers
                     case AttributeControlType.ColorSquares:
                     case AttributeControlType.ImageSquares:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 int selectedAttributeId = int.Parse(ctrlAttributes);
@@ -298,7 +321,7 @@ namespace Nop.Web.Controllers
                                 {
                                     //get quantity entered by customer
                                     var quantity = 1;
-                                    var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)];
+                                    string quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)];
                                     if (quantityStr != null && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
                                         errors.Add(_localizationService.GetResource("ShoppingCart.QuantityShouldPositive"));
 
@@ -310,7 +333,7 @@ namespace Nop.Web.Controllers
                         break;
                     case AttributeControlType.Checkboxes:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 foreach (var item in ctrlAttributes.Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -320,7 +343,7 @@ namespace Nop.Web.Controllers
                                     {
                                         //get quantity entered by customer
                                         var quantity = 1;
-                                        var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, item)];
+                                        string quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, item)];
                                         if (quantityStr != null && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
                                             errors.Add(_localizationService.GetResource("ShoppingCart.QuantityShouldPositive"));
 
@@ -342,7 +365,7 @@ namespace Nop.Web.Controllers
                             {
                                 //get quantity entered by customer
                                 var quantity = 1;
-                                var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)];
+                                string quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)];
                                 if (quantityStr != null && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
                                     errors.Add(_localizationService.GetResource("ShoppingCart.QuantityShouldPositive"));
 
@@ -354,7 +377,7 @@ namespace Nop.Web.Controllers
                     case AttributeControlType.TextBox:
                     case AttributeControlType.MultilineTextbox:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 string enteredText = ctrlAttributes.Trim();
@@ -365,9 +388,9 @@ namespace Nop.Web.Controllers
                         break;
                     case AttributeControlType.Datepicker:
                         {
-                            var day = form[controlId + "_day"];
-                            var month = form[controlId + "_month"];
-                            var year = form[controlId + "_year"];
+                            string day = form[controlId + "_day"];
+                            string month = form[controlId + "_month"];
+                            string year = form[controlId + "_year"];
                             DateTime? selectedDate = null;
                             try
                             {
@@ -418,7 +441,7 @@ namespace Nop.Web.Controllers
                 string senderName = "";
                 string senderEmail = "";
                 string giftCardMessage = "";
-                foreach (string formKey in form.AllKeys)
+                foreach (string formKey in form.Keys)
                 {
                     if (formKey.Equals(string.Format("giftcard_{0}.RecipientName", product.Id), StringComparison.InvariantCultureIgnoreCase))
                     {
@@ -464,7 +487,7 @@ namespace Nop.Web.Controllers
         /// <param name="startDate">Start date</param>
         /// <param name="endDate">End date</param>
         [NonAction]
-        protected virtual void ParseRentalDates(Product product, FormCollection form,
+        protected virtual void ParseRentalDates(Product product, IFormCollection form,
             out DateTime? startDate, out DateTime? endDate)
         {
             startDate = null;
@@ -472,8 +495,8 @@ namespace Nop.Web.Controllers
 
             string startControlId = string.Format("rental_start_date_{0}", product.Id);
             string endControlId = string.Format("rental_end_date_{0}", product.Id);
-            var ctrlStartDate = form[startControlId];
-            var ctrlEndDate = form[endControlId];
+            string ctrlStartDate = form[startControlId];
+            string ctrlEndDate = form[endControlId];
             try
             {
                 //currenly we support only this format (as in the \Views\Product\_RentalInfo.cshtml file)
@@ -694,8 +717,7 @@ namespace Nop.Web.Controllers
         //add product to cart using AJAX
         //currently we use this method on the product details pages
         [HttpPost]
-        [ValidateInput(false)]
-        public virtual ActionResult AddProductToCart_Details(int productId, int shoppingCartTypeId, FormCollection form)
+        public virtual ActionResult AddProductToCart_Details(int productId, int shoppingCartTypeId, IFormCollection form)
         {
             var product = _productService.GetProductById(productId);
             if (product == null)
@@ -719,7 +741,7 @@ namespace Nop.Web.Controllers
             #region Update existing shopping cart item?
 
             int updatecartitemid = 0;
-            foreach (string formKey in form.AllKeys)
+            foreach (string formKey in form.Keys)
                 if (formKey.Equals(string.Format("addtocart_{0}.UpdatedShoppingCartItemId", productId), StringComparison.InvariantCultureIgnoreCase))
                 {
                     int.TryParse(form[formKey], out updatecartitemid);
@@ -760,7 +782,7 @@ namespace Nop.Web.Controllers
             decimal customerEnteredPriceConverted = decimal.Zero;
             if (product.CustomerEntersPrice)
             {
-                foreach (string formKey in form.AllKeys)
+                foreach (string formKey in form.Keys)
                 {
                     if (formKey.Equals(string.Format("addtocart_{0}.CustomerEnteredPrice", productId), StringComparison.InvariantCultureIgnoreCase))
                     {
@@ -776,7 +798,7 @@ namespace Nop.Web.Controllers
             #region Quantity
 
             int quantity = 1;
-            foreach (string formKey in form.AllKeys)
+            foreach (string formKey in form.Keys)
                 if (formKey.Equals(string.Format("addtocart_{0}.EnteredQuantity", productId), StringComparison.InvariantCultureIgnoreCase))
                 {
                     int.TryParse(form[formKey], out quantity);
@@ -926,9 +948,8 @@ namespace Nop.Web.Controllers
         //handle product attribute selection event. this way we return new price, overridden gtin/sku/mpn
         //currently we use this method on the product details pages
         [HttpPost]
-        [ValidateInput(false)]
         public virtual ActionResult ProductDetails_AttributeChange(int productId, bool validateAttributeConditions,
-            bool loadPicture, FormCollection form)
+            bool loadPicture, IFormCollection form)
         {
             var product = _productService.GetProductById(productId);
             if (product == null)
@@ -1041,8 +1062,7 @@ namespace Nop.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateInput(false)]
-        public virtual ActionResult CheckoutAttributeChange(FormCollection form)
+        public virtual ActionResult CheckoutAttributeChange(IFormCollection form)
         {
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
                 .Where(sci => sci.ShoppingCartType == ShoppingCartType.ShoppingCart)
@@ -1093,25 +1113,42 @@ namespace Nop.Web.Controllers
             Stream stream = null;
             var fileName = "";
             var contentType = "";
-            if (String.IsNullOrEmpty(Request["qqfile"]))
+            //task 7.3: Request["qqfile"] -> the query string (then the form, matching MVC 5's
+            //QueryString-before-Form search order). HttpRequest has no indexer in ASP.NET Core.
+            var qqFile = GetRequestValue("qqfile");
+            if (String.IsNullOrEmpty(qqFile))
             {
                 // IE
-                HttpPostedFileBase httpPostedFile = Request.Files[0];
+                //Request.Files -> Request.Form.Files, guarded: ASP.NET Core throws on
+                //Request.Form for a non-form request where System.Web returned an empty
+                //collection.
+                IFormFile httpPostedFile = Request.HasFormContentType && Request.Form.Files.Count > 0
+                    ? Request.Form.Files[0]
+                    : null;
                 if (httpPostedFile == null)
                     throw new ArgumentException("No file uploaded");
-                stream = httpPostedFile.InputStream;
+                stream = httpPostedFile.OpenReadStream();
                 fileName = Path.GetFileName(httpPostedFile.FileName);
                 contentType = httpPostedFile.ContentType;
             }
             else
             {
                 //Webkit, Mozilla
-                stream = Request.InputStream;
-                fileName = Request["qqfile"];
+                stream = Request.Body;
+                fileName = qqFile;
             }
 
-            var fileBinary = new byte[stream.Length];
-            stream.Read(fileBinary, 0, fileBinary.Length);
+            //task 7.3: 3.90 did "new byte[stream.Length]" then a single Read(). Request.Body is
+            //not seekable in ASP.NET Core, so .Length throws NotSupportedException; and one
+            //Read() is not guaranteed to fill the buffer even on a seekable stream. CopyTo
+            //reads to completion - the same latent truncation bug task 4.2 fixed in
+            //Nop.Services Media.Extensions.
+            byte[] fileBinary;
+            using (var ms = new MemoryStream())
+            {
+                stream.CopyTo(ms);
+                fileBinary = ms.ToArray();
+            }
 
             var fileExtension = Path.GetExtension(fileName);
             if (!String.IsNullOrEmpty(fileExtension))
@@ -1177,25 +1214,42 @@ namespace Nop.Web.Controllers
             Stream stream = null;
             var fileName = "";
             var contentType = "";
-            if (String.IsNullOrEmpty(Request["qqfile"]))
+            //task 7.3: Request["qqfile"] -> the query string (then the form, matching MVC 5's
+            //QueryString-before-Form search order). HttpRequest has no indexer in ASP.NET Core.
+            var qqFile = GetRequestValue("qqfile");
+            if (String.IsNullOrEmpty(qqFile))
             {
                 // IE
-                HttpPostedFileBase httpPostedFile = Request.Files[0];
+                //Request.Files -> Request.Form.Files, guarded: ASP.NET Core throws on
+                //Request.Form for a non-form request where System.Web returned an empty
+                //collection.
+                IFormFile httpPostedFile = Request.HasFormContentType && Request.Form.Files.Count > 0
+                    ? Request.Form.Files[0]
+                    : null;
                 if (httpPostedFile == null)
                     throw new ArgumentException("No file uploaded");
-                stream = httpPostedFile.InputStream;
+                stream = httpPostedFile.OpenReadStream();
                 fileName = Path.GetFileName(httpPostedFile.FileName);
                 contentType = httpPostedFile.ContentType;
             }
             else
             {
                 //Webkit, Mozilla
-                stream = Request.InputStream;
-                fileName = Request["qqfile"];
+                stream = Request.Body;
+                fileName = qqFile;
             }
 
-            var fileBinary = new byte[stream.Length];
-            stream.Read(fileBinary, 0, fileBinary.Length);
+            //task 7.3: 3.90 did "new byte[stream.Length]" then a single Read(). Request.Body is
+            //not seekable in ASP.NET Core, so .Length throws NotSupportedException; and one
+            //Read() is not guaranteed to fill the buffer even on a seekable stream. CopyTo
+            //reads to completion - the same latent truncation bug task 4.2 fixed in
+            //Nop.Services Media.Extensions.
+            byte[] fileBinary;
+            using (var ms = new MemoryStream())
+            {
+                stream.CopyTo(ms);
+                fileBinary = ms.ToArray();
+            }
 
             var fileExtension = Path.GetExtension(fileName);
             if (!String.IsNullOrEmpty(fileExtension))
@@ -1258,7 +1312,6 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult OrderSummary(bool? prepareAndDisplayOrderReviewData)
         {
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -1273,10 +1326,9 @@ namespace Nop.Web.Controllers
             return PartialView(model);
         }
 
-        [ValidateInput(false)]
         [HttpPost, ActionName("Cart")]
         [FormValueRequired("updatecart")]
-        public virtual ActionResult UpdateCart(FormCollection form)
+        public virtual ActionResult UpdateCart(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.EnableShoppingCart))
                 return RedirectToRoute("HomePage");
@@ -1286,7 +1338,12 @@ namespace Nop.Web.Controllers
                 .LimitPerStore(_storeContext.CurrentStore.Id)
                 .ToList();
 
-            var allIdsToRemove = form["removefromcart"] != null ? form["removefromcart"].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList() : new List<int>();
+            //task 7.3: the indexer yields StringValues - cast to string for Split, and use
+            //StringValues.IsNullOrEmpty for the presence test (the raw "!= null" comparison is
+            //ambiguous between StringValues' two != operators).
+            var allIdsToRemove = !StringValues.IsNullOrEmpty(form["removefromcart"])
+                ? ((string)form["removefromcart"]).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList()
+                : new List<int>();
 
             //current warnings <cart item identifier, warnings>
             var innerWarnings = new Dictionary<int, IList<string>>();
@@ -1297,7 +1354,7 @@ namespace Nop.Web.Controllers
                     _shoppingCartService.DeleteShoppingCartItem(sci, ensureOnlyActiveCheckoutAttributes: true);
                 else
                 {
-                    foreach (string formKey in form.AllKeys)
+                    foreach (string formKey in form.Keys)
                         if (formKey.Equals(string.Format("itemquantity{0}", sci.Id), StringComparison.InvariantCultureIgnoreCase))
                         {
                             int newQuantity;
@@ -1340,7 +1397,6 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ValidateInput(false)]
         [HttpPost, ActionName("Cart")]
         [FormValueRequired("continueshopping")]
         public virtual ActionResult ContinueShopping()
@@ -1356,10 +1412,9 @@ namespace Nop.Web.Controllers
             }
         }
         
-        [ValidateInput(false)]
         [HttpPost, ActionName("Cart")]
         [FormValueRequired("checkout")]
-        public virtual ActionResult StartCheckout(FormCollection form)
+        public virtual ActionResult StartCheckout(IFormCollection form)
         {
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
                 .Where(sci => sci.ShoppingCartType == ShoppingCartType.ShoppingCart)
@@ -1388,7 +1443,7 @@ namespace Nop.Web.Controllers
 
                 if (!_orderSettings.AnonymousCheckoutAllowed 
                     || downloadableProductsRequireRegistration)
-                    return new HttpUnauthorizedResult();
+                    return new ChallengeResult();
                 
                 return RedirectToRoute("LoginCheckoutAsGuest", new {returnUrl = Url.RouteUrl("ShoppingCart")});
             }
@@ -1396,10 +1451,9 @@ namespace Nop.Web.Controllers
             return RedirectToRoute("Checkout");
         }
 
-        [ValidateInput(false)]
         [HttpPost, ActionName("Cart")]
         [FormValueRequired("applydiscountcouponcode")]
-        public virtual ActionResult ApplyDiscountCoupon(string discountcouponcode, FormCollection form)
+        public virtual ActionResult ApplyDiscountCoupon(string discountcouponcode, IFormCollection form)
         {
             //trim
             if (discountcouponcode != null)
@@ -1462,10 +1516,9 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ValidateInput(false)]
         [HttpPost, ActionName("Cart")]
         [FormValueRequired("applygiftcardcouponcode")]
-        public virtual ActionResult ApplyGiftCard(string giftcardcouponcode, FormCollection form)
+        public virtual ActionResult ApplyGiftCard(string giftcardcouponcode, IFormCollection form)
         {
             //trim
             if (giftcardcouponcode != null)
@@ -1515,10 +1568,9 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ValidateInput(false)]
         [PublicAntiForgery]
         [HttpPost]
-        public virtual ActionResult GetEstimateShipping(int? countryId, int? stateProvinceId, string zipPostalCode, FormCollection form)
+        public virtual ActionResult GetEstimateShipping(int? countryId, int? stateProvinceId, string zipPostalCode, IFormCollection form)
         {
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
                 .Where(sci => sci.ShoppingCartType == ShoppingCartType.ShoppingCart)
@@ -1532,7 +1584,6 @@ namespace Nop.Web.Controllers
             return PartialView("_EstimateShippingResult", model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult OrderTotals(bool isEditable)
         {
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -1544,16 +1595,15 @@ namespace Nop.Web.Controllers
             return PartialView(model);
         }
 
-        [ValidateInput(false)]
         [HttpPost, ActionName("Cart")]
         [FormValueRequired(FormValueRequirement.StartsWith, "removediscount-")]
-        public virtual ActionResult RemoveDiscountCoupon(FormCollection form)
+        public virtual ActionResult RemoveDiscountCoupon(IFormCollection form)
         {
             var model = new ShoppingCartModel();
 
             //get discount identifier
             int discountId = 0;
-            foreach (var formValue in form.AllKeys)
+            foreach (var formValue in form.Keys)
                 if (formValue.StartsWith("removediscount-", StringComparison.InvariantCultureIgnoreCase))
                     discountId = Convert.ToInt32(formValue.Substring("removediscount-".Length));
             var discount = _discountService.GetDiscountById(discountId);
@@ -1569,16 +1619,15 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ValidateInput(false)]
         [HttpPost, ActionName("Cart")]
         [FormValueRequired(FormValueRequirement.StartsWith, "removegiftcard-")]
-        public virtual ActionResult RemoveGiftCardCode(FormCollection form)
+        public virtual ActionResult RemoveGiftCardCode(IFormCollection form)
         {
             var model = new ShoppingCartModel();
 
             //get gift card identifier
             int giftCardId = 0;
-            foreach (var formValue in form.AllKeys)
+            foreach (var formValue in form.Keys)
                 if (formValue.StartsWith("removegiftcard-", StringComparison.InvariantCultureIgnoreCase))
                     giftCardId = Convert.ToInt32(formValue.Substring("removegiftcard-".Length));
             var gc = _giftCardService.GetGiftCardById(giftCardId);
@@ -1593,7 +1642,6 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult FlyoutShoppingCart()
         {
             if (!_shoppingCartSettings.MiniShoppingCartEnabled)
@@ -1630,10 +1678,9 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ValidateInput(false)]
         [HttpPost, ActionName("Wishlist")]
         [FormValueRequired("updatecart")]
-        public virtual ActionResult UpdateWishlist(FormCollection form)
+        public virtual ActionResult UpdateWishlist(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.EnableWishlist))
                 return RedirectToRoute("HomePage");
@@ -1643,8 +1690,9 @@ namespace Nop.Web.Controllers
                 .LimitPerStore(_storeContext.CurrentStore.Id)
                 .ToList();
 
-            var allIdsToRemove = form["removefromcart"] != null 
-                ? form["removefromcart"].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+            //task 7.3 - see the note on UpdateCart above
+            var allIdsToRemove = !StringValues.IsNullOrEmpty(form["removefromcart"])
+                ? ((string)form["removefromcart"]).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(int.Parse)
                 .ToList() 
                 : new List<int>();
@@ -1658,7 +1706,7 @@ namespace Nop.Web.Controllers
                     _shoppingCartService.DeleteShoppingCartItem(sci);
                 else
                 {
-                    foreach (string formKey in form.AllKeys)
+                    foreach (string formKey in form.Keys)
                         if (formKey.Equals(string.Format("itemquantity{0}", sci.Id), StringComparison.InvariantCultureIgnoreCase))
                         {
                             int newQuantity;
@@ -1698,10 +1746,9 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ValidateInput(false)]
         [HttpPost, ActionName("Wishlist")]
         [FormValueRequired("addtocartbutton")]
-        public virtual ActionResult AddItemsToCartFromWishlist(Guid? customerGuid, FormCollection form)
+        public virtual ActionResult AddItemsToCartFromWishlist(Guid? customerGuid, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.EnableShoppingCart))
                 return RedirectToRoute("HomePage");
@@ -1722,8 +1769,9 @@ namespace Nop.Web.Controllers
 
             var allWarnings = new List<string>();
             var numberOfAddedItems = 0;
-            var allIdsToAdd = form["addtocart"] != null 
-                ? form["addtocart"].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+            //task 7.3 - see the note on UpdateCart above
+            var allIdsToAdd = !StringValues.IsNullOrEmpty(form["addtocart"])
+                ? ((string)form["addtocart"]).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(int.Parse)
                 .ToList() 
                 : new List<int>();

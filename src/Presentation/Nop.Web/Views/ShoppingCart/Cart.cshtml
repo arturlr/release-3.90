@@ -1,4 +1,4 @@
-﻿@model ShoppingCartModel
+@model ShoppingCartModel
 @using Nop.Web.Models.Checkout
 @using Nop.Web.Models.ShoppingCart;
 @{
@@ -18,6 +18,6 @@
         <h1>@T("ShoppingCart")</h1>
     </div>
     <div class="page-body">
-        @Html.Partial("OrderSummary", Model)
+        @await Html.PartialAsync("OrderSummary", Model)
     </div>
 </div>

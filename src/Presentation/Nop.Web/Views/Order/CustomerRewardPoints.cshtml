@@ -1,4 +1,4 @@
-﻿@model CustomerRewardPointsModel
+@model CustomerRewardPointsModel
 @using Nop.Web.Models.Customer
 @using Nop.Web.Models.Order
 @{
@@ -79,7 +79,7 @@
                     </table>
                 </div>
                 var pager = Html.Pager(Model.PagerModel);
-                if (!MvcHtmlString.IsNullOrEmpty(pager))
+                if (!pager.IsNullOrEmpty())
                 {
                     <div class="pager">
                         @pager

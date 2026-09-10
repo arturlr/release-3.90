@@ -1,49 +1,13 @@
-﻿@model CustomerProductReviewsModel
+@model CustomerProductReviewsModel
 @using Nop.Web.Models.Catalog
 @using Nop.Web.Models.Customer;
-@{
-    Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
-
-    //title
-    Html.AddTitleParts(T("PageTitle.CustomerProductReviews").Text);
-    //page class
-    Html.AppendPageCssClassParts("html-my-product-reviews-list-page");
-}
-@section left
-{
-    @Html.Action("CustomerNavigation", "Customer", new { selectedTabId = CustomerNavigationEnum.ProductReviews })
-}
-
-<div class="page account-page my-product-reviews-list-page">
-    <div class="page-title">
-        <h1>@T("Account.MyAccount") - @T("Account.CustomerProductReviews")</h1>
-    </div>
-    <div class="page-body">
-        @if (Model.ProductReviews.Count > 0)
-        {
-            foreach (var review in Model.ProductReviews)
-            {
-                @GetReviewRow(review)
-            }
-            var pager = Html.Pager(Model.PagerModel);
-            if (!MvcHtmlString.IsNullOrEmpty(pager))
-            {
-                <div class="pager">
-                    @pager
-                </div>
-            }
-        }
-        else
-        {
-            <div class="no-data">
-                @T("Account.CustomerProductReviews.NoRecords")
-            </div>
-        }
-    </div>
-</div>
-
-@helper GetReviewRow(CustomerProductReviewModel review)
-{
+@functions {
+    //task 7.3: this was a Razor v2 "helper" declaration, which ASP.NET Core Razor
+    //does not support. A void method in @functions writes its markup straight to the
+    //page output, so the same HTML lands in the same place. The body is unchanged
+    //apart from the call syntax of the self/recursive calls.
+    void GetReviewRow(CustomerProductReviewModel review)
+    {
     int ratingPercent = review.Rating * 20;
     <div class="product-review-item">
         <div class="review-item-head">
@@ -87,3 +51,45 @@
         </div>
     </div>
 }
+}
+@{
+    Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
+
+    //title
+    Html.AddTitleParts(T("PageTitle.CustomerProductReviews").Text);
+    //page class
+    Html.AppendPageCssClassParts("html-my-product-reviews-list-page");
+}
+@section left
+{
+    @Html.Action("CustomerNavigation", "Customer", new { selectedTabId = CustomerNavigationEnum.ProductReviews })
+}
+
+<div class="page account-page my-product-reviews-list-page">
+    <div class="page-title">
+        <h1>@T("Account.MyAccount") - @T("Account.CustomerProductReviews")</h1>
+    </div>
+    <div class="page-body">
+        @if (Model.ProductReviews.Count > 0)
+        {
+            foreach (var review in Model.ProductReviews)
+            {
+                GetReviewRow(review);
+            }
+            var pager = Html.Pager(Model.PagerModel);
+            if (!pager.IsNullOrEmpty())
+            {
+                <div class="pager">
+                    @pager
+                </div>
+            }
+        }
+        else
+        {
+            <div class="no-data">
+                @T("Account.CustomerProductReviews.NoRecords")
+            </div>
+        }
+    </div>
+</div>
+

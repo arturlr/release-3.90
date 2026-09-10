@@ -1,4 +1,4 @@
-﻿@model SearchModel
+@model SearchModel
 @using Nop.Core.Domain.Forums;
 @using Nop.Web.Models.Boards;
 @using Nop.Web.Models.Common;
@@ -100,7 +100,7 @@
             });
         }
         @Html.Widget("boards_search_before_results")
-        @if (!MvcHtmlString.IsNullOrEmpty(pager))
+        @if (!pager.IsNullOrEmpty())
         {
             <div class="pager upper">
                 @pager
@@ -223,7 +223,7 @@
                 </div>
             }
         </div>
-        @if (!MvcHtmlString.IsNullOrEmpty(pager))
+        @if (!pager.IsNullOrEmpty())
         {
             <div class="pager lower">
                 @pager

@@ -1,7 +1,8 @@
-﻿using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System.Net;
+using System;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain;
 using Nop.Core.Domain.Catalog;
@@ -173,7 +174,7 @@ namespace Nop.Web.Controllers
         }
 
         [NonAction]
-        protected virtual string ParseCustomCustomerAttributes(FormCollection form)
+        protected virtual string ParseCustomCustomerAttributes(IFormCollection form)
         {
             if (form == null)
                 throw new ArgumentNullException("form");
@@ -188,7 +189,7 @@ namespace Nop.Web.Controllers
                     case AttributeControlType.DropdownList:
                     case AttributeControlType.RadioList:
                     {
-                        var ctrlAttributes = form[controlId];
+                        string ctrlAttributes = form[controlId];
                         if (!String.IsNullOrEmpty(ctrlAttributes))
                         {
                             int selectedAttributeId = int.Parse(ctrlAttributes);
@@ -200,7 +201,7 @@ namespace Nop.Web.Controllers
                         break;
                     case AttributeControlType.Checkboxes:
                     {
-                        var cblAttributes = form[controlId];
+                        string cblAttributes = form[controlId];
                         if (!String.IsNullOrEmpty(cblAttributes))
                         {
                             foreach (var item in cblAttributes.Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
@@ -231,7 +232,7 @@ namespace Nop.Web.Controllers
                     case AttributeControlType.TextBox:
                     case AttributeControlType.MultilineTextbox:
                     {
-                        var ctrlAttributes = form[controlId];
+                        string ctrlAttributes = form[controlId];
                         if (!String.IsNullOrEmpty(ctrlAttributes))
                         {
                             string enteredText = ctrlAttributes.Trim();
@@ -560,10 +561,9 @@ namespace Nop.Web.Controllers
         [CaptchaValidator]
         [HoneypotValidator]
         [PublicAntiForgery]
-        [ValidateInput(false)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
-        public virtual ActionResult Register(RegisterModel model, string returnUrl, bool captchaValid, FormCollection form)
+        public virtual ActionResult Register(RegisterModel model, string returnUrl, bool captchaValid, IFormCollection form)
         {
             //check whether registration is allowed
             if (_customerSettings.UserRegistrationType == UserRegistrationType.Disabled)
@@ -777,7 +777,7 @@ namespace Nop.Web.Controllers
 
                             var redirectUrl = Url.RouteUrl("RegisterResult", new {resultId = (int) UserRegistrationType.Standard});
                             if (!String.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                                redirectUrl = _webHelper.ModifyQueryString(redirectUrl, "returnurl=" + HttpUtility.UrlEncode(returnUrl), null);
+                                redirectUrl = _webHelper.ModifyQueryString(redirectUrl, "returnurl=" + WebUtility.UrlEncode(returnUrl), null);
                             return Redirect(redirectUrl);
                         }
                         default:
@@ -818,7 +818,6 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
         //available even when navigation is not allowed
         [PublicStoreAllowNavigation(true)]
         public virtual ActionResult CheckUsernameAvailability(string username)
@@ -884,7 +883,6 @@ namespace Nop.Web.Controllers
 
         #region My account / Info
 
-        [ChildActionOnly]
         public virtual ActionResult CustomerNavigation(int selectedTabId = 0)
         {
             var model = _customerModelFactory.PrepareCustomerNavigationModel(selectedTabId);
@@ -895,7 +893,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult Info()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var model = new CustomerInfoModel();
             model = _customerModelFactory.PrepareCustomerInfoModel(model, _workContext.CurrentCustomer, false);
@@ -905,11 +903,10 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
-        public virtual ActionResult Info(CustomerInfoModel model, FormCollection form)
+        public virtual ActionResult Info(CustomerInfoModel model, IFormCollection form)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var customer = _workContext.CurrentCustomer;
 
@@ -1085,7 +1082,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult RemoveExternalAssociation(int id)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             //ensure it's our record
             var ear = _openAuthenticationService.GetExternalIdentifiersFor(_workContext.CurrentCustomer)
@@ -1169,7 +1166,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult Addresses()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var model = _customerModelFactory.PrepareCustomerAddressListModel();
             return View(model);
@@ -1181,7 +1178,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult AddressDelete(int addressId)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var customer = _workContext.CurrentCustomer;
 
@@ -1206,7 +1203,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult AddressAdd()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var model = new CustomerAddressEditModel();
             _addressModelFactory.PrepareAddressModel(model.Address,
@@ -1220,11 +1217,10 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
-        public virtual ActionResult AddressAdd(CustomerAddressEditModel model, FormCollection form)
+        public virtual ActionResult AddressAdd(CustomerAddressEditModel model, IFormCollection form)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var customer = _workContext.CurrentCustomer;
 
@@ -1267,7 +1263,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult AddressEdit(int addressId)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var customer = _workContext.CurrentCustomer;
             //find address (ensure that it belongs to the current customer)
@@ -1288,11 +1284,10 @@ namespace Nop.Web.Controllers
 
         [HttpPost]
         [PublicAntiForgery]
-        [ValidateInput(false)]
-        public virtual ActionResult AddressEdit(CustomerAddressEditModel model, int addressId, FormCollection form)
+        public virtual ActionResult AddressEdit(CustomerAddressEditModel model, int addressId, IFormCollection form)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var customer = _workContext.CurrentCustomer;
             //find address (ensure that it belongs to the current customer)
@@ -1336,7 +1331,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult DownloadableProducts()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             if (_customerSettings.HideDownloadableProductsTab)
                 return RedirectToRoute("CustomerInfo");
@@ -1367,7 +1362,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult ChangePassword()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var model = _customerModelFactory.PrepareChangePasswordModel();
 
@@ -1383,7 +1378,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult ChangePassword(ChangePasswordModel model)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var customer = _workContext.CurrentCustomer;
 
@@ -1416,7 +1411,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult Avatar()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             if (!_customerSettings.AllowCustomersToUploadAvatars)
                 return RedirectToRoute("CustomerInfo");
@@ -1429,10 +1424,10 @@ namespace Nop.Web.Controllers
         [HttpPost, ActionName("Avatar")]
         [PublicAntiForgery]
         [FormValueRequired("upload-avatar")]
-        public virtual ActionResult UploadAvatar(CustomerAvatarModel model, HttpPostedFileBase uploadedFile)
+        public virtual ActionResult UploadAvatar(CustomerAvatarModel model, IFormFile uploadedFile)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             if (!_customerSettings.AllowCustomersToUploadAvatars)
                 return RedirectToRoute("CustomerInfo");
@@ -1447,7 +1442,7 @@ namespace Nop.Web.Controllers
                     if ((uploadedFile != null) && (!String.IsNullOrEmpty(uploadedFile.FileName)))
                     {
                         int avatarMaxSize = _customerSettings.AvatarMaximumSizeBytes;
-                        if (uploadedFile.ContentLength > avatarMaxSize)
+                        if (uploadedFile.Length > avatarMaxSize)
                             throw new NopException(string.Format(_localizationService.GetResource("Account.Avatar.MaximumUploadedFileSize"), avatarMaxSize));
 
                         byte[] customerPictureBinary = uploadedFile.GetPictureBits();
@@ -1484,10 +1479,10 @@ namespace Nop.Web.Controllers
         [HttpPost, ActionName("Avatar")]
         [PublicAntiForgery]
         [FormValueRequired("remove-avatar")]
-        public virtual ActionResult RemoveAvatar(CustomerAvatarModel model, HttpPostedFileBase uploadedFile)
+        public virtual ActionResult RemoveAvatar(CustomerAvatarModel model, IFormFile uploadedFile)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             if (!_customerSettings.AllowCustomersToUploadAvatars)
                 return RedirectToRoute("CustomerInfo");

@@ -1,7 +1,8 @@
-﻿@model LoginModel
+@model LoginModel
 @using Nop.Web.Models.Customer;
 @using Nop.Core;
 @using Nop.Core.Infrastructure;
+@using System.Net
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
 
@@ -12,18 +13,18 @@
 
     //register URL with return URL (if specified)
     var registerUrl = Url.RouteUrl("Register");
-    if (!String.IsNullOrEmpty(this.Context.Request.QueryString["returnUrl"]))
+    if (!String.IsNullOrEmpty(Context.Request.Query["returnUrl"]))
     {
         var webHelper = EngineContext.Current.Resolve<IWebHelper>();
-        registerUrl = webHelper.ModifyQueryString(registerUrl, "returnurl=" + HttpUtility.UrlEncode(this.Context.Request.QueryString["returnUrl"]), null);
+        registerUrl = webHelper.ModifyQueryString(registerUrl, "returnurl=" + WebUtility.UrlEncode(Context.Request.Query["returnUrl"]), null);
     }
 }
 <div class="page login-page">
     <div class="page-title">
         <h1>@T("Account.Login.Welcome")</h1>
     </div>
-    @Html.Partial("_ExternalAuthentication.AssociateMessage")
-    @Html.Partial("_ExternalAuthentication.Errors")
+    @await Html.PartialAsync("_ExternalAuthentication.AssociateMessage")
+    @await Html.PartialAsync("_ExternalAuthentication.Errors")
     <div class="page-body">
         <div class="customer-blocks">
             @if (Model.CheckoutAsGuest)
@@ -62,7 +63,7 @@
                     <div class="title">
                         <strong>@T("Account.Login.ReturningCustomer")</strong>
                     </div>
-                    if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+                    if (!validationSummary.IsNullOrEmpty())
                     {
                         <div class="message-error">@validationSummary</div>
                     }

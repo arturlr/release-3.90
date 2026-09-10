@@ -1499,8 +1499,8 @@ Everything below was introduced knowingly.
 |---|------|---------------|----------|
 | 30 | ~~Theming stops working until the view-location expander is registered~~ | — | ✅ **RESOLVED by 6.4 + 7.2** (§24) — `ThemeableViewLocationExpander` verified at index 0 |
 | 31 | ~~`PageHeadBuilder` needs `IFileVersionProvider` + `IHttpContextAccessor` resolvable~~ | — | ✅ **RESOLVED by 7.2** (§24) — both verified resolvable |
-| 32 | No `Widget` view component exists — `@Html.Widget(...)` throws | 7.3 | High |
-| 33 | Cache busting silently no-ops for assets outside the web root | 7.3 / 7.4 / 8.x | Medium — `UseStaticFiles()` is registered by 7.2, but the asset trees have not moved (§26) |
+| 32 | ~~No `Widget` view component exists — `@Html.Widget(...)` throws~~ | — | ✅ **RESOLVED by 7.3** (§30) — `Nop.Web/Components/WidgetViewComponent.cs` + `Views/Shared/Components/Widget/Default.cshtml`; all 190 call sites unchanged |
+| 33 | Cache busting silently no-ops for assets outside the web root | ~~7.3~~ / 7.4 / 8.x | Medium — **7.3 confirmed no view forces the decision**: every asset reference goes through `AppendCssFileParts`/`AddScriptParts` with a `~/`-rooted path, so all 193 views are correct under either choice. **7.4 owns it** (§30) |
 | 34 | ~~`Security/FilePermissionHelper.cs` has a body-level compile error nobody owns~~ | — | **RESOLVED by 6.4** (§17.1) — gate 6.6 residual is **0**, not 1 |
 | 35 | Minification is gone; no build-time replacement is scheduled | post-migration | Low |
 
@@ -2575,11 +2575,11 @@ deployed plugin folders carry their own `.cshtml` and `.config`.
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
 | 36 | Redis session state provider dropped with no successor | 7.4 (decision) | Medium |
-| 37 | ~~MiniProfiler packages removed — two source sites still reference them~~ | 7.3 | ✅ `Global.asax.cs` half **RESOLVED by 7.2** (file deleted, §20); `Views/Shared/_Root.Head.cshtml` lines 10–11 / 54–56 still open |
+| 37 | ~~MiniProfiler packages removed — two source sites still reference them~~ | — | ✅ **FULLY RESOLVED**: `Global.asax.cs` half by 7.2 (§20), `Views/Shared/_Root.Head.cshtml` half by **7.3** (§30) |
 | 38 | ~~No `launchSettings.json` — the IIS Express / dev-server settings were discarded~~ | — | ✅ **RESOLVED by 7.2** (§24) — `Properties/launchSettings.json` |
 | 39 | `ExcludeFilesFromDeployment` publish shaping lost with the Web Application Project targets | 7.4 | **Medium — security-relevant** |
-| 40 | Static asset trees still at their 3.90 locations, outside `wwwroot` | 7.3 / 7.4 | High — `UseStaticFiles()` registered by 7.2 but `WebRootFileProvider` is empty (§26) |
-| 41 | `WebGrease.Css.Extensions.ForEach` is load-bearing at two call sites | 7.3 | Low but **will not compile** |
+| 40 | Static asset trees still at their 3.90 locations, outside `wwwroot` | ~~7.3~~ / 7.4 | High — **7.3 confirmed the views do not constrain the choice** (§30); `UseStaticFiles()` is registered by 7.2 but `WebRootFileProvider` is empty. **7.4 owns it** |
+| 41 | ~~`WebGrease.Css.Extensions.ForEach` is load-bearing at two call sites~~ | — | ✅ **RESOLVED by 7.3** (§30) — replaced with `foreach`; confirmed it was the `IEnumerable<T>` extension, not `List<T>.ForEach` |
 
 #### 7.1-1 (deferral 36) Redis session state provider dropped, no successor
 
@@ -3038,7 +3038,7 @@ task (no database is reachable from the build container), so the per-batch atomi
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
 | 7.2-1 | Startup now fails fast on an unreachable database | 7.7 (decision) | Medium |
-| 7.2-2 | `IRouteProvider` implementations still unported, so `UseNopEndpoints()` cannot run | 7.3 | **High — blocks any request** |
+| 7.2-2 | ~~`IRouteProvider` implementations still unported, so `UseNopEndpoints()` cannot run~~ | — | ✅ **RESOLVED by 7.3** (§28) — all four ported; note 7.3 also **corrected** the `.WithOrder(1000)` advice, which would have created an `AmbiguousMatchException` |
 | 7.2-3 | `TaskManager.Instance.Stop()` is never called on shutdown | none (3.90 parity) | Low |
 | 7.2-4 | `appsettings.json` does not exist, so every bindable setting is at its default | 7.4 | Medium |
 
@@ -3136,3 +3136,517 @@ view-level switches; their ASP.NET Core equivalent is
 | **4.10** | `GO`-batched `CreateDatabaseScript()` in four plugin contexts | 11.2, 13.1, 14.4, 15.1 |
 | **11.27** | `BaseNopModel.BindModel` no longer invoked | accepted, no override exists anywhere |
 | **18 / 7.18** | ImageSharp licence diagnostic | business decision |
+
+
+---
+
+# Nop.Web — controllers, views, routing and pipeline (task 7.3)
+
+Task 7.3 is the largest single task in the plan and it **reaches zero errors**, so the 7.6 gate
+criterion is met.
+
+| Measurement | Value |
+|---|---|
+| errors at start (7.2 handover, re-measured) | **1110** across 87 files |
+| errors at end | **0** |
+| warnings at end | **15** — 10 pre-existing upstream `SYSLIB0014/0021/0023/0045/0051` in `Nop.Core`/`Nop.Services` (unchanged since 6.5) and 5 `CS0618` on FluentValidation 7.x's obsolete `Custom(...)` in `Validators/Common/AddressValidator.cs`, `Validators/Customer/CustomerInfoValidator.cs` and `Validators/Customer/RegisterValidator.cs`. **`git diff` confirms those three files are untouched by this task** — the warnings were previously masked, not introduced, and the FluentValidation pin is a deliberate design decision (design §9) |
+| `CA1416` at end | **0** — the six sites task 6.5 predicted (§18.4) were fixed with the `OperatingSystem.IsWindows()` guard it recommended |
+| `MVC1000` at end | **0** — all 106 `Html.Partial` and 2 `Html.RenderPartial` call sites converted to the async forms (§30) |
+| swallowed-error check | verbose log grep: `"converted to a warning"` → **0**, `"ContinueOnError"` → **0**, `NU1901`–`NU1904` → **0**, `error MSB*` → **0** |
+| residual `System.Web` in `Nop.Web` source | **none in code.** A scripted check that blanks `//`, `/* */` and `@* *@` comments before searching finds **0** occurrences; the 24 remaining textual matches are all explanatory prose in comments |
+| residual legacy references in `Nop.Web.dll` | **none** — no `System.Web*`, `Autofac.Integration.Mvc`, `System.Web.Optimization`, `ImageResizer`, `WebGrease`, `StackExchange.Profiling` or `MiniProfiler` |
+
+## 27. Error trajectory, and the masking that shaped it
+
+Roslyn does not bind method bodies while declaration-phase errors exist, so the count **rose**
+partway through — which was progress, not regression. The phases and their measured effect:
+
+| Phase | Work | Errors after |
+|---|---|---|
+| baseline | — | **1110** |
+| 1 | four `IRouteProvider` implementations → `IEndpointRouteBuilder` | 1095 |
+| 2 | `Models/` + `Validators/` + `Extensions/` type substitutions | **823** |
+| 3 | `Controllers/` — 28 files | **43** |
+| 3b | the residual `.cs` sites that only became visible once declarations bound | **1974** ← bodies of 193 views started binding here |
+| 4 | `Views/_ViewImports.cshtml` | **24** |
+| 5 | 8 `@attribute` collisions, 4 Razor-v2 `helper` declarations, `SearchModel` ambiguity | 220 ← the rest of the views' bodies started binding |
+| 6 | `Html.Action` bridge, `Widget` view component, 9 mechanical view rules | 10 |
+| 7 | last 10 individual sites | **0** |
+
+The single biggest lever was `Views/_ViewImports.cshtml`: it took the count from **1974 to 24**
+in one file, because `Views/Web.config`'s `pageBaseType` is what supplies the `T("…")` localizer
+and its absence produced 1974 `CS0103: The name 'T' does not exist`.
+
+**Warning for tasks 8.3/8.4:** `Nop.Admin` has 325 views and the identical dependency on
+`Areas/Admin/Views/Web.config`'s `pageBaseType` and `<namespaces>`. Create its
+`_ViewImports.cshtml` **first**; it will collapse the great majority of the admin view errors
+before any per-view work begins.
+
+## 28. The routing correction — an upstream instruction that was wrong
+
+### 28.1 `.WithOrder(1000)` would have CREATED the ambiguity it was meant to prevent
+
+`GenericPathRouteExtensions`'s remarks (§17.4a gotcha 3) said the eight single-segment patterns
+registered by `GenericUrlRouteProvider` — `{generic_se_name}` plus seven `{SeName}` routes — are
+of identical precedence and would raise `AmbiguousMatchException`, and recommended
+`.WithOrder(1000)` on the seven. **A live probe against net10.0 showed the reasoning is
+inverted.** Two measured facts:
+
+1. **`MapControllerRoute` does not leave `Endpoint.Order` at 0.** MVC's
+   `ControllerActionEndpointConventionBuilder` assigns an **auto-incrementing order per call**
+   (1, 2, 3, …), and `EndpointComparer` compares `Order` *before* precedence. Registration
+   sequence therefore already decides the winner — which is a faithful reproduction of MVC 5's
+   "`RouteCollection` stops at the first match", and is why the eight patterns do **not** collide
+   by default. Probe endpoint dump:
+
+   | order | inbound precedence | raw pattern |
+   |---|---|---|
+   | 1 | 3 | `{generic_se_name}` |
+   | 2 | 1 | `cart/` |
+   | 3 | 1.1 | `producttag/all/` |
+   | 4 | 1.3 | `wishlist/{customerGuid?}` |
+
+2. **Forcing all seven to `WithOrder(1000)` collapses seven distinct orders into one and
+   reproduces the exception.** Measured, with the transformer returning `null` (the redirect
+   case, which invalidates the dynamic candidate):
+   - seven at their natural auto-assigned orders → `200 "ProductDetails"`, no ambiguity;
+   - seven at `WithOrder(1000)` → **`599 "THREW AmbiguousMatchException: The request matched
+     multiple endpoints"`**;
+   - seven at distinct orders 1001–1007 → `200 "ProductDetails"`, no ambiguity.
+
+**What was applied instead:** each of the seven carries
+`Microsoft.AspNetCore.Routing.SuppressMatchingMetadata`, which removes it from *inbound
+matching* while leaving it usable for *link generation*. That is the exact semantic these routes
+have always had — in 3.90 they were never matched, because `GenericPathRoute` either resolved the
+slug itself or aborted with `Response.End()`. Relying on the auto-assigned order would work today
+only by coincidence and would break silently if a plugin registered another `{SeName}`-shaped
+route or provider ordering changed.
+
+**Verified, not assumed:** with `SuppressMatchingMetadata` applied,
+`Url.RouteUrl("Product", new { SeName = "my-slug" })` — the exact call shape the views use —
+still returns `/my-slug` for all seven names. `IUrlHelper.RouteUrl` resolves through
+`RouteValuesAddressScheme`, which skips only `ISuppressLinkGenerationMetadata`, not
+`ISuppressMatchingMetadata`.
+
+### 28.2 A second, larger finding from the same probe: provider ordering is load-bearing
+
+Because `Order` beats precedence, registering the slug route **first** makes
+`{generic_se_name}` swallow every single-segment path: the probe showed `/cart` resolving to
+`Common/GenericUrl` instead of the `"cart/"` route, *even though the literal pattern has strictly
+better precedence*. `GenericUrlRouteProvider.Priority` staying at `-1000000` (so `IRoutePublisher`
+registers it last) is therefore not cosmetic — it is what keeps every named route reachable.
+**Any future task that changes `IRouteProvider.Priority` values, or registers routes outside the
+publisher, can silently break slug or literal routing.**
+
+### 28.3 `UrlParameter.Optional` — the two rules applied, and why
+
+`UrlParameter.Optional` has no counterpart; the *default* was dropped everywhere (22 occurrences)
+but the *pattern segment* was made optional only under rule **O1**:
+
+- **O1 — trailing parameter with no constraint → `{x?}`.** 13 patterns: `wishlist/{customerGuid?}`,
+  `producttag/{productTagId}/{SeName?}`, `download/getdownload/{orderItemId}/{agree?}`,
+  `boards/topic/{id}/{slug?}`, `boards/forum/{id}/{slug?}`, `boards/forumgroup/{id}/{slug?}`,
+  `privatemessages/{tab?}`, and the six `BackwardCompatibility2X` `…/{SeName?}` patterns. MVC 5
+  could match these URLs with the segment absent, so ASP.NET Core must too.
+- **O2 — non-trailing parameter, or a parameter carrying a constraint → pattern left unchanged.**
+  7 patterns: `checkout/completed/{orderId}`, `backinstocksubscriptions/manage/{page}`,
+  `boards/forumsubscriptions/{page}`, `boards/activediscussions/page/{page}`,
+  `boards/topic/{id}/{slug}/page/{page}`, `boards/forum/{id}/{slug}/page/{page}`,
+  `privatemessages/{tab}/page/{page}`. Reason: a middle segment can never be omitted, and MVC 5
+  evaluated a constraint against the *absent* value — which a `\d+` regex or a `GuidConstraint`
+  always fails — so the route could not match with the segment omitted. Marking it optional would
+  have **added** a matchable URL that 3.90 never served. In each `page` case a sibling route
+  already serves the no-page URL.
+
+  Note the probe found ASP.NET Core does **not** reject a non-trailing `{x?}` on net10.0
+  (`privatemessages/{tab?}/page/{page}` parses), so O2 rests on behaviour, not on a parser
+  constraint.
+
+### 28.4 Other routing changes
+
+- `BackwardCompatibility1XRouteProvider` registered all **eleven** routes with the name `""`.
+  Normalised to `null` (unnamed), matching what `MapLocalizedRoute` already does for
+  `BackwardCompatibility2X`'s five. Nothing generates URLs to them by name.
+- Route patterns with a **trailing slash** (`"login/"`, `"cart/"`, `"compareproducts/"`,
+  `"producttag/all/"` — ~30 of them) were verified to parse correctly and to match both
+  `/cart` and `/cart/`. No edit needed.
+- `namespaces` (`new[] { "Nop.Web.Controllers" }`) dropped at **162** call sites.
+  `MapRoute` → `MapControllerRoute` at 21 sites. `GuidConstraint` construction unchanged.
+
+---
+
+## 29. Open deferrals opened by task 7.3
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 7.3-1 | The `Html.Action` bridge lives in `Nop.Web`; `Nop.Admin` and the plugins need it too | 8.3 (decision) | Medium |
+| 7.3-2 | Session-stored `ProcessPaymentRequest.CustomValues` round-trips as `JsonElement` | 12.1–12.5 | Medium |
+| 7.3-3 | ASP.NET request validation is gone — every model property now behaves as `[AllowHtml]` | none (accept) | **Low–Medium, security-relevant** |
+| 7.3-4 | 48 former `[ChildActionOnly]` actions are now reachable by URL | 7.4 or post-migration | Low–Medium |
+| 7.3-5 | Server-side browser detection removed (IE8 CSS/JS, mobile `readonly`) | none (accept) | Low |
+| 7.3-6 | The child-action bridge does not run action filters | none (accept) | Low |
+
+### 7.3-1 The `Html.Action` bridge is in `Nop.Web`, but is needed more widely
+
+`Nop.Web/Extensions/ChildActionExtensions.cs` reimplements `Html.Action` / `Html.RenderAction`.
+It was unavoidable: **five of the 101 call sites name the controller and action from data at
+runtime** — `IWidgetPlugin` (`widget.ActionName`/`ControllerName`/`RouteValues`),
+`IPaymentMethod` (`Model.PaymentInfoActionName`, `Model.ButtonPaymentMethodActionNames[i]`) and
+`IExternalAuthenticationMethod` (`eam.ActionName`/`ControllerName`). A view component is selected
+by CLR type or component name at compile time and cannot be selected from a runtime
+controller/action pair, and those three plugin contracts still expose action/controller/
+`RouteValueDictionary` triples (task 6.2 changed only the `RouteValueDictionary` namespace on
+them). Rewriting the contracts to return view-component names is owned by tasks 10.x–15.x.
+
+- **What 8.3 must decide:** `Nop.Admin` has its own `@Html.Action` call sites. Either duplicate
+  the file or **promote it to `Nop.Web.Framework`** (the better option — it is framework-shaped
+  code, and the plugins would then get it for free). Promotion means editing a project that
+  passed gate 6.6, which earlier tasks have done deliberately when justified (task 3.2 did
+  exactly that for the lazy-loading fix).
+- **Impact if unfixed:** `Nop.Admin`'s views will not compile at 8.8 until it has the same bridge.
+
+**Verified live, not merely compiled.** A throwaway probe (deleted; the repository is clean of
+it) copied the bridge into a standalone ASP.NET Core app with its own controllers and views and
+asserted nine behaviours — the probe was proven able to fail via a deliberate canary:
+
+| Assertion | Result |
+|---|---|
+| action with no parameters | ✅ |
+| `int` + `string` route values bound, constructor-injected service resolved | ✅ |
+| `enum` route value bound | ✅ |
+| declared parameter default used when the value is absent | ✅ |
+| `int?` bound | ✅ |
+| `Content("")` renders nothing | ✅ |
+| the 2-argument overload targets the **current** controller | ✅ |
+| a `RouteValueDictionary` argument — the plugin-contract shape | ✅ |
+| `PartialView("OtherName")` honoured | ✅ |
+
+### 7.3-2 `ProcessPaymentRequest.CustomValues` loses CLR type through the session
+
+`CheckoutController` stored `Session["OrderPaymentInfo"] = paymentInfo` and read it back with a
+cast; `ISession` is a `byte[]` store with no object indexer, so
+`Nop.Web/Extensions/SessionExtensions.cs` serialises with `System.Text.Json` — the same treatment
+task 4.2 gave `ExternalAuthorizerHelper`, and what upstream nopCommerce 4.x does at this exact
+call site. Six write sites and four read sites in `CheckoutController` plus one read in
+`ShoppingCartModelFactory`.
+
+- **The gap:** `ProcessPaymentRequest.CustomValues` is `Dictionary<string, object>`. JSON cannot
+  recover the original CLR type of an `object` value, so entries come back as `JsonElement`
+  rather than as the type a payment plugin put in. Newtonsoft.Json behaves identically (values
+  become `JObject`/`JValue`) unless `TypeNameHandling` is enabled, which is a
+  deserialization-gadget hazard task 4.2 explicitly refused to introduce.
+- **Fix (tasks 12.1–12.5):** each payment plugin that round-trips a non-string `CustomValues`
+  entry through the session must either use string values or read defensively.
+- The helper **fails soft** (returns `default`, writes are no-ops) when the session feature is
+  absent or a payload will not deserialize, so a lost stash restarts payment entry — which is
+  what a 3.90 session expiry did.
+
+### 7.3-3 ASP.NET request validation is gone — SECURITY-RELEVANT RELAXATION
+
+**99 `[AllowHtml]` attributes and 42 `[ValidateInput(false)]` attributes were deleted**, because
+neither has any counterpart: they existed only to opt *out* of ASP.NET **request validation**
+(the framework-level *"A potentially dangerous Request.Form value was detected from the client"*
+guard). ASP.NET Core has no request validation at all.
+
+- **Net effect:** 3.90 blocked HTML-looking input on every model property except the 99 marked
+  `[AllowHtml]`. Every property now behaves as if it carried `[AllowHtml]`. This is a
+  **relaxation relative to 3.90 that cannot be restored**, because the feature no longer exists.
+- **Why it is accepted rather than reimplemented:** request validation was always a defence in
+  depth, not the primary control; the primary control is output encoding, and Razor encodes by
+  default. nopCommerce also deliberately turned it off wherever it mattered — the 42
+  `[ValidateInput(false)]` actions are exactly the ones that accept rich text.
+- **What reviewers should know:** the properties that were `[AllowHtml]` (BBCode/rich-text fields
+  on forum posts, product reviews, blog/news comments, private messages) are unchanged in risk.
+  The change is that *previously-protected* fields are no longer screened. Any place that renders
+  a model value with `@Html.Raw(...)` is where this matters, and `Nop.Core.Html.HtmlHelper.FormatText`
+  remains the sanitiser on the rich-text paths.
+- `Views/Web.config` also carried `<pages validateRequest="false">`, i.e. 3.90 already disabled
+  request validation for *view* rendering; only the controller-input direction changes.
+
+### 7.3-4 Former child actions are now URL-reachable
+
+`[ChildActionOnly]` was deleted from **48 actions** (no counterpart — the attribute existed to
+make an action invocable only via `Html.Action`). Those actions are now matched by the `Default`
+`{controller}/{action}/{id?}` route, so e.g. `/Common/Footer` or `/ShoppingCart/OrderSummary`
+returns the bare partial's HTML.
+
+- **Impact:** information exposure of partial fragments, not of data the visitor could not
+  otherwise see — each partial renders for the current customer with the same authorisation the
+  parent page applies (`BasePublicController`'s class-level filters still run for a direct URL
+  request). Rated Low–Medium because it widens the attack surface without granting new access.
+- **Fix options:** an `IActionModelConvention` (or a marker attribute plus an
+  `IEndpointSelectorPolicy`) that applies `SuppressMatchingMetadata` to those actions —
+  the same mechanism §28.1 uses for the seven name-only routes. That is a ~30-line convention
+  registered in `AddNopFramework`, and it would restore 3.90's behaviour exactly.
+- Not done here because the 48 actions are not individually marked any more, so the convention
+  needs a marker attribute reintroduced, which is a design choice better made alongside 7.4's
+  configuration work than bolted onto an already-large task.
+
+### 7.3-5 Server-side browser detection removed
+
+`HttpRequest.Browser` (`System.Web.HttpBrowserCapabilities`) does not exist in ASP.NET Core and
+has no replacement — capability sniffing was driven by `browscap.xml` and was dropped from the
+platform. Three call sites:
+
+- `Themes/DefaultClean/Views/Shared/Head.cshtml` — the IE8 branches that loaded
+  `Themes/DefaultClean/Content/css/ie8.css`, `Scripts/selectivizr.min.js` and
+  `Scripts/respond.min.js`. **Removed.** IE8 cannot run this storefront regardless, and those
+  three files are now unreferenced (noted for 7.5).
+- `Views/Product/_RentalInfo.cshtml` ×2 — a conditional `readonly` on the two datepicker inputs
+  for mobile. **Removed.** This is a *relaxation*: the field becomes editable where it was
+  read-only; the datepicker still works and `ShoppingCartController.ParseRentalDates`
+  re-validates server-side.
+- `App_Data/browscap.xml` survives only because `Nop.Services`' `IUserAgentHelper` parses it for
+  `IsSearchEngine()`; it exposes no browser-version data, so it is not a route back to this.
+
+Inventing User-Agent parsing was rejected as scope creep with a poor accuracy/benefit ratio.
+
+### 7.3-6 The child-action bridge does not run action filters
+
+MVC 5 ran the action-filter pipeline for child actions; the bridge does not (it invokes the
+action method directly). **This is consistent with a decision already recorded for this
+migration**: task 6.2 removed the `filterContext.IsChildAction` guard from eleven filters
+precisely because "view components do not execute the action filter pipeline at all" (§12). The
+filters concerned (`CheckAffiliate`, `StoreClosed`, `PublicStoreAllowNavigation`,
+`LanguageSeoCode`, `NopHttpsRequirement`, `WwwRequirement`, …) are declared on
+`BasePublicController` and have already run for the parent request. Accepted, not deferred.
+
+---
+
+## 30. Final behavioural changes — task 7.3, intentional, no future fix needed
+
+### Controllers
+
+- **`new HttpUnauthorizedResult()` → `new ChallengeResult()`, 70 sites.** MVC 5's result emitted a
+  bare 401 that `FormsAuthenticationModule` rewrote into a 302 to the login URL on the way out.
+  ASP.NET Core has no outbound module, so `ChallengeResult` — which hands the refusal to the
+  registered cookie handler, which redirects to `LoginPath` — is the faithful equivalent. Exactly
+  the substitution task 6.2 made in `AdminAuthorizeAttribute`, `AdminVendorValidation` and
+  `PublicStoreAllowNavigationAttribute` (§11.25).
+- **`BasePublicController.InvokeHttp404()` reimplemented.** 3.90 executed a second controller
+  in-process (`IController errorController = …; errorController.Execute(new RequestContext(…))`).
+  There is no `IController`, no `IController.Execute` and no `RequestContext`. It now returns
+  `NotFound()`, and task 7.2's `app.UseStatusCodePagesWithReExecute("/page-not-found")`
+  re-executes `Common/PageNotFound` **at the original URL** — the same observable outcome
+  (HTTP 404 + the PageNotFound page, URL unchanged).
+- **`FormCollection` → `IFormCollection`, 37 sites**, and `form.AllKeys` → `form.Keys`. The
+  interface rather than the concrete type, because `HttpRequest.Form` is typed as the interface —
+  the same choice task 6.2 made for `BasePaymentController.ValidatePaymentForm`.
+  **The indexer now yields `StringValues`**, so 25 locals were declared `string` explicitly to
+  force the implicit conversion. That conversion is behaviourally identical to
+  `NameValueCollection`'s indexer: a single value is returned as-is, multiple values are joined
+  with `","` (which the `Checkboxes` branches' `Split(',')` depends on), and a missing key yields
+  `null`. Three `List<int>` initialisers that the same indexer feeds use
+  `StringValues.IsNullOrEmpty(...)` plus an explicit `(string)` cast, because `!= null` against
+  `StringValues` is ambiguous between its two `!=` operators.
+- **`HttpPostedFileBase` → `IFormFile`, 7 sites**; `.InputStream` → `.OpenReadStream()`,
+  `.ContentLength` (int) → `.Length` (long).
+- **The three valums-uploader blocks contained a latent truncation bug, now fixed.** They did
+  `var fileBinary = new byte[stream.Length]; stream.Read(fileBinary, 0, fileBinary.Length);`.
+  `Request.Body` is **not seekable** in ASP.NET Core so `.Length` throws
+  `NotSupportedException`, and a single `Read()` is not guaranteed to fill the buffer even on a
+  seekable stream. Replaced with `CopyTo` over a `MemoryStream` — the **same** latent bug task
+  4.2 fixed in `Nop.Services`' `Media.Extensions.GetPictureBits`/`GetDownloadBits`, fixed here
+  for the same reason. `Request["qqfile"]` became a new `protected virtual GetRequestValue(key)`
+  that searches Query then Form (System.Web's indexer order), with the `HasFormContentType`
+  guard task 6.2 added in five filters. `Request.Files[0]` → `Request.Form.Files[0]`, likewise
+  guarded.
+- **`TryUpdateModel` → `TryUpdateModelAsync(...).GetAwaiter().GetResult()`, 5 sites.** ASP.NET
+  Core offers only the async form; making the one-page-checkout actions async would change their
+  public signatures. Sync-over-async cannot deadlock — no `SynchronizationContext`.
+- **`DependencyResolver.Current.GetService(type)` → `EngineContext.Current.Resolve(type)`,
+  2 sites.** MVC 5's service-locator hook was pointed at Autofac by `Autofac.Mvc5`, a package
+  task 6.4 removed. `IEngine.Resolve(Type)` resolves out of the same container.
+- **`Json(x, JsonRequestBehavior.AllowGet)` → `Json(x)`, 2 sites.** ASP.NET Core has no
+  JSON-hijacking guard and no such parameter; `JsonRequestBehavior.DenyGet` is gone, which task
+  6.2 already recorded as a relaxation (§11.23). `[AcceptVerbs(HttpVerbs.Get)]` → `[HttpGet]`.
+- **`CommonController.PageNotFound`: `Response.TrySkipIisCustomErrors` removed.** It stopped IIS
+  replacing an already-bodied response with its own error page; ASP.NET Core responses are
+  written by the app and ANCM does not substitute them.
+- **`CommonController.RobotsTextFile`: `Response.Write(content); return null;` →
+  `return Content(content, MimeTypes.TextPlain)`.** `HttpResponse.Write` does not exist (the
+  equivalent is the async `WriteAsync`), and ASP.NET Core throws on a `null` action result where
+  MVC 5 treated it as "response already written". Identical bytes emitted.
+- **`HttpRequest.ApplicationPath` → `PathBase`, mapped to `"/"` when empty.** The mapping is
+  required, not cosmetic: `LocalizedUrlExtenstions.IsVirtualDirectory` **throws** on an empty
+  string. The same mapping task 6.2 applied in `WebWorkContext`.
+- **`BackwardCompatibility1XController`: `Request.RawUrl` →
+  `Request.GetEncodedPathAndQuery()`** (yields `PathBase + Path + QueryString`, the shape
+  `RawUrl` produced — task 6.2's substitution), and `Request.QueryString["x"]` →
+  `Request.Query["x"]` ×8. In ASP.NET Core `QueryString` is a struct holding the raw string; the
+  parsed collection is `Query`.
+- **`InstallController`: `System.Data.SqlClient` → `Microsoft.Data.SqlClient`** (the client tasks
+  3.1/4.2 standardised on; the `System.Data.SqlClient` types are type-forwarded on net10.0 and
+  would need the out-of-band package). **`Server.ScriptTimeout = 300` removed** ×2:
+  `HttpServerUtility.ScriptTimeout` raised System.Web's per-request execution timeout, and
+  ASP.NET Core/Kestrel has no request execution timeout at all — the nearest equivalents are host
+  configuration (7.4). Installation now runs untimed, which is strictly more permissive.
+- **`CheckoutController` lost its `HttpContextBase` constructor parameter entirely** — its only
+  use was `Session`, which `Controller.HttpContext` supplies directly. A **breaking constructor
+  change**, but the controller is registered reflectively so no DI edit is needed.
+
+### Factories
+
+- **`HttpContextBase` → `IHttpContextAccessor` in `CatalogModelFactory` and
+  `ShoppingCartModelFactory`; dropped entirely from `CommonModelFactory`.** All three are
+  **breaking constructor changes**, all registered reflectively.
+- **`Request.Params["q"]` → `Query`/`Form` lookup** (`CatalogModelFactory`). `Params` was a merged
+  view over QueryString, Form, Cookies and ServerVariables; `q` is the search box's query-string
+  parameter. Note the surrounding `try/catch` is now dead for its stated purpose — its comment
+  describes catching *"A potentially dangerous Request.QueryString value was detected"*, which
+  cannot be thrown any more (deferral 7.3-3).
+- **`Request.PhysicalApplicationPath` → `CommonHelper.MapPath("~/…")`** (`CommonModelFactory`
+  favicon lookup), resolving against the content root task 7.2 assigns (deferral 1.5) — the same
+  substitution task 4.2 made for `MaintenanceService.GetBackupDirectoryPath`.
+- **`ISitemapGenerator`'s `UrlHelper` → `IUrlHelper`** propagated to
+  `ICommonModelFactory.PrepareSitemapXml` and its implementation. Task 6.2 had already changed
+  the framework side (§9b).
+- **`WebGrease.Css.Extensions.ForEach` → `foreach`, 2 sites — deferral 41 RESOLVED.** Confirmed
+  as 7.1 reported: `PrepareCustomCustomerAttributes` returns `IList<T>`, so this was
+  WebGrease's `IEnumerable<T>` extension, **not** `List<T>.ForEach`. The BCL has no
+  `IEnumerable<T>.ForEach` by design.
+- **`HttpUtility` → `WebUtility`** in `ProductModelFactory` and `CustomerController` — the swap
+  already made across Nop.Core (2.4), Nop.Services (4.2) and Nop.Web.Framework (6.2).
+
+### Models, Extensions, Installation
+
+- **`SelectListItem`/`SelectList` → `Microsoft.AspNetCore.Mvc.Rendering`** and
+  **`RouteValueDictionary` → `Microsoft.AspNetCore.Routing`** — namespace moves only, across 32
+  model files and 11 factories.
+- **`Nop.Web/Extensions/HtmlExtensions`**: `MvcHtmlString` → `IHtmlContent`/`HtmlString`,
+  `HtmlHelper<T>` → `IHtmlHelper<T>`. **All 13 `html.RouteLink(...)`/`html.ActionLink(...)`
+  results are now explicitly rendered with `.ToHtmlString()`** — this is the silent-defect class
+  task 6.3 flagged (§15b): those helpers return a `TagBuilder`, and
+  `StringBuilder.Append(object)` would have emitted the literal string
+  `"Microsoft.AspNetCore.Mvc.Rendering.TagBuilder"` into the pager markup. Five of the thirteen
+  had nested parentheses that a naive regex missed and were caught by paren-matching.
+- **`AttributeParserHelper.ParseCustomAddressAttributes`: `FormCollection` → `IFormCollection`**,
+  with the three `StringValues` locals forced to `string` (see above).
+- **`InstallationLocalizationService`**: `HttpContextBase` → `IHttpContextAccessor`;
+  `HttpCookie` → `IRequestCookieCollection` (read) / `IResponseCookies.Delete` + `Append` with
+  `CookieOptions` (write, preserving `HttpOnly` and the 24-hour lifetime, behind a
+  `Response.HasStarted` guard); `Request.UserLanguages` → the typed `Accept-Language` header
+  ordered by quality — the substitution task 6.2 made in
+  `WebWorkContext.GetLanguageFromBrowserSettings`.
+- **`InstallController`'s ACL check is now guarded by `OperatingSystem.IsWindows()`.** This is the
+  fix task 6.5 recommended (§18.4) and it is a real one, not warning suppression:
+  `WindowsIdentity.GetCurrent()` sits *outside* `CheckPermissions`'s swallowing `try/catch`, so
+  on Linux the install page **threw** instead of rendering. Clears all 6 `CA1416`.
+
+### Views
+
+- **`Views/_ViewImports.cshtml` created** — the replacement for `Views/Web.config`'s
+  `<system.web.webPages.razor><pages>` element. It carries `@inherits
+  Nop.Web.Framework.ViewEngines.Razor.WebViewPage<TModel>` (the `pageBaseType`, and the reason
+  `T("…")` resolves) plus the `<namespaces>` list. `System.Web.Mvc.Ajax` has **no** counterpart
+  and needed none — zero `Ajax.` occurrences under `Views/`. `Nop.Web.Models.Boards` and
+  `Nop.Web.Models.Catalog` are deliberately **not** imported globally: both declare a
+  `SearchModel`, which made the name ambiguous in the two `Search.cshtml` views.
+  **`Views/Web.config` is not deleted — that is task 7.5's scope.**
+- **Four Razor-v2 `helper` declarations converted to `void` methods in `@functions`**
+  (`CategoryNavigation.RenderCategoryLine`, `TopMenu.RenderCategoryLine`,
+  `_FilterPriceBox.FormatPriceRangeText`, `CustomerProductReviews.GetReviewRow`). Markup inside
+  such a method is written straight to the page output, so the same HTML lands in the same place
+  and **the bodies are unchanged**. Chosen over a partial view (four extra files, a view-engine
+  lookup per loop iteration) and over a tag helper (public types for view-local formatting), and
+  necessary over a templated `Func<T, IHtmlContent>` because all four mix statements with markup
+  and two recurse. Call sites: `@Name(x)` → `Name(x);` in a **code** context and
+  `@{ Name(x); }` in a **markup** context — mixing these up produces `RZ1010`.
+- **`@attribute.DefaultValue` → `@(attribute.DefaultValue)`, 8 sites** in
+  `_CustomerAttributes`, `_ProductAttributes`, `_AddressAttributes`, `_CheckoutAttributes`.
+  ASP.NET Core 3.0 introduced a reserved **`@attribute` directive**, and a loop variable named
+  `attribute` collides with it. The parentheses make it an explicit expression again.
+- **`MvcHtmlString.IsNullOrEmpty(x)` → `x.IsNullOrEmpty()`, 40 sites**, via a new
+  `IHtmlContent` extension. `MvcHtmlString` was a string wrapper; `IHtmlContent` is a *writer*,
+  so emptiness can only be determined by rendering. A more specific `Pager` overload uses
+  `Pager.IsEmpty()` — which task 6.3 retained for exactly this — so the pager sites do not
+  materialise every page link twice.
+- **`new ViewDataDictionary()` → `Html.NewViewData()`, 28 sites.** ASP.NET Core's
+  `ViewDataDictionary` has no parameterless constructor. The helper produces an **empty**
+  dictionary rather than `new ViewDataDictionary(ViewData)`: the copy constructor would inherit
+  the parent's entries *and* its `TemplateInfo.HtmlFieldPrefix`, and several call sites set
+  `HtmlFieldPrefix` themselves — inheriting one would produce doubled field names such as
+  `BillingNewAddress.BillingNewAddress.FirstName`.
+- **`HttpUtility.JavaScriptStringEncode` → `JavaScriptHelper.Encode`
+  (`System.Text.Encodings.Web.JavaScriptEncoder`), 9 sites.** `HttpUtility` *does* exist on
+  net10.0 (in the in-box `System.Web.HttpUtility` assembly) but using it would put a
+  `System.Web*` assembly reference back into `Nop.Web`, which the gate checks for.
+  `JavaScriptEncoder` is *more* aggressive (it escapes non-ASCII, `&`, `<`, `>`, `'`, `"` as
+  `\uXXXX`); the escaped forms are equivalent JavaScript, so a script sees the same value and
+  only the bytes on the wire differ. All 9 sites embed the result in a single-quoted literal.
+  A null is handled in the helper because `JavaScriptStringEncode(null)` returned `""` where
+  `Encode(null)` throws.
+- **`HttpContext.Current.Request.RawUrl` → `Context.Request.GetEncodedPathAndQuery()`, 7 sites**;
+  **`Request.Url.AbsoluteUri` → `Context.Request.GetDisplayUrl()`, 4 sites**;
+  **`this.Request.Url.Scheme` → `Context.Request.Scheme`, 7 sites**;
+  **`Request.QueryString[...]` → `Context.Request.Query[...]`, 3 sites**. `RazorPage` exposes the
+  ambient `HttpContext` as `Context`; `HttpContext.Current` does not exist, and ASP.NET Core
+  splits the request URL into `Scheme`/`Host`/`PathBase`/`Path`/`QueryString` rather than a `Uri`.
+- **`Url.RequestContext.RouteData` → `ViewContext.RouteData`, 9 sites** in
+  `Views/Shared/_ColumnsTwo.cshtml`. `IUrlHelper` has no `RequestContext` — that was
+  `System.Web.Routing.RequestContext`. Note the surrounding `Convert.ToInt32(…Values["categoryId"].ToString())`
+  is unchanged and safe: `RouteValueDictionary` is case-insensitive, so it still matches the
+  lowercase `categoryid` that `SlugRouteTransformer` writes.
+- **MiniProfiler removed from `Views/Shared/_Root.Head.cshtml`** — the `displayMiniProfiler` gate
+  and `@StackExchange.Profiling.MiniProfiler.RenderIncludes()`. Closes the second half of
+  deferral **37 / 7.1-2**; `StoreInformationSettings.DisplayMiniProfilerInPublicStore` and
+  `DisplayMiniProfilerForAdminOnly` are now **inert**, the same treatment
+  `SeoSettings.EnableJsBundling` received. Task 8.4 should remove the admin checkboxes.
+- **`Views/Widget/WidgetsByZone.cshtml` → `Views/Shared/Components/Widget/Default.cshtml`.** A
+  view component renders `Components/{ComponentName}/{ViewName}`, so this resolves through
+  `ThemeableViewLocationExpander`'s existing `/Views/Shared/{0}.cshtml` format — which also keeps
+  it **themeable** at `/Themes/{theme}/Views/Shared/Components/Widget/Default.cshtml`. Hardcoding
+  `View("~/Views/Widget/WidgetsByZone.cshtml")` would have compiled and rendered but silently
+  bypassed the expander. (In practice the only theme view override in the tree is
+  `Themes/DefaultClean/Views/Shared/Head.cshtml`, so no shipped behaviour depended on it — but
+  third-party themes would have.)
+- **`Html.Partial` → `await Html.PartialAsync` (106 sites) and `Html.RenderPartial` →
+  `await Html.RenderPartialAsync` (2 sites).** Clears 216 `MVC1000` analyzer warnings. Done
+  because it removes real sync-over-async rather than merely silencing a diagnostic, and it is
+  safe here: all 106 are at markup position and both `RenderPartial` calls are statements in code
+  blocks. Verified that **no** `Partial` call sits inside an `@functions` method, where `await`
+  would be impossible.
+- **`Html.BeginRouteForm(name, routeValues, FormMethod, htmlAttributes)` → the 5-argument
+  overload with `antiforgery: null`, 2 sites** (`ProductTemplate.Simple`/`Grouped`). ASP.NET Core
+  has no 4-argument overload in that shape. `null` keeps the framework default, which emits an
+  anti-forgery token for a POST form where MVC 5 did not — harmless when nothing validates it,
+  and the safer default.
+
+### Deferrals CLOSED by task 7.3
+
+| # | Deferral | Closed by |
+|---|---|---|
+| **32** | No `Widget` view component — `@Html.Widget(...)` throws | `Nop.Web/Components/WidgetViewComponent.cs` + `Views/Shared/Components/Widget/Default.cshtml`. All 190 `@Html.Widget(...)` call sites are unchanged |
+| **41 / 7.1-6** | `WebGrease.Css.Extensions.ForEach` load-bearing in `CustomerModelFactory` | replaced with `foreach` at both sites (§30, Factories) |
+| **37 / 7.1-2** | MiniProfiler — the `_Root.Head.cshtml` half | block removed; the `Global.asax.cs` half was closed by 7.2 |
+| **7.2-2** | The four `IRouteProvider` implementations unported, so `UseNopEndpoints()` could not run | all four ported to `IEndpointRouteBuilder`; §28 records the ambiguity correction |
+| **18.4** | The six `CA1416` sites task 6.5 predicted for 7.3 | `OperatingSystem.IsWindows()` guard in `InstallController` |
+
+### Deferrals explicitly NOT closed by 7.3, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **33 / 40 / 7.1-5** | Static asset trees still outside `wwwroot`; cache busting no-ops | **Not decidable from views alone, and no view forced the decision.** Every asset reference in the views goes through `Html.AppendCssFileParts`/`AddScriptParts` with a `~/`-rooted virtual path, or through `Url.Content`/`Url.RouteUrl` — none hardcodes a physical location, so all 193 views are correct under *either* choice (relocate the trees, or supply a composite `IFileProvider`). **7.4 owns it**, and whichever it picks must also cover `IFileVersionProvider` or `PageHeadBuilder`'s cache busting silently reverts to unversioned URLs. §30 notes three assets that became unreferenced (`ie8.css`, `selectivizr.min.js`, `respond.min.js`) |
+| **36 / 7.1-1** | Redis session state dropped | 7.4 — and note deferral 7.3-2 now depends on it: `ProcessPaymentRequest` in an in-memory session is instance-affine, so a multi-instance deployment loses the stashed payment request mid-checkout |
+| **39 / 7.1-4** | `ExcludeFilesFromDeployment` publish shaping lost (security-relevant) | 7.4 |
+| **35** | Minification gone, nothing replaces it | post-migration |
+| **7.2-1** | Startup fails fast on an unreachable database | 7.7 (decision) |
+| **7.2-3** | `TaskManager.Instance.Stop()` never called | none (3.90 parity) |
+| **7.2-4** | `appsettings.json` does not exist | 7.4 |
+| **4.11** | `ExecuteSqlCommand` per-batch transaction during installation | 7.7 — still needs a real database |
+| **11.27** | `BaseNopModel.BindModel` no longer invoked | accepted; no override exists anywhere |
+| **18 / 7.18** | ImageSharp licence diagnostic | business decision |
+
+### What task 7.7 should exercise first
+
+7.7 is the first task that runs the ported storefront. The three things this task could not
+verify without a database, in priority order:
+
+1. **`@Html.Action(...)`** — the bridge's mechanism is verified (deferral 7.3-1, nine live
+   assertions) but not against nopCommerce's real controllers. Load the home page: it fans out to
+   ~15 child actions including `Logo`, `HeaderLinks`, `TopMenu`, `Footer` and `FlyoutShoppingCart`.
+2. **Slug routing and the seven suppressed name-only routes** — request a product slug (expect the
+   product page), and confirm a view that calls `Url.RouteUrl("Product", new { SeName = … })`
+   emits `/the-slug`. §28 predicts both, from a probe rather than from this application.
+3. **`Html.Widget`** — any page render exercises the new `Widget` view component; an empty widget
+   zone must produce no output rather than an exception.

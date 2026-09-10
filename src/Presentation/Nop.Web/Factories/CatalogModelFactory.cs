@@ -1,8 +1,8 @@
-﻿using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Blogs;
@@ -55,7 +55,7 @@ namespace Nop.Web.Factories
         private readonly ITopicService _topicService;
         private readonly IEventPublisher _eventPublisher;
         private readonly ISearchTermService _searchTermService;
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly MediaSettings _mediaSettings;
         private readonly CatalogSettings _catalogSettings;
         private readonly VendorSettings _vendorSettings;
@@ -89,7 +89,7 @@ namespace Nop.Web.Factories
             ITopicService topicService,
             IEventPublisher eventPublisher,
             ISearchTermService searchTermService,
-            HttpContextBase httpContext,
+            IHttpContextAccessor httpContextAccessor,
             MediaSettings mediaSettings,
             CatalogSettings catalogSettings,
             VendorSettings vendorSettings,
@@ -119,7 +119,7 @@ namespace Nop.Web.Factories
             this._topicService = topicService;
             this._eventPublisher = eventPublisher;
             this._searchTermService = searchTermService;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._mediaSettings = mediaSettings;
             this._catalogSettings = catalogSettings;
             this._vendorSettings = vendorSettings;
@@ -1346,7 +1346,15 @@ namespace Nop.Web.Factories
             try
             {
                 // only search if query string search keyword is set (used to avoid searching or displaying search term min length error message on /search page load)
-                isSearchTermSpecified = _httpContext.Request.Params["q"] != null;
+                //task 7.3: System.Web's Request.Params was a merged view over QueryString,
+                //Form, Cookies and ServerVariables. "q" is the search box's query-string
+                //parameter, so Query (then Form, matching Params' precedence) is the faithful
+                //replacement. NOTE: the surrounding try/catch is now dead for its stated purpose
+                //- see the comment inside the catch.
+                var request = _httpContextAccessor.HttpContext?.Request;
+                isSearchTermSpecified = request != null &&
+                    (request.Query.ContainsKey("q") ||
+                     (request.HasFormContentType && request.Form.ContainsKey("q")));
             }
             catch
             {

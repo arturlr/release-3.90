@@ -1,7 +1,7 @@
-﻿using System;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.ServiceModel.Syndication;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Localization;
@@ -214,7 +214,6 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult RssHeaderLink()
         {
             if (!_newsSettings.Enabled || !_newsSettings.ShowHeaderRssUrl)

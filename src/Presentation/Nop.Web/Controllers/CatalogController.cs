@@ -1,6 +1,6 @@
-﻿using System;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Customers;
@@ -132,21 +132,18 @@ namespace Nop.Web.Controllers
             return View(templateViewPath, model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult CategoryNavigation(int currentCategoryId, int currentProductId)
         {
             var model = _catalogModelFactory.PrepareCategoryNavigationModel(currentCategoryId, currentProductId);
             return PartialView(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult TopMenu()
         {
             var model = _catalogModelFactory.PrepareTopMenuModel();
             return PartialView(model);
         }
         
-        [ChildActionOnly]
         public virtual ActionResult HomepageCategories()
         {
             var model = _catalogModelFactory.PrepareHomepageCategoryModels();
@@ -207,7 +204,6 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult ManufacturerNavigation(int currentManufacturerId)
         {
             if (_catalogSettings.ManufacturersBlockItemsToDisplay == 0)
@@ -259,7 +255,6 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult VendorNavigation()
         {
             if (_vendorSettings.VendorsBlockItemsToDisplay == 0)
@@ -276,7 +271,6 @@ namespace Nop.Web.Controllers
 
         #region Product tags
         
-        [ChildActionOnly]
         public virtual ActionResult PopularProductTags()
         {
             var model = _catalogModelFactory.PreparePopularProductTagsModel();
@@ -310,7 +304,6 @@ namespace Nop.Web.Controllers
         #region Searching
 
         [NopHttpsRequirement(SslRequirement.No)]
-        [ValidateInput(false)]
         public virtual ActionResult Search(SearchModel model, CatalogPagingFilteringModel command)
         {
             //'Continue shopping' URL
@@ -326,14 +319,12 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult SearchBox()
         {
             var model = _catalogModelFactory.PrepareSearchBoxModel();
             return PartialView(model);
         }
 
-        [ValidateInput(false)]
         public virtual ActionResult SearchTermAutoComplete(string term)
         {
             if (String.IsNullOrWhiteSpace(term) || term.Length < _catalogSettings.ProductSearchTermMinimumLength)
@@ -359,7 +350,7 @@ namespace Nop.Web.Controllers
                               productpictureurl = p.DefaultPictureModel.ImageUrl
                           })
                           .ToList();
-            return Json(result, JsonRequestBehavior.AllowGet);
+            return Json(result);
         }
 
         #endregion

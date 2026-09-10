@@ -1,6 +1,6 @@
-﻿using System;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Polls;
@@ -38,7 +38,6 @@ namespace Nop.Web.Controllers
 
         #region Methods
 
-        [ChildActionOnly]
         public virtual ActionResult PollBlock(string systemKeyword)
         {
             if (String.IsNullOrWhiteSpace(systemKeyword))
@@ -52,7 +51,6 @@ namespace Nop.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateInput(false)]
         public virtual ActionResult Vote(int pollAnswerId)
         {
             var pollAnswer = _pollService.GetPollAnswerById(pollAnswerId);
@@ -96,7 +94,6 @@ namespace Nop.Web.Controllers
             });
         }
         
-        [ChildActionOnly]
         public virtual ActionResult HomePagePolls()
         {
             var model = _pollModelFactory.PrepareHomePagePollModels();

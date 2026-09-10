@@ -1,4 +1,4 @@
-﻿@model PollModel
+@model PollModel
 @using Nop.Web.Models.Polls;
 <div class="poll" id="poll-block-@(Model.Id)">
     <strong class="poll-display-text">@Model.Name</strong>
@@ -37,7 +37,7 @@
                 $('#vote-poll-@(Model.Id)').click(function () {
                 var pollAnswerId = $("input:radio[name=pollanswers-@(Model.Id)]:checked").val();
                 if (typeof (pollAnswerId) == 'undefined') {
-                    alert('@Html.Raw(HttpUtility.JavaScriptStringEncode(T("Polls.SelectAnswer").Text))');
+                    alert('@Html.Raw(JavaScriptHelper.Encode(T("Polls.SelectAnswer").Text))');
                 }
                 else {
                     var voteProgress = $("#poll-voting-progress-@(Model.Id)");

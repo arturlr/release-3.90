@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Services.Localization;
 using Nop.Services.Security;
 using Nop.Services.Stores;
@@ -71,7 +71,6 @@ namespace Nop.Web.Controllers
             return PartialView(templateViewPath, model);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult TopicBlock(string systemName)
         {
             var model = _topicModelFactory.PrepareTopicModelBySystemName(systemName);
@@ -81,7 +80,7 @@ namespace Nop.Web.Controllers
             return PartialView(model);
         }
 
-        [HttpPost, ValidateInput(false)]
+        [HttpPost]
         [PublicAntiForgery]
         public virtual ActionResult Authenticate(int id, string password)
         {

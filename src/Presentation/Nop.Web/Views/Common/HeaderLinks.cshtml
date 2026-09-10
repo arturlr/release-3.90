@@ -1,4 +1,4 @@
-﻿@model HeaderLinksModel
+@model HeaderLinksModel
 @using Nop.Web.Models.Common;
 <div class="header-links">
     <ul>
@@ -47,7 +47,7 @@
         //new private message notification
         <script type="text/javascript">
             $(document).ready(function () {
-                displayPopupNotification('@Html.Raw(HttpUtility.JavaScriptStringEncode(Model.AlertMessage))', 'success', false);
+                displayPopupNotification('@Html.Raw(JavaScriptHelper.Encode(Model.AlertMessage))', 'success', false);
             });
         </script>
     }

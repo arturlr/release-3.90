@@ -1,4 +1,4 @@
-﻿@model TopicModel
+@model TopicModel
 @using Nop.Core.Domain.Seo
 @using Nop.Core.Infrastructure
 @using Nop.Web.Models.Topics;
@@ -21,7 +21,7 @@
     var canonicalUrlsEnabled = EngineContext.Current.Resolve<SeoSettings>().CanonicalUrlsEnabled;
     if (canonicalUrlsEnabled)
     {
-        var topicUrl = Url.RouteUrl("Topic", new { SeName = Model.SeName }, this.Request.Url.Scheme);
+        var topicUrl = Url.RouteUrl("Topic", new { SeName = Model.SeName }, Context.Request.Scheme);
         Html.AddCanonicalUrlParts(topicUrl);
     }
 

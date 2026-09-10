@@ -1,4 +1,4 @@
-﻿@model CategoryNavigationModel
+@model CategoryNavigationModel
 @using Nop.Web.Models.Catalog;
 
 @functions{
@@ -20,9 +20,13 @@
 
         return false;
     }
-}
-@helper RenderCategoryLine(CategorySimpleModel category)
-{
+
+    //task 7.3: this was a Razor v2 "helper" declaration, which ASP.NET Core Razor
+    //does not support. A void method in @functions writes its markup straight to the
+    //page output, so the same HTML lands in the same place. The body is unchanged
+    //apart from the call syntax of the self/recursive calls.
+    void RenderCategoryLine(CategorySimpleModel category)
+    {
     bool active = category.Id == Model.CurrentCategoryId || category.SubCategories.Count(BreadCrumbContainsCurrentCategoryId) > 0;
     bool last = category.Id == Model.CurrentCategoryId;
     string liClass = active ? "active" : "inactive";
@@ -46,13 +50,14 @@
             <ul class="sublist">
                 @foreach (var subCategory in category.SubCategories)
                 {
-                    @RenderCategoryLine(subCategory)
+                    RenderCategoryLine(subCategory);
                 }
             </ul>
                 }
             }
         }
     </li>
+}
 }
 @if (Model.Categories.Count > 0)
 {
@@ -64,7 +69,7 @@
             <ul class="list">
                 @foreach (var category in Model.Categories)
                 {
-                    @RenderCategoryLine(category)
+                    RenderCategoryLine(category);
                 }
             </ul>
         </div>

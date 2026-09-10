@@ -120,10 +120,13 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
   - [x] 7.2 Replace hosting model (Global.asax → Program/Startup)
     - Replace `Global.asax`/`Global.asax.cs` and `System.Web` application events with `Program.cs` (`WebApplication` generic host) and `ConfigureServices`/`Configure`; invoke `IEngine`/`NopEngine`/`EngineContext` startup from host; wire `UseServiceProviderFactory(new AutofacServiceProviderFactory())` + `ConfigureContainer`
     - _Requirements: 4.1, 4.5, 4.6_
-  - [ ] 7.3 Port Nop.Web controllers, views, routing, and pipeline
+  - [x] 7.3 Port Nop.Web controllers, views, routing, and pipeline
     - `System.Web.Mvc.Controller` → ASP.NET Core controllers across all Nop.Web controllers (Req 4.3)
     - Port all `.cshtml` views to ASP.NET Core Razor; replace `Views/web.config` + `_ViewStart` with `_ViewImports.cshtml`/`_ViewStart.cshtml`; port display/editor templates (Req 4.4)
     - Register routing over endpoint routing and register former modules/handlers as middleware in correct order (Req 4.6)
+    - **RESULT: Nop.Web reached 0 errors** (from the 1110 baseline) — the 7.6 gate criterion is met. 15 warnings remain, all pre-existing (10 upstream `SYSLIB*` in Nop.Core/Nop.Services, 5 `CS0618` on FluentValidation 7.x's obsolete `Custom(...)` in unmodified `Validators/` files). See runtime-deferrals.md §27–§30.
+    - **SCOPE ADDITIONS forced by the port:** a `Html.Action` child-action bridge (`Extensions/ChildActionExtensions.cs`) — unavoidable because five call sites name the controller/action from plugin data at runtime; `Components/WidgetViewComponent.cs` (closes deferral 32); `Views/_ViewImports.cshtml`; `Extensions/SessionExtensions.cs`; `Extensions/ViewCompatibilityExtensions.cs`. `Views/Widget/WidgetsByZone.cshtml` moved to `Views/Shared/Components/Widget/Default.cshtml`.
+    - **CORRECTION to an upstream instruction:** the recommended `.WithOrder(1000)` on `GenericUrlRouteProvider`'s seven name-only `{SeName}` routes is *backwards* — a live probe showed it **creates** the `AmbiguousMatchException` it was meant to prevent. `SuppressMatchingMetadata` is used instead. See runtime-deferrals.md §28.1.
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.6_
   - [ ] 7.4 Migrate web.config to appsettings.json / IConfiguration
     - Split `web.config`: appSettings/connectionStrings/custom sections → `appsettings.json` bound via `IConfiguration`/`IOptions<T>`; `system.web`/`system.webServer` module & handler registrations → middleware in `Program.cs`; rewrite `ConfigurationManager.*` call-sites; keep only the ANCM hosting shim `web.config` if needed; load `DataSettings` via new config path
@@ -132,6 +135,7 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
   - [ ] 7.5 Remove obsolete Nop.Web files
     - Remove `AssemblyInfo`, `Global.asax`, `RouteConfig`/`*Config` App_Start files, and `Views/web.config` files rendered obsolete by the SDK/ASP.NET Core model
     - **SCOPE REDUCED BY TASK 7.2:** `Global.asax` and `Global.asax.cs` are already deleted — they carried the `System.Web.Mvc` / `FluentValidation.Mvc` / `StackExchange.Profiling` references that blocked 7.2's own compile. See runtime-deferrals.md §20.
+    - **ADDITIONS FROM TASK 7.3:** `Views/Web.config` and `Themes/DefaultClean/Views/Web.config` are now fully superseded by `Views/_ViewImports.cshtml` (both the `pageBaseType` and the `<namespaces>` list were translated) and can be deleted. Three static assets became unreferenced when the IE8 browser-capability branches were removed from `Themes/DefaultClean/Views/Shared/Head.cshtml`: `Themes/DefaultClean/Content/css/ie8.css`, `Scripts/selectivizr.min.js`, `Scripts/respond.min.js`. `FilePermissionHelper.GetFilesWrite()` still asks for write access to `~/Global.asax`, which no longer exists — see runtime-deferrals.md §18.5.
     - _Requirements: 1.5_
   - [ ] 7.6 Clean-compile gate — Nop.Web
     - Build `src/Presentation/Nop.Web/Nop.Web.csproj -c Debug` using the containerized .NET 10 SDK command in `build-environment.md`; resolve to zero errors; verify no `System.Web*` references remain. Plugins remain blocked until the Nop.Admin gate (8.8) also passes

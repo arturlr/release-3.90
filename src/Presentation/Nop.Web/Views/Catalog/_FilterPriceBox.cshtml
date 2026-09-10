@@ -1,10 +1,12 @@
-﻿@model CatalogPagingFilteringModel.PriceRangeFilterModel
+@model CatalogPagingFilteringModel.PriceRangeFilterModel
 @using Nop.Web.Models.Catalog;
-@{
-    var selectedItem = Model.Items.FirstOrDefault(x => x.Selected);
-}
-@helper FormatPriceRangeText(CatalogPagingFilteringModel.PriceRangeFilterItem filterItem)
-{
+@functions {
+    //task 7.3: this was a Razor v2 "helper" declaration, which ASP.NET Core Razor
+    //does not support. A void method in @functions writes its markup straight to the
+    //page output, so the same HTML lands in the same place. The body is unchanged
+    //apart from the call syntax of the self/recursive calls.
+    void FormatPriceRangeText(CatalogPagingFilteringModel.PriceRangeFilterItem filterItem)
+    {
     string rangeText = "";
     if (String.IsNullOrWhiteSpace(filterItem.From))
     {
@@ -20,6 +22,10 @@
     }
     <text>@Html.Raw(rangeText)</text>
 }
+}
+@{
+    var selectedItem = Model.Items.FirstOrDefault(x => x.Selected);
+}
 @if (Model.Enabled)
 {
     <div class="product-filter price-range-filter">
@@ -33,7 +39,7 @@
                     <ul class="group price-range-group">
                         @foreach (var item in Model.Items)
                         {
-                            <li><a href="@item.FilterUrl">@FormatPriceRangeText(item)</a></li>
+                            <li><a href="@item.FilterUrl">@{ FormatPriceRangeText(item); }</a></li>
                         }
                     </ul>
                 </div>
@@ -41,7 +47,7 @@
             else
             {
                 <div class="filtered-items">
-                    <span class="item">@FormatPriceRangeText(selectedItem)</span>
+                    <span class="item">@{ FormatPriceRangeText(selectedItem); }</span>
                 </div>
                 <div class="remove-filter">
                     <a href="@Model.RemoveFilterUrl">@T("Filtering.PriceRangeFilter.Remove")</a>

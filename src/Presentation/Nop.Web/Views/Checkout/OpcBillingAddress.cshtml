@@ -1,4 +1,4 @@
-﻿@model CheckoutBillingAddressModel
+@model CheckoutBillingAddressModel
 @using Nop.Web.Models.Checkout;
 <div class="checkout-data">
     @Html.Widget("op_checkout_billing_address_top")
@@ -57,16 +57,16 @@
             @{
                 var validationSummary = Html.ValidationSummary(true);
             }
-            @if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+            @if (!validationSummary.IsNullOrEmpty())
             {
                 <div class="message-error">@validationSummary</div>
             }
             @{
-                var dataDictAddress = new ViewDataDictionary();
+                var dataDictAddress = Html.NewViewData();
                 //Merge ModelState (required for validation)
                 dataDictAddress.ModelState.Merge(ViewData.ModelState);
                 dataDictAddress.TemplateInfo.HtmlFieldPrefix = "BillingNewAddress";
-                @Html.Partial("_CreateOrUpdateAddress", Model.NewAddress, dataDictAddress)
+                @await Html.PartialAsync("_CreateOrUpdateAddress", Model.NewAddress, dataDictAddress)
             }
         </div>
     </div>

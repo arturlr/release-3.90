@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Services.Authentication.External;
 using Nop.Web.Factories;
 
@@ -33,7 +33,6 @@ namespace Nop.Web.Controllers
             return Redirect(returnUrl);
         }
 
-        [ChildActionOnly]
         public virtual ActionResult ExternalMethods()
         {
             var model = _externalAuthenticationModelFactory.PrepareExternalMethodsModel();

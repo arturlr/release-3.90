@@ -1,0 +1,21 @@
+@*
+    Task 7.3: this is Views/Widget/WidgetsByZone.cshtml, relocated to the location ASP.NET Core
+    searches for a view component's default view.
+
+    A view component renders "Components/{ComponentName}/{ViewName}", so
+    Nop.Web.Framework.Themes.ThemeableViewLocationExpander resolves this file through its
+    existing "/Views/Shared/{0}.cshtml" format - which also means a theme can still override it
+    at /Themes/{theme}/Views/Shared/Components/Widget/Default.cshtml. Hardcoding the old path
+    with View("~/Views/Widget/WidgetsByZone.cshtml") would have compiled and rendered, but would
+    have bypassed the expander and silently made this partial un-themeable.
+
+    The body is unchanged. Html.Action here is the DYNAMIC case that makes the child-action
+    bridge unavoidable: the controller and action names come from IWidgetPlugin at runtime, so
+    they cannot be expressed as a view component. See Nop.Web/Extensions/ChildActionExtensions.cs.
+*@
+@model List<RenderWidgetModel>
+@using Nop.Web.Models.Cms;
+@foreach (var widget in Model)
+{
+    @Html.Action(widget.ActionName, widget.ControllerName, widget.RouteValues)
+}

@@ -8,7 +8,7 @@
 }
 <div class="order-summary-content">
    @Html.Widget("order_summary_content_before")
-   @Html.Partial("_OrderReviewData", Model.OrderReviewData)
+   @await Html.PartialAsync("_OrderReviewData", Model.OrderReviewData)
    @if (Model.Items.Count > 0)
    {
        if (Model.Warnings.Count > 0)
@@ -219,7 +219,7 @@
            }
            @if (Model.IsEditable)
            {
-               @Html.Partial("_CheckoutAttributes", Model.CheckoutAttributes, new ViewDataDictionary())
+               @await Html.PartialAsync("_CheckoutAttributes", Model.CheckoutAttributes, Html.NewViewData())
            }
            @if (!String.IsNullOrEmpty(Model.CheckoutAttributeInfo))
            {
@@ -234,11 +234,11 @@
            {
                <div class="cart-collaterals">
                    <div class="deals">
-                       @Html.Partial("_DiscountBox", Model.DiscountBox)
-                       @Html.Partial("_GiftCardBox", Model.GiftCardBox)
+                       @await Html.PartialAsync("_DiscountBox", Model.DiscountBox)
+                       @await Html.PartialAsync("_GiftCardBox", Model.GiftCardBox)
                        @Html.Widget("order_summary_content_deals")
                    </div>
-                   @Html.Partial("EstimateShipping", Model.EstimateShipping)
+                   @await Html.PartialAsync("EstimateShipping", Model.EstimateShipping)
                </div>
            }
            <div class="totals">
@@ -301,7 +301,7 @@
                    </div>
                    <div class="addon-buttons">
                        @*Payment method buttons (e.g. GoogleCheckoutButton, Paypal Express)*@
-                       @Html.Partial("_ButtonPaymentMethod", Model)
+                       @await Html.PartialAsync("_ButtonPaymentMethod", Model)
                    </div>
                }
            </div>

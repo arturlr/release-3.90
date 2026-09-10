@@ -1,10 +1,10 @@
-﻿using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Routing;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
-using System.Web.Routing;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Catalog;
@@ -28,6 +28,7 @@ using Nop.Services.Security;
 using Nop.Services.Seo;
 using Nop.Services.Shipping;
 using Nop.Services.Tax;
+using Nop.Web.Extensions;
 using Nop.Web.Framework.Security.Captcha;
 using Nop.Web.Infrastructure.Cache;
 using Nop.Web.Models.Common;
@@ -70,7 +71,7 @@ namespace Nop.Web.Factories
         private readonly ICacheManager _cacheManager;
         private readonly IWebHelper _webHelper;
         private readonly IGenericAttributeService _genericAttributeService;
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         private readonly MediaSettings _mediaSettings;
         private readonly ShoppingCartSettings _shoppingCartSettings;
@@ -113,7 +114,7 @@ namespace Nop.Web.Factories
             ICacheManager cacheManager,
             IWebHelper webHelper, 
             IGenericAttributeService genericAttributeService,
-            HttpContextBase httpContext,
+            IHttpContextAccessor httpContextAccessor,
             MediaSettings mediaSettings,
             ShoppingCartSettings shoppingCartSettings,
             CatalogSettings catalogSettings, 
@@ -152,7 +153,7 @@ namespace Nop.Web.Factories
             this._cacheManager = cacheManager;
             this._webHelper = webHelper;
             this._genericAttributeService = genericAttributeService;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
 
             this._mediaSettings = mediaSettings;
             this._shoppingCartSettings = shoppingCartSettings;
@@ -727,7 +728,11 @@ namespace Nop.Web.Factories
                 : "";
 
             //custom values
-            var processPaymentRequest = _httpContext.Session["OrderPaymentInfo"] as ProcessPaymentRequest;
+            //task 7.3: ISession is a byte[] store with no object indexer - see
+            //Nop.Web/Extensions/SessionExtensions.cs for the JSON bridge and its recorded
+            //CustomValues fidelity limit (deferral 7.3-2).
+            var processPaymentRequest = _httpContextAccessor.HttpContext?.Session
+                .Get<ProcessPaymentRequest>("OrderPaymentInfo");
             if (processPaymentRequest != null)
             {
                 model.CustomValues = processPaymentRequest.CustomValues;

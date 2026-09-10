@@ -1,4 +1,4 @@
-﻿@using Nop.Core;
+@using Nop.Core;
 @using Nop.Core.Infrastructure
 @using Nop.Web.Framework.Themes
 @using Nop.Web.Framework.UI
@@ -6,12 +6,20 @@
     var supportRtl = EngineContext.Current.Resolve<IWorkContext>().WorkingLanguage.Rtl;
     var themeName = EngineContext.Current.Resolve<IThemeContext>().WorkingThemeName;
 
-    //add browser specific CSS files
-    var browser = Request.Browser;
-    if (browser.Browser == "IE" && browser.MajorVersion == 8)
-    {
-        Html.AppendCssFileParts(string.Format("~/Themes/{0}/Content/css/ie8.css", themeName));
-    }
+    @*
+        task 7.3: the IE8-specific CSS/JS branches are REMOVED.
+        3.90 selected them through the request's legacy browser-capabilities object
+        (System.Web.HttpBrowserCapabilities), which does not exist in ASP.NET Core and has no
+        replacement: server-side browser capability sniffing was driven by browscap.xml and was
+        dropped from the platform entirely. App_Data/browscap.xml survives only because
+        Nop.Services' IUserAgentHelper parses it for IsSearchEngine(); it exposes no browser
+        version data.
+        Removing the branches rather than inventing User-Agent parsing is the honest call: IE8
+        cannot run this storefront regardless, and the two polyfills these branches loaded -
+        selectivizr and respond.js - exist solely to give IE8 CSS3 selectors and media queries.
+        ~/Themes/DefaultClean/Content/css/ie8.css, ~/Scripts/selectivizr.min.js and
+        ~/Scripts/respond.min.js are now unreferenced; task 7.5 may delete them.
+    *@
     //add main CSS file
     if (supportRtl)
     {
@@ -24,10 +32,4 @@
     
     //add jQuery UI css file
     Html.AppendCssFileParts("~/Content/jquery-ui-themes/smoothness/jquery-ui-1.10.3.custom.min.css");
-
-    if (browser.Browser == "IE" && browser.MajorVersion == 8)
-    {
-        Html.AddScriptParts("~/Scripts/selectivizr.min.js");
-        Html.AddScriptParts("~/Scripts/respond.min.js");
-    }
 }

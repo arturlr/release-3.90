@@ -1,4 +1,4 @@
-﻿@using Nop.Core.Infrastructure
+@using Nop.Core.Infrastructure
 @using Nop.Services.Helpers
 @{
     var dateTimeHelper = EngineContext.Current.Resolve<IDateTimeHelper>();
@@ -7,5 +7,5 @@
     <div class="current-time">
         @dateTimeHelper.ConvertToUserTime(DateTime.UtcNow).ToString("F")
     </div>
-    @Html.Partial("_SearchBox")
+    @await Html.PartialAsync("_SearchBox")
 </div>

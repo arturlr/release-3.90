@@ -1,8 +1,8 @@
-﻿using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.IO;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Localization;
@@ -72,13 +72,39 @@ namespace Nop.Web.Controllers
 
         #endregion
 
+        #region Utilities
+
+        /// <summary>
+        /// Read a request value the way <c>System.Web.HttpRequest</c>'s indexer did.
+        /// </summary>
+        /// <remarks>
+        /// Task 7.3. <c>Microsoft.AspNetCore.Http.HttpRequest</c> has no indexer. MVC 5's
+        /// searched QueryString, then Form, then Cookies, then ServerVariables; only the first
+        /// two are reachable for the call sites this replaces, and the form is guarded because
+        /// ASP.NET Core throws on <c>Request.Form</c> for a non-form request.
+        /// </remarks>
+        /// <param name="key">Value name</param>
+        /// <returns>Value, or null when absent</returns>
+        protected virtual string GetRequestValue(string key)
+        {
+            if (Request.Query.ContainsKey(key))
+                return Request.Query[key];
+
+            if (Request.HasFormContentType && Request.Form.ContainsKey(key))
+                return Request.Form[key];
+
+            return null;
+        }
+
+        #endregion
+
         #region Methods
 
         [NopHttpsRequirement(SslRequirement.Yes)]
         public virtual ActionResult CustomerReturnRequests()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var model = _returnRequestModelFactory.PrepareCustomerReturnRequestsModel();
             return View(model);
@@ -89,7 +115,7 @@ namespace Nop.Web.Controllers
         {
             var order = _orderService.GetOrderById(orderId);
             if (order == null || order.Deleted || _workContext.CurrentCustomer.Id != order.CustomerId)
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             if (!_orderProcessingService.IsReturnRequestAllowed(order))
                 return RedirectToRoute("HomePage");
@@ -100,13 +126,12 @@ namespace Nop.Web.Controllers
         }
 
         [HttpPost, ActionName("ReturnRequest")]
-        [ValidateInput(false)]
         [PublicAntiForgery]
-        public virtual ActionResult ReturnRequestSubmit(int orderId, SubmitReturnRequestModel model, FormCollection form)
+        public virtual ActionResult ReturnRequestSubmit(int orderId, SubmitReturnRequestModel model, IFormCollection form)
         {
             var order = _orderService.GetOrderById(orderId);
             if (order == null || order.Deleted || _workContext.CurrentCustomer.Id != order.CustomerId)
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             if (!_orderProcessingService.IsReturnRequestAllowed(order))
                 return RedirectToRoute("HomePage");
@@ -126,7 +151,7 @@ namespace Nop.Web.Controllers
             foreach (var orderItem in orderItems)
             {
                 int quantity = 0; //parse quantity
-                foreach (string formKey in form.AllKeys)
+                foreach (string formKey in form.Keys)
                     if (formKey.Equals(string.Format("quantity{0}", orderItem.Id), StringComparison.InvariantCultureIgnoreCase))
                     {
                         int.TryParse(form[formKey], out quantity);
@@ -193,25 +218,42 @@ namespace Nop.Web.Controllers
             Stream stream = null;
             var fileName = "";
             var contentType = "";
-            if (String.IsNullOrEmpty(Request["qqfile"]))
+            //task 7.3: Request["qqfile"] -> the query string (then the form, matching MVC 5's
+            //QueryString-before-Form search order). HttpRequest has no indexer in ASP.NET Core.
+            var qqFile = GetRequestValue("qqfile");
+            if (String.IsNullOrEmpty(qqFile))
             {
                 // IE
-                HttpPostedFileBase httpPostedFile = Request.Files[0];
+                //Request.Files -> Request.Form.Files, guarded: ASP.NET Core throws on
+                //Request.Form for a non-form request where System.Web returned an empty
+                //collection.
+                IFormFile httpPostedFile = Request.HasFormContentType && Request.Form.Files.Count > 0
+                    ? Request.Form.Files[0]
+                    : null;
                 if (httpPostedFile == null)
                     throw new ArgumentException("No file uploaded");
-                stream = httpPostedFile.InputStream;
+                stream = httpPostedFile.OpenReadStream();
                 fileName = Path.GetFileName(httpPostedFile.FileName);
                 contentType = httpPostedFile.ContentType;
             }
             else
             {
                 //Webkit, Mozilla
-                stream = Request.InputStream;
-                fileName = Request["qqfile"];
+                stream = Request.Body;
+                fileName = qqFile;
             }
 
-            var fileBinary = new byte[stream.Length];
-            stream.Read(fileBinary, 0, fileBinary.Length);
+            //task 7.3: 3.90 did "new byte[stream.Length]" then a single Read(). Request.Body is
+            //not seekable in ASP.NET Core, so .Length throws NotSupportedException; and one
+            //Read() is not guaranteed to fill the buffer even on a seekable stream. CopyTo
+            //reads to completion - the same latent truncation bug task 4.2 fixed in
+            //Nop.Services Media.Extensions.
+            byte[] fileBinary;
+            using (var ms = new MemoryStream())
+            {
+                stream.CopyTo(ms);
+                fileBinary = ms.ToArray();
+            }
 
             var fileExtension = Path.GetExtension(fileName);
             if (!String.IsNullOrEmpty(fileExtension))

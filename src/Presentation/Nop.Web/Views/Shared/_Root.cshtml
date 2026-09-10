@@ -1,14 +1,14 @@
-﻿@{
+@{
     Layout = "~/Views/Shared/_Root.Head.cshtml";
 }
 @Html.Widget("body_start_html_tag_after")
-@Html.Partial("_Notifications")
+@await Html.PartialAsync("_Notifications")
 @Html.Action("JavaScriptDisabledWarning", "Common")
-@Html.Partial("OldInternetExplorerWarning")
+@await Html.PartialAsync("OldInternetExplorerWarning")
 
 <div class="master-wrapper-page">
     @Html.Action("AdminHeaderLinks", "Common")
-    @Html.Partial("Header")
+    @await Html.PartialAsync("Header")
     <script type="text/javascript">
         AjaxCart.init(false, '.header-links .cart-qty', '.header-links .wishlist-qty', '#flyout-cart');
     </script>

@@ -1,4 +1,4 @@
-﻿@model NewsItemModel
+@model NewsItemModel
 @using Nop.Web.Models.News;
 @{
     Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
@@ -34,7 +34,7 @@
                     @{
                         var validationSummary = Html.ValidationSummary(true);
                     }
-                    @if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+                    @if (!validationSummary.IsNullOrEmpty())
                     {
                         <div class="message-error">@validationSummary</div>
                     }

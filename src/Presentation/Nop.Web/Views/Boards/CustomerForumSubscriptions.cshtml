@@ -1,4 +1,4 @@
-﻿@model CustomerForumSubscriptionsModel
+@model CustomerForumSubscriptionsModel
 @using Nop.Web.Models.Boards;
 @using Nop.Web.Models.Customer;
 @{    
@@ -83,7 +83,7 @@
                 @{
                     var pager = Html.Pager(Model.PagerModel);
                 }
-                @if (!MvcHtmlString.IsNullOrEmpty(pager))
+                @if (!pager.IsNullOrEmpty())
                 {
                     <div class="pager">
                         @pager

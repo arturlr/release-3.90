@@ -1,8 +1,9 @@
-﻿using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Orders;
@@ -64,7 +65,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult CustomerOrders()
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var model = _orderModelFactory.PrepareCustomerOrderListModel();
             return View(model);
@@ -74,14 +75,14 @@ namespace Nop.Web.Controllers
         [HttpPost, ActionName("CustomerOrders")]
         [PublicAntiForgery]
         [FormValueRequired(FormValueRequirement.StartsWith, "cancelRecurringPayment")]
-        public virtual ActionResult CancelRecurringPayment(FormCollection form)
+        public virtual ActionResult CancelRecurringPayment(IFormCollection form)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             //get recurring payment identifier
             int recurringPaymentId = 0;
-            foreach (var formValue in form.AllKeys)
+            foreach (var formValue in form.Keys)
                 if (formValue.StartsWith("cancelRecurringPayment", StringComparison.InvariantCultureIgnoreCase))
                     recurringPaymentId = Convert.ToInt32(formValue.Substring("cancelRecurringPayment".Length));
 
@@ -110,14 +111,14 @@ namespace Nop.Web.Controllers
         [HttpPost, ActionName("CustomerOrders")]
         [PublicAntiForgery]
         [FormValueRequired(FormValueRequirement.StartsWith, "retryLastPayment")]
-        public virtual ActionResult RetryLastRecurringPayment(FormCollection form)
+        public virtual ActionResult RetryLastRecurringPayment(IFormCollection form)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             //get recurring payment identifier
             var recurringPaymentId = 0;
-            if (!form.AllKeys.Any(formValue => formValue.StartsWith("retryLastPayment", StringComparison.InvariantCultureIgnoreCase) &&
+            if (!form.Keys.Any(formValue => formValue.StartsWith("retryLastPayment", StringComparison.InvariantCultureIgnoreCase) &&
                 int.TryParse(formValue.Substring(formValue.IndexOf('_') + 1), out recurringPaymentId)))
             {
                 return RedirectToRoute("CustomerOrders");
@@ -142,7 +143,7 @@ namespace Nop.Web.Controllers
         public virtual ActionResult CustomerRewardPoints(int? page)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             if (!_rewardPointsSettings.Enabled)
                 return RedirectToRoute("CustomerInfo");
@@ -157,7 +158,7 @@ namespace Nop.Web.Controllers
         {
             var order = _orderService.GetOrderById(orderId);
             if (order == null || order.Deleted || _workContext.CurrentCustomer.Id != order.CustomerId)
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var model = _orderModelFactory.PrepareOrderDetailsModel(order);
             return View(model);
@@ -169,7 +170,7 @@ namespace Nop.Web.Controllers
         {
             var order = _orderService.GetOrderById(orderId);
             if (order == null || order.Deleted || _workContext.CurrentCustomer.Id != order.CustomerId)
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var model = _orderModelFactory.PrepareOrderDetailsModel(order);
             model.PrintMode = true;
@@ -182,7 +183,7 @@ namespace Nop.Web.Controllers
         {
             var order = _orderService.GetOrderById(orderId);
             if (order == null || order.Deleted || _workContext.CurrentCustomer.Id != order.CustomerId)
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var orders = new List<Order>();
             orders.Add(order);
@@ -200,7 +201,7 @@ namespace Nop.Web.Controllers
         {
             var order = _orderService.GetOrderById(orderId);
             if (order == null || order.Deleted || _workContext.CurrentCustomer.Id != order.CustomerId)
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             _orderProcessingService.ReOrder(order);
             return RedirectToRoute("ShoppingCart");
@@ -214,7 +215,7 @@ namespace Nop.Web.Controllers
         {
             var order = _orderService.GetOrderById(orderId);
             if (order == null || order.Deleted || _workContext.CurrentCustomer.Id != order.CustomerId)
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             if (!_paymentService.CanRePostProcessPayment(order))
                 return RedirectToRoute("OrderDetails", new { orderId = orderId });
@@ -242,11 +243,11 @@ namespace Nop.Web.Controllers
         {
             var shipment = _shipmentService.GetShipmentById(shipmentId);
             if (shipment == null)
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var order = shipment.Order;
             if (order == null || order.Deleted || _workContext.CurrentCustomer.Id != order.CustomerId)
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var model = _orderModelFactory.PrepareShipmentDetailsModel(shipment);
             return View(model);

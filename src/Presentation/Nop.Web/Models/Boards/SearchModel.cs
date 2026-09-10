@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Collections.Generic;
 
 namespace Nop.Web.Models.Boards
 {
@@ -15,7 +15,6 @@ namespace Nop.Web.Models.Boards
 
         public bool ShowAdvancedSearch { get; set; }
 
-        [AllowHtml]
         public string SearchTerms { get; set; }
 
         public int? ForumId { get; set; }

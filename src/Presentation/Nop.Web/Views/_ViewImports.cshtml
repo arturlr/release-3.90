@@ -1,0 +1,82 @@
+@*
+    Task 7.3 — the ASP.NET Core replacement for Views/Web.config's
+    <system.web.webPages.razor><pages> element (Requirement 4.4).
+
+    Views/Web.config declared two things that every view in this folder tree depended on:
+
+      pageBaseType="Nop.Web.Framework.ViewEngines.Razor.WebViewPage"
+          -> the @inherits directive below. This is what makes T("Some.Resource") resolve:
+             the localizer lives on that base class. Without it every view fails with
+             ~2000 CS0103 "The name 'T' does not exist in the current context" errors.
+
+      <namespaces>          -> the @using directives below.
+
+    Views/Web.config itself is NOT deleted here — task 7.5 owns removing obsolete files.
+    It is inert either way: the Web SDK copies it as content, and nothing reads
+    system.web.webPages.razor on .NET 10.
+*@
+@inherits Nop.Web.Framework.ViewEngines.Razor.WebViewPage<TModel>
+
+@*
+    Direct translations of the four System.Web entries in Views/Web.config:
+        System.Web.Mvc       -> Microsoft.AspNetCore.Mvc
+        System.Web.Mvc.Html  -> Microsoft.AspNetCore.Mvc.Rendering (IHtmlHelper extensions)
+        System.Web.Routing   -> Microsoft.AspNetCore.Routing
+        System.Web.Mvc.Ajax  -> no counterpart; the Ajax.* helpers do not exist in
+                                ASP.NET Core and no view in this project used them
+                                (verified: zero "Ajax." occurrences under Views/).
+    Microsoft.AspNetCore.Html is added for IHtmlContent/HtmlString, which replace
+    MvcHtmlString throughout.
+*@
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Routing
+
+@* carried over verbatim from Views/Web.config *@
+@using Nop.Web.Extensions
+@using Nop.Web.Framework
+@using Nop.Web.Framework.Security.Captcha
+@using Nop.Web.Framework.Security.Honeypot
+@using Nop.Web.Framework.UI
+
+@* used by nearly every view for the localization/SEO/model helpers *@
+@using Nop.Core
+@using Nop.Core.Domain.Catalog
+@using Nop.Core.Domain.Common
+@using Nop.Core.Domain.Customers
+@using Nop.Core.Domain.Orders
+@using Nop.Core.Infrastructure
+@using Nop.Services.Localization
+@using Nop.Services.Seo
+@using Nop.Web.Models.Blogs
+@*
+    Nop.Web.Models.Boards and Nop.Web.Models.Catalog are deliberately NOT imported globally:
+    both declare a SearchModel, so a global import makes the name ambiguous in
+    Views/Boards/Search.cshtml and Views/Catalog/Search.cshtml. Views in those areas already
+    reference their models by full name in @model, and the handful that need more declare
+    their own @using.
+*@
+@using Nop.Web.Models.Checkout
+@using Nop.Web.Models.Cms
+@using Nop.Web.Models.Common
+@using Nop.Web.Models.Customer
+@using Nop.Web.Models.Media
+@using Nop.Web.Models.News
+@using Nop.Web.Models.Newsletter
+@using Nop.Web.Models.Order
+@using Nop.Web.Models.Polls
+@using Nop.Web.Models.PrivateMessages
+@using Nop.Web.Models.Profile
+@using Nop.Web.Models.ShoppingCart
+@using Nop.Web.Models.Topics
+@using Nop.Web.Models.Vendors
+
+@*
+    Tag helpers. 3.90 had none (they do not exist in MVC 5), so nothing here is a port —
+    these are added because the framework's own form/validation/link tag helpers are the
+    supported way to get anti-forgery tokens emitted into forms, and Html.BeginForm relies
+    on the same infrastructure.
+*@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

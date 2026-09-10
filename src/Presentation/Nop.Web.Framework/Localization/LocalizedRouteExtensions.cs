@@ -34,12 +34,14 @@ namespace Nop.Web.Framework.Localization
     /// <para>
     /// <b>The return type changed</b> from <c>System.Web.Routing.Route</c> to
     /// <see cref="IEndpointConventionBuilder"/>. No in-tree caller uses the return value.
-    /// It is returned rather than discarded because callers may need
-    /// <c>WithOrder(int)</c> to break ties between equally-specific patterns — endpoint
-    /// routing throws <c>AmbiguousMatchException</c> where MVC 5 silently took the
-    /// first-registered route. See
-    /// <see cref="Nop.Web.Framework.Seo.GenericPathRouteExtensions"/> for the concrete case
-    /// task 7.3 must fix.
+    /// It is returned rather than discarded because callers may need to attach endpoint
+    /// metadata — for example <c>SuppressMatchingMetadata</c> on a route that exists only for
+    /// URL generation, or <c>WithOrder(int)</c>. Note that endpoint routing resolves
+    /// equal-precedence candidates by <b>Order</b>, and <c>MapControllerRoute</c> assigns an
+    /// auto-incrementing order per call, so registration sequence already reproduces MVC 5's
+    /// "first registered wins" — see
+    /// <see cref="Nop.Web.Framework.Seo.GenericPathRouteExtensions"/>, whose remarks task 7.3
+    /// corrected after measuring the actual behaviour.
     /// </para>
     /// <para>
     /// Note also that <c>System.Web.Mvc.UrlParameter.Optional</c> has no counterpart: an

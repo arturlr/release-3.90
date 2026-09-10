@@ -1,4 +1,4 @@
-﻿@model AddressModel
+@model AddressModel
 @using Nop.Web.Models.Common;
 @if (Model.CountryEnabled && Model.StateProvinceEnabled)
 {
@@ -157,6 +157,6 @@
     }
     @if (Model.CustomAddressAttributes.Count > 0)
     {
-        @Html.Partial("_AddressAttributes", Model.CustomAddressAttributes)
+        @await Html.PartialAsync("_AddressAttributes", Model.CustomAddressAttributes)
     }
 </div>

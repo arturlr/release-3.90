@@ -35,24 +35,50 @@ namespace Nop.Web.Framework.Seo
     /// counterpart at all.
     /// </para>
     /// <para>
-    /// <b>REQUIRED ACTION FOR TASK 7.3 — endpoint ambiguity.</b>
+    /// <b>ENDPOINT AMBIGUITY — the original guidance here was WRONG, and task 7.3 corrected it.</b>
     /// <c>GenericUrlRouteProvider</c> registers this route with the pattern
     /// <c>"{generic_se_name}"</c> and then registers seven <c>MapLocalizedRoute</c> routes
     /// (<c>Product</c>, <c>Category</c>, <c>Manufacturer</c>, <c>Vendor</c>, <c>NewsItem</c>,
-    /// <c>BlogPost</c>, <c>Topic</c>) that all share the pattern <c>"{SeName}"</c>. Those
-    /// exist purely so views can generate URLs <i>by route name</i>; in MVC 5 they were never
-    /// matched because <c>RouteCollection</c> matching stopped at the first candidate.
-    /// Endpoint routing has no such rule: eight single-segment patterns of identical
-    /// precedence and identical order cause <c>AmbiguousMatchException</c> at request time.
-    /// Task 7.3 MUST disambiguate, e.g. by giving each of the seven a losing order:
+    /// <c>BlogPost</c>, <c>Topic</c>) that all share the pattern <c>"{SeName}"</c>. Those exist
+    /// purely so views can generate URLs <i>by route name</i>; in MVC 5 they were never matched
+    /// because <c>RouteCollection</c> matching stopped at the first candidate.
+    /// </para>
+    /// <para>
+    /// This comment previously advised giving the seven a losing order with
+    /// <c>.WithOrder(1000)</c>. <b>Do not do that.</b> A live probe against net10.0 (task 7.3,
+    /// runtime-deferrals.md §28.1) established two facts:
+    /// <list type="number">
+    /// <item><c>MapControllerRoute</c> does <b>not</b> leave <c>Endpoint.Order</c> at 0 — MVC's
+    /// <c>ControllerActionEndpointConventionBuilder</c> assigns an <b>auto-incrementing order per
+    /// call</b>, and <c>EndpointComparer</c> compares <c>Order</c> <i>before</i> precedence. So
+    /// registration sequence already decides the winner, faithfully reproducing MVC 5, and these
+    /// eight patterns do not collide by default.</item>
+    /// <item>Applying <c>.WithOrder(1000)</c> to all seven <b>creates</b> the ambiguity it was
+    /// meant to prevent: it collapses seven distinct orders into one, and the probe then
+    /// reproduced <c>AmbiguousMatchException: The request matched multiple endpoints</c>.</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// <b>What task 7.3 applied instead</b>, and what a plugin registering a similarly-shaped
+    /// route should copy: attach <see cref="Microsoft.AspNetCore.Routing.SuppressMatchingMetadata"/>,
+    /// which removes the endpoint from <i>inbound matching</i> while leaving it usable for
+    /// <i>link generation</i> — the exact semantic a "URL generation only" route has:
     /// <code>
     /// routeBuilder.MapLocalizedRoute("Product", "{SeName}", new { controller = "Product", action = "ProductDetails" })
-    ///             .WithOrder(1000);
+    ///             .WithMetadata(new SuppressMatchingMetadata());
     /// </code>
-    /// (<c>WithOrder</c> is <c>Microsoft.AspNetCore.Builder.RoutingEndpointConventionBuilderExtensions.WithOrder</c>;
-    /// it is why <see cref="Nop.Web.Framework.Localization.LocalizedRouteExtensions"/> returns
-    /// the convention builder.) The generic-path route keeps the default order 0 and therefore
-    /// wins, reproducing 3.90's effective behaviour.
+    /// Verified live: <c>Url.RouteUrl("Product", new { SeName = "my-slug" })</c> still returns
+    /// <c>/my-slug</c> with matching suppressed, because <c>IUrlHelper.RouteUrl</c> resolves
+    /// through <c>RouteValuesAddressScheme</c>, which skips only
+    /// <c>ISuppressLinkGenerationMetadata</c>.
+    /// </para>
+    /// <para>
+    /// <b>Also load-bearing:</b> because <c>Order</c> beats precedence, this provider's
+    /// <c>Priority</c> of <c>-1000000</c> (so <c>IRoutePublisher</c> registers it last) is what
+    /// stops <c>{generic_se_name}</c> swallowing every single-segment path. The probe confirmed
+    /// that registering the slug route first makes <c>/cart</c> resolve to
+    /// <c>Common/GenericUrl</c> instead of the <c>"cart/"</c> route, even though the literal
+    /// pattern has strictly better precedence. Do not reorder the providers.
     /// </para>
     /// </remarks>
     public static class GenericPathRouteExtensions

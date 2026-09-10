@@ -1,7 +1,7 @@
-﻿using System;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Common;
@@ -26,7 +26,6 @@ using Nop.Services.Stores;
 using Nop.Web.Framework.Security.Captcha;
 using Nop.Web.Models.Common;
 using Nop.Web.Models.Customer;
-using WebGrease.Css.Extensions;
 
 namespace Nop.Web.Factories
 {
@@ -390,7 +389,12 @@ namespace Nop.Web.Factories
 
             //custom customer attributes
             var customAttributes = PrepareCustomCustomerAttributes(customer, overrideCustomCustomerAttributesXml);
-            customAttributes.ForEach(model.CustomerAttributes.Add);
+            //task 7.3 (deferral 41): this was the WebGrease.Css.Extensions IEnumerable<T>
+            //extension, NOT List<T>.ForEach - PrepareCustomCustomerAttributes returns IList<T>.
+            //WebGrease was bundling's minifier and is gone with bundling; the BCL has no
+            //IEnumerable<T>.ForEach by design.
+            foreach (var customAttribute in customAttributes)
+                model.CustomerAttributes.Add(customAttribute);
 
             return model;
         }
@@ -493,7 +497,9 @@ namespace Nop.Web.Factories
 
             //custom customer attributes
             var customAttributes = PrepareCustomCustomerAttributes(_workContext.CurrentCustomer, overrideCustomCustomerAttributesXml);
-            customAttributes.ForEach(model.CustomerAttributes.Add);
+            //task 7.3 (deferral 41) - see the note on the other call site above
+            foreach (var customAttribute in customAttributes)
+                model.CustomerAttributes.Add(customAttribute);
 
             return model;
         }

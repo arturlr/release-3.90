@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Services.Catalog;
@@ -71,7 +71,7 @@ namespace Nop.Web.Controllers
             if (_customerSettings.DownloadableProductsValidateUser)
             {
                 if (_workContext.CurrentCustomer == null)
-                    return new HttpUnauthorizedResult();
+                    return new ChallengeResult();
 
                 if (order.CustomerId != _workContext.CurrentCustomer.Id)
                     return Content("This is not your order");
@@ -127,7 +127,7 @@ namespace Nop.Web.Controllers
             if (_customerSettings.DownloadableProductsValidateUser)
             {
                 if (_workContext.CurrentCustomer == null || order.CustomerId != _workContext.CurrentCustomer.Id)
-                    return new HttpUnauthorizedResult();
+                    return new ChallengeResult();
             }
 
             var download = _downloadService.GetDownloadById(orderItem.LicenseDownloadId.HasValue ? orderItem.LicenseDownloadId.Value : 0);
@@ -175,7 +175,7 @@ namespace Nop.Web.Controllers
             var order = orderNote.Order;
 
             if (_workContext.CurrentCustomer == null || order.CustomerId != _workContext.CurrentCustomer.Id)
-                return new HttpUnauthorizedResult();
+                return new ChallengeResult();
 
             var download = _downloadService.GetDownloadById(orderNote.DownloadId);
             if (download == null)

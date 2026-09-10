@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
 using Nop.Core.Domain.Catalog;
 using Nop.Services.Common;
 
@@ -9,9 +9,23 @@ namespace Nop.Web.Extensions
     /// <summary>
     /// Parser helper
     /// </summary>
+    /// <remarks>
+    /// Task 7.3: <c>System.Web.Mvc.FormCollection</c> became
+    /// <see cref="IFormCollection"/> — the interface, not the concrete
+    /// <c>Microsoft.AspNetCore.Http.FormCollection</c>, because <c>HttpRequest.Form</c> is
+    /// typed as the interface (the same choice task 6.2 made for
+    /// <c>BasePaymentController.ValidatePaymentForm</c>).
+    ///
+    /// The indexer now yields <c>StringValues</c> rather than <c>string</c>, so the locals are
+    /// declared <c>string</c> explicitly to force the implicit conversion. That conversion is
+    /// behaviourally identical to 3.90: a single value is returned as-is and multiple values
+    /// are joined with <c>","</c>, exactly as <c>NameValueCollection</c>'s indexer did — which
+    /// is what the <c>Checkboxes</c> branch's <c>Split(',')</c> depends on. Left as <c>var</c>
+    /// the file would not compile (<c>StringValues</c> has no <c>Split</c>/<c>Trim</c>).
+    /// </remarks>
     public static class AttributeParserHelper
     {
-        public static string ParseCustomAddressAttributes(this FormCollection form,
+        public static string ParseCustomAddressAttributes(this IFormCollection form,
             IAddressAttributeParser addressAttributeParser,
             IAddressAttributeService addressAttributeService)
         {
@@ -28,7 +42,7 @@ namespace Nop.Web.Extensions
                     case AttributeControlType.DropdownList:
                     case AttributeControlType.RadioList:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 int selectedAttributeId = int.Parse(ctrlAttributes);
@@ -40,7 +54,7 @@ namespace Nop.Web.Extensions
                         break;
                     case AttributeControlType.Checkboxes:
                         {
-                            var cblAttributes = form[controlId];
+                            string cblAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(cblAttributes))
                             {
                                 foreach (var item in cblAttributes.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -70,7 +84,7 @@ namespace Nop.Web.Extensions
                     case AttributeControlType.TextBox:
                     case AttributeControlType.MultilineTextbox:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 string enteredText = ctrlAttributes.Trim();

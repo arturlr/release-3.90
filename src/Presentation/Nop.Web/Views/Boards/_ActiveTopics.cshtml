@@ -1,4 +1,4 @@
-﻿@model ActiveDiscussionsModel
+@model ActiveDiscussionsModel
 @using Nop.Web.Models.Boards;
 @using Nop.Web.Models.Common;
 <div class="forums-table-section topic-group active-discussions">
@@ -21,7 +21,7 @@
                 RouteValues = new ForumActiveDiscussionsRouteValues()
             });
         }
-    @if (!MvcHtmlString.IsNullOrEmpty(pager))
+    @if (!pager.IsNullOrEmpty())
     {
         <div class="pager upper">
             @pager
@@ -111,7 +111,7 @@
             </div>
         }
     </div>
-    @if (!MvcHtmlString.IsNullOrEmpty(pager))
+    @if (!pager.IsNullOrEmpty())
     {
         <div class="pager lower">
             @pager

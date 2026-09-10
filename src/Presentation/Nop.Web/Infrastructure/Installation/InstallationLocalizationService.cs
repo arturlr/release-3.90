@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Web;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Headers;
 using System.Xml;
 using Nop.Core;
 using Nop.Core.Infrastructure;
@@ -52,12 +53,17 @@ namespace Nop.Web.Infrastructure.Installation
         /// <returns>Current language</returns>
         public virtual InstallationLanguage GetCurrentLanguage()
         {
-            var httpContext = EngineContext.Current.Resolve<HttpContextBase>();
+            //task 7.3: the legacy System.Web context abstraction is no longer registered - task
+            //6.4 deleted those five DI registrations. IHttpContextAccessor is the ASP.NET Core
+            //equivalent and models "no ambient request" correctly by returning null.
+            var httpContext = EngineContext.Current.Resolve<IHttpContextAccessor>().HttpContext;
 
             var cookieLanguageCode = "";
-            var cookie = httpContext.Request.Cookies[LanguageCookieName];
-            if (cookie != null && !String.IsNullOrEmpty(cookie.Value))
-                cookieLanguageCode = cookie.Value;
+            //IRequestCookieCollection is a flat string key/value collection, so the indexer
+            //returns the VALUE directly - there is no per-cookie object on the read side.
+            var cookieValue = httpContext != null ? httpContext.Request.Cookies[LanguageCookieName] : null;
+            if (!String.IsNullOrEmpty(cookieValue))
+                cookieLanguageCode = cookieValue;
 
             //ensure it's available (it could be delete since the previous installation)
             var availableLanguages = GetAvailableLanguages();
@@ -68,9 +74,16 @@ namespace Nop.Web.Infrastructure.Installation
                 return language;
 
             //let's find by current browser culture
-            if (httpContext.Request.UserLanguages != null)
+            //task 7.3: HttpRequest.UserLanguages does not exist. System.Web built that array by
+            //parsing Accept-Language and ordering by quality, so reading the typed header
+            //reproduces it - the same substitution task 6.2 made in
+            //WebWorkContext.GetLanguageFromBrowserSettings.
+            if (httpContext != null)
             {
-                var userLanguage = httpContext.Request.UserLanguages.FirstOrDefault();
+                var userLanguage = httpContext.Request.GetTypedHeaders().AcceptLanguage
+                    ?.OrderByDescending(x => x.Quality ?? 1)
+                    .Select(x => x.Value.HasValue ? x.Value.Value : null)
+                    .FirstOrDefault(x => !String.IsNullOrEmpty(x));
                 if (!String.IsNullOrEmpty(userLanguage))
                 {
                     //right. we do "StartsWith" (not "Equals") because we have shorten codes (not full culture names)
@@ -97,14 +110,22 @@ namespace Nop.Web.Infrastructure.Installation
         /// <param name="languageCode">Language code</param>
         public virtual void SaveCurrentLanguage(string languageCode)
         {
-            var httpContext = EngineContext.Current.Resolve<HttpContextBase>();
+            var httpContext = EngineContext.Current.Resolve<IHttpContextAccessor>().HttpContext;
+            if (httpContext == null || httpContext.Response.HasStarted)
+                return;
 
-            var cookie = new HttpCookie(LanguageCookieName);
-            cookie.HttpOnly = true;
-            cookie.Value = languageCode;
-            cookie.Expires = DateTime.Now.AddHours(24);
-            httpContext.Response.Cookies.Remove(LanguageCookieName);
-            httpContext.Response.Cookies.Add(cookie);
+            //task 7.3: there is no per-cookie object type in ASP.NET Core.
+            //IResponseCookies.Append takes name, value and CookieOptions - the HttpOnly flag and
+            //the 24-hour lifetime are preserved exactly. 3.90's explicit Remove-then-Add becomes
+            //Delete + Append: Append on its own would emit a second Set-Cookie header for the
+            //same name. The HasStarted guard is required because ASP.NET Core throws once the
+            //headers are sent - the same guard task 6.2 added in WebWorkContext.
+            httpContext.Response.Cookies.Delete(LanguageCookieName);
+            httpContext.Response.Cookies.Append(LanguageCookieName, languageCode, new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.Now.AddHours(24)
+            });
         }
 
         /// <summary>

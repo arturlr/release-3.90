@@ -1,4 +1,4 @@
-﻿@model PrivateMessageListModel
+@model PrivateMessageListModel
 @using Nop.Web.Models.PrivateMessages;
 <div class="private-messages-box">
     <script type="text/javascript">
@@ -74,7 +74,7 @@
             </table>
         </div>
         var pager = Html.Pager(Model.PagerModel);
-        if (!MvcHtmlString.IsNullOrEmpty(pager))
+        if (!pager.IsNullOrEmpty())
         {
             <div class="pager">
                 @pager

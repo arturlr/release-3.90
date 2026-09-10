@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Routing;
+using System.Collections.Generic;
 using Nop.Core.Domain.Catalog;
 using Nop.Web.Framework.Mvc;
 using Nop.Web.Models.Common;

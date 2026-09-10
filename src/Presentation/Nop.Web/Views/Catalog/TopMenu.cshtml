@@ -1,8 +1,14 @@
-﻿@model TopMenuModel
+@model TopMenuModel
 @using Nop.Web.Models.Catalog;
 
-@helper RenderCategoryLine(CategorySimpleModel category, int level, bool responsiveMobileMenu)
-{
+
+@functions {
+    //task 7.3: this was a Razor v2 "helper" declaration, which ASP.NET Core Razor
+    //does not support. A void method in @functions writes its markup straight to the
+    //page output, so the same HTML lands in the same place. The body is unchanged
+    //apart from the call syntax of the self/recursive calls.
+    void RenderCategoryLine(CategorySimpleModel category, int level, bool responsiveMobileMenu)
+    {
     <li>
         <a href="@Url.RouteUrl("Category", new { SeName = category.SeName })">@category.Name
         @if (category.NumberOfProducts.HasValue)
@@ -29,14 +35,14 @@
                 <ul class="sublist @levelClass">
                     @foreach (var subCategory in subCategories)
                     {
-                        @RenderCategoryLine(subCategory, level + 1, responsiveMobileMenu)
+                        RenderCategoryLine(subCategory, level + 1, responsiveMobileMenu);
                     }
                 </ul>
             }
         }
     </li>
 }
-
+}
 <ul class="top-menu">
     @Html.Widget("header_menu_before")
     @if (Model.DisplayHomePageMenuItem)
@@ -48,7 +54,7 @@
     }
     @foreach (var category in rootCategories)
     {
-        @RenderCategoryLine(category, 0, false)
+        RenderCategoryLine(category, 0, false);
     }
     @foreach (var topic in Model.Topics)
     {
@@ -94,7 +100,7 @@
         }
         @foreach (var category in rootCategoriesResponsive)
         {
-            @RenderCategoryLine(category, 0, true)
+            RenderCategoryLine(category, 0, true);
         }
         @foreach (var topic in Model.Topics)
         {

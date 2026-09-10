@@ -1,4 +1,4 @@
-﻿@model CheckoutPaymentInfoModel
+@model CheckoutPaymentInfoModel
 @using Nop.Web.Models.Checkout;
 <div class="checkout-data">
     @Html.Widget("op_checkout_payment_info_top")
@@ -9,7 +9,7 @@
         @{
             var validationSummary = Html.ValidationSummary(false);
         }
-        @if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+        @if (!validationSummary.IsNullOrEmpty())
         {
             <div class="message-error">@validationSummary</div>
         }

@@ -1,10 +1,10 @@
-﻿using System;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Net;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Catalog;
@@ -1537,10 +1537,10 @@ namespace Nop.Web.Factories
                     switch (psa.AttributeType)
                     {
                         case SpecificationAttributeType.Option:
-                            m.ValueRaw = HttpUtility.HtmlEncode(psa.SpecificationAttributeOption.GetLocalized(x => x.Name));
+                            m.ValueRaw = WebUtility.HtmlEncode(psa.SpecificationAttributeOption.GetLocalized(x => x.Name));
                             break;
                         case SpecificationAttributeType.CustomText:
-                            m.ValueRaw = HttpUtility.HtmlEncode(psa.CustomValue);
+                            m.ValueRaw = WebUtility.HtmlEncode(psa.CustomValue);
                             break;
                         case SpecificationAttributeType.CustomHtmlText:
                             m.ValueRaw = psa.CustomValue;

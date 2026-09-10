@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Messages;
@@ -38,7 +38,6 @@ namespace Nop.Web.Controllers
             this._customerSettings = customerSettings;
         }
 
-        [ChildActionOnly]
         public virtual ActionResult NewsletterBox()
         {
             if (_customerSettings.HideNewsletterBlock)
@@ -51,7 +50,6 @@ namespace Nop.Web.Controllers
         //available even when a store is closed
         [StoreClosed(true)]
         [HttpPost]
-        [ValidateInput(false)]
         public virtual ActionResult SubscribeNewsletter(string email, bool subscribe)
         {
             string result;
