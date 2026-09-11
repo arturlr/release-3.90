@@ -189,7 +189,22 @@ namespace Nop.Admin.Controllers
             //is no Code Access Security), so this try/catch could only ever produce "True". The
             //value is now set below, alongside the removal of CommonHelper.GetTrustLevel(), so the
             //page has one authoritative answer instead of two.
-            model.ServerTimeZone = TimeZone.CurrentTimeZone.StandardName;
+
+            //TASK 8.7 - 3.90 read System.TimeZone.CurrentTimeZone.StandardName, which is CS0618
+            //obsolete ("System.TimeZone has been deprecated. Investigate the use of
+            //System.TimeZoneInfo instead."). Replaced with TimeZoneInfo.Local.StandardName, which
+            //is BEHAVIOUR-PRESERVING - MEASURED on net10.0, not assumed. A probe compared the two
+            //properties in two different time zones:
+            //    TZ unset (UTC)          both "Coordinated Universal Time"   EQUAL
+            //    TZ=America/New_York     both "Eastern Standard Time"        EQUAL
+            //  (DaylightName also matched in both: "Coordinated Universal Time" /
+            //   "Eastern Daylight Time" - included so the DST-aware zone was really exercised.)
+            //That is expected: on .NET, System.TimeZone is a compatibility shim whose
+            //CurrentSystemTimeZone delegates to TimeZoneInfo.Local. This is also the only
+            //System.TimeZone use left anywhere in the solution, and this same method already uses
+            //TimeZoneInfo.Local a few lines below for GetBuildDate, so the file is now internally
+            //consistent too.
+            model.ServerTimeZone = TimeZoneInfo.Local.StandardName;
             model.ServerLocalTime = DateTime.Now;
             model.UtcTime = DateTime.UtcNow;
             model.CurrentUserTime = _dateTimeHelper.ConvertToUserTime(DateTime.Now);
@@ -515,6 +530,43 @@ namespace Nop.Admin.Controllers
             //owner of this page's configuration story (task 8.7) rather than invented here.
             //The Admin.System.Warnings.MachineKey.NotSpecified / .Specified localization
             //resources become orphaned, which is harmless.
+            //
+            //TASK 8.7 - DECIDED: NO REPLACEMENT WARNING IS ADDED. Deferral 8.3-1 is CLOSED BY
+            //DECISION, not by implementation. Reasoning, so this is not re-litigated:
+            //
+            //  * THE RISK IS ALREADY DOCUMENTED WHERE AN OPERATOR WILL MEET IT.
+            //    src\Presentation\Nop.Web\appsettings.json's "MultipleInstancesEnabled" block
+            //    states that a multi-instance deployment must ALSO share the ASP.NET Core Data
+            //    Protection key ring ("the modern equivalent of <machineKey>") and configure a
+            //    distributed session store. Deferral 7.13 records the same, with the consequence
+            //    spelled out: without a shared key ring, auth cookies stop validating across
+            //    instances. What is missing is a UI affordance, not the information.
+            //
+            //  * A DATA PROTECTION DIAGNOSTIC IS A NEW FEATURE, NOT A PORT, AND IT IS NOT
+            //    EQUIVALENT. 3.90 warned when the <machineKey> decryption key was AUTO-GENERATED.
+            //    The nearest modern question - "is the key ring machine-local?" - has to be
+            //    answered by interrogating KeyManagementOptions.XmlRepository and pattern-matching
+            //    its concrete type (FileSystemXmlRepository under a local path / RegistryXmlRepository
+            //    / EphemeralXmlRepository). That is inference about a framework internal whose
+            //    default is resolved lazily by an IConfigureOptions, and getting it wrong produces
+            //    a diagnostic that reports the WRONG ANSWER CONFIDENTLY on a security-relevant
+            //    setting - the exact failure class runtime-deferrals.md exists to prevent.
+            //
+            //  * IT COULD NOT BE VERIFIED IN THIS TASK. Deferral 8.4-1 means the Admin area is not
+            //    loadable in Nop.Web.SmokeTests, so nothing can render this page until task 8.8.
+            //    Shipping an unexercised new security diagnostic into an unexercisable page is
+            //    strictly worse than shipping nothing and saying so.
+            //
+            //  * WARNING UNCONDITIONALLY ON MultipleInstancesEnabled WAS CONSIDERED AND REJECTED:
+            //    NopConfig is not injected into this controller, it would fire for every correctly
+            //    configured farm, and it answers a different question from the one 3.90 asked.
+            //
+            //RECIPE, if a later task wants it: inject IOptions<KeyManagementOptions>, treat a null
+            //or Ephemeral/FileSystem-under-ContentRoot/Registry repository as machine-local, and
+            //raise a Warning only when NopConfig.MultipleInstancesEnabled is also true. Reuse of
+            //the two orphaned Admin.System.Warnings.MachineKey.* resources would be MISLEADING -
+            //their text names <machineKey> - so new resources would be needed. Verify it against a
+            //deployment that really shares a key ring before trusting a Pass result.
 
             return View(model);
         }

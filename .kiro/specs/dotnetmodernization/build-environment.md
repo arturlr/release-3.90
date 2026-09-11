@@ -58,9 +58,9 @@ Paths inside the container are rooted at `/workspace`, which maps to `/home/artr
 
 `src/Tests/Nop.Web.SmokeTests` boots the real `Nop.Web` host in-process through
 `WebApplicationFactory<Nop.Web.Program>`. **It is deliberately NOT part of any clean-compile gate** —
-task 7.7 is non-gating and 18 of its 91 tests need a database. (Counts as of task 8.5; tasks 8.2 and 8.5 each added always-run assertions.)
+task 7.7 is non-gating and 18 of its 92 tests need a database. (Counts as of task 8.7; tasks 8.2, 8.5 and 8.7 each added always-run assertions.)
 
-Without a database (73 pass, 18 skip — install-mode coverage, the host/container group, plus the
+Without a database (74 pass, 18 skip — install-mode coverage, the host/container group, plus the
 canaries):
 
 ```bash

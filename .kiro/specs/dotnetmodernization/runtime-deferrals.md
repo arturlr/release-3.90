@@ -6353,11 +6353,21 @@ automated checks rather than needing a hand-maintained exception.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 8.3-1 | The admin System Info `<machineKey>` warning is gone with nothing in its place | 8.7 (decision) | Low — but it stands in for a real multi-instance risk |
+| 8.3-1 | ~~The admin System Info `<machineKey>` warning is gone with nothing in its place~~ | — | ✅ **CLOSED BY DECISION at 8.7** (§75.5) — no replacement warning. The risk is already documented in `appsettings.json`'s `MultipleInstancesEnabled` block and under 7.13; a Data Protection key-ring diagnostic is a new feature, is not equivalent to the auto-generated-key check 3.90 made, and could not be exercised (deferral 8.4-1). Reversal recipe recorded |
 | 8.3-2 | The admin `[NopChildActionOnly]` and area-route smoke assertions cannot be written until `Nop.Admin` compiles | 8.8 | Medium — bookkeeping, but 8.8 must not skip it |
 | 8.3-3 | ~~`RoxyFilemanController.MapPath` now **throws** for a relative path instead of resolving one~~ | — | ✅ **RESOLVED by 8.6** (§71.1). Note 8.3's "all three callers are already inoperative" was one caller short: `LangRes` → `ParseJSON(GetLangFile())` is a live relative-path caller on every error path, degraded rather than crashing only because `ParseJSON`'s empty `catch` swallowed the throw too |
 
-### 8.3-1 The `<machineKey>` warning was removed with no replacement
+### 8.3-1 The `<machineKey>` warning was removed with no replacement — ✅ **CLOSED BY DECISION at task 8.7, see §75.5**
+
+> **RESOLUTION.** Task 8.7 decided **not** to reinstate an equivalent warning, and recorded the
+> decision plus a reversal recipe at the call site in `Controllers/CommonController.cs`. Summary:
+> the multi-instance key-ring risk is already documented in `Nop.Web`'s `appsettings.json` (the
+> `MultipleInstancesEnabled` block) and under deferral 7.13, so what is missing is a UI affordance
+> rather than the information; interrogating `KeyManagementOptions.XmlRepository` answers a
+> *different* question from 3.90's auto-generated-key check and would report a security-relevant
+> verdict from an inference about a framework internal; and deferral **8.4-1** means the page cannot
+> be rendered by any test until task 8.8, so the diagnostic would have shipped unexercised.
+> `appsettings.json` did **not** gain a `machineKey` key. Everything below is the original entry.
 
 `CommonController.Warnings()` read
 `ConfigurationManager.GetSection("system.web/machineKey") as MachineKeySection` and warned when the
@@ -7539,3 +7549,422 @@ Once the admin area is loadable (deferral 8.4-1):
 4. **An error path** — e.g. `a=UPLOAD` of a `FORBIDDEN_UPLOADS` extension — should return a
    localized sentence, not the bare key `E_UploadNotAll`. That is the observable proof that
    deferral 8.1-3's resolution reaches `LangRes`.
+
+
+
+---
+
+# Nop.Admin — configuration migration and obsolete-file removal (task 8.7)
+
+Task 8.7 was expected to be almost empty: task 8.3 had already removed the project's only
+`ConfigurationManager` call site, and 8.1 had already established that there is no `app.config`,
+no `packages.config` and no App_Start-style file. That expectation was correct about the
+*configuration* half — **`Nop.Admin` has no configuration surface at all, and needs no
+`appsettings.json` contribution** (§75.3) — and wrong about the *obsolete-file* half.
+
+Deleting `Administration/Web.config` turned out to be entangled with a **deployment-breaking
+defect nobody had looked for**: `Microsoft.NET.Sdk.Web` was **generating an ANCM `web.config` for
+this library** naming `Nop.Admin.dll` as the application entry point, and that file collides by
+name with `Nop.Web`'s in the single-directory deployment deferral 8.5-1 describes. Worse, **the
+deletion this task performs would, on its own, have escalated the collision from Windows-only to
+universal** (§75.2). It was found only because the task brief said to *confirm* that `Nop.Admin`
+needs no ANCM shim rather than assume it.
+
+| Measurement | Value |
+|---|---|
+| `Nop.Admin` errors / warnings, before → after | **0 / 16 → 0 / 15** — one warning cleared, none added (§75.4) |
+| `Nop.Admin`'s own warnings | **6 → 5**: 4 `CS0618` FluentValidation `Custom(...)` in `Validators/` + 1 `SYSLIB0014` `WebRequest.Create`. The `CS0618` `TimeZone` is **gone** |
+| upstream re-gate, `--no-incremental` after `rm -rf obj bin` | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 — every baseline exact, **no warning added** |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| `Nop.Admin.Tests` | **53 passed / 0 failed / 0 skipped** — unchanged. Its 4 canaries still **4 failed / 0 passed** |
+| `Nop.Web.SmokeTests` | **74 passed / 0 failed / 18 skipped** (was 73/0/18). **+1 test**, no new skip. `HarnessCanaryTests` still **6 failed / 0 passed** |
+| publish audit, with a planted `.bak` and a planted `tmp/*.zip` on disk | **18 required assertions, 18 PASS**; proven able to fail (§75.2) |
+| two-step publish (`Nop.Web` then `Nop.Admin` into one directory) | `web.config` count **1**, **md5 identical** to the `Nop.Web`-only publish, `arguments=".\Nop.Web.dll"`, 7.4's `urlCompression` + `X-Powered-By` elements intact |
+| swallowed-diagnostics check, all six `-v:n` logs | `"converted to a warning"` **0** · `ContinueOnError` **0** · `NU1901`–`NU1904` **0** · `error MSB*` **0** · Six Labors licence lines **0** |
+| files changed | `Administration/Web.config` **deleted**; `Nop.Admin.csproj`; `Controllers/CommonController.cs`; `Controllers/HomeController.cs`; `src/Tests/Nop.Web.SmokeTests/AdminStaticAssetTests.cs`. `Validators/`, `Models/`, `Infrastructure/`, `Extensions/`, `Helpers/` and all 325 views **untouched** |
+
+## 75. Task 8.7 — what changed
+
+### 75.1 `Administration/Web.config` DELETED — element-by-element disposition
+
+Nothing supersedes it, and nothing needed to. Its own first line was
+`<!-- We use this file to make razor intellisense work in this project -->`, and every element in
+it is unreadable on .NET 10. The full inventory, so nothing is lost silently:
+
+| Element | Disposition |
+|---|---|
+| `<appSettings>` `webpages:Version` `3.0.0.0` | **dropped** — `System.Web.WebPages` does not exist. Same disposition task 7.4 gave `Nop.Web`'s copy (§33.3) |
+| `<appSettings>` `webpages:Enabled` `false` | **dropped** — disabled the WebPages route handler; no such handler |
+| `<appSettings>` `PreserveLoginUrl` `true` | **dropped** — a System.Web forms-authentication quirk switch |
+| `<appSettings>` `ClientValidationEnabled4.5.1` `true` | **dropped**. Note the key name: it is `ClientValidationEnabled4.5.1`, not `ClientValidationEnabled` — a Visual Studio upgrade-wizard artifact that **no code has ever read**, in 3.90 or now. The real key's ASP.NET Core equivalent is `MvcViewOptions.HtmlHelperOptions.ClientValidationEnabled`, already `true` by default |
+| `<appSettings>` `UnobtrusiveJavaScriptEnabled` `true` | **dropped** — ASP.NET Core emits only unobtrusive `data-val-*` attributes; there is no other mode |
+| `<system.web><compilation targetFramework="4.5.1"/>` | **dropped** — a build concern, owned by the SDK's `TargetFramework` |
+| `<system.web><pages><namespaces>` — 7 entries: `System.Web.Helpers`, `.Mvc`, `.Mvc.Ajax`, `.Mvc.Html`, `.Optimization`, `.Routing`, `.WebPages` | **superseded by `Areas/Admin/Views/_ViewImports.cshtml`** (task 8.4). Note this list is what made the file's "razor intellisense" comment true, and note it **did not** need porting verbatim: `System.Web.Optimization` is dropped by design §8 (bundling has no successor and this project never bound the API), `Ajax` has zero `Ajax.` call sites across all 325 views, and the rest map onto ASP.NET Core equivalents |
+| `<runtime><assemblyBinding>` — 13 `bindingRedirect` entries (`WebGrease`, `Antlr3.Runtime`, `Newtonsoft.Json`, `Autofac`, `System.Web.Helpers`, `System.Web.WebPages`, `System.Web.Mvc`, `Microsoft.Data.Services.Client`/`.OData`/`.Edm`, `Microsoft.Azure.KeyVault.Core`, `StackExchange.Redis.StrongName`) | **dropped** — binding redirects are not a .NET concept. NuGet resolves one version per package and `src/Directory.Packages.props` pins them centrally. Seven of the thirteen name packages this migration removed outright |
+
+**No `web.config` replaces it, and none is needed — confirmed rather than assumed.** A
+`web.config` is read only by IIS, for the application IIS hosts. The hosted application is
+`Nop.Web`, whose `src/Presentation/Nop.Web/web.config` is the ANCM shim and carries the only two
+live IIS settings 3.90 expressed for this tree. `Nop.Admin` is not an application: measured,
+`OutputType` is `Library`, there is no `Program.cs` and no `Main` anywhere under
+`Administration/`, and it never had a `Global.asax` (3.90 recorded `UseCustomServer=True` with an
+external `CustomServerUrl`). It is loaded as an MVC application part (task 8.2).
+
+**The dead publish-exclusion entry was REMOVED, not left as a no-op** — `Nop.Admin.csproj`'s
+`<Content Update="Web.config" CopyToPublishDirectory="Never" />`, exactly as task 7.5 removed
+7.4's two equivalents from `Nop.Web.csproj`. Task 8.4 had already removed the
+`Areas\Admin\Views\Web.config` entry when it deleted that file, so the whole interim `ItemGroup`
+comment block is now replaced by a record of what superseded each of the two files.
+
+### 75.2 THE DEFECT — the SDK was generating an ANCM shim for a library, and it collides with the storefront's
+
+**This is the finding that mattered, and the deletion above is what makes it unconditional.**
+
+`Microsoft.NET.Sdk.Web`'s publish pipeline runs `TransformWebConfig`, which injects the ASP.NET
+Core Module handler. Measured on the pre-8.7 tree, `dotnet publish` of `Nop.Admin` emitted a
+485-byte shim:
+
+```xml
+<handlers><add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" ... /></handlers>
+<aspNetCore processPath="dotnet" arguments=".\Nop.Admin.dll" hostingModel="inprocess" />
+```
+
+i.e. it told IIS to launch `Nop.Admin.dll` as the application. **There is no `Main` to launch.**
+
+The `<Content Update="Web.config" CopyToPublishDirectory="Never" />` exclusion 8.1/8.5 carried did
+**not** prevent this and was never about it: it stopped the *legacy* file being **copied**; the
+shim is **generated**. So the file was in every publish of this project from task 8.1 onward,
+unnoticed, because 8.1's and 8.5's publish audits both checked that the *legacy content* was
+absent — which it was.
+
+**Why it is worse than a useless file.** Deferral 8.2-2, as narrowed by 8.5 to deferral 8.5-1,
+records that the intended deployment is "publish `Nop.Web`, then publish `Nop.Admin` into the same
+directory". Measured on both sides:
+
+| | published name | size | entry point |
+|---|---|---|---|
+| `Nop.Web` | `web.config` | **14154** bytes | `arguments=".\Nop.Web.dll"` — 7.4's merged file: ANCM handler **plus** `urlCompression` and the `X-Powered-By` removal |
+| `Nop.Admin` | see below | **485** bytes | `arguments=".\Nop.Admin.dll"` |
+
+Publishing `Nop.Admin` second therefore replaced a correct 14 KB storefront shim with a 485-byte
+one that boots a library with no entry point, **and** silently dropped task 7.4's two IIS
+settings. The site fails to start, from a file nobody wrote.
+
+**The generated filename's casing depends on whether the legacy file exists — so this task's own
+deletion is an escalation if done alone.** Measured A/B, both with the new property absent:
+
+| state | generated name | collision with `Nop.Web`'s lowercase `web.config` |
+|---|---|---|
+| legacy `Web.config` on disk (pre-8.7) | **`Web.config`** (capital W) | **Windows only** — two names differing only in case; legal on Linux, one file on NTFS |
+| legacy `Web.config` deleted (8.7) | **`web.config`** (lowercase) | **every filesystem, Linux included** |
+
+`TransformWebConfig` derives its output path from the project's own `web.config` item when one
+exists and falls back to the literal lowercase name when none does. So deleting the legacy file
+without also disabling generation would have turned a platform-specific deployment defect into an
+unconditional one. This is the same `Web.config`/`web.config` casing trap task 7.4 measured from
+the other side (§31.2) — there it was `TransformWebConfig`'s **input** lookup being
+case-sensitive, here it is its **output** path. Note 8.1's comment predicted the generated file
+would be lowercase; that was right only for the post-deletion state, and the pre-deletion state it
+was describing actually produced capital-W.
+
+**Fix: `<IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>`** in
+`Nop.Admin.csproj`, the SDK's documented switch, with the full reasoning recorded on the property.
+`Microsoft.NET.Sdk.Web` is still the right SDK — it imports the Razor SDK, which compiles the 325
+views.
+
+**Verified, and proven able to fail.** An 18-assertion publish audit was run against a publish
+with a **planted `.bak` and a planted `Roxy_Fileman/tmp/*.zip` on disk**, so 8.1's and 8.5's
+exclusions were re-tested against files that really existed rather than against patterns:
+
+| group | assertions | result |
+|---|---|---|
+| 8.7's own | no `web.config` at any casing; no legacy content (`razor intellisense`, `targetFramework="4.5.1"`); no `AspNetCoreModule` string anywhere | **3/3 PASS** |
+| 8.1/8.5 exclusions still hold | planted `.bak` withheld; `db_backups/placeholder.txt` present; planted `tmp/*.zip` withheld; `tmp/placeholder.txt` present; no `.zip` at all | **5/5 PASS** |
+| 8.5's `Link` metadata | `Administration/Content/styles.css`, `Administration/Scripts`, `Administration/sitemap.config`, `Administration/Content/Roxy_Fileman/conf.json` present; **no** `Content/`, `Scripts/` or `sitemap.config` at the publish **root**; `Nop.Admin.dll` at the root where `WebAppTypeFinder` scans; no `.cs`; no `.cshtml` | **10/10 PASS** |
+
+**Canary:** with the property set back to `false` and nothing else changed, the first two
+assertions **FAIL** and the shim reappears at `/tmp/…/web.config` naming `Nop.Admin.dll`. Property
+restored and the audit re-run green.
+
+**The two-step publish then behaves as deferral 8.5-1 intends**, verified end to end: exactly
+**one** `web.config` in the combined directory, **md5-identical** to the `Nop.Web`-only publish
+(14154 bytes, `arguments=".\Nop.Web.dll"`, `urlCompression` and `X-Powered-By` present),
+`Nop.Admin.dll` at the root, admin assets under `Administration/`, the storefront's
+`Scripts/jquery.validate.min.js` checksum unchanged, `Content/ionicons/` still holding only its own
+two files, and **0** `App_Data/Settings.txt` and **0** `.bak`. Deferral 8.5-1's residue is
+unchanged in substance — nothing yet *enforces* the two steps — but the second step no longer
+breaks the first.
+
+### 75.3 There is no configuration to migrate, and no `appsettings.json` contribution is needed
+
+Confirmed rather than assumed, because "found nothing" and "did not look" are indistinguishable in
+a diff.
+
+- **`ConfigurationManager` call sites under `Administration/`: ZERO.** A grep for
+  `ConfigurationManager`, `System.Configuration`, `System.Web.Configuration` and `MachineKey`
+  across every `.cs` and `.cshtml` returns **only comments** in `CommonController.cs` — task 8.3's
+  record of the removal. 8.1's count of "exactly one" was correct and 8.3 already actioned it.
+- **No configuration-reading surface of any kind.** `IConfiguration`, `NopConfigurationManager`,
+  `GetAppSetting`, `IOptions<` and `appsettings` have **zero** non-comment occurrences. That is the
+  expected shape: `Nop.Admin` is a class library loaded as an application part, so configuration
+  reaches it through the host's `IConfiguration` and through nopCommerce's own settings entities.
+- **`NopConfig` appears three times and all three are read-only or contractual:**
+  `SettingController` injects it and reads exactly one property
+  (`_config.RedisCachingEnabled`, line 2358); `DependencyRegistrar.Register(ContainerBuilder,
+  ITypeFinder, NopConfig)` takes it because that is the `IDependencyRegistrar` signature. **Nothing
+  writes configuration**, so there is no persistence path that needs a file.
+- **`appsettings.json` was NOT modified.** In particular it did **not** gain a `machineKey` key —
+  see §75.5.
+
+### 75.4 Warnings — one cleared by fixing, three decisions recorded
+
+`Nop.Admin` goes **16 → 15**. Nothing was suppressed: there is no new `NoWarn` and no new
+`#pragma` anywhere in this task.
+
+#### CLEARED — `CS0618` `TimeZone.CurrentTimeZone.StandardName` (`CommonController.cs`)
+
+`model.ServerTimeZone = TimeZone.CurrentTimeZone.StandardName` → `TimeZoneInfo.Local.StandardName`.
+**Behaviour-preserving, and measured rather than assumed.** A throwaway probe (deleted) compared
+the two properties on net10.0 in two time zones:
+
+| `TZ` | `TimeZone.CurrentTimeZone.StandardName` | `TimeZoneInfo.Local.StandardName` | equal |
+|---|---|---|---|
+| unset (UTC) | `Coordinated Universal Time` | `Coordinated Universal Time` | **yes** |
+| `America/New_York` | `Eastern Standard Time` | `Eastern Standard Time` | **yes** |
+
+`DaylightName` matched in both cases too (`Coordinated Universal Time` / `Eastern Daylight Time`),
+which is why the DST-aware zone was included — a shim that ignored DST would have diverged there.
+This is expected: on .NET, `System.TimeZone` is a compatibility shim whose `CurrentSystemTimeZone`
+delegates to `TimeZoneInfo.Local`. It was also the **only** `System.TimeZone` use left anywhere in
+the solution, and the same method already used `TimeZoneInfo.Local` a few lines below for
+`GetBuildDate`, so the file is now internally consistent.
+
+#### KEPT — `SYSLIB0014` `WebRequest.Create` (`HomeController.NopCommerceNews`) — see deferral 8.7-1
+
+Declined, on three grounds, recorded at the call site:
+
+1. **Solution-wide consistency.** `Nop.Core/Plugins/OfficialFeedManager.cs` line 23 is the
+   **identical** pattern — `WebRequest.Create(url)` + `Timeout` + `GetResponse()` + XML parse — and
+   is part of `Nop.Core`'s accepted **3**-warning baseline at gate 2.5.
+   `Nop.Services/Common/KeepAliveTask.cs` line 25 uses `WebClient` and is in `Nop.Services`'
+   accepted **10**. This migration has twice declined the same conversion in gated projects.
+2. **The conversion is NOT behaviour-preserving**, in three specific ways:
+   - **Timeout semantics differ.** `HttpWebRequest.Timeout` bounds `GetResponse()` only and does
+     not cover reading the response stream; `HttpClient.Timeout` bounds the whole operation
+     including the body read. A feed that responds fast but streams slowly succeeds today and
+     would start timing out — a change in the direction of **more** failures.
+   - **Non-success status.** `GetResponse()` throws `WebException` for 4xx/5xx, so nothing is
+     cached; `HttpClient.Send()` returns the response and the failure would surface later from
+     `SyndicationFeed.Load` on an HTML error body — a different exception from a different place,
+     and what reaches `_cacheManager.Get` would depend on a third party's error pages.
+   - **Proxy and lifetime.** A correct port needs a **static** `HttpClient` (the socket-exhaustion
+     pattern task 4.2 used for `TaxService`), introducing a process-wide singleton with its own DNS
+     and proxy resolution, not quite `WebRequest.DefaultWebProxy`'s.
+3. **No gain.** It is the admin dashboard's nopCommerce news feed over plain HTTP to a third-party
+   site, already wrapped in a `catch` that returns `Content("")`. `WebRequest` is obsolete but
+   fully functional on .NET 10, it is not a `System.Web` dependency, and the warning is
+   non-blocking (Req 3.3).
+
+**The warning is deliberately left VISIBLE** — a `#pragma` was written and then removed. `Nop.Core`
+carries the identical `SYSLIB0014` unsuppressed, so suppressing it here would leave the same fact
+visible in one project and hidden in another, and the warning counts would stop describing the
+code.
+
+#### KEPT — the four `CS0618` FluentValidation `Custom(...)` in `Validators/`
+
+`Validators/Catalog/CategoryValidator.cs:17`, `Catalog/ManufacturerValidator.cs:17`,
+`Customers/CustomerValidator.cs:45`, `Vendors/VendorValidator.cs:20`.
+
+**Consistent with `Nop.Web`, which was re-measured for this decision rather than taken on trust:
+it carries 5 of the identical warning** (`Validators/Common/AddressValidator.cs:41`,
+`Customer/CustomerInfoValidator.cs:41` and `:58`, `Customer/RegisterValidator.cs:55` and `:72`),
+deliberately left by task 7.3 and part of its accepted 15. Groups 10–17 will add more from the
+plugins and test projects.
+
+The obsolete message names an in-version replacement, so this is fixable **without** breaking
+design §9's 7.6.105 pin — but the two APIs are not equivalent:
+`Custom(Func<T, ValidationFailure>)` **returns** a failure the lambda constructs, including its
+`PropertyName`, whereas `RuleFor(x => x).Custom((x, ctx) => …)` **adds** failures through a context
+whose property name derives from the `x => x` expression. Rewriting four validator bodies therefore
+risks moving which admin form field each error attaches to — observable behaviour, on validators
+that cannot be exercised without a running store with a database, in the last task before the gate.
+Doing 4 of 9+ sites would also leave the codebase inconsistent. **No `NoWarn`, no `#pragma`**: the
+warnings stay visible, and the whole family should be retired in one pass if and when the
+FluentValidation pin is revisited.
+
+### 75.5 Deferral 8.3-1 — CLOSED BY DECISION: no replacement `<machineKey>` warning
+
+Task 8.3 removed the admin System Info page's `<machineKey>` warning
+(`ConfigurationManager.GetSection("system.web/machineKey") as MachineKeySection`) and routed the
+question here: whether to reinstate an equivalent by interrogating Data Protection's key ring.
+
+**Decision: no replacement warning is added.** Recorded in full at
+`Controllers/CommonController.cs` (in `Warnings()`), with the reasoning:
+
+- **The risk is already documented where an operator meets it.** `Nop.Web`'s `appsettings.json`
+  states, in the `MultipleInstancesEnabled` block, that a multi-instance deployment must **also**
+  share the ASP.NET Core Data Protection key ring — "the modern equivalent of `<machineKey>`" — and
+  configure a distributed session store. Deferral **7.13** records the same with the consequence
+  spelled out. What is missing is a UI affordance, not the information.
+- **A Data Protection diagnostic is a new feature, not a port, and it is not equivalent.** 3.90
+  warned when the `<machineKey>` decryption key was **auto-generated**. The nearest modern question
+  — "is the key ring machine-local?" — has to be answered by interrogating
+  `KeyManagementOptions.XmlRepository` and pattern-matching its concrete type, a framework internal
+  whose default is resolved lazily by an `IConfigureOptions`. Getting it wrong produces a
+  diagnostic that reports the **wrong answer confidently** on a security-relevant setting.
+- **It could not be verified in this task.** Deferral **8.4-1** means the Admin area is not loadable
+  in `Nop.Web.SmokeTests`, so nothing can render this page until task 8.8. Shipping an unexercised
+  new security diagnostic into an unexercisable page is worse than shipping nothing and saying so.
+- **Warning unconditionally on `MultipleInstancesEnabled` was considered and rejected:** `NopConfig`
+  is not injected into this controller, it would fire for every correctly configured farm, and it
+  answers a different question from the one 3.90 asked.
+
+**Recipe, if a later task wants it** (recorded so the decision is reversible): inject
+`IOptions<KeyManagementOptions>`, treat a null / `Ephemeral` / `FileSystem`-under-content-root /
+`Registry` repository as machine-local, and raise a `Warning` only when
+`NopConfig.MultipleInstancesEnabled` is also true. **Reusing the two orphaned
+`Admin.System.Warnings.MachineKey.*` resources would be misleading** — their text names
+`<machineKey>` — so new resources are needed. Verify against a deployment that really shares a key
+ring before trusting a `Pass`.
+
+`appsettings.json` did **not** gain a `machineKey` key. The two localization resources remain
+orphaned, which is harmless — they are seeded into the database by the installer, so removing them
+would be a data-migration question for existing stores, not a code change.
+
+**Also verified, from §2's other item on the same page:** task 8.3 did correctly make the trust
+level report `"Full"` unconditionally (`model.IsFullTrust = "Full";`), and the guard that existed
+only because `Assembly.Location` threw under partial trust has correctly collapsed to
+`!assembly.IsDynamic`. No change was needed.
+
+### 75.6 `Properties/AssemblyInfo.cs` is KEPT — the task text is wrong for this solution
+
+Verified independently rather than inherited: `src/Directory.Build.props` sets
+`GenerateAssemblyInfo=false` solution-wide (task 2.3), so the SDK emits **no** replacement
+attributes. The file supplies `AssemblyTitle`, `AssemblyDescription`, `AssemblyConfiguration`,
+`AssemblyCompany`, `AssemblyProduct`, `AssemblyCopyright`, `AssemblyTrademark`, `AssemblyCulture`,
+`ComVisible(false)`, `Guid("13cc1d8e-…")`, `AssemblyVersion("3.9.0.0")` and
+`AssemblyFileVersion("3.9.0.0")`. Deleting it would drop `AssemblyVersion` to `0.0.0.0`, exactly as
+task 7.5 §37.1 measured for `Nop.Web`, and task 8.6 §70.3 already read `Nop.Admin v3.9.0.0` off the
+built assembly. All six projects keep theirs; moving to SDK-generated assembly info is a
+solution-wide change (flip the property, add `Version`/`FileVersion`/`Title`, delete all six files
+together), not a per-project one.
+
+### 75.7 Enumerated rather than assumed — what does NOT exist
+
+The task text also asks for `app.config`, `packages.config` remnants and App_Start-style
+registration files. A recursive search of `Administration/` (excluding `bin`/`obj`) for `*.config`,
+`*.asax*`, `*.ashx`, `*.axd` returns **exactly two files**: `Web.config` (deleted by this task) and
+`sitemap.config`. There is **no** `app.config`, **no** `packages.config` (8.1 deleted it), **no**
+`App_Start/` directory and **no** `*Config.cs` registration file — the same finding task 7.5
+recorded for `Nop.Web`. So those clauses had nothing to act on.
+
+**`sitemap.config` is KEPT** and is not obsolete: `Areas/Admin/Views/Shared/Menu.cshtml` line 7
+calls `siteMap.LoadFrom("~/Administration/sitemap.config")`, which resolves through
+`CommonHelper.MapPath` against the host content root — a physical read, unaffected by 8.2's view
+relocation. It is still valid input on .NET 10 (task 6.4 changed only `SiteMapNode.RouteValues`'
+namespace), it is published under `Administration/` with 8.5's `Link` metadata, and it is not
+reachable over HTTP (`.config` is in `NopStaticFileProvider.DeniedExtensions` and
+`Administration/` is outside the allow-list). IIS does not parse a file by that name.
+
+### 75.8 Test change — a refusal became a stronger existence assertion, and both clauses were proven able to fail
+
+Deleting `Administration/Web.config` **broke task 8.5's SECURITY test on purpose**, and that is the
+test working as designed:
+`Task_8_5_widening_the_allow_list_did_not_expose_the_rest_of_Administration_SECURITY` asserts each
+path **exists on disk first**, so a 404 is a decision rather than a trivially-true absence. It
+failed with `PREMISE BROKEN: /Administration/Web.config is not on disk, so refusing it proves
+nothing`. The premise loop is exactly what task 8.1 argued for when it distinguished "my rule
+works" from "there was nothing to refuse".
+
+It was fixed by **strengthening**, not by deleting coverage:
+
+- `/Administration/Web.config` was removed from `mustNotServe`, with a comment recording why. The
+  ".config must not serve" case it contributed is still carried by `/Administration/sitemap.config`
+  immediately above — same `DeniedExtensions` entry, same outside-the-allow-list position.
+- **New: `Task_8_7_the_admin_project_has_no_web_config_at_any_casing`** — "must not be served"
+  becomes "must not exist", which is a stronger statement. It searches `Administration/**` for
+  `*.config` (excluding `bin`/`obj`) and requires no file named `web.config` at any casing. It
+  guards two live hazards a re-added file would reintroduce: IIS parsing it and returning HTTP
+  500.19 for a `<configSections>`/`<assemblyBinding>` naming absent assemblies, **and** flipping
+  what `TransformWebConfig` generates (§75.2).
+
+**Non-vacuous by construction**, which matters because an empty-result assertion is the easiest
+kind to pass for free: the *same* search must also find `sitemap.config`, so a broken root path or
+glob fails the control clause instead of silently satisfying the main one.
+
+**Both clauses proven able to fail, independently:**
+
+| canary | result |
+|---|---|
+| plant `Areas/Admin/Views/web.config` | **Failed** — `A web.config reappeared under Administration/… Found: …/Areas/Admin/Views/web.config` |
+| move `sitemap.config` aside | **Failed** — `PREMISE BROKEN: sitemap.config was not found by the same search… found 0 .config files` |
+
+Both were reverted and the suite re-run green (74/0/18). No new canary was added to
+`HarnessCanaryTests`: this test rests on `Directory.EnumerateFiles` plus `CommonHelper.MapPath`,
+both of which its existing control clause already proves live, and the two canaries above
+demonstrated the failure paths directly.
+
+## 76. NEW deferrals opened by task 8.7
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 8.7-1 | Three `WebRequest`/`WebClient` sites remain obsolete across three projects | post-migration | Low |
+| 8.7-2 | Nine `CS0618` FluentValidation `Custom(...)` sites remain, and will grow through groups 10–17 | post-migration (with the FV pin) | Low |
+| 8.7-3 | No test asserts that a *publish* of `Nop.Admin` emits no ANCM `web.config` | 8.8 / 18.x | Medium |
+
+### 8.7-1 Three obsolete `WebRequest`/`WebClient` sites, in three projects
+
+`Nop.Core/Plugins/OfficialFeedManager.cs:23` (`WebRequest.Create`),
+`Nop.Services/Common/KeepAliveTask.cs:25` (`WebClient`), and
+`Nop.Admin/Controllers/HomeController.cs:137` (`WebRequest.Create`). All three are `SYSLIB0014`,
+all three are pre-existing 3.90 code that works on .NET 10, and all three are part of their
+project's accepted warning baseline. §75.4 records why 8.7 declined the admin one.
+
+- **Impact if unfixed:** none functional. `WebRequest`/`WebClient` are obsolete but supported.
+- **Fix, if wanted:** convert all three together, with a **static** `HttpClient` per the
+  `TaxService` pattern (task 4.2), and decide the timeout semantics explicitly — the
+  per-operation → whole-operation change is the one that alters behaviour. `KeepAliveTask` is the
+  easiest (fire-and-forget GET); `OfficialFeedManager` and the admin news feed both parse XML from
+  the response stream and both cache the result, so both need the non-success-status decision made.
+
+### 8.7-2 Nine FluentValidation `Custom(...)` sites remain
+
+Four in `Nop.Admin/Validators/`, five in `Nop.Web/Validators/`, and more will arrive with the
+plugin and test projects (groups 10–17). Design §9 pins FluentValidation at 7.6.105 deliberately;
+the obsolete API still works and the replacement is available in-version, so this is a tidy-up, not
+a blocker.
+
+- **Why it was not done here:** the two APIs differ in how the failure's `PropertyName` is
+  determined, so a rewrite can silently move which form field an error attaches to — see §75.4.
+- **Fix, if wanted:** do all sites in one pass, after the projects that own them can be exercised
+  against a database, and assert the resulting `ModelState` keys rather than only that validation
+  still rejects.
+
+### 8.7-3 Nothing asserts that a publish emits no ANCM `web.config`
+
+§75.8's new test asserts no `web.config` exists **in the source tree**, which guards the file half
+of §75.2. The **generation** half is guarded only by `IsTransformWebConfigDisabled` and by the
+18-assertion publish audit this task ran by hand.
+
+- **Why it matters:** the defect was invisible for three tasks precisely because no automated check
+  looked at publish output for a file nobody authored. Removing the property would reintroduce it
+  silently, and the source-tree test would still pass.
+- **Fix:** a check that runs `dotnet publish` and asserts no `web.config` at any casing — plus, in
+  the same pass, that a two-step publish leaves `Nop.Web`'s `web.config` md5-identical. That is
+  naturally 18.x's, alongside deferral **8.5-1**'s two-step packaging work, and it does **not**
+  belong in a compile gate. Task 8.8 could alternatively assert it cheaply from the evaluated
+  `ResolvedFileToPublish` item set without a full publish.
+
+## 77. Deferrals explicitly NOT closed by 8.7, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **8.3-2** · **8.4-1** | the admin smoke assertions, and getting `Nop.Admin.dll` into the smoke-test output directory | **8.8's**, in one pass, and out of scope by instruction. 8.7 deliberately did not add a `ProjectReference` from the smoke-test project — doing so would start registering the Admin area and make `Task_8_2_…_KNOWN_GAP` fail, which is 8.8's inversion to make |
+| **8.5-1** | nothing enforces the two-step publish | **18.x's**. NARROWED here: the second step no longer breaks the first (§75.2). See also new deferral 8.7-3 |
+| **8.2-2** | `dotnet publish` of `Nop.Web` omits `Nop.Admin.dll` | **18.x's** — unchanged |
+| **8.2-1** | plugin assemblies loaded by **name**, which cannot work on .NET | **10.x's** — still HIGH, still blocks group 10 |
+| **8.2-3** | 12 plugin view sites still reference the pre-8.2 admin view paths | 11.1–11.2, 13.1, 14.4, 15.1 |
+| **8.6-2** | `FixPath` does not normalise `..` | none — pre-existing, permission-gated. `RoxyFilemanController.cs` was out of scope by instruction |
+| **35** | minification gone, nothing replaces it | post-migration (design §8) |
+| **18 / 7.18** | ImageSharp licence diagnostic | business decision on the version pin; §70.2 confirmed it does not affect this project at 2.1.13 |
+| **7.2-1** · **7.2-3** · **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** · **7.4-1** · **7.5-1** · **7.7-2** · **7.7-3** · **4.10** · **4.11** · **9/4.9** · **11.27** | unchanged | as previously recorded |

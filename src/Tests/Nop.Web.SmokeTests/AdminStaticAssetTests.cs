@@ -220,7 +220,15 @@ namespace Nop.Web.SmokeTests
 
                 //configuration read from disk at runtime, never over HTTP
                 "/Administration/sitemap.config",
-                "/Administration/Web.config",
+
+                //TASK 8.7 removed "/Administration/Web.config" from this list, because 8.7 DELETED
+                //that file - and 8.5's own rule is that a refusal asserted against a path that is
+                //not on disk proves nothing, which is why the premise loop below fails loudly
+                //rather than quietly passing. The ".config must not serve" case it contributed is
+                //still carried by sitemap.config immediately above (same DeniedExtensions entry,
+                //same outside-the-allow-list position). The stronger statement that replaced it -
+                //that no admin web.config exists at ANY casing any more - is asserted by
+                //Task_8_7_the_admin_project_has_no_web_config_at_any_casing below.
 
                 //source and project files
                 "/Administration/Nop.Admin.csproj",
@@ -255,6 +263,57 @@ namespace Nop.Web.SmokeTests
 
             foreach (var path in mustNotServe)
                 AssertNotServed(path);
+        }
+
+        [Test]
+        public void Task_8_7_the_admin_project_has_no_web_config_at_any_casing()
+        {
+            //TASK 8.7 deleted Administration/Web.config (task 8.4 had already deleted the view one
+            //at Areas/Admin/Views/Web.config). This asserts they STAY deleted, which is a stronger
+            //statement than the refusal it replaced in the SECURITY test above - "must not be
+            //served" became "must not exist" - and it guards two separate live hazards that a
+            //re-added file would reintroduce:
+            //
+            //  1. IIS parses EVERY file named web.config in the served tree, case-insensitively on
+            //     Windows. The legacy file's <runtime><assemblyBinding> block and the view file's
+            //     System.Web.WebPages.Razor <configSections> group name assemblies that do not
+            //     exist on .NET 10, which is an HTTP 500.19 configuration error.
+            //  2. It changes what the SDK's TransformWebConfig task GENERATES on publish. Task 8.7
+            //     measured that the presence of a web.config item flips the generated ANCM shim's
+            //     filename between "Web.config" and "web.config", and either one collides with
+            //     Nop.Web's own web.config in the single-directory deployment deferral 8.5-1
+            //     describes. IsTransformWebConfigDisabled in Nop.Admin.csproj is the guard for the
+            //     generation half; this test is the guard for the file half.
+            //
+            //NOT VACUOUS BY CONSTRUCTION: the same search is required to FIND sitemap.config. A
+            //broken root path or glob would report "no web.config" and would also report "no
+            //sitemap.config", so the second assertion fails and the first cannot pass for free.
+            var adminRoot = CommonHelper.MapPath("~/Administration");
+            Assert.IsTrue(Directory.Exists(adminRoot), "PREMISE BROKEN: " + adminRoot + " not found");
+
+            var configs = Directory
+                .EnumerateFiles(adminRoot, "*.config", SearchOption.AllDirectories)
+                .Where(p => !p.Replace('\\', '/').Contains("/obj/") &&
+                            !p.Replace('\\', '/').Contains("/bin/"))
+                .ToList();
+
+            var webConfigs = configs
+                .Where(p => string.Equals(Path.GetFileName(p), "web.config",
+                                          StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            Assert.IsEmpty(webConfigs,
+                "A web.config reappeared under Administration/. Task 8.7 deleted the last one; see " +
+                "the IsTransformWebConfigDisabled comment in Nop.Admin.csproj before re-adding any " +
+                "file with this name. Found: " + string.Join(", ", webConfigs));
+
+            //the control: proves the search really looks at the admin tree
+            Assert.IsTrue(
+                configs.Any(p => string.Equals(Path.GetFileName(p), "sitemap.config",
+                                               StringComparison.OrdinalIgnoreCase)),
+                "PREMISE BROKEN: sitemap.config was not found by the same search, so the " +
+                "no-web.config result above proves nothing. Searched " + adminRoot +
+                ", found " + configs.Count + " .config files.");
         }
 
         [Test]

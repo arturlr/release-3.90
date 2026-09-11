@@ -93,6 +93,46 @@ namespace Nop.Admin.Controllers
 
                 var rssData = _cacheManager.Get(ModelCacheEventConsumer.OFFICIAL_NEWS_MODEL_KEY, () =>
                 {
+                    //TASK 8.7 - WebRequest.Create IS OBSOLETE (SYSLIB0014) AND IS DELIBERATELY KEPT.
+                    //This is a recorded decision, not an oversight; see runtime-deferrals.md 8.7-1.
+                    //
+                    //1. SOLUTION-WIDE CONSISTENCY. Nop.Core/Plugins/OfficialFeedManager.cs line 23
+                    //   is the IDENTICAL pattern - WebRequest.Create(url) + Timeout + GetResponse()
+                    //   + XML parse - and it is part of Nop.Core's ACCEPTED 3-warning baseline at
+                    //   gate 2.5. Nop.Services/Common/KeepAliveTask.cs line 25 uses WebClient and is
+                    //   in Nop.Services' accepted 10. This migration has twice declined the same
+                    //   conversion in projects that have already passed their gate; converting it
+                    //   here alone would make Nop.Admin the only project that modernised its
+                    //   SYSLIB0014 site.
+                    //
+                    //2. THE CONVERSION IS NOT BEHAVIOUR-PRESERVING, in three specific ways:
+                    //   * Timeout SEMANTICS DIFFER. HttpWebRequest.Timeout bounds GetResponse()
+                    //     only - it does not cover reading the response stream. HttpClient.Timeout
+                    //     bounds the whole operation including the body read. So a feed that
+                    //     responds quickly but streams slowly succeeds today and would start
+                    //     timing out. That is a change in the direction of MORE failures.
+                    //   * NON-SUCCESS STATUS. GetResponse() throws WebException for 4xx/5xx, so
+                    //     nothing is cached. HttpClient.Send() returns the response and the failure
+                    //     would surface later, from SyndicationFeed.Load on an HTML error body -
+                    //     a different exception type from a different place, and what actually gets
+                    //     handed to _cacheManager.Get depends on a third-party server's error page.
+                    //   * PROXY AND LIFETIME. A correct HttpClient port needs a STATIC client (the
+                    //     socket-exhaustion pattern task 4.2 used for TaxService), which introduces
+                    //     a process-wide singleton with its own DNS and proxy resolution, not quite
+                    //     WebRequest.DefaultWebProxy's.
+                    //
+                    //3. NO GAIN. This is the admin dashboard's nopCommerce news feed over plain
+                    //   HTTP to a third-party site, already wrapped in the catch below that returns
+                    //   Content(""). WebRequest is obsolete but fully functional on .NET 10, it is
+                    //   not a System.Web dependency, and the warning is non-blocking (Req 3.3).
+                    //
+                    //If this is ever converted, convert all three sites together and decide the
+                    //timeout semantics explicitly.
+                    //
+                    //THE WARNING IS DELIBERATELY LEFT VISIBLE - no #pragma, no NoWarn. Nop.Core
+                    //carries the identical SYSLIB0014 unsuppressed in its accepted baseline, and
+                    //suppressing it here would leave the same fact visible in one project and
+                    //hidden in another, so the warning counts would stop describing the code.
                     //specify timeout (5 secs)
                     var request = WebRequest.Create(feedUrl);
                     request.Timeout = 5000;

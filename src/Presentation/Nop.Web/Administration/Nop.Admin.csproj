@@ -99,6 +99,83 @@
       compiles the 325 views under Areas/Admin/Views/.
     -->
     <OutputType>Library</OutputType>
+
+    <!--
+      ===================================================================================
+      TASK 8.7 - REQUIRED, AND ITS ABSENCE IS A DEPLOYMENT-BREAKING DEFECT ON IIS.
+      MEASURED, not reasoned about. DO NOT REMOVE.
+      ===================================================================================
+      Microsoft.NET.Sdk.Web's publish pipeline runs the TransformWebConfig task, which
+      injects the ASP.NET Core Module handler. That is correct for a HOST and wrong here:
+      Nop.Admin is a LIBRARY (OutputType above), has no Program.cs and no Main, and is
+      loaded by the Nop.Web host as an MVC area through an application part (task 8.2).
+
+      MEASURED, before this property existed. `dotnet publish` of THIS project emitted an ANCM
+      shim of its own, ~485 bytes:
+
+            <handlers><add name="aspNetCore" ... modules="AspNetCoreModuleV2" /></handlers>
+            <aspNetCore processPath="dotnet" arguments=".\Nop.Admin.dll"
+                        hostingModel="inprocess" />
+
+      i.e. it told IIS to launch Nop.Admin.dll as the application. There is no Main to
+      launch.
+
+      *** WHY THIS IS WORSE THAN A USELESS FILE: IT OVERWRITES THE STOREFRONT'S. ***
+      Deferral 8.2-2, as narrowed by task 8.5 to deferral 8.5-1, records that the intended
+      deployment is "publish Nop.Web, then publish Nop.Admin into the SAME directory".
+      Measured on both sides:
+
+          Nop.Web  publish -> web.config   14154 bytes  arguments=".\Nop.Web.dll"
+                                           (7.4's merged file: ANCM handler PLUS the two
+                                            live IIS elements, urlCompression and the
+                                            X-Powered-By removal)
+          Nop.Admin publish ->   485 bytes  arguments=".\Nop.Admin.dll"
+
+      So publishing Nop.Admin second replaces a correct 14 KB storefront shim with a
+      485-byte one that boots a library with no entry point, AND silently drops task 7.4's
+      two IIS settings. The site fails to start, and the cause is a file nobody wrote.
+
+      *** THE GENERATED FILENAME'S CASING DEPENDS ON WHETHER THE LEGACY FILE EXISTS, AND
+          THAT MAKES THIS TASK'S OWN DELETION AN ESCALATION IF DONE ALONE. ***
+      Measured A/B, both with this property absent:
+
+          legacy Web.config on disk (pre-8.7)  -> generated "Web.config"  (capital W)
+          legacy Web.config deleted  (8.7)     -> generated "web.config"  (lowercase)
+
+      TransformWebConfig derives its output path from the project's own web.config item when
+      one exists and falls back to the literal lowercase name when none does. So BEFORE this
+      task the collision with Nop.Web's lowercase web.config was WINDOWS-ONLY (two names
+      differing only in case - legal on Linux, one file on NTFS). DELETING Web.config, which is
+      the other half of task 8.7, makes the generated name lowercase and therefore makes the
+      collision EXACT ON EVERY FILESYSTEM, Linux included. Deleting the legacy file without
+      also setting this property would have turned a platform-specific deployment defect into
+      an unconditional one. Verified by publishing in both states.
+
+      This is the same Web.config/web.config casing trap task 7.4 measured from the other
+      side (runtime-deferrals.md section 31.2) - there it was TransformWebConfig's INPUT
+      lookup being case-sensitive, here it is its OUTPUT path. Note task 8.1's comment on the
+      publish-exclusion block predicted this file would be generated in lowercase; that was
+      right only for the post-deletion state, and the pre-deletion state it was describing
+      actually produced capital-W.
+
+      IsTransformWebConfigDisabled is the SDK's documented switch for this. Verified after
+      setting it: a publish of this project contains NO web.config at ANY casing, and the
+      two-step publish leaves Nop.Web's own web.config byte-for-byte intact. Proven able to
+      fail: with the property set back to false the generated shim reappears, naming
+      Nop.Admin.dll.
+
+      IsTransformWebConfigDisabled is the SDK's documented switch for this. Verified after
+      setting it: a publish of this project contains NO web.config at ANY casing, and the
+      two-step publish leaves Nop.Web's own web.config byte-for-byte intact.
+
+      NO HAND-WRITTEN web.config REPLACES IT, and none is needed - confirmed rather than
+      assumed. A web.config is only read by IIS, for the application it hosts; the hosted
+      application is Nop.Web, whose src\Presentation\Nop.Web\web.config is the ANCM shim
+      and carries the only two IIS settings 3.90 expressed for this tree. Nop.Admin never
+      had a Global.asax and never was an application (3.90 recorded UseCustomServer=True
+      with an external CustomServerUrl), so it has nothing to declare to IIS.
+    -->
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
   </PropertyGroup>
 
   <!--
@@ -505,38 +582,29 @@
     <Content Update="Content\Roxy_Fileman\tmp\**\*.zip" CopyToPublishDirectory="Never" />
 
     <!--
-      Legacy Razor/MVC5 configuration files. Both are DELETED by later tasks - Web.config
-      by 8.7, Views\Web.config by 8.4 - and neither can be read by anything on .NET 10:
-      Web.config's own comment says "We use this file to make razor intellisense work in
-      this project", and its content is a System.Web <pages><namespaces> list (System.Web.Mvc,
-      System.Web.Optimization, ...), a <compilation targetFramework="4.5.1"/>, five
-      System.Web/OWIN appSettings keys and a <runtime><assemblyBinding> block of
-      .NET Framework binding redirects. Views\Web.config declares a
-      System.Web.WebPages.Razor <configSections> group.
+      TASK 8.7 - BOTH legacy Razor/MVC5 configuration files are now DELETED, so BOTH interim
+      publish-exclusion entries have been REMOVED from this group rather than left behind as
+      no-ops - exactly as task 7.5 removed 7.4's two equivalents from Nop.Web.csproj.
 
-      They are excluded from PUBLISH here as the same interim measure task 7.4 applied to
-      Nop.Web's two view Web.config files, for two concrete reasons:
-        1. IIS parses every file named web.config in the served tree (case-insensitively
-           on Windows), and a <configSections> group naming an assembly that does not
-           exist on .NET 10 produces HTTP 500.19.
-        2. The SDK's TransformWebConfig task matches the LITERAL lowercase filename
-           web.config, which "Web.config" is not on a case-sensitive filesystem - task
-           7.4 measured exactly this and renamed Nop.Web's file to fix it. So a publish
-           of this project emits its own generated lowercase web.config alongside the
-           legacy capital-W one: two files differing only in case, which is legal on
-           Linux and a collision on Windows. Excluding the legacy one avoids it.
-      Once 8.4/8.7 delete the files these two entries become no-ops and can go, exactly as
-      task 7.5 removed 7.4's equivalents from Nop.Web.csproj.
-    -->
-    <Content Update="Web.config" CopyToPublishDirectory="Never" />
-    <!--
-      TASK 8.4 DELETED Areas\Admin\Views\Web.config, so its interim
-      <Content Update="Areas\Admin\Views\Web.config" CopyToPublishDirectory="Never" /> entry has
-      been REMOVED from this group rather than left behind as a no-op - exactly as task 7.5
-      removed 7.4's two equivalents from Nop.Web.csproj. It is superseded by
-      Areas\Admin\Views\_ViewImports.cshtml, which carries the pageBaseType (as @inherits) and the
-      <namespaces> list (as @using) that were the only two things in it .NET 10 could act on.
-      The Web.config entry above survives until task 8.7 deletes that file.
+        Areas\Admin\Views\Web.config   deleted by TASK 8.4. Superseded by
+                                       Areas\Admin\Views\_ViewImports.cshtml, which carries the
+                                       pageBaseType (as @inherits) and the <namespaces> list (as
+                                       @using) - the only two things in it .NET 10 could act on.
+        Web.config                     deleted by TASK 8.7. Superseded by NOTHING, and nothing was
+                                       needed: its own comment said it existed only "to make razor
+                                       intellisense work in this project", and every element in it
+                                       is unreadable on .NET 10 - a System.Web <pages><namespaces>
+                                       list, <compilation targetFramework="4.5.1"/>, five
+                                       System.Web/OWIN appSettings keys, and a
+                                       <runtime><assemblyBinding> block of .NET Framework binding
+                                       redirects. Element-by-element disposition is in
+                                       runtime-deferrals.md section 75.1.
+
+      DO NOT re-add a publish exclusion for either path. What replaced the need for one is
+      IsTransformWebConfigDisabled in the first PropertyGroup - read that comment before touching
+      anything web.config-shaped here. The exclusions only ever suppressed the legacy files being
+      COPIED; they did nothing about the SDK GENERATING an ANCM shim, which task 8.7 measured to be
+      the actually dangerous half.
     -->
   </ItemGroup>
 
@@ -648,7 +716,14 @@
                                     replaced by Infrastructure\RouteProvider.cs, which registers
                                     MapAreaControllerRoute("Admin_default", "Admin",
                                     "Admin/{controller=Home}/{action=Index}/{id?}").
-      Web.config                    TASK 8.7 (excluded from publish above)
+      Web.config                    DONE BY TASK 8.7: DELETED, and its publish-exclusion entry
+                                    removed with it. Nothing supersedes it and nothing needed to -
+                                    every element was System.Web-only. 8.7 ALSO set
+                                    IsTransformWebConfigDisabled, because the exclusion had been
+                                    suppressing the wrong half of the problem: the SDK GENERATES an
+                                    ANCM web.config for a Web-SDK project, and this project's named
+                                    Nop.Admin.dll as the entry point and collided by case with
+                                    Nop.Web's. See the property's comment above.
       Areas\Admin\Views\Web.config  DONE BY TASK 8.4: DELETED, and its publish-exclusion entry
                                     removed with it. Its pageBaseType + <namespaces> are now
                                     carried by Areas\Admin\Views\_ViewImports.cshtml.
