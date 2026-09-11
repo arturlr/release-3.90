@@ -97,7 +97,7 @@
                                         numeric: false,
                                         previousNext: false,
                                         info: false,
-                                        @Html.Partial("_GridPagerMessages")
+                                        @await Html.PartialAsync("_GridPagerMessages")
                                     },
                                     editable: {
                                         confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -244,7 +244,7 @@
                                             numeric: false,
                                             previousNext: false,
                                             info: false,
-                                            @Html.Partial("_GridPagerMessages")
+                                            @await Html.PartialAsync("_GridPagerMessages")
                                         },
                                         scrollable: false,
                                         columns: [
@@ -293,8 +293,8 @@
                                         var rate = rates[i];
                                         <text>
                                         {
-                                            CurrencyCode: "@(Html.Raw(HttpUtility.JavaScriptStringEncode(rate.CurrencyCode)))",
-                                            Rate: "@(Html.Raw(HttpUtility.JavaScriptStringEncode(rate.Rate.ToString())))"
+                                            CurrencyCode: "@(Html.Raw(JavaScriptHelper.Encode(rate.CurrencyCode)))",
+                                            Rate: "@(Html.Raw(JavaScriptHelper.Encode(rate.Rate.ToString())))"
                                         }
                                         </text>
                                         if (i != rates.Count - 1)

@@ -105,7 +105,7 @@
             <text>productTypeSupportedValues['@(kvp.Key)'] = {};</text>
             foreach (var item in kvp.Value)
             {
-                <text>productTypeSupportedValues['@(kvp.Key)']['@(item.Value)'] = '@Html.Raw(HttpUtility.JavaScriptStringEncode((item.Text)))';</text>
+                <text>productTypeSupportedValues['@(kvp.Key)']['@(item.Value)'] = '@Html.Raw(JavaScriptHelper.Encode((item.Text)))';</text>
             }
         }
         var productTemplateDropddown = $("#@Html.FieldIdFor(model => model.ProductTemplateId)");
@@ -382,7 +382,7 @@
         {
             var tag = productTags[i];
             productTagsSb.Append("'");
-            productTagsSb.Append(HttpUtility.JavaScriptStringEncode(tag.Name));
+            productTagsSb.Append(JavaScriptHelper.Encode(tag.Name));
             productTagsSb.Append("'");
             if (i != productTags.Count - 1)
             {
@@ -1204,7 +1204,7 @@
                                         numeric: false,
                                         previousNext: false,
                                         info: false,
-                                        @Html.Partial("_GridPagerMessages")
+                                        @await Html.PartialAsync("_GridPagerMessages")
                                     },
                                     editable: {
                                         confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -1360,7 +1360,7 @@
                                         numeric: false,
                                         previousNext: false,
                                         info: false,
-                                        @Html.Partial("_GridPagerMessages")
+                                        @await Html.PartialAsync("_GridPagerMessages")
                                     },
                                     editable: {
                                         confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -2023,7 +2023,7 @@
                                         numeric: false,
                                         previousNext: false,
                                         info: false,
-                                        @Html.Partial("_GridPagerMessages")
+                                        @await Html.PartialAsync("_GridPagerMessages")
                                     },
                                     editable: {
                                         confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -2146,7 +2146,7 @@
                                         numeric: false,
                                         previousNext: false,
                                         info: false,
-                                        @Html.Partial("_GridPagerMessages")
+                                        @await Html.PartialAsync("_GridPagerMessages")
                                     },
                                     editable: {
                                         confirmation: "@T("Admin.Common.DeleteConfirmation")",

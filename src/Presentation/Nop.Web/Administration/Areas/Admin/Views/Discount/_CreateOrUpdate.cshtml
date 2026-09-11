@@ -32,14 +32,14 @@
                 }
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-requirements", @TabRequirements())
-                @Html.RenderBootstrapTabContent("tab-applied-to-products", @TabAppliedToProducts())
-                @Html.RenderBootstrapTabContent("tab-applied-to-categories", @TabAppliedToCategories())
-                @Html.RenderBootstrapTabContent("tab-applied-to-manufacturers", @TabAppliedToManufacturers())
+                @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
+                @Html.RenderBootstrapTabContent("tab-requirements", Capture(TabRequirements))
+                @Html.RenderBootstrapTabContent("tab-applied-to-products", Capture(TabAppliedToProducts))
+                @Html.RenderBootstrapTabContent("tab-applied-to-categories", Capture(TabAppliedToCategories))
+                @Html.RenderBootstrapTabContent("tab-applied-to-manufacturers", Capture(TabAppliedToManufacturers))
                 @if (Model.Id > 0)
                 {
-                    @Html.RenderBootstrapTabContent("tab-history", @TabHistory())
+                    @Html.RenderBootstrapTabContent("tab-history", Capture(TabHistory))
                 }
             </div>
         </div>
@@ -59,7 +59,8 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
     <script type="text/javascript">
         $(document).ready(function() {
@@ -276,8 +277,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabRequirements()
+@functions {
+async Task TabRequirements()
 {
     <div class="panel-group">
         @if (Model.Id > 0)
@@ -435,7 +438,7 @@
                             $("#discountRequirementContainer").trigger('nopnewdiscountruleadded', [data.NewRequirementId]);
                         },
                         error:function (xhr, ajaxOptions, thrownError) {
-                            alert('@Html.Raw(HttpUtility.JavaScriptStringEncode(T("Admin.Promotions.Discounts.Requirements.FailedToSave").Text))');
+                            alert('@Html.Raw(JavaScriptHelper.Encode(T("Admin.Promotions.Discounts.Requirements.FailedToSave").Text))');
                         }
                     });
                 };
@@ -555,8 +558,10 @@
         }
     </div>
 }
+}
 
-@helper TabAppliedToProducts()
+@functions {
+async Task TabAppliedToProducts()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -610,7 +615,7 @@
                                     numeric: false,
                                     previousNext: false,
                                     info: false,
-                                    @Html.Partial("_GridPagerMessages")
+                                    @await Html.PartialAsync("_GridPagerMessages")
                                 },
                                 editable: {
                                     confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -670,8 +675,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabAppliedToCategories()
+@functions {
+async Task TabAppliedToCategories()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -725,7 +732,7 @@
                                     numeric: false,
                                     previousNext: false,
                                     info: false,
-                                    @Html.Partial("_GridPagerMessages")
+                                    @await Html.PartialAsync("_GridPagerMessages")
                                 },
                                 editable: {
                                     confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -785,8 +792,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabAppliedToManufacturers()
+@functions {
+async Task TabAppliedToManufacturers()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -840,7 +849,7 @@
                                     numeric: false,
                                     previousNext: false,
                                     info: false,
-                                    @Html.Partial("_GridPagerMessages")
+                                    @await Html.PartialAsync("_GridPagerMessages")
                                 },
                                 editable: {
                                     confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -900,8 +909,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabHistory()
+@functions {
+async Task TabHistory()
 {
     var defaultGridPageSize = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().DefaultGridPageSize;
     var gridPageSizes = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().GridPageSizes;
@@ -957,7 +968,7 @@
                             pageable: {
                                 refresh: true,
                                 pageSizes: [@(gridPageSizes)],
-                                @Html.Partial("_GridPagerMessages")
+                                @await Html.PartialAsync("_GridPagerMessages")
                             },
                             editable: {
                                 confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -994,4 +1005,5 @@
             </div>
         </div>
     </div>
+}
 }

@@ -39,15 +39,15 @@
                 }
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo())
-                @Html.RenderBootstrapTabContent("tab-pictures", @TabPictures())
-                @Html.RenderBootstrapTabContent("tab-specification-attributes", @TabSpecificationAttributes())
-                @Html.RenderBootstrapTabContent("tab-product-attributes", @TabProductAttributes())
+                @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
+                @Html.RenderBootstrapTabContent("tab-seo", Capture(TabSeo))
+                @Html.RenderBootstrapTabContent("tab-pictures", Capture(TabPictures))
+                @Html.RenderBootstrapTabContent("tab-specification-attributes", Capture(TabSpecificationAttributes))
+                @Html.RenderBootstrapTabContent("tab-product-attributes", Capture(TabProductAttributes))
                 @if (Model.Id > 0)
                 {
-                    @Html.RenderBootstrapTabContent("tab-purchased-with-orders", @TabPurchasedWithOrders())
-                    @Html.RenderBootstrapTabContent("tab-stock-quantity-history", @TabStockQuantityHistory())
+                    @Html.RenderBootstrapTabContent("tab-purchased-with-orders", Capture(TabPurchasedWithOrders))
+                    @Html.RenderBootstrapTabContent("tab-stock-quantity-history", Capture(TabStockQuantityHistory))
                 }
             </div>
         </div>
@@ -67,37 +67,51 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
-    @Html.Partial("_CreateOrUpdate.Info", Model)
+    @await Html.PartialAsync("_CreateOrUpdate.Info", Model)
+}
 }
 
-@helper TabSeo()
+@functions {
+async Task TabSeo()
 {
-    @Html.Partial("_CreateOrUpdate.SEO", Model)
+    @await Html.PartialAsync("_CreateOrUpdate.SEO", Model)
+}
 }
 
-@helper TabPictures()
+@functions {
+async Task TabPictures()
 {
-    @Html.Partial("_CreateOrUpdate.Pictures", Model)
+    @await Html.PartialAsync("_CreateOrUpdate.Pictures", Model)
+}
 }
 
-@helper TabProductAttributes()
+@functions {
+async Task TabProductAttributes()
 {
-    @Html.Partial("_CreateOrUpdate.ProductAttributes", Model)
+    @await Html.PartialAsync("_CreateOrUpdate.ProductAttributes", Model)
+}
 }
 
-@helper TabSpecificationAttributes()
+@functions {
+async Task TabSpecificationAttributes()
 {
-    @Html.Partial("_CreateOrUpdate.SpecificationAttributes", Model)
+    @await Html.PartialAsync("_CreateOrUpdate.SpecificationAttributes", Model)
+}
 }
 
-@helper TabPurchasedWithOrders()
+@functions {
+async Task TabPurchasedWithOrders()
 {
-    @Html.Partial("_CreateOrUpdate.PurchasedWithOrders", Model)
+    @await Html.PartialAsync("_CreateOrUpdate.PurchasedWithOrders", Model)
+}
 }
 
-@helper TabStockQuantityHistory()
+@functions {
+async Task TabStockQuantityHistory()
 {
-    @Html.Partial("_CreateOrUpdate._StockQuantityHistory", Model)
+    @await Html.PartialAsync("_CreateOrUpdate._StockQuantityHistory", Model)
+}
 }

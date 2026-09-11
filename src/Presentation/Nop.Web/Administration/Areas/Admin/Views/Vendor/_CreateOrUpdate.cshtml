@@ -28,11 +28,11 @@
                 }
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo())
+                @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
+                @Html.RenderBootstrapTabContent("tab-seo", Capture(TabSeo))
                 @if (Model.Id > 0)
                 {
-                    @Html.RenderBootstrapTabContent("tab-vendor-notes", @TabVendorNotes())
+                    @Html.RenderBootstrapTabContent("tab-vendor-notes", Capture(TabVendorNotes))
                 }
             </div>
         </div>
@@ -52,7 +52,8 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
     <script type="text/javascript">
         $(document).ready(function() {
@@ -227,8 +228,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabSeo()
+@functions {
+async Task TabSeo()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -340,8 +343,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabVendorNotes()
+@functions {
+async Task TabVendorNotes()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -397,7 +402,7 @@
                                 numeric: false,
                                 previousNext: false,
                                 info: false,
-                                @Html.Partial("_GridPagerMessages")
+                                @await Html.PartialAsync("_GridPagerMessages")
                             },
                             editable: {
                                 confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -480,4 +485,5 @@
             });
         });
     </script>
+}
 }

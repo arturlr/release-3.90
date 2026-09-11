@@ -1,5 +1,7 @@
 ﻿@model LanguageSelectorModel
 @using Nop.Core;
+@using Microsoft.AspNetCore.Http.Extensions
+@using System.Net
 
 @if (Model.AvailableLanguages.Count > 1)
 {
@@ -10,7 +12,7 @@
             var languages = Model.AvailableLanguages.Select(lang => new SelectListItem
             {
                 Text = lang.Name,
-                Value = webHelper.ModifyQueryString(Url.Action("SetLanguage", "Common", new {langid = lang.Id, area = "Admin"}), "returnurl=" + HttpUtility.UrlEncode(HttpContext.Current.Request.RawUrl), null),
+                Value = webHelper.ModifyQueryString(Url.Action("SetLanguage", "Common", new {langid = lang.Id, area = "Admin"}), "returnurl=" + WebUtility.UrlEncode(Context.Request.GetEncodedPathAndQuery()), null),
                 Selected = lang.Id.Equals(Model.CurrentLanguage.Id)
             });
 

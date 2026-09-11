@@ -40,8 +40,8 @@
                     @Html.RenderBootstrapTabHeader("tab-returnrequest", @T("Admin.Configuration.Settings.Order.ReturnRequestSettings"))
                 </ul>
                 <div class="tab-content">
-                    @Html.RenderBootstrapTabContent("tab-info", @TabOrderSettings(), true)
-                    @Html.RenderBootstrapTabContent("tab-returnrequest", @TabReturnRequestSettings())
+                    @Html.RenderBootstrapTabContent("tab-info", Capture(TabOrderSettings), true)
+                    @Html.RenderBootstrapTabContent("tab-returnrequest", Capture(TabReturnRequestSettings))
                 </div>
             </div>
         </div>
@@ -61,7 +61,8 @@
     <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 }
 
-@helper TabOrderSettings()
+@functions {
+async Task TabOrderSettings()
 {
     <script type="text/javascript">
         $(document).ready(function () {
@@ -351,8 +352,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabReturnRequestSettings()
+@functions {
+async Task TabReturnRequestSettings()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -427,7 +430,8 @@
                 </div>
             </div>
         </div>
-        @Html.Partial("_ReturnRequestReasons")
-        @Html.Partial("_ReturnRequestActions")
+        @await Html.PartialAsync("_ReturnRequestReasons")
+        @await Html.PartialAsync("_ReturnRequestActions")
     </div>
+}
 }

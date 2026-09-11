@@ -16,8 +16,8 @@
                 @Html.RenderBootstrapTabHeader("tab-resources", @T("Admin.Configuration.Languages.Resources"))
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-resources", @TabResources())
+                @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
+                @Html.RenderBootstrapTabContent("tab-resources", Capture(TabResources))
             </div>
         </div>
     </div>
@@ -36,7 +36,8 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -182,7 +183,9 @@
         </div>
     </div>
 }
-@helper TabResources()
+}
+@functions {
+async Task TabResources()
 {
     <div class="panel-group">
         <div class="panel panel-default panel-search">
@@ -311,7 +314,7 @@
                                 pageable: {
                                     refresh: true,
                                     pageSizes: [@(gridPageSizes)],
-                                    @Html.Partial("_GridPagerMessages")
+                                    @await Html.PartialAsync("_GridPagerMessages")
                                 },
                                 toolbar: [{ name: "create", text: "@T("Admin.Common.AddNewRecord")" }],
                                 editable: {
@@ -380,4 +383,5 @@
             </div>
         }
     </div>
+}
 }

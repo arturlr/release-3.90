@@ -19,8 +19,8 @@
                 @Html.RenderBootstrapTabHeader("tab-seo", @T("Admin.Common.SEO"))
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo())
+                @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
+                @Html.RenderBootstrapTabContent("tab-seo", Capture(TabSeo))
             </div>
         </div>
     </div>
@@ -46,7 +46,8 @@
     Html.AppendScriptParts("~/Administration/Scripts/tagEditor/jquery.caret.min.js");
 }
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
     <script type="text/javascript">
         @{
@@ -58,7 +59,7 @@
             {
                 var tag = blogTags[i];
                 blogTagsSb.Append("'");
-                blogTagsSb.Append(HttpUtility.JavaScriptStringEncode(tag.Name));
+                blogTagsSb.Append(JavaScriptHelper.Encode(tag.Name));
                 blogTagsSb.Append("'");
                 if (i != blogTags.Count - 1)
                 {
@@ -194,8 +195,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabSeo()
+@functions {
+async Task TabSeo()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -251,4 +254,5 @@
             </div>
         </div>
     </div>
+}
 }

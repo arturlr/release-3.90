@@ -185,7 +185,7 @@
 
                     function showProgress() {
                         $("html, body").animate({ scrollTop: 0 }, 400);
-                        showThrobber('@Html.Raw(HttpUtility.JavaScriptStringEncode(T("Admin.System.Maintenance.BackupDatabase.Progress").Text))');
+                        showThrobber('@Html.Raw(JavaScriptHelper.Encode(T("Admin.System.Maintenance.BackupDatabase.Progress").Text))');
                     };
 
                     $(document).ready(function () {
@@ -227,7 +227,7 @@
                                 numeric: false,
                                 previousNext: false,
                                 info: false,
-                                @Html.Partial("_GridPagerMessages")
+                                @await Html.PartialAsync("_GridPagerMessages")
                             },
                             editable: {
                                 confirmation: "@T("Admin.Common.DeleteConfirmation")",

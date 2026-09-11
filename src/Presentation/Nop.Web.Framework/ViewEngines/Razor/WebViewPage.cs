@@ -1,3 +1,6 @@
+using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Nop.Core;
 using Nop.Core.Data;
@@ -69,6 +72,100 @@ namespace Nop.Web.Framework.ViewEngines.Razor
                 _localizationService = EngineContext.Current.Resolve<ILocalizationService>();
 
             return _localizationService;
+        }
+
+        /// <summary>
+        /// Capture the markup a <c>void</c> method in an <c>@functions</c> block writes, as an
+        /// <see cref="IHtmlContent"/> that can be passed to a helper as an argument.
+        /// </summary>
+        /// <param name="renderMarkup">
+        /// A parameterless <c>async Task</c> method declared in the view's <c>@functions</c> block
+        /// whose body is Razor markup.
+        /// </param>
+        /// <remarks>
+        /// <para>
+        /// <b>TASK 8.4 — the seam that lets 3.90's 78 admin <c>@helper</c> declarations become
+        /// <c>void</c> methods without rewriting a single line of their bodies.</b>
+        /// </para>
+        /// <para>
+        /// ASP.NET Core removed Razor v2's <c>@helper</c> directive (<c>RZ1002</c>). Task 7.3
+        /// converted <c>Nop.Web</c>'s four occurrences to <c>void</c> methods in an
+        /// <c>@functions</c> block, because markup inside such a method is emitted straight to the
+        /// page output — so the same HTML lands in the same place and the body needs no edit.
+        /// That works when the helper is <i>invoked as a statement</i>, which is all four of
+        /// <c>Nop.Web</c>'s were.
+        /// </para>
+        /// <para>
+        /// <b>Every one of the 78 admin helpers is different: its result is passed as an
+        /// ARGUMENT</b> — <c>@Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)</c>, and
+        /// <see cref="Nop.Web.Framework.HtmlExtensions.RenderBootstrapTabContent"/> declares that
+        /// parameter as <see cref="HelperResult"/>. A <c>void</c> method returns nothing, so the
+        /// two do not compose. Three alternatives were considered and rejected:
+        /// <list type="number">
+        /// <item>a <b>templated Razor delegate</b> (<c>Func&lt;object, HelperResult&gt; TabInfo =
+        /// @&lt;text&gt;…&lt;/text&gt;</c>) is the idiomatic capture mechanism and needs no
+        /// framework change, but it declares a <i>local</i>, and a local must be declared before
+        /// the statement that uses it. All 78 helpers sit at the BOTTOM of their file while every
+        /// call site is near the top, so each of the 26 files would have to be reordered — and 13
+        /// of them nest a <c>&lt;text&gt;</c> block inside a helper body, which would then be a
+        /// <c>&lt;text&gt;</c> inside a <c>&lt;text&gt;</c>. An <c>@functions</c> method is a class
+        /// member and is therefore order-independent, which is why task 7.3 chose it too;</item>
+        /// <item>a <b>partial view per helper</b> — 78 new files, plus a view-engine lookup on
+        /// every render, and several helpers are invoked inside loops;</item>
+        /// <item>splitting <c>RenderBootstrapTabContent</c> into begin/end helpers — that pushes
+        /// the active-tab CSS decision into all 78 call sites.</item>
+        /// </list>
+        /// </para>
+        /// <para>
+        /// <b>WHY THE METHODS ARE <c>async Task</c> AND NOT <c>void</c> — MEASURED, and the naive
+        /// answer does not compile.</b> Task 7.3's four <c>Nop.Web</c> conversions were plain
+        /// <c>void</c> methods, and that was enough for them. It is not enough here: the admin
+        /// helper bodies contain <c>~/</c>-rooted attribute values (<c>src="~/…"</c>,
+        /// <c>href="~/…"</c>), which the Razor compiler lowers into the framework's URL-resolution
+        /// tag helper. A <c>void</c> conversion produced <b>34 <c>MVC1006</c></b> ("the method
+        /// contains a TagHelper and therefore must be async and return a Task … usage of ~/
+        /// typically results in a TagHelper") plus <b>74 <c>CS4033</c></b> from the <c>await</c>s
+        /// the generator emits inside them. Hence <c>async Task</c>, and hence
+        /// <see cref="Func{Task}"/> here rather than <see cref="Action"/>.
+        /// </para>
+        /// <para>
+        /// <see cref="RazorPageBase.PushWriter"/> / <see cref="RazorPageBase.PopWriter"/> are the
+        /// framework's own supported redirection for exactly this: the Razor compiler emits
+        /// <c>WriteLiteral</c> against <see cref="RazorPageBase.Output"/>, and <c>PushWriter</c>
+        /// is what makes <c>Output</c> resolve to a different writer for the duration. The body
+        /// therefore writes into whatever writer the consuming helper is rendering to, at the
+        /// point it renders, and the emitted HTML is byte-identical to 3.90's.
+        /// </para>
+        /// <para>
+        /// The return type is <see cref="HelperResult"/> rather than <see cref="IHtmlContent"/>
+        /// only because that is what the existing helper signatures already accept; nothing here
+        /// depends on it. It is the same shape task 6.3 used when it ported
+        /// <c>LocalizedEditor</c> onto ASP.NET Core's
+        /// <c>HelperResult(Func&lt;TextWriter, Task&gt;)</c> constructor.
+        /// </para>
+        /// </remarks>
+        protected HelperResult Capture(Func<Task> renderMarkup)
+        {
+            if (renderMarkup == null)
+                throw new ArgumentNullException(nameof(renderMarkup));
+
+            return new HelperResult(async writer =>
+            {
+                //PushWriter/PopWriter maintain a stack, so this nests correctly - which
+                //Areas/Admin/Views/Shared/Menu.cshtml relies on: RenderMenuItem recurses into
+                //itself through Capture for every child node of the admin menu.
+                PushWriter(writer);
+                try
+                {
+                    await renderMarkup();
+                }
+                finally
+                {
+                    //popped in a finally so a throw inside the body cannot leave the page
+                    //rendering into a dead writer for the rest of the request
+                    PopWriter();
+                }
+            });
         }
 
         /// <summary>

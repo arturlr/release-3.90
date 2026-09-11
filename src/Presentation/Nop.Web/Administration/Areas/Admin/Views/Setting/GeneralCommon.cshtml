@@ -388,26 +388,35 @@
                                 @Html.ValidationMessageFor(model => model.SeoSettings.GenerateProductMetaDescription)
                             </div>
                         </div>
-                        <div class="form-group advanced-setting">
-                            <div class="col-md-3">
-                                @Html.OverrideStoreCheckboxFor(model => model.SeoSettings.EnableJsBundling_OverrideForStore, model => model.SeoSettings.EnableJsBundling, Model.ActiveStoreScopeConfiguration)
-                                @Html.NopLabelFor(model => model.SeoSettings.EnableJsBundling)
-                            </div>
-                            <div class="col-md-9">
-                                @Html.NopEditorFor(model => model.SeoSettings.EnableJsBundling)
-                                @Html.ValidationMessageFor(model => model.SeoSettings.EnableJsBundling)
-                            </div>
-                        </div>
-                        <div class="form-group advanced-setting">
-                            <div class="col-md-3">
-                                @Html.OverrideStoreCheckboxFor(model => model.SeoSettings.EnableCssBundling_OverrideForStore, model => model.SeoSettings.EnableCssBundling, Model.ActiveStoreScopeConfiguration)
-                                @Html.NopLabelFor(model => model.SeoSettings.EnableCssBundling)
-                            </div>
-                            <div class="col-md-9">
-                                @Html.NopEditorFor(model => model.SeoSettings.EnableCssBundling)
-                                @Html.ValidationMessageFor(model => model.SeoSettings.EnableCssBundling)
-                            </div>
-                        </div>
+                        @*
+                            TASK 8.4 — the "Enable JS bundling" and "Enable CSS bundling" checkboxes
+                            were REMOVED from this page (design section 8).
+
+                            Bundling is dropped from the migration with no successor:
+                            Microsoft.AspNet.Web.Optimization / WebGrease / Antlr are System.Web
+                            features with no .NET 10 release, and task 6.3 re-based
+                            PageHeadBuilder.GenerateScripts / GenerateCssFiles onto individual tags
+                            plus IFileVersionProvider cache busting. SeoSettings.EnableJsBundling and
+                            EnableCssBundling survive on the settings entity — so there is NO database
+                            migration — but nothing consults them any more. An inert checkbox that
+                            silently does nothing is worse than no checkbox.
+
+                            The two properties on GeneralCommonSettingsModel and their read/write in
+                            SettingController (lines ~1779, ~1945, ~1963) are deliberately LEFT IN
+                            PLACE. That is not an oversight and it is the safer of the two options:
+                            SettingController's POST handler writes whatever the model carries, so with
+                            the properties removed the write would be gone too, whereas with them kept
+                            the round-trip still happens. Note the one observable consequence of
+                            removing only the UI: the form no longer posts these fields, so model
+                            binding leaves them false and a store that had bundling ON will be written
+                            back as OFF the next time this page is saved. That is harmless — the values
+                            are inert — and it is strictly less surprising than leaving a control the
+                            user can toggle with no effect.
+
+                            The Admin.Configuration.Settings.GeneralCommon.EnableJsBundling /
+                            ...EnableCssBundling localization resources are now orphaned, which is
+                            harmless.
+                        *@
                         <div class="form-group advanced-setting">
                             <div class="col-md-3">
                                 @Html.OverrideStoreCheckboxFor(model => model.SeoSettings.WwwRequirement_OverrideForStore, model => model.SeoSettings.WwwRequirement, Model.ActiveStoreScopeConfiguration)

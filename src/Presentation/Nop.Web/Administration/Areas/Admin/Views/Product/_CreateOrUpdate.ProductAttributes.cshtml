@@ -17,8 +17,8 @@
                     @Html.RenderBootstrapTabHeader("tab-attribute-combinations", @T("Admin.Catalog.Products.ProductAttributes.AttributeCombinations"))
                 </ul>
                 <div class="tab-content">
-                    @Html.RenderBootstrapTabContent("tab-attributes", @TabAttributes(), true, "tab-attributes")
-                    @Html.RenderBootstrapTabContent("tab-attribute-combinations", @TabAttributeCombinations())
+                    @Html.RenderBootstrapTabContent("tab-attributes", Capture(TabAttributes), true, "tab-attributes")
+                    @Html.RenderBootstrapTabContent("tab-attribute-combinations", Capture(TabAttributeCombinations))
                 </div>
             </div>
         }
@@ -41,7 +41,8 @@
     }
 </div>
 
-@helper TabAttributes()
+@functions {
+async Task TabAttributes()
 {
     <div class="panel panel-default">
         <div class="panel-body">
@@ -119,7 +120,7 @@
                             numeric: false,
                             previousNext: false,
                             info: false,
-                            @Html.Partial("_GridPagerMessages")
+                            @await Html.PartialAsync("_GridPagerMessages")
                         },
                         toolbar: [{ name: "create", text: "@T("Admin.Common.AddNewRecord")" }],
                         edit: function(e) {
@@ -225,7 +226,7 @@
                         <text>
                             {
                                 Id: @(productAttributeItem.Value),
-                                Name: "@(Html.Raw(HttpUtility.JavaScriptStringEncode(productAttributeItem.Text)))"
+                                Name: "@(Html.Raw(JavaScriptHelper.Encode(productAttributeItem.Text)))"
                             }
                                 </text>
                         if (i != Model.AvailableProductAttributes.Count - 1)
@@ -246,7 +247,7 @@
                         <text>
                             {
                                 Id: @(attributeControlType.Id),
-                                Name: "@(Html.Raw(HttpUtility.JavaScriptStringEncode(attributeControlType.Name)))"
+                                Name: "@(Html.Raw(JavaScriptHelper.Encode(attributeControlType.Name)))"
                             }
                             </text>
                         if (i != allAttributeControlTypes.Count - 1)
@@ -290,8 +291,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabAttributeCombinations()
+@functions {
+async Task TabAttributeCombinations()
 {
     <div class="panel panel-default">
         <div class="panel-body">
@@ -366,7 +369,7 @@
                             numeric: false,
                             previousNext: false,
                             info: false,
-                            @Html.Partial("_GridPagerMessages")
+                            @await Html.PartialAsync("_GridPagerMessages")
                         },
                         editable: {
                             confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -494,4 +497,5 @@
             <button type="button" id="btnGenerateAllCombinations" class="btn bg-aqua">@T("Admin.Catalog.Products.ProductAttributes.AttributeCombinations.GenerateAll")</button>
         </div>
     </div>
+}
 }

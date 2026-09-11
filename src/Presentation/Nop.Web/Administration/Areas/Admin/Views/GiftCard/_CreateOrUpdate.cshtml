@@ -23,10 +23,10 @@
                 }
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
+                @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
                 @if (Model.Id > 0)
                 {
-                    @Html.RenderBootstrapTabContent("tab-history", @TabHistory())
+                    @Html.RenderBootstrapTabContent("tab-history", Capture(TabHistory))
                 }
             </div>
         </div>
@@ -46,7 +46,8 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
     <script type="text/javascript">
         $(document).ready(function() {
@@ -236,8 +237,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabHistory()
+@functions {
+async Task TabHistory()
 {
     var defaultGridPageSize = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().DefaultGridPageSize;
     var gridPageSizes = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().GridPageSizes;
@@ -277,7 +280,7 @@
                             pageable: {
                                 refresh: true,
                                 pageSizes: [@(gridPageSizes)],
-                                @Html.Partial("_GridPagerMessages")
+                                @await Html.PartialAsync("_GridPagerMessages")
                             },
                             editable: {
                                 confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -310,4 +313,5 @@
             </div>
         </div>
     </div>
+}
 }

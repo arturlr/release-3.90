@@ -1,0 +1,138 @@
+@*
+    Task 8.4 — the ASP.NET Core replacement for Areas/Admin/Views/Web.config's
+    <system.web.webPages.razor><pages> element (Requirement 4.4).
+
+    THIS FILE IS THE SINGLE BIGGEST LEVER IN TASK 8.4, and the effect is measured, not
+    asserted: adding it ALONE — no other edit — took Nop.Admin from 590 errors to 326, and
+    took the CS0246 "<X>Model could not be found" family from 504 to ZERO. Note the
+    headline count fell by less than 504 because Roslyn only binds a view's method body
+    once its declarations resolve, so ~213 body-level CS0103 errors became visible for the
+    first time in the same build (the phenomenon task 7.3 recorded at §27, where Nop.Web
+    went 43 -> 1974 mid-task). A falling count is not the measure; the CS0246 family going
+    to zero is.
+
+    Areas/Admin/Views/Web.config declared two things every view in this tree depended on:
+
+      pageBaseType="Nop.Web.Framework.ViewEngines.Razor.WebViewPage"
+          -> the @inherits directive below. This is what makes T("Admin.Some.Resource")
+             resolve: the localizer lives on that base class. It is also what makes the
+             ~500 CS0246 "<X>Model could not be found" errors go away — not because the
+             models were broken (they compile fine in Models/, task 8.3 took that folder
+             to zero), but because <namespaces> no longer applied inside views.
+
+      <namespaces>          -> the @using directives below.
+
+    WHY ONE FILE IS ENOUGH, and why it must be exactly here.
+    Razor discovers _ViewImports.cshtml by walking UP from the view's OWN directory to the
+    project root — the trap task 7.5 measured the hard way (deferral 7.5-1): Nop.Web's
+    Views/_ViewImports.cshtml does NOT apply to Themes/DefaultClean/Views/, because Views/
+    is not on that view's upward path. Nop.Admin has exactly ONE view tree,
+    Areas/Admin/Views/ (with Shared/ and Shared/EditorTemplates/ beneath it - there is no
+    Shared/DisplayTemplates/ in this project) and no Themes/ tree, so a single file at the
+    tree root is reached from
+    every one of the 325 views. Task 8.2 moved the tree here from Views/ to resolve
+    deferral 8.1-4; this file moved with it in the sense that it is authored at the new
+    root, not the old one.
+
+    Areas/Admin/Views/Web.config is DELETED by this task, and the now-dead
+    <Content Update="Areas\Admin\Views\Web.config" CopyToPublishDirectory="Never" />
+    entry was removed from Nop.Admin.csproj rather than left as a no-op — exactly as task
+    7.5 did for Nop.Web's two equivalents. Nothing on .NET 10 can read the file: its
+    <configSections> group names System.Web.WebPages.Razor, its <pages> element names
+    MVC 5 Web Forms view types, its <httpHandlers>/<handlers> register
+    System.Web.HttpNotFoundHandler (whose job — refusing to serve .cshtml over HTTP — is
+    now done by task 7.4's NopStaticFileProvider allow-list, which does not permit .cshtml
+    and additionally denies the extension outright), and validateRequest="false" opted out
+    of ASP.NET request validation, which does not exist at all (deferral 7.3-3).
+*@
+@inherits Nop.Web.Framework.ViewEngines.Razor.WebViewPage<TModel>
+
+@*
+    Direct translations of the four System.Web entries in the legacy <namespaces> list:
+        System.Web.Mvc       -> Microsoft.AspNetCore.Mvc
+        System.Web.Mvc.Html  -> Microsoft.AspNetCore.Mvc.Rendering (IHtmlHelper extensions)
+        System.Web.Routing   -> Microsoft.AspNetCore.Routing
+        System.Web.Mvc.Ajax  -> NO counterpart. The Ajax.* helpers do not exist in
+                                ASP.NET Core, and no admin view used them — verified, zero
+                                "Ajax." occurrences across all 325 .cshtml files. Dropped.
+
+    Microsoft.AspNetCore.Html is added for IHtmlContent/HtmlString, which replace
+    MvcHtmlString throughout (task 6.3 §15a/§15b).
+
+    NOTE WHAT IS DELIBERATELY ABSENT: System.Web.Optimization. Bundling is dropped with no
+    successor (design section 8), and task 8.1 verified Nop.Admin never bound to the API —
+    zero occurrences under Administration/. The legacy list did not carry it either (unlike
+    Nop.Web's, which had it purely for Razor IntelliSense), so this is not even a removal.
+*@
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Routing
+
+@*
+    The Nop.Admin.Models.* list, carried over verbatim — all 29 namespaces, in the legacy
+    order. Checked for the hazard task 7.3 hit in Nop.Web (importing both
+    Nop.Web.Models.Boards and Nop.Web.Models.Catalog made SearchModel ambiguous and broke
+    two Search.cshtml views): a script comparing every namespace-level public type across
+    these 29 namespaces finds 188 distinct names and ZERO collisions. The six names that
+    LOOK duplicated — ActivityLogModel, OrderModel, ProductModel, ProductAttributeModel,
+    ProductAttributeValueModel, StoreModel — are all NESTED types (e.g.
+    CustomerModel.OrderModel vs Orders.OrderModel), which a using directive does not bring
+    into scope. So importing all 29 is safe, and it is what 3.90 did.
+*@
+@using Nop.Admin.Models.Affiliates
+@using Nop.Admin.Models.Blogs
+@using Nop.Admin.Models.Catalog
+@using Nop.Admin.Models.Cms
+@using Nop.Admin.Models.Common
+@using Nop.Admin.Models.Customers
+@using Nop.Admin.Models.Directory
+@using Nop.Admin.Models.Discounts
+@using Nop.Admin.Models.ExternalAuthentication
+@using Nop.Admin.Models.Forums
+@using Nop.Admin.Models.Home
+@using Nop.Admin.Models.Localization
+@using Nop.Admin.Models.Logging
+@using Nop.Admin.Models.Messages
+@using Nop.Admin.Models.News
+@using Nop.Admin.Models.Orders
+@using Nop.Admin.Models.Payments
+@using Nop.Admin.Models.Plugins
+@using Nop.Admin.Models.Polls
+@using Nop.Admin.Models.Security
+@using Nop.Admin.Models.Settings
+@using Nop.Admin.Models.Shipping
+@using Nop.Admin.Models.ShoppingCart
+@using Nop.Admin.Models.Stores
+@using Nop.Admin.Models.Tasks
+@using Nop.Admin.Models.Tax
+@using Nop.Admin.Models.Templates
+@using Nop.Admin.Models.Topics
+@using Nop.Admin.Models.Vendors
+
+@*
+    Carried over verbatim from the legacy <namespaces> list.
+
+    Nop.Web.Framework is load-bearing for more than it looks: besides HtmlExtensions and
+    LayoutExtensions it is where task 8.3 PROMOTED the @Html.Action(...) child-action
+    bridge to (ChildActionExtensions, deferral 7.3-1). The namespace was chosen precisely
+    so that this one already-present import picks it up and NO admin view call site had to
+    change. Do not add Nop.Web.Extensions — that namespace no longer holds the bridge.
+*@
+@using Nop.Core.Events
+@using Nop.Core.Infrastructure
+@using Nop.Services.Events
+@using Nop.Web.Framework
+@using Nop.Web.Framework.Events
+@using Nop.Web.Framework.Security.Captcha
+@using Nop.Web.Framework.Security.Honeypot
+@using Nop.Web.Framework.UI
+
+@*
+    Tag helpers. 3.90 had none (they do not exist in MVC 5), so nothing here is a port —
+    these are added because the framework's own form/validation/link tag helpers are the
+    supported way to get anti-forgery tokens emitted into forms, and Html.BeginForm relies
+    on the same infrastructure. Same entry Nop.Web's _ViewImports.cshtml carries.
+*@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

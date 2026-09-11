@@ -22,6 +22,7 @@
     @using (Html.BeginForm(null, null,
                                         new RouteValueDictionary(new { productId = Model.ProductId, btnId = ViewBag.btnId, formId = ViewBag.formId }),
                                         FormMethod.Post,
+                                        null,
                                         new Dictionary<string, Object> { { "enctype", "multipart/form-data" } }))
     {
         @Html.AntiForgeryToken()
@@ -49,7 +50,7 @@
                                 </div>
                             }
 
-                            @Html.Partial("_ProductAttributes", Model.ProductAttributes)
+                            @await Html.PartialAsync("_ProductAttributes", Model.ProductAttributes)
                             <div class="form-group">
                                 <div class="col-sm-4">
                                     @Html.NopLabelFor(model => model.StockQuantity)

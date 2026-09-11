@@ -18,7 +18,7 @@
 <script type="text/javascript">
     $(document).ready(function () {
         $("#schedule-tasks-grid").on("click", ".run-now", function (e) {
-            showThrobber('@Html.Raw(HttpUtility.JavaScriptStringEncode(T("Admin.System.ScheduleTasks.RunNow.Progress").Text))');
+            showThrobber('@Html.Raw(JavaScriptHelper.Encode(T("Admin.System.ScheduleTasks.RunNow.Progress").Text))');
         });
     });
 </script>
@@ -87,7 +87,7 @@
                                     numeric: false,
                                     previousNext: false,
                                     info: false,
-                                    @Html.Partial("_GridPagerMessages")
+                                    @await Html.PartialAsync("_GridPagerMessages")
                                 },
                                 editable: {
                                     confirmation: "@T("Admin.Common.DeleteConfirmation")",

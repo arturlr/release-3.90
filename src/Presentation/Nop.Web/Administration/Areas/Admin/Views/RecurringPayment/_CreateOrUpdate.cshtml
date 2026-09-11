@@ -20,8 +20,8 @@
                 @Html.RenderBootstrapTabHeader("tab-history", @T("Admin.RecurringPayments.History"))
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-history", @TabHistory())
+                @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
+                @Html.RenderBootstrapTabContent("tab-history", Capture(TabHistory))
             </div>
         </div>
     </div>
@@ -40,7 +40,8 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -125,8 +126,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabHistory()
+@functions {
+async Task TabHistory()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -203,7 +206,7 @@
                                 numeric: false,
                                 previousNext: false,
                                 info: false,
-                                @Html.Partial("_GridPagerMessages")
+                                @await Html.PartialAsync("_GridPagerMessages")
                             },
                             editable: {
                                 confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -244,4 +247,5 @@
             </div>
         </div>
     </div>
+}
 }

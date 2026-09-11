@@ -25,9 +25,9 @@
                 @Html.RenderBootstrapTabHeader("tab-products", @T("Admin.Catalog.Categories.Products"))
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo())
-                @Html.RenderBootstrapTabContent("tab-products", @TabProducts())
+                @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
+                @Html.RenderBootstrapTabContent("tab-seo", Capture(TabSeo))
+                @Html.RenderBootstrapTabContent("tab-products", Capture(TabProducts))
             </div>
         </div>
     </div>
@@ -46,7 +46,8 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
     <script type="text/javascript">
         $(document).ready(function () {
@@ -314,8 +315,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabSeo()
+@functions {
+async Task TabSeo()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -427,8 +430,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabProducts()
+@functions {
+async Task TabProducts()
 {
     <div class="panel-group">
         @if (Model.Id > 0)
@@ -499,7 +504,7 @@
                                 pageable: {
                                     refresh: true,
                                     pageSizes: [@(gridPageSizes)],
-                                    @Html.Partial("_GridPagerMessages")
+                                    @await Html.PartialAsync("_GridPagerMessages")
                                 },
                                 editable: {
                                     confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -583,4 +588,5 @@
                             </div>
                         }
     </div>
+}
 }

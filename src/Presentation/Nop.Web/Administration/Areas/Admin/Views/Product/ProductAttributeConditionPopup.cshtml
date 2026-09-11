@@ -24,6 +24,7 @@
     @using (Html.BeginForm("ProductAttributeConditionPopup", "Product",
                         new RouteValueDictionary(new { productAttributeMappingId = Model.ProductAttributeMappingId, btnId = ViewBag.btnId, formId = ViewBag.formId }),
                         FormMethod.Post,
+                        null,
                         new Dictionary<string, Object> { { "enctype", "multipart/form-data" } }))
     {
         @Html.AntiForgeryToken()

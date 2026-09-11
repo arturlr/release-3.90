@@ -37,7 +37,7 @@
                                     <text>
                                         {
                                             Id: @(alt.Id),
-                                            Name: "@(Html.Raw(HttpUtility.JavaScriptStringEncode(alt.Name)))",
+                                            Name: "@(Html.Raw(JavaScriptHelper.Encode(alt.Name)))",
                                             Enabled: @(alt.Enabled.ToString().ToLowerInvariant())
                                         }
                                     </text>
@@ -72,7 +72,7 @@
                                         numeric: false,
                                         previousNext: false,
                                         info: false,
-                                        @Html.Partial("_GridPagerMessages")
+                                        @await Html.PartialAsync("_GridPagerMessages")
                                     },
                                     scrollable: false,
                                     columns: [

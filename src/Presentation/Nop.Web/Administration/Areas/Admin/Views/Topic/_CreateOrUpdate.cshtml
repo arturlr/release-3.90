@@ -24,8 +24,8 @@
                 @Html.RenderBootstrapTabHeader("tab-seo", @T("Admin.Common.SEO"), customCssClass: "advanced-setting")
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-seo", @TabSeo())
+                @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
+                @Html.RenderBootstrapTabContent("tab-seo", Capture(TabSeo))
             </div>
         </div>
     </div>
@@ -44,7 +44,8 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
     <script type="text/javascript">
         $(document).ready(function () {
@@ -301,8 +302,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabSeo()
+@functions {
+async Task TabSeo()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -413,4 +416,5 @@
             </div>
         </div>
     </div>
+}
 }

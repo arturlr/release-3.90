@@ -43,9 +43,9 @@
                     @Html.RenderBootstrapTabHeader("tab-addressformfields", @T("Admin.Configuration.Settings.CustomerUser.AddressFormFields"))
                 </ul>
                 <div class="tab-content">
-                    @Html.RenderBootstrapTabContent("tab-customer", @TabCustomerSettings(), true)
-                    @Html.RenderBootstrapTabContent("tab-customerformfields", @TabCustomerFormFields())
-                    @Html.RenderBootstrapTabContent("tab-addressformfields", @TabAddressFormFields())
+                    @Html.RenderBootstrapTabContent("tab-customer", Capture(TabCustomerSettings), true)
+                    @Html.RenderBootstrapTabContent("tab-customerformfields", Capture(TabCustomerFormFields))
+                    @Html.RenderBootstrapTabContent("tab-addressformfields", Capture(TabAddressFormFields))
                 </div>
             </div>
         </div>
@@ -65,7 +65,8 @@
     <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 }
 
-@helper TabCustomerSettings()
+@functions {
+async Task TabCustomerSettings()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -391,8 +392,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabCustomerFormFields()
+@functions {
+async Task TabCustomerFormFields()
 {
     <script type="text/javascript">
         $(document).ready(function () {
@@ -753,8 +756,10 @@
         @Html.Action("ListBlock", "CustomerAttribute")
     </div>
 }
+}
 
-@helper TabAddressFormFields()
+@functions {
+async Task TabAddressFormFields()
 {
     <script type="text/javascript">
         $(document).ready(function () {
@@ -990,4 +995,5 @@
         @*render custom address attributes*@
         @Html.Action("ListBlock", "AddressAttribute")
     </div>
+}
 }

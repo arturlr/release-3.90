@@ -8,6 +8,7 @@
 @using Nop.Services.Common
 @using Nop.Services.Customers
 @using Nop.Services.Security;
+@using Microsoft.AspNetCore.Http.Extensions
 @{
     var kendoVersion = "2014.1.318";
     var supportRtl = EngineContext.Current.Resolve<IWorkContext>().WorkingLanguage.Rtl &&
@@ -40,7 +41,7 @@
     //scripts
     Html.AppendScriptParts(string.Format("~/Administration/Scripts/kendo/{0}/kendo.web.min.js", kendoVersion));
     Html.AppendScriptParts("~/Administration/Scripts/admin.search.js");
-    Html.AppendScriptParts("~/Administration/scripts/admin.navigation.js");
+    Html.AppendScriptParts("~/Administration/Scripts/admin.navigation.js");
     Html.AppendScriptParts("~/Administration/Scripts/admin.common.js");
     Html.AppendScriptParts("~/Administration/Scripts/typeahead/typeahead.bundle.min.js");
     Html.AppendScriptParts("~/Administration/Scripts/jquery-migrate-1.2.1.min.js");
@@ -96,7 +97,7 @@
                 <div>
                     <h1 class="throbber-header">@T("Common.Wait...")</h1>
                     <p>
-                        <img src="@Url.Content("~/administration/content/images/throbber-synchronizing.gif")" alt="" />
+                        <img src="@Url.Content("~/Administration/Content/images/throbber-synchronizing.gif")" alt="" />
                     </p>
                 </div>
             </div>
@@ -158,7 +159,7 @@
                                                 @using (Html.BeginForm("ClearCache", "Common", new { area = "Admin" }))
                                                 {
                                                     @Html.AntiForgeryToken()
-                                                    @Html.Hidden("returnurl", HttpContext.Current.Request.RawUrl)
+                                                    @Html.Hidden("returnurl", Context.Request.GetEncodedPathAndQuery())
                                                     <button type="submit" class="bg-light-blue">
                                                         <span>@T("Admin.Header.ClearCache")</span>
                                                     </button>
@@ -168,14 +169,14 @@
                                                 @using (Html.BeginForm("RestartApplication", "Common", new { area = "Admin" }))
                                                 {
                                                     @Html.AntiForgeryToken()
-                                                    @Html.Hidden("returnurl", HttpContext.Current.Request.RawUrl)
+                                                    @Html.Hidden("returnurl", Context.Request.GetEncodedPathAndQuery())
                                                     <button id="restart-application" type="submit" class="bg-light-blue">
                                                         <span>@T("Admin.Header.RestartApplication")</span>
                                                     </button>
                                                     <script type="text/javascript">
                                                         $(document).ready(function () {
                                                             $("#restart-application").click(function (e) {
-                                                                showThrobber('@Html.Raw(HttpUtility.JavaScriptStringEncode(T("Admin.Header.RestartApplication.Progress").Text))');
+                                                                showThrobber('@Html.Raw(JavaScriptHelper.Encode(T("Admin.Header.RestartApplication.Progress").Text))');
                                                             });
                                                         });
                                                     </script>
@@ -211,12 +212,12 @@
                             });
                         </script>
                         @Html.Widget("admin_menu_before", area: "Admin")
-                        @Html.Partial("Menu")
+                        @await Html.PartialAsync("Menu")
                     </div>
                 </div>
             }
             <div class="content-wrapper">
-                @Html.Partial("Notifications")
+                @await Html.PartialAsync("Notifications")
                 <div>
                     @RenderBody()
                 </div>

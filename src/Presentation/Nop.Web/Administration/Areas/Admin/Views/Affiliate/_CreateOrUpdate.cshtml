@@ -20,11 +20,11 @@
                 }
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
+                @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
                 @if (Model.Id > 0)
                 {
-                    @Html.RenderBootstrapTabContent("tab-customers", @TabCustomers())
-                    @Html.RenderBootstrapTabContent("tab-orders", @TabOrders())
+                    @Html.RenderBootstrapTabContent("tab-customers", Capture(TabCustomers))
+                    @Html.RenderBootstrapTabContent("tab-orders", Capture(TabOrders))
                 }
             </div>
         </div>
@@ -44,7 +44,8 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -100,8 +101,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabCustomers()
+@functions {
+async Task TabCustomers()
 {
     var defaultGridPageSize = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().DefaultGridPageSize;
     var gridPageSizes = EngineContext.Current.Resolve<Nop.Core.Domain.Common.AdminAreaSettings>().GridPageSizes;
@@ -143,7 +146,7 @@
                             pageable: {
                                 refresh: true,
                                 pageSizes: [@(gridPageSizes)],
-                                @Html.Partial("_GridPagerMessages")
+                                @await Html.PartialAsync("_GridPagerMessages")
                             },
                             editable: {
                                 confirmation: "@T("Admin.Common.DeleteConfirmation")",
@@ -175,8 +178,11 @@
         </div>
     </div>
 }
+}
 
-@helper TabOrders()
+@functions {
+async Task TabOrders()
 {
     @Html.Action("AffiliatedOrderList", new { affiliateId = Model.Id })
+}
 }

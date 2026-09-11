@@ -5356,7 +5356,7 @@ by string concatenation rather than written as a literal.
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
 | 8.1-1 | `Content/Roxy_Fileman/tmp/` does not exist, so the file manager's "download folder as zip" throws | 8.5 / 8.6 | Low |
-| 8.1-2 | Two case-sensitivity defects in `_AdminLayout.cshtml` | 8.4 | Medium |
+| 8.1-2 | ~~Two case-sensitivity defects in `_AdminLayout.cshtml`~~ | — | ✅ **RESOLVED by 8.4** (§59.5) |
 | 8.1-3 | `Server.MapPath` with a **relative** path has no ASP.NET Core equivalent | 8.6 | Medium |
 | 8.1-4 | ~~The admin views' compiled Razor identifiers will be `/Views/…`, which `ThemeableViewLocationExpander` does **not** search~~ | — | ✅ **RESOLVED by 8.2** (§50) — **option 3**: the tree was moved to `Areas/Admin/Views/`. Proved by execution, including the 3.90 Shared-first ordering quirk |
 
@@ -5383,12 +5383,15 @@ since a `.txt` is a `None` item and defaults to `Never` (§46.2) — or `Directo
 before writing, which is the better fix and is a one-liner inside the rewrite 8.6 performs
 anyway. Note `.gitignore` line 40's `*.tmp` does **not** match a directory named `tmp`.
 
-### 8.1-2 Two case-sensitivity defects in `_AdminLayout.cshtml`
+### 8.1-2 Two case-sensitivity defects in `_AdminLayout.cshtml` — ✅ **RESOLVED by task 8.4**
 
-Full detail in §47. `Views/Shared/_AdminLayout.cshtml` lines 43 and 99. **Task 8.4.** They are
-masked twice over today — the admin assets do not serve at all yet (deferral 7.4-2), so
-widening `NopStaticFileProvider`'s allow-list at 8.5 without fixing these two will still 404,
-which is exactly the interaction `tasks.md` step 8.5 warns about.
+Full detail in §47. `Areas/Admin/Views/Shared/_AdminLayout.cshtml` lines 43 and 99, both fixed —
+`~/Administration/scripts/…` → `Scripts`, `~/administration/content/images/…` →
+`Administration/Content/images`. See §59.5, including the extended audit that closes the admin-view
+half of deferral 7.7-4. They were masked twice over: the admin assets do not serve at all yet
+(deferral 7.4-2), so widening `NopStaticFileProvider`'s allow-list at 8.5 without these two fixes
+would still have 404'd — which is exactly the interaction `tasks.md` step 8.5 warns about, and it is
+now removed.
 
 ### 8.1-3 `Server.MapPath` with a relative path has no equivalent
 
@@ -6422,3 +6425,397 @@ mechanically translating the `..`, exactly as deferral 8.1-3 says.
 | **35** | minification gone; the two inert bundling checkboxes in `Areas/Admin/Views/Setting/GeneralCommon.cshtml` | post-migration / **8.4** |
 | **18 / 7.18** | ImageSharp licence diagnostic | business decision — and §46.4 measured that it does **not** affect this project at the pinned 2.1.13 |
 | **7.2-1** · **7.2-3** · **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** · **7.4-1** · **7.5-1** · **7.7-2** · **7.7-3** · **4.10** · **4.11** · **9/4.9** · **11.27** · **8.2-1** · **8.2-2** · **8.2-3** | unchanged | as previously recorded. Note **8.2-1** (plugin assemblies loaded by name) is still HIGH and still blocks group 10 |
+
+
+
+---
+
+# Nop.Admin — porting all 325 Razor views to the ASP.NET Core Razor engine (task 8.4)
+
+Task 8.4 takes `Nop.Admin` from **590** unique `CS*`/`RZ*` diagnostics to **ZERO**, so the 8.8 gate
+criterion is met. It closes deferral **8.1-2** and the admin-view half of **7.7-4**, and opens one.
+
+| Measurement | Value |
+|---|---|
+| errors at start (8.3 handover, re-measured) | **590** across 505 files |
+| errors at end | **0** |
+| `MVC1000` at end | **0** — 260 `Html.Partial` sites converted to `await Html.PartialAsync` (§59.4) |
+| warnings at end, `Nop.Admin`'s own | **6**, and **not one was introduced by this task**: 4 `CS0618` on FluentValidation 7.x's obsolete `Custom(...)` in `Validators/` (design §9's deliberate pin), 1 `CS0618` `TimeZone.CurrentTimeZone` in `CommonController`, 1 `SYSLIB0014` `WebRequest.Create` in `HomeController`. All six are pre-existing 3.90 code that task 8.3 predicted would surface the moment the project compiled, and **8.7 owns them**. `git diff` confirms `Validators/`, `Models/`, `Controllers/`, `Extensions/`, `Helpers/` and `Infrastructure/` were **not touched** — 0 files |
+| warnings at end, total on a `Nop.Admin` build | **16** = the 10 pre-existing upstream `SYSLIB0014/0021/0023/0045/0051` in `Nop.Core`/`Nop.Services` + the 6 above |
+| upstream re-gate, `--no-incremental` after `rm -rf obj bin` | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 — every baseline exact, **no warning added** |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| `Nop.Web.SmokeTests` | **54 passed / 0 failed / 18 skipped** — unchanged. `HarnessCanaryTests` (`[Explicit]`) still **5 failed / 0 passed** |
+| swallowed-diagnostics check (`-v:n`) | `"converted to a warning"` **0** on all six builds · `ContinueOnError` **0** · `NU1901`–`NU1904` **0** · Six Labors licence lines **0** |
+| residual `System.Web` in the view tree | **0 real hits across 326 files**, comment-blanking scan with a proven canary (§59.7) |
+| files touched | 233 of the 325 views, plus `Nop.Admin.csproj`, plus two files in `Nop.Web.Framework` (§59.2, §59.3). `Areas/Admin/Views/Web.config` deleted; `_ViewImports.cshtml` created |
+
+## 59. Task 8.4 — what changed
+
+### 59.1 The `_ViewImports.cshtml` lever, measured
+
+`Areas/Admin/Views/_ViewImports.cshtml` was created first, as 8.1, 8.2 and 8.3 each independently
+advised, and **it alone — no other edit — took the project from 590 errors to 326.** More
+importantly it took the `CS0246` "`<X>Model` could not be found" family from **504 to zero**: those
+types compile fine in `Models/` and were unresolvable *only* inside views, because
+`Areas/Admin/Views/Web.config`'s `pageBaseType` and `<namespaces>` no longer applied.
+
+The headline count fell by less than 504 because **Roslyn only binds a view's method body once its
+declarations resolve**, so ~213 body-level `CS0103` errors became visible for the first time in the
+same build — the phenomenon task 7.3 recorded at §27, where `Nop.Web` went 43 → 1974 mid-task. A
+falling count is not the measure; the `CS0246` family reaching zero is.
+
+Contents, and the two constraints that were checked rather than assumed:
+
+- **`System.Web.Optimization` is absent, and it is not even a removal here.** The legacy admin
+  `<namespaces>` list never carried it (unlike `Nop.Web`'s, which had it for Razor IntelliSense),
+  which is consistent with 8.1's finding that `Nop.Admin` has zero occurrences of the bundling API
+  anywhere.
+- **No ambiguous type name is introduced.** Task 7.3 hit exactly this in `Nop.Web` — importing both
+  `Nop.Web.Models.Boards` and `Nop.Web.Models.Catalog` made `SearchModel` ambiguous and broke the two
+  `Search.cshtml` views. A script comparing every **namespace-level** public type across all 29
+  `Nop.Admin.Models.*` namespaces finds **188 distinct names and zero collisions**. Six names *look*
+  duplicated — `ActivityLogModel`, `OrderModel`, `ProductModel`, `ProductAttributeModel`,
+  `ProductAttributeValueModel`, `StoreModel` — and all six are **nested** types (e.g.
+  `CustomerModel.OrderModel` vs `Orders.OrderModel`), which a `using` directive does not bring into
+  scope. So all 29 are imported, as 3.90 did.
+- `System.Web.Mvc.Ajax` has no counterpart and needed none: **zero `Ajax.` occurrences** across all
+  325 views.
+- `@using Nop.Web.Framework` is what makes `@Html.Action(...)` work at all 69 admin call sites, and
+  `@Html.Widget(...)` at 2 — task 8.3 chose that namespace for the promoted bridge precisely so no
+  view import had to be invented. **No admin `Html.Action` site was converted to a view component**,
+  per the task brief.
+
+`Areas/Admin/Views/Web.config` is **deleted**, and the interim
+`<Content Update="Areas\Admin\Views\Web.config" CopyToPublishDirectory="Never" />` entry was
+**removed** from `Nop.Admin.csproj` rather than left as a no-op — as task 7.5 did for `Nop.Web`'s two
+equivalents. Nothing on .NET 10 could read the file: a `System.Web.WebPages.Razor` `<configSections>`
+group, a `<pages>` element naming MVC 5 Web Forms view types, `<httpHandlers>`/`<handlers>`
+registering `System.Web.HttpNotFoundHandler` (whose job — refusing to serve `.cshtml` over HTTP — is
+now done by task 7.4's `NopStaticFileProvider` allow-list, which does not permit `.cshtml` and
+additionally denies the extension outright), and `validateRequest="false"`, which opted out of a
+feature that does not exist (deferral 7.3-3). **There is no other view `Web.config`** anywhere under
+`Areas/` — verified, not assumed.
+
+Per deferral 7.5-1's per-tree rule, **one** file suffices: `Areas/Admin/Views/` is the only view tree
+(`Shared/`, `Shared/EditorTemplates/` sit beneath it), there is no `Themes/` tree, and Razor's upward
+walk reaches the tree root from every view. Note there is **no `Shared/DisplayTemplates/` folder** in
+this project — 8.1's task text mentions display templates; only `EditorTemplates/` exists (14 files).
+
+### 59.2 The 78 `@helper` declarations — and why task 7.3's pattern needed a new seam
+
+**All 78, in 26 files, converted. All 79 call sites rewritten. `RZ1002` → 0.**
+
+Task 7.3 converted `Nop.Web`'s four `@helper` declarations to `void` methods in an `@functions`
+block, because markup inside such a method is emitted straight to the page output — so the same HTML
+lands in the same place and the body needs no edit. **That works when the helper is invoked as a
+statement, which all four of `Nop.Web`'s were. Every one of the 78 admin helpers is different: its
+result is passed as an ARGUMENT.**
+
+```razor
+@Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
+```
+
+and `HtmlExtensions.RenderBootstrapTabContent` declares that parameter as `HelperResult`. A `void`
+method returns nothing, so the two do not compose. Three alternatives were considered and rejected:
+
+1. **a templated Razor delegate** (`Func<object, HelperResult> TabInfo = @<text>…</text>`) is the
+   idiomatic capture mechanism and needs no framework change — but it declares a **local**, and a
+   local must be declared before the statement that uses it. All 78 helpers sit at the **bottom** of
+   their file while every call site is near the **top**, so all 26 files would have to be reordered;
+   and 13 of them nest a `<text>` block inside a helper body, which would then be a `<text>` inside a
+   `<text>`. An `@functions` method is a class member and therefore order-independent, which is why
+   task 7.3 chose it too;
+2. **a partial view per helper** — 78 new files, plus a view-engine lookup on every render, and
+   several helpers are invoked inside loops;
+3. **splitting `RenderBootstrapTabContent` into begin/end helpers** — that pushes the active-tab CSS
+   decision into all 78 call sites.
+
+So a new seam was added: **`WebViewPage<TModel>.Capture(Func<Task>)`** in
+`Nop.Web.Framework/ViewEngines/Razor/WebViewPage.cs`. It wraps the method in a `HelperResult` whose
+delegate calls `RazorPageBase.PushWriter(writer)` / `PopWriter()` around it — the framework's own
+supported redirection, and the same mechanism Razor's generated templated delegates use. The body
+therefore writes into whatever writer the consuming helper is rendering to, at the point it renders.
+`PushWriter`/`PopWriter` maintain a **stack**, which `Shared/Menu.cshtml` relies on: `RenderMenuItem`
+recurses into itself through `Capture` for every child node of the admin menu.
+
+**The methods are `async Task`, not `void`, and that was measured — the naive answer does not
+compile.** The admin helper bodies contain `~/`-rooted attribute values (`src="~/…"`, `href="~/…"`),
+which the Razor compiler lowers into the framework's URL-resolution tag helper. A `void` conversion
+produced **34 `MVC1006`** ("the method contains a TagHelper and therefore must be async and return a
+Task … usage of ~/ typically results in a TagHelper") plus **74 `CS4033`** from the `await`s the
+generator emits inside them. Hence `async Task`, and hence `Func<Task>` rather than `Action`.
+
+Call-site forms:
+
+| 3.90 | Now | Count |
+|---|---|---|
+| `@Html.RenderBootstrapTabContent("tab-x", @TabX(), …)` | `…, Capture(TabX), …` | 77 |
+| `@RenderMenuItem(item, supportRtl)` at a markup position | `@Capture(() => RenderMenuItem(item, supportRtl))` | 2 |
+
+The Menu form is `@Capture(…)` rather than `@{ RenderMenuItem(…); }` because the latter is inside a
+`@foreach` body, where Razor rejects a `@{` transition with **`RZ1010`** ("once inside the body of a
+code block you do not need to use `@{`") — measured, both sites. `@Capture(…)` is an ordinary
+implicit expression producing an `IHtmlContent`, which Razor writes correctly, and it needs no
+`await` at the call site.
+
+**The transformation was scripted, and the structural invariants it relies on were verified first**
+across all 26 files / 78 helpers: the header is a single line at column 0 matching
+`@helper Name(args)`, the very next line is exactly `{` at column 0, the first subsequent line that
+is exactly `}` at column 0 is the matching close, and no helper header lies inside another's body.
+**0 anomalies.** Bodies are byte-identical apart from being wrapped.
+
+#### 59.2.1 The mechanism was verified by EXECUTION, and the probe was proven able to fail
+
+A clean compile says nothing about *where* the captured markup lands, and getting that wrong is a
+silent defect of exactly the class this register exists for: it compiles, it passes the 8.8 gate, and
+it is visible only in the rendered HTML. A throwaway probe (`src/.probe84`, deleted afterwards —
+`git status` verified clean of it, and its core dump removed) hand-wrote the shape the Razor compiler
+generates: a `WebViewPage<object>` subclass with an `async Task` method whose body writes literals,
+passed through `Capture` into `TagBuilder.InnerHtml.AppendHtml(content)` and rendered — i.e. the two
+load-bearing lines of `RenderBootstrapTabContent`. Ten assertions, **all PASS**:
+
+```
+[before]<div class="tab-pane active" id="tab-info">[body-1][body-2]<span>[nested]</span>[body-3]</div>[after]
+```
+
+1 nothing is lost · 2 the wrapper div is emitted · **3 the body is INSIDE the wrapper, not at the
+call site** · 4 ordering preserved end to end · 5 nesting works (`Menu.cshtml`'s recursion) · 6 the
+page writer is restored afterwards · 7 a throw inside a captured body still restores it (hence the
+`finally`) · 8–10 the `GetFullHtmlFieldId` shim, §59.3.
+
+**Proof it can fail:** with `PushWriter`/`PopWriter` commented out of `Capture` and nothing else
+changed, the probe reported **2 FAILED** and rendered
+
+```
+[before][body-1][body-2][nested]<span></span>[body-3]<div class="tab-pane active" id="tab-info"></div>[after]
+```
+
+— every tab body hoisted above its wrapper and **every `tab-pane` div empty**. That is precisely what
+a naive `void` conversion would have shipped, and it is what assertion 3 exists to catch. Both files
+were restored and the probe re-run green before deletion.
+
+### 59.3 The view-compatibility shims — promoted, plus one new one
+
+`Nop.Web/Extensions/ViewCompatibilityExtensions.cs` was **`git mv`'d to
+`Nop.Web.Framework/ViewCompatibilityExtensions.cs`**, namespace `Nop.Web.Extensions` →
+**`Nop.Web.Framework`** — the same move, for the same reason and by the same mechanism, that task 8.3
+applied to `ChildActionExtensions` (deferral 7.3-1). `Nop.Admin` needs all of these shims and does
+not reference `Nop.Web`; the alternative was a second copy. The namespace choice is load-bearing:
+`@using Nop.Web.Framework` is already in every `_ViewImports.cshtml` in the solution, so **no view
+call site in either project changed** — `Nop.Web`'s views keep resolving, and `Nop.Web` re-gates at
+0 errors / 15 warnings. Bodies are unchanged apart from the namespace.
+
+**New in this task: `GetFullHtmlFieldId(this TemplateInfo, string)`.** ASP.NET Core's `TemplateInfo`
+kept `GetFullHtmlFieldName` but **dropped `GetFullHtmlFieldId`**, because the name→id transformation
+is no longer a fixed rule — it depends on `HtmlHelperOptions.IdAttributeDotReplacement`, which is
+per-application configuration. All 15 call sites are admin editor templates
+(`Date`, `DateTime`, `Decimal`, `Int32`, `MultiSelect`, `RichEditor`, …), each of which needs the id
+to attach a Kendo widget or a TinyMCE instance to the input it just rendered, and every one passes
+`string.Empty`. It is written as an **extension method with MVC 5's exact name and signature** so
+those 15 call sites are byte-identical to 3.90 — the alternative was editing 13 template files to
+inline the composition.
+
+The composition reproduces MVC 5's — `GetFullHtmlFieldName(name)` then
+`TagBuilder.CreateSanitizedId(fullName, replacement)` — and was **verified by execution**, not
+assumed (probe assertions 8–10): `HtmlFieldPrefix = "Locales[0].Name"` yields **`Locales_0__Name`**,
+exactly what task 6.3 measured MVC 5's `GetFullHtmlFieldId` produced (§15e); `"SeoSettings"` +
+`"PageTitleSeparator"` yields `SeoSettings_PageTitleSeparator`; and an empty full name yields an
+**empty** id rather than a stray `"_"`. The replacement string comes from the ambient `MvcViewOptions`
+when reachable, falling back to `"_"` — which is both MVC 5's fixed behaviour and the ASP.NET Core
+default — and is cached, because otherwise this is a container resolve per rendered form field.
+
+### 59.4 Other view substitutions — all reusing task 7.3's §30 decisions
+
+| 3.90 | Now | Sites |
+|---|---|---|
+| `@Html.Partial(…)` | `@await Html.PartialAsync(…)` | **260**, in 219 files. Clears all **260 `MVC1000`**. There were **zero** `Html.RenderPartial` sites. Every one was at a markup position (`@Html.Partial(` — checked by prefix, not assumed), including those inside the newly-`async Task` `@functions` methods, where `await` is now legal |
+| `HttpUtility.JavaScriptStringEncode(x)` | `JavaScriptHelper.Encode(x)` | 19 |
+| `HttpUtility.UrlEncode(x)` | `WebUtility.UrlEncode(x)` (+ `@using System.Net`) | 3 |
+| `HttpContext.Current.Request.RawUrl` | `Context.Request.GetEncodedPathAndQuery()` (+ `@using Microsoft.AspNetCore.Http.Extensions`) | 6, in 4 files |
+| `new ViewDataDictionary()` | `Html.NewViewData()` | 3 |
+| `new ViewDataDictionary() { new KeyValuePair<string, object>(…) }` | `Html.NewViewData()` then an indexer assignment | 1 — a collection initializer cannot be applied to a method-call result |
+| `@attribute.DefaultValue` | `@(attribute.DefaultValue)` | 4 — clears all 8 `RZ2005`/`RZ1011`. ASP.NET Core 3.0 introduced a reserved `@attribute` directive, so a loop variable named `attribute` collides with it. Exactly the two files 8.3 predicted: `Customer/_CustomerAttributes.cshtml` and `Shared/_AddressAttributes.cshtml` |
+| `Html.BeginForm(action, controller, routeValues, FormMethod, htmlAttributes)` | the 6-argument overload with `antiforgery: null` | 4 — ASP.NET Core has no 5-argument overload in that shape; `null` keeps the framework default. Same fix task 7.3 made for `BeginRouteForm` |
+
+**The `TagBuilder.ToString()` trap does not arise in the admin views, and that was checked rather
+than assumed.** Task 6.3 §15b records that `TagBuilder` does not override `ToString()` — it returns
+the literal string `"Microsoft.AspNetCore.Mvc.Rendering.TagBuilder"` — so a helper result
+concatenated into a `StringBuilder` emits the type name into the page: a bug that compiles, passes
+the gate, and is visible only in the rendered HTML. Task 7.3 found 13 such sites in `Nop.Web`, five
+of them behind nested parentheses a naive regex missed. Searched here for `" + Html.…`,
+`Html.…() + "`, `string.Format(… Html.…)` and `Html.…().ToString()`: **zero hits**. The four
+`StringBuilder` instances in admin views (`Blog/_CreateOrUpdate`, `Order/AddShipment`,
+`Order/_ProductAddAttributes`, `Product/_CreateOrUpdate.Info`) append only plain strings.
+
+`_ViewStart.cshtml` needed no change beyond task 8.2's relocation: it already sets
+`Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml"`, one of the 35 explicit view paths 8.2
+rewrote.
+
+### 59.5 Deferral 8.1-2 RESOLVED, and the admin-view half of 7.7-4 closed
+
+Both defects in `Areas/Admin/Views/Shared/_AdminLayout.cshtml` — the layout **every** admin page
+uses — are fixed:
+
+| Line | Was | Now | Why it mattered |
+|---|---|---|---|
+| 44 | `Html.AppendScriptParts("~/Administration/scripts/admin.navigation.js")` | `…/Scripts/…` | the admin navigation script 404s on any case-sensitive filesystem, **and** because it goes through `AppendScriptParts` a missing file gets no `?v=` from `IFileVersionProvider` either — the failure is doubly silent |
+| 100 | `@Url.Content("~/administration/content/images/throbber-synchronizing.gif")` | `~/Administration/Content/images/…` | the "synchronizing" throbber image 404s |
+
+Both target files were confirmed present on disk at the corrected casing before the edit.
+
+**The audit was extended in the two directions 8.1 asked 8.4/8.5 to cover**, with a script (comments
+blanked first; every segment resolved case-exactly against the real filesystem, rooted at the
+`Nop.Web` content root because that is what `CommonHelper.MapPath` and `Url.Content("~/…")` resolve
+against):
+
+- **81 filesystem-rooted `~/…` references** across the view tree's `.cshtml`/`.css`/`.js` →
+  **0 case mismatches** after the two fixes;
+- **`{0}`-substituted paths**, the `~/Administration/Content|Scripts/kendo/{0}/…` family (8 sites in
+  `_AdminLayout` and `_AdminPopupLayout`): the literal prefix audits clean, and the placeholder was
+  then resolved concretely — `kendoVersion` is `"2014.1.318"`, and all four files
+  (`kendo.rtl.min.css`, `kendo.default.min.css`, `kendo.common.min.css`, `kendo.web.min.js`) exist at
+  that path, case-exactly;
+- **`~/Content/Images/flags/…`** in the three `Language` views is **correct as 8.1 stated** — it
+  resolves to `Nop.Web/Content/Images/flags`, not the admin tree, and that directory exists.
+
+**The auditor was proven able to fail** before its clean result was believed: a planted
+`~/Administration/scripts/CANARY.js` reference was reported (`"scripts" on disk is "Scripts"`), while
+a `~/Administration/scripts/…` mention inside an `@* *@` comment on the adjacent line was correctly
+**not** counted. Canary removed and the audit re-run clean.
+
+Still 8.5's, unchanged: the 87 admin stylesheets under `Administration/Content/` (8.1 already audited
+their 582 relative `url(...)` refs clean) and the serving half of deferral 7.4-2.
+
+### 59.6 The two dead settings checkboxes — one removed, the other never existed
+
+**Bundling: REMOVED.** The `SeoSettings.EnableJsBundling` / `EnableCssBundling` form groups are gone
+from `Areas/Admin/Views/Setting/GeneralCommon.cshtml`, replaced by a comment recording why (design
+§8: bundling is dropped with no successor, the settings survive on the entity so there is no DB
+migration, and an inert checkbox is worse than no checkbox).
+
+Two decisions worth stating, because both are the less obvious option:
+
+- **the properties on `GeneralCommonSettingsModel` and their read/write in `SettingController`
+  (lines ~1779, ~1945, ~1963) are deliberately LEFT IN PLACE.** Design §8 leaves this to 8.x's
+  discretion. Keeping them preserves the round-trip;
+- **the one observable consequence, stated rather than glossed:** the form no longer posts these
+  fields, so model binding leaves them `false`, and a store that had bundling ON will be written back
+  as OFF the next time this page is saved. That is harmless — the values are inert — and it is
+  strictly less surprising than leaving a control the user can toggle with no effect.
+
+The `Admin.Configuration.Settings.GeneralCommon.EnableJsBundling` / `…EnableCssBundling` localization
+resources are now orphaned, which is harmless.
+
+**MiniProfiler: there were no admin checkboxes to remove.** Task 7.3 flagged them as 8.4's, and that
+was checked rather than acted on: a case-insensitive search for `miniprofiler` across every `.cshtml`
+and `.cs` file under `Administration/` returns **zero hits**, and `GeneralCommonSettingsModel` has no
+`DisplayMiniProfiler*` property. `StoreInformationSettings.DisplayMiniProfilerInPublicStore` and
+`DisplayMiniProfilerForAdminOnly` exist on the entity and are inert (§17.8), but 3.90's admin UI never
+exposed them. Recorded so "found nothing" is distinguishable from "did not look".
+
+### 59.7 The residual-`System.Web` scan, and proof it works
+
+A naive grep is meaningless in this tree — `_ViewImports.cshtml` alone contains nine explanatory
+mentions of the legacy namespaces it replaced. The scanner blanks `@* *@`, `/* */` and `//` comments
+first, tracking string, char and verbatim-string literals so a `//` inside a URL is not mistaken for
+a comment, then searches the residue for 46 tokens (the `System.Web.*` namespaces, bare `System.Web`,
+`HttpContext.Current`, `HttpContextBase`, `HttpPostedFileBase`, `MvcHtmlString`, `HttpUtility`,
+`JsonRequestBehavior`, `UrlParameter`, `AreaRegistration`, `RouteTable`, `DependencyResolver`,
+`ViewEngines.Engines`, `BundleTable`, `Scripts.Render`, `Styles.Render`, `ImageResizer`, `WebGrease`,
+`MiniProfiler`, `StackExchange.Profiling`, `System.Runtime.Caching`, `ConfigurationManager`,
+`System.Drawing`, `ChildActionOnly`, `@helper`, …). Same specification as task 8.3's scan over the 276
+`.cs` files (§56), applied to the 325 `.cshtml` files that scan did not cover.
+
+**Proven able to fail:** a planted `_ScanCanary.cshtml` containing `@using System.Web.Mvc` and
+`@HttpContext.Current` was reported (3 hits), while its `@* *@` comment mentioning `MvcHtmlString`
+and `HttpContext.Current` on the adjacent line was correctly **not** reported. Canary removed.
+
+Result on the real tree: **326 files scanned (325 views + `_ViewImports.cshtml`), 0 real hits.**
+
+`Areas/Admin/Views/Shared/Menu.cshtml`'s `siteMap.LoadFrom("~/Administration/sitemap.config")` was
+verified still to work: `XmlSiteMap.LoadFrom` resolves through `CommonHelper.MapPath`, i.e. against
+the `Nop.Web` content root, so it is a **physical** path unaffected by 8.2's view relocation. The file
+exists at that path, case-exactly, and 8.1 already confirmed it publishes.
+
+---
+
+## 60. NEW deferral opened by task 8.4
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 8.4-1 | `Nop.Admin.dll` does not reach the smoke-test output directory, so **no admin smoke assertion can be written yet** — including the three 8.8 is required to add | 8.8 | Medium — bookkeeping, but it blocks deferral 8.3-2's whole list |
+
+### 8.4-1 `Nop.Admin.dll` never reaches the smoke-test base directory
+
+`Nop.Admin` now compiles, and `Nop.Admin.csproj`'s `CopyNopAdminToHostOutput` target duly drops
+`Nop.Admin.dll` into `src/Presentation/Nop.Web/bin/Debug/net10.0/` — **verified present, 5.8 MB.**
+Yet `Nop.Web.SmokeTests.Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP`
+**still passes**, i.e. the Admin area route is still absent from the running host.
+
+That is not a failure of task 8.2's wiring. `WebAppTypeFinder` scans
+`AppDomain.CurrentDomain.BaseDirectory`, which under `dotnet test` is the **test project's** output
+directory (`src/Tests/Nop.Web.SmokeTests/bin/Debug/net10.0/`), not `Nop.Web`'s. `Nop.Admin.dll` is not
+copied there, because the test project references `Nop.Web` and `Nop.Web` does not reference
+`Nop.Admin` — they are documented siblings (design §6). Confirmed by inspection: the file is absent
+from the test output directory.
+
+**Consequence, and why it matters more than it looks:** every admin assertion deferral **8.3-2**
+requires 8.8 to add would be vacuous or impossible today —
+
+- inverting `Task_8_2_…_KNOWN_GAP` would **fail**, because the route genuinely is not there;
+- the three `Deferral_7_3_4_*` admin cases read the host's endpoint table and
+  `IActionDescriptorCollectionProvider`, which cannot see an assembly that was never loaded;
+- `GET /Admin/Common/BackupFileDownload` would 404 for the wrong reason, so an authorization
+  assertion on it would pass without testing authorization.
+
+**Fix (task 8.8), and it must come first in that task:** make `Nop.Admin.dll` reach the smoke-test
+output directory — either a `ProjectReference` from `Nop.Web.SmokeTests` to `Nop.Admin` (acceptable
+there in a way it is not from `Nop.Web`: a test project taking a compile-time dependency does not
+convert design §6's build/deploy relationship into one, and does not couple the 7.6 gate to 8.8), or
+a copy target mirroring `CopyNopAdminToHostOutput`. Then assert the area route is present **before**
+writing anything that depends on it, so a later regression cannot silently make the admin assertions
+vacuous again. Note this is the third instance of the same root cause in this migration — §50.3's
+`AppDomainTypeFinder` fix and deferral 8.2-1's `PluginManager.PerformFileDeploy` are the other two:
+**.NET does not probe the base directory, so an assembly is only discoverable if it is physically in
+the directory the finder scans.**
+
+---
+
+## 61. Deferrals explicitly NOT closed by 8.4, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **7.4-2** (admin static assets half) | admin `Content/`/`Scripts/` still do not **serve** | **8.5**. Unchanged by this task, but its blocker is gone: the two casing defects that would have made a widened allow-list 404 anyway are fixed (§59.5) |
+| **8.1-1** | `Content/Roxy_Fileman/tmp/` does not exist | **8.5 / 8.6** |
+| **8.1-3** · **8.3-3** | relative `Server.MapPath` in `RoxyFilemanController`, which now throws `NopException` naming 8.1-3 | **8.6** |
+| **8.2-2** | `dotnet publish` of `Nop.Web` omits `Nop.Admin.dll` | **8.5 / 18.x**. Note deferral 8.4-1 is the *test-harness* instance of the same root cause, and 8.8's fix for one does not fix the other |
+| **8.2-3** | 12 plugin view sites still reference `~/Administration/Views/Shared/…` | **11.1–11.2, 13.1, 14.4, 15.1**. Unchanged: the admin view tree is still at `Areas/Admin/Views/`, so those paths are still stale |
+| **8.3-1** | the System Info `<machineKey>` warning is gone with nothing in its place | **8.7** |
+| **8.3-2** | the admin smoke assertions | **8.8** — and see new deferral **8.4-1**, which must be fixed first |
+| the 6 `Nop.Admin` warnings | 4 `CS0618` FluentValidation `Custom(...)`, 1 `CS0618` `TimeZone`, 1 `SYSLIB0014` `WebRequest.Create` | **8.7** owns whether to modernise the last two; the four are design §9's deliberate FluentValidation pin. `Validators/` was not touched, per the task brief |
+| **18.4** | `CA1416` | already resolved for both halves (7.3 for `Nop.Web`, 8.3 for the admin `CommonController`). **0 `CA1416` in this build** — the `System.Drawing` sites 8.6 owns are in `.cs` files that already compiled at 8.3 |
+| **35** | minification gone, nothing replaces it | post-migration (design §8). The admin UI half — the two dead checkboxes — **is** done (§59.6) |
+| **7.5-1** | a new theme needs its own `_ViewImports.cshtml` | theme authors. Not applicable to `Nop.Admin`: it has no `Themes/` tree, and §16.1's admin-only location formats deliberately keep admin views un-themeable |
+| **7.7-4** (admin assets half) | the 87 admin stylesheets and any concatenated asset paths outside the view tree | **8.5**. The **view** half is closed (§59.5) |
+| **7.2-1** · **7.2-3** · **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** · **7.4-1** · **7.7-2** · **7.7-3** · **4.10** · **4.11** · **9/4.9** · **11.27** · **8.2-1** · **18/7.18** | unchanged | as previously recorded. **8.2-1** (plugin assemblies loaded by name) is still HIGH and still blocks group 10 |
+
+## 62. What task 8.8 should exercise, beyond the compile
+
+8.8 is the gate, and the compile is now clean — so what it should add is the coverage this task could
+not reach without the admin area loaded. In priority order:
+
+1. **Deferral 8.4-1 first**, or everything below is vacuous.
+2. **A rendered `_CreateOrUpdate` page.** §59.2.1 verified the `Capture` mechanism against a
+   hand-written page shape and proved the probe can fail, but not against a real generated view. The
+   discriminating assertion is cheap: request any admin edit page and confirm the tab bodies appear
+   **inside** their `<div class="tab-pane" id="tab-…">` wrappers, not before them. That single check
+   covers all 78 conversions at once.
+3. **`Areas/Admin/Views/Shared/Menu.cshtml`.** It exercises three things nothing else does:
+   `XmlSiteMap.LoadFrom` against the physical `sitemap.config`, the recursive `Capture` nesting, and
+   `SiteMapNode.RouteValues` on the ported `Microsoft.AspNetCore.Routing.RouteValueDictionary`.
+4. **One editor template's generated `id`.** `GetFullHtmlFieldId` is verified in isolation (probe
+   assertions 8–10) but not against a real `HtmlFieldPrefix` set by a real partial. Confirm a
+   datepicker input's `id` matches the selector the adjacent `$("#…").kendoDatePicker()` uses — if
+   they diverge, every admin date field silently loses its widget.
+5. **The Shared-before-controller view resolution quirk** (§50.1) against real admin views, which
+   8.2 could only prove on a probe.

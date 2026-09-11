@@ -427,10 +427,14 @@
     -->
     <Content Update="Web.config" CopyToPublishDirectory="Never" />
     <!--
-      TASK 8.2 moved the view tree from Views\ to Areas\Admin\Views\ to resolve deferral
-      8.1-4, so this path moved with it. 8.4 deletes the file from its new location.
+      TASK 8.4 DELETED Areas\Admin\Views\Web.config, so its interim
+      <Content Update="Areas\Admin\Views\Web.config" CopyToPublishDirectory="Never" /> entry has
+      been REMOVED from this group rather than left behind as a no-op - exactly as task 7.5
+      removed 7.4's two equivalents from Nop.Web.csproj. It is superseded by
+      Areas\Admin\Views\_ViewImports.cshtml, which carries the pageBaseType (as @inherits) and the
+      <namespaces> list (as @using) that were the only two things in it .NET 10 could act on.
+      The Web.config entry above survives until task 8.7 deletes that file.
     -->
-    <Content Update="Areas\Admin\Views\Web.config" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
   <!--
@@ -542,9 +546,9 @@
                                     MapAreaControllerRoute("Admin_default", "Admin",
                                     "Admin/{controller=Home}/{action=Index}/{id?}").
       Web.config                    TASK 8.7 (excluded from publish above)
-      Areas\Admin\Views\Web.config  TASK 8.4 (excluded from publish above). Its
-                                    pageBaseType + <namespaces> are what
-                                    Areas\Admin\Views\_ViewImports.cshtml must carry.
+      Areas\Admin\Views\Web.config  DONE BY TASK 8.4: DELETED, and its publish-exclusion entry
+                                    removed with it. Its pageBaseType + <namespaces> are now
+                                    carried by Areas\Admin\Views\_ViewImports.cshtml.
                                     TASK 8.2 MOVED THE WHOLE VIEW TREE from Views\ to
                                     Areas\Admin\Views\ to resolve deferral 8.1-4 - the Razor
                                     source generator names a view relative to THIS project's

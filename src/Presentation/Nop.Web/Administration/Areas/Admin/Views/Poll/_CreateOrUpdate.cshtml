@@ -17,8 +17,8 @@
                 @Html.RenderBootstrapTabHeader("tab-answers", @T("Admin.ContentManagement.Polls.Answers"))
             </ul>
             <div class="tab-content">
-                @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                @Html.RenderBootstrapTabContent("tab-answers", @TabAnswers())
+                @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
+                @Html.RenderBootstrapTabContent("tab-answers", Capture(TabAnswers))
             </div>
         </div>
     </div>
@@ -37,7 +37,8 @@
 @*save selected tab name*@
 <input type="hidden" id="selected-tab-name" name="selected-tab-name" value="@(Html.GetSelectedTabName())">
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -127,8 +128,10 @@
         </div>
     </div>
 }
+}
 
-@helper TabAnswers()
+@functions {
+async Task TabAnswers()
 {
     <div class="panel-group">
         <div class="panel panel-default">
@@ -201,7 +204,7 @@
                                     numeric: false,
                                     previousNext: false,
                                     info: false,
-                                    @Html.Partial("_GridPagerMessages")
+                                    @await Html.PartialAsync("_GridPagerMessages")
                                 },
                                 toolbar: [{ name: "create", text: "@T("Admin.Common.AddNewRecord")" }],
                                 editable: {
@@ -255,4 +258,5 @@
             }
         </div>
     </div>
+}
 }

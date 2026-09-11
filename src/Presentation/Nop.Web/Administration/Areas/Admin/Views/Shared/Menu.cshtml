@@ -10,7 +10,8 @@
         !EngineContext.Current.Resolve<LocalizationSettings>().IgnoreRtlPropertyForAdminArea;
 }
 
-@helper RenderMenuItem(Nop.Web.Framework.Menu.SiteMapNode item, bool supportRtl)
+@functions {
+async Task RenderMenuItem(Nop.Web.Framework.Menu.SiteMapNode item, bool supportRtl)
 {
     string url = null;
     if (!string.IsNullOrEmpty(item.ControllerName) && !string.IsNullOrEmpty(item.ActionName))
@@ -64,12 +65,13 @@
                 <ul class="treeview-menu">
                     @foreach (var childItem in childNodes)
                     {
-                        @RenderMenuItem(childItem, supportRtl)
+                        @Capture(() => RenderMenuItem(childItem, supportRtl))
                     }
                 </ul>
             }
         </li>
     }
+}
 }
 
 <ul class="sidebar-menu">
@@ -96,6 +98,6 @@
     }
     @foreach (var item in rootNode.ChildNodes.Where(x => x.Visible))
     {
-        @RenderMenuItem(item, supportRtl)
+        @Capture(() => RenderMenuItem(item, supportRtl))
     }
 </ul>

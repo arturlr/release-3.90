@@ -72,13 +72,13 @@
                     }
                 </ul>
                 <div class="tab-content">
-                    @Html.RenderBootstrapTabContent("tab-info", @TabInfo(), true)
-                    @Html.RenderBootstrapTabContent("tab-billing-info", @TabBillingInfo())
-                    @Html.RenderBootstrapTabContent("tab-shipping-info", @TabShippingInfo())
-                    @Html.RenderBootstrapTabContent("tab-products", @TabProducts())
+                    @Html.RenderBootstrapTabContent("tab-info", Capture(TabInfo), true)
+                    @Html.RenderBootstrapTabContent("tab-billing-info", Capture(TabBillingInfo))
+                    @Html.RenderBootstrapTabContent("tab-shipping-info", Capture(TabShippingInfo))
+                    @Html.RenderBootstrapTabContent("tab-products", Capture(TabProducts))
                     @if (!Model.IsLoggedInAsVendor)
                     {
-                        @Html.RenderBootstrapTabContent("tab-order-notes", @TabOrderNotes())
+                        @Html.RenderBootstrapTabContent("tab-order-notes", Capture(TabOrderNotes))
                     }
                 </div>
             </div>
@@ -101,23 +101,33 @@
 }
 @Html.DeleteConfirmation("order-delete")
 
-@helper TabInfo()
+@functions {
+async Task TabInfo()
 {
-    @Html.Partial("_OrderDetails.Info", Model)
+    @await Html.PartialAsync("_OrderDetails.Info", Model)
 }
-@helper TabBillingInfo()
-{
-    @Html.Partial("_OrderDetails.Billing", Model)
 }
-@helper TabShippingInfo()
+@functions {
+async Task TabBillingInfo()
 {
-    @Html.Partial("_OrderDetails.Shipping", Model)
+    @await Html.PartialAsync("_OrderDetails.Billing", Model)
 }
-@helper TabProducts()
-{
-    @Html.Partial("_OrderDetails.Products", Model)
 }
-@helper TabOrderNotes()
+@functions {
+async Task TabShippingInfo()
 {
-    @Html.Partial("_OrderDetails.Notes", Model)
+    @await Html.PartialAsync("_OrderDetails.Shipping", Model)
+}
+}
+@functions {
+async Task TabProducts()
+{
+    @await Html.PartialAsync("_OrderDetails.Products", Model)
+}
+}
+@functions {
+async Task TabOrderNotes()
+{
+    @await Html.PartialAsync("_OrderDetails.Notes", Model)
+}
 }
