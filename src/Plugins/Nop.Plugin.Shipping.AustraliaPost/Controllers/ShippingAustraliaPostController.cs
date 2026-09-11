@@ -1,8 +1,9 @@
-﻿using System.Web.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Nop.Plugin.Shipping.AustraliaPost.Models;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Web.Framework.Controllers;
+using Nop.Web.Framework.Mvc;
 
 namespace Nop.Plugin.Shipping.AustraliaPost.Controllers
 {
@@ -22,7 +23,7 @@ namespace Nop.Plugin.Shipping.AustraliaPost.Controllers
             this._localizationService = localizationService;
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure()
         {
             var model = new AustraliaPostShippingModel();
@@ -33,7 +34,7 @@ namespace Nop.Plugin.Shipping.AustraliaPost.Controllers
         }
 
         [HttpPost]
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure(AustraliaPostShippingModel model)
         {
             if (!ModelState.IsValid)

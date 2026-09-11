@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Plugin.Widgets.NivoSlider.Infrastructure.Cache;
@@ -9,9 +9,24 @@ using Nop.Services.Localization;
 using Nop.Services.Media;
 using Nop.Services.Stores;
 using Nop.Web.Framework.Controllers;
+using Nop.Web.Framework.Mvc;
+using Nop.Web.Framework.Security;
 
 namespace Nop.Plugin.Widgets.NivoSlider.Controllers
 {
+    /// <remarks>
+    /// Task 15.3 substitutions — decisions tasks 7.3 (§30) / 8.3 (§55) / 10.x already made:
+    /// <c>using System.Web.Mvc;</c> → <c>using Microsoft.AspNetCore.Mvc;</c> (this controller uses
+    /// no <c>SelectListItem</c>, so <c>Microsoft.AspNetCore.Mvc.Rendering</c> is not needed);
+    /// <c>[ChildActionOnly]</c> → <c>[NopChildActionOnly]</c> on both <c>Configure</c> overloads
+    /// and on <c>PublicInfo</c> (deferral 7.3-4) — all three are reached only through the
+    /// <c>Html.Action</c> bridge; the two <c>View("~/Plugins/Widgets.NivoSlider/Views/…")</c> call
+    /// sites are UNCHANGED thanks to the project file's <c>Content</c>/<c>Link</c> block.
+    /// <c>[AdminAuthorize]</c>, <c>[HttpPost]</c>, <c>Content(...)</c>,
+    /// <c>GetActiveStoreScopeConfiguration</c> and <c>SuccessNotification</c> needed no edit.
+    /// This controller contains NO <c>System.Web</c> API beyond the <c>using</c> — unlike the GA
+    /// widget, its <c>PublicInfo</c> reads no request route data.
+    /// </remarks>
     public class WidgetsNivoSliderController : BasePluginController
     {
         private readonly IWorkContext _workContext;
@@ -54,7 +69,7 @@ namespace Nop.Plugin.Widgets.NivoSlider.Controllers
         }
 
         [AdminAuthorize]
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure()
         {
             //load settings for a chosen store scope
@@ -101,7 +116,7 @@ namespace Nop.Plugin.Widgets.NivoSlider.Controllers
 
         [HttpPost]
         [AdminAuthorize]
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure(ConfigurationModel model)
         {
             //load settings for a chosen store scope
@@ -178,7 +193,7 @@ namespace Nop.Plugin.Widgets.NivoSlider.Controllers
             return Configure();
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult PublicInfo(string widgetZone, object additionalData = null)
         {
             var nivoSliderSettings = _settingService.LoadSetting<NivoSliderSettings>(_storeContext.CurrentStore.Id);

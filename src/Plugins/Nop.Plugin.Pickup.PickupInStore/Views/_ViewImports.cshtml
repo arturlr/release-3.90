@@ -1,0 +1,48 @@
+@*
+    Task 13.1 — the ASP.NET Core replacement for this plugin's web.config
+    <system.web.webPages.razor><pages> element (Requirement 4.4).
+
+    PART OF THE PLUGIN RECIPE. See
+    src/Plugins/Nop.Plugin.DiscountRules.CustomerRoles/Views/_ViewImports.cshtml for the full
+    reasoning. In brief: all 20 plugins ship a byte-identical web.config declaring
+    pageBaseType="Nop.Web.Framework.ViewEngines.Razor.WebViewPage" (→ the @inherits below, which
+    is what makes T("…") resolve and an unqualified @model resolve) plus four System.Web
+    <namespaces> (→ the @using directives; System.Web.Mvc.Ajax has no ASP.NET Core counterpart and
+    is dropped).
+
+    It sits at Views/ and inside the project file's Content/Link glob (Views\**\*.cshtml), so this
+    file and the four views link into the SAME directory
+    (/Plugins/Pickup.PickupInStore/Views/) — Razor resolves imports by walking up from the view's
+    LINKED path. Linking them inconsistently would make the imports silently not apply and the
+    failure would look like a missing model type.
+
+    NOTE Create.cshtml / Edit.cshtml / _CreateOrUpdate.cshtml all declare `@model` FULLY QUALIFIED
+    (Nop.Plugin.Pickup.PickupInStore.Models.StorePickupPointModel), and Configure.cshtml declares
+    no @model at all, so the @using of the plugin's own Models namespace is not strictly required
+    here — it is included for consistency with the other plugins' _ViewImports.
+*@
+@inherits Nop.Web.Framework.ViewEngines.Razor.WebViewPage<TModel>
+
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Routing
+
+@*
+    Nop.Web.Framework carries HtmlExtensions (Html.NopLabelFor / NopEditorFor / NopTextAreaFor /
+    NopDropDownListFor / FieldIdFor), ViewCompatibilityExtensions and ChildActionExtensions, plus
+    Extensions.SelectionIsNotPossible (used by the store dropdown in _CreateOrUpdate). One import
+    covers all of them.
+*@
+@using Nop.Core.Infrastructure
+@using Nop.Web.Framework
+@using Nop.Web.Framework.UI
+@using Nop.Plugin.Pickup.PickupInStore.Models
+
+@*
+    Tag helpers. 3.90 had none (they do not exist in MVC 5). Added for the same reason task 7.3
+    added them to Nop.Web: the framework's form/validation tag helpers are the supported route to
+    an anti-forgery token, and Html.BeginForm uses the same infrastructure.
+*@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

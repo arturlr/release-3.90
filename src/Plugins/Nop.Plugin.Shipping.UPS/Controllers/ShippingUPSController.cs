@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Plugin.Shipping.UPS.Domain;
 using Nop.Plugin.Shipping.UPS.Models;
@@ -8,6 +9,7 @@ using Nop.Services;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Web.Framework.Controllers;
+using Nop.Web.Framework.Mvc;
 
 namespace Nop.Plugin.Shipping.UPS.Controllers
 {
@@ -27,7 +29,7 @@ namespace Nop.Plugin.Shipping.UPS.Controllers
             this._localizationService = localizationService;
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure()
         {
             var model = new UPSShippingModel();
@@ -91,7 +93,7 @@ namespace Nop.Plugin.Shipping.UPS.Controllers
         }
 
         [HttpPost]
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure(UPSShippingModel model)
         {
             if (!ModelState.IsValid)

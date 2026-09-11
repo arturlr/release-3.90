@@ -467,10 +467,10 @@ with the ephemeral container NuGet cache).
 - **NOT handled outside Nop.Data.** These four plugin contexts do
   `Database.ExecuteSqlCommand(CreateDatabaseScript())` in one shot and must split batches when
   they are migrated:
-  - `Nop.Plugin.Feed.GoogleShopping/Data/GoogleProductObjectContext.cs` (task 11.2)
-  - `Nop.Plugin.Pickup.PickupInStore/Data/StorePickupPointObjectContext.cs` (task 13.1)
-  - `Nop.Plugin.Shipping.FixedOrByWeight/Data/ShippingByWeightObjectContext.cs` (task 14.4)
-  - `Nop.Plugin.Tax.FixedOrByCountryStateZip/Data/CountryStateZipObjectContext.cs` (task 15.1)
+  - ~~`Nop.Plugin.Feed.GoogleShopping/Data/GoogleProductObjectContext.cs` (task 11.2)~~ ✅ **RESOLVED (11.2)** — `Install()` calls `this.ExecuteSqlScript(CreateDatabaseScript())`
+  - ~~`Nop.Plugin.Pickup.PickupInStore/Data/StorePickupPointObjectContext.cs` (task 13.1)~~ ✅ **RESOLVED (13.1)**
+  - ~~`Nop.Plugin.Shipping.FixedOrByWeight/Data/ShippingByWeightObjectContext.cs` (task 14.4)~~ ✅ **RESOLVED (14.4)** — `Install()` now calls `this.ExecuteSqlScript(CreateDatabaseScript())` (`Nop.Data.DbContextExtensions`, task 11.2 §92.3), replacing 3.90's single `Database.ExecuteSqlCommand(dbScript)`; the splitter is not re-derived. EF6→EF Core port follows `GoogleProductObjectContext` verbatim (the load-bearing `(string nameOrConnectionString)` ctor RegisterPluginDataContext constructs reflectively; `OnConfiguring`/`OnModelCreating` with `ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly())` confining the model to the one `ShippingByWeight` table; `Detach` via `Entry(...).State`; proxy/auto-detect flags on `ChangeTracker`). `ShippingByWeightRecordMap` → `Configure(EntityTypeBuilder<...>)` preserving `ToTable("ShippingByWeight")` (load-bearing for `Uninstall`'s `GetTableName<>().DropPluginTable`) and `Zip HasMaxLength(400)`. `Data/EfStartUpTask.cs` DELETED (EF6 `Database.SetInitializer` has no EF Core counterpart). Builds at 0 errors; no `Nop.Data.dll` leaked into the deploy folder (the sharpest leakage case — this references Nop.Data directly).
+  - ~~`Nop.Plugin.Tax.FixedOrByCountryStateZip/Data/CountryStateZipObjectContext.cs` (task 15.1)~~ ✅ **RESOLVED (15.1)** — the 4th and last plugin context. `Install()` now calls `this.ExecuteSqlScript(CreateDatabaseScript())` (`Nop.Data.DbContextExtensions`), replacing 3.90's single `Database.ExecuteSqlCommand(dbScript)`. EF6→EF Core port follows `GoogleProductObjectContext` (the `(string)` ctor, `OnConfiguring`/`OnModelCreating` with `ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly())`, `Detach` via `Entry(...).State`, proxy flag on `ChangeTracker`). `EfStartUpTask` gutted to a no-op (EF6 `Database.SetInitializer` has no EF Core counterpart). Proven without a database by `Nop.Web.SmokeTests.PluginViewRenderTests.Deferral_4_10_tax_create_script_is_GO_batched_and_split_before_execution` / `Task_15_1_the_tax_context_model_holds_ONLY_the_plugins_own_entity` (probe key `taxContext.*`). **Deferral 4.10 is now FULLY RESOLVED across all four plugin contexts.**
 - Independently: the emitted DDL follows **EF Core's** naming/ordering conventions, so the
   generated schema is not byte-identical to 3.90's.
 
@@ -5881,7 +5881,7 @@ create first is now **`Areas/Admin/Views/_ViewImports.cshtml`**, from
 |---|------|---------------|----------|
 | 8.2-1 | ~~`PluginManager.PerformFileDeploy` loads shadow-copied plugin assemblies by **name**, which cannot work on .NET~~ | — | ✅ **RESOLVED by 8.8** (§77.3) — `AssemblyLoadContext.Default.LoadFromAssemblyPath`, verified with a real planted plugin and proven able to fail (reverting it throws `FileNotFoundException` out of host startup) |
 | 8.2-2 | `dotnet publish` of `Nop.Web` does not include `Nop.Admin.dll` | 18.x | Medium — **NARROWED by 8.5** (§64.3): its remedy ("publish both into one directory") did not work before and now does; what remains is that nothing enforces the two step. Re-recorded as deferral **8.5-1** |
-| 8.2-3 | 12 plugin view sites still reference the old `~/Administration/Views/Shared/…` paths | 11.1–11.2, 13.1, 14.4, 15.1 | Medium — **2 of 12 RESOLVED by task 10.2** (§83.5, both sites in `DiscountRules.HasOneProduct/Views/ProductAddPopup.cshtml`, cross-assembly resolution verified by rendering it over HTTP). **10 remain**, for 11.2, 13.1, 14.4, 15.1 |
+| 8.2-3 | 12 plugin view sites still reference the old `~/Administration/Views/Shared/…` paths | 11.1–11.2, 13.1, 14.4, 15.1 | Medium — **2 of 12 RESOLVED by task 10.2** (§83.5), **1 by 11.2** (§93), **3 by 13.1** (§96: `Pickup.PickupInStore` Configure/Create/Edit). **6 remain**, for 14.4 ×4 and 15.1 ×2 |
 
 ### 8.2-1 Plugin assemblies cannot be loaded by name either — the same defect, wider blast radius — ✅ **RESOLVED by task 8.8, see §77.3**
 
@@ -5942,15 +5942,15 @@ full list is recorded:
 |---|---|---|
 | ~~`Nop.Plugin.DiscountRules.HasOneProduct/Views/ProductAddPopup.cshtml`~~ | ~~2, 126~~ | ✅ **FIXED by task 10.2** — both sites |
 | `Nop.Plugin.Feed.GoogleShopping/Views/Configure.cshtml` | 279 | `_GridPagerMessages.cshtml` |
-| `Nop.Plugin.Pickup.PickupInStore/Views/Configure.cshtml` | 57 | `_GridPagerMessages.cshtml` |
-| `Nop.Plugin.Pickup.PickupInStore/Views/Create.cshtml` | 2 | `_AdminPopupLayout.cshtml` |
-| `Nop.Plugin.Pickup.PickupInStore/Views/Edit.cshtml` | 2 | `_AdminPopupLayout.cshtml` |
-| `Nop.Plugin.Shipping.FixedOrByWeight/Views/AddRateByWeightPopup.cshtml` | 2 | `_AdminPopupLayout.cshtml` |
-| `Nop.Plugin.Shipping.FixedOrByWeight/Views/EditRateByWeightPopup.cshtml` | 2 | `_AdminPopupLayout.cshtml` |
-| `Nop.Plugin.Shipping.FixedOrByWeight/Views/_ByWeight.cshtml` | 71 | `_GridPagerMessages.cshtml` |
-| `Nop.Plugin.Shipping.FixedOrByWeight/Views/_FixedRate.cshtml` | 61 | `_GridPagerMessages.cshtml` |
-| `Nop.Plugin.Tax.FixedOrByCountryStateZip/Views/_CountryStateZip.cshtml` | 80 | `_GridPagerMessages.cshtml` |
-| `Nop.Plugin.Tax.FixedOrByCountryStateZip/Views/_FixedRate.cshtml` | 60 | `_GridPagerMessages.cshtml` |
+| ~~`Nop.Plugin.Pickup.PickupInStore/Views/Configure.cshtml`~~ | ~~57~~ | ✅ **FIXED by task 13.1** — `_GridPagerMessages.cshtml`, `Html.Partial` → `await Html.PartialAsync` |
+| ~~`Nop.Plugin.Pickup.PickupInStore/Views/Create.cshtml`~~ | ~~2~~ | ✅ **FIXED by task 13.1** — `_AdminPopupLayout.cshtml` |
+| ~~`Nop.Plugin.Pickup.PickupInStore/Views/Edit.cshtml`~~ | ~~2~~ | ✅ **FIXED by task 13.1** — `_AdminPopupLayout.cshtml` |
+| ~~`Nop.Plugin.Shipping.FixedOrByWeight/Views/AddRateByWeightPopup.cshtml`~~ | ~~2~~ | ✅ **FIXED by task 14.4** — `~/Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml`; also `Html.Partial` → `await Html.PartialAsync` on the internal `_CreateOrUpdateRateByWeight` partial |
+| ~~`Nop.Plugin.Shipping.FixedOrByWeight/Views/EditRateByWeightPopup.cshtml`~~ | ~~2~~ | ✅ **FIXED by task 14.4** — `~/Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml`; also `Html.Partial` → `await Html.PartialAsync` |
+| ~~`Nop.Plugin.Shipping.FixedOrByWeight/Views/_ByWeight.cshtml`~~ | ~~71~~ | ✅ **FIXED by task 14.4** — `~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml`, `Html.Partial` → `await Html.PartialAsync` (MVC1000) |
+| ~~`Nop.Plugin.Shipping.FixedOrByWeight/Views/_FixedRate.cshtml`~~ | ~~61~~ | ✅ **FIXED by task 14.4** — `~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml`, `Html.Partial` → `await Html.PartialAsync` |
+| ~~`Nop.Plugin.Tax.FixedOrByCountryStateZip/Views/_CountryStateZip.cshtml`~~ | ~~80~~ | ✅ **FIXED by task 15.1** — `~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml`, `Html.Partial` → `await Html.PartialAsync` |
+| ~~`Nop.Plugin.Tax.FixedOrByCountryStateZip/Views/_FixedRate.cshtml`~~ | ~~60~~ | ✅ **FIXED by task 15.1** — `~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml`, `Html.Partial` → `await Html.PartialAsync` |
 
 The fix is mechanical: `~/Administration/Views/…` → `~/Areas/Admin/Views/…`. Note it must be the
 explicit path, not a bare view name: these are cross-assembly references to views compiled into
@@ -9967,8 +9967,8 @@ plugin was renamed upstream and its system name was not, and
 | # | Item | How |
 |---|------|-----|
 | **10.x-1** | plugin static assets (`Content/`, `Scripts/`) are not served | ✅ **RESOLVED for all three affected plugins including 15.3** (§92.2). Third-level `Plugins/*/{Content,Scripts}/**` rule + `Plugins/bin` denied. 12 tests over real HTTP; reverting the rule fails exactly 7 |
-| **4.10** (11.2's quarter) | `GO`-batched `CreateDatabaseScript()` in a plugin context | ✅ **RESOLVED** (§92.3). `Nop.Data.DbContextExtensions.SplitSqlIntoBatches` / `ExecuteSqlScript`; `CreateTablesIfNotExist` refactored onto the same method. **13.1, 14.4 and 15.1 still owe theirs** and now have the helper named in `tasks.md` |
-| **8.2-3** (1 of the remaining 10 sites) | `Feed.GoogleShopping/Views/Configure.cshtml:279` | ✅ **RESOLVED** (§93). **9 sites remain**: 13.1 ×3, 14.4 ×4, 15.1 ×2 |
+| **4.10** (11.2's + 13.1's quarters) | `GO`-batched `CreateDatabaseScript()` in a plugin context | ✅ **RESOLVED for `Feed.GoogleShopping` (§92.3) and `Pickup.PickupInStore` (§96)**. `Nop.Data.DbContextExtensions.SplitSqlIntoBatches` / `ExecuteSqlScript`; `CreateTablesIfNotExist` refactored onto the same method. **14.4 and 15.1 still owe theirs** and have the helper named in `tasks.md` |
+| **8.2-3** (4 of the remaining 10 sites) | `Feed.GoogleShopping/Views/Configure.cshtml:279`; `Pickup.PickupInStore` Configure.cshtml:57, Create.cshtml:2, Edit.cshtml:2 | ✅ **RESOLVED** (§93 for GoogleShopping, §96 for Pickup ×3). **6 sites remain**: 14.4 ×4, 15.1 ×2 |
 
 ### NEW deferrals opened by tasks 11.1–11.2
 
@@ -9993,3 +9993,320 @@ plugin was renamed upstream and its system name was not, and
 | **8.2-2 / 8.5-1** | nothing enforces the two-step publish | 18.x. Plugin static assets add a fourth element: `Plugins/<ShortName>/Content/**` is now web-reachable and lives in `Nop.Web`'s **source** tree, which a `dotnet publish` of `Nop.Web` does not consult |
 | **8.8-2** | test projects and `Nop.Plugin.SmokeProbe` are absent from `NopCommerce.sln` | 18.1. Both 11.x plugins ARE in the solution already, as legacy entries pointing at the same paths |
 | **8.8-1** · **8.8-3** · **8.8-4** · **7.7-2** · **7.7-3** · **7.4-1** · **7.5-1** · **10.x-2** · **10.x-3** · **10.x-4** · **4.11** · **9/4.9** · **11.27** · **35** · **18/7.18** | unchanged | as previously recorded |
+
+
+## 96. Task 13.1 — Nop.Plugin.Pickup.PickupInStore migrated
+
+The Pickup plugin is its own group because it has both a `DbContext` and a `RouteProvider`. It
+built at **0 errors** in the containerized `net10.0` SDK, deploys only its own assembly plus
+runtime-read content, and its compiled view identifiers are 3.90's `/Plugins/Pickup.PickupInStore/Views/…`.
+The plugin recipe (§83, template `Nop.Plugin.DiscountRules.CustomerRoles.csproj`) was applied
+verbatim, with the `Feed.GoogleShopping` (§92.3) variant for the DbContext.
+
+### 96.1 Deferral 4.10 RESOLVED for the second of four plugin contexts
+
+`Data/StorePickupPointObjectContext.cs` was ported EF6 → EF Core following
+`GoogleProductObjectContext` (§92.3) member-for-member: `System.Data.Entity.DbContext` →
+`Microsoft.EntityFrameworkCore.DbContext`; the `(string nameOrConnectionString)` constructor
+**preserved** (load-bearing — `RegisterPluginDataContext` constructs it reflectively) with the
+string applied in `OnConfiguring`; `OnModelCreating(ModelBuilder)` calling
+`ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly())` (assembly-scoped, so the model
+holds ONLY `StorePickupPoint` and `Install()` cannot script the whole nopCommerce schema);
+`Set<T>` → `DbSet<T>`; `Detach` via `Entry(entity).State`; `ProxyCreationEnabled` /
+`AutoDetectChangesEnabled` mapped onto `ChangeTracker`; `ExecuteStoredProcedureList` / `SqlQuery` /
+`ExecuteSqlCommand` still `NotImplementedException` as in 3.90.
+
+`Install()` now calls **`this.ExecuteSqlScript(CreateDatabaseScript())`** — the shared
+`Nop.Data.DbContextExtensions.ExecuteSqlScript` / `SplitSqlIntoBatches`, not a re-derived splitter.
+`StorePickupPointMap` moved from the EF6 constructor form to
+`Configure(EntityTypeBuilder<StorePickupPoint>)`, keeping `ToTable("StorePickupPoint")` (load-bearing:
+`Uninstall()` resolves the name back through `GetTableName<StorePickupPoint>()` and drops it) and
+`HasPrecision(18, 4)` (EF Core's `PropertyBuilder.HasPrecision` since EF Core 6, same
+`decimal(18,4)` facet).
+
+**Measured shape, same refinement as §92.3:** for this one-table model EF Core emits one statement
+plus a **trailing** `GO` (`pickupContext.scriptGoLineCount=1`, `batchCount=1`,
+`batchesWithBareGo=0`, `batchesCreatingTable=1`). 3.90's single
+`Database.ExecuteSqlCommand(CreateDatabaseScript())` would have sent the trailing `GO` and got
+`Incorrect syntax near 'GO'`. Asserted **without a database** by `PluginViewRenderTests`
+(`Deferral_4_10_pickups_create_script_is_GO_batched_and_split_before_execution`,
+`Task_13_1_the_pickup_context_model_holds_ONLY_the_plugins_own_entity`) — the probe's
+`WritePluginDataContextProbe` was generalised into `WriteOnePluginDataContextProbe(key, …)` so
+GoogleShopping and Pickup are measured by ONE code path (a backward-compatible
+`pluginContext.batchesCreatingGoogleProduct` alias is kept for the group-11 test).
+
+### 96.2 Deferral 8.2-3 RESOLVED for this plugin's 3 sites
+
+- `Views/Configure.cshtml:57`: `~/Administration/Views/Shared/_GridPagerMessages.cshtml` →
+  `~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml`, and `@Html.Partial` →
+  `@await Html.PartialAsync`.
+- `Views/Create.cshtml:2` and `Views/Edit.cshtml:2`: the `Layout` assignment
+  `~/Administration/Views/Shared/_AdminPopupLayout.cshtml` →
+  `~/Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml`. Both `@Html.Partial` of
+  `_CreateOrUpdate.cshtml` also became `@await Html.PartialAsync`.
+
+These are cross-assembly references into `Nop.Admin.dll`, kept explicit `~/`-rooted paths. The
+non-area location formats §83.4 restored (so `_AdminPopupLayout`'s bare-name
+`Html.PartialAsync("Notifications")` resolves) were NOT touched. Asserted by
+`Deferral_8_2_3_pickups_admin_layout_and_partial_resolve_and_the_old_paths_do_not` — the new
+`~/Areas/Admin/…` paths resolve `True` and the pre-8.2 `~/Administration/…` paths resolve `False`,
+so the rewrite is shown to be load-bearing.
+
+### 96.3 The no-`_ViewStart` view, confirmed
+
+`Views/Configure.cshtml` assigns **no `Layout`** — the one view in the solution that relies on no
+`_ViewStart` applying (deferral 83.1). The recipe's `Content`/`Link` block keeps its identifier
+under `/Plugins/…`, whose ancestors have no `_ViewStart`, so none applies and it renders as a bare
+admin panel — correct. Asserted by
+`Task_13_1_no_ViewStart_applies_to_pickups_Configure_which_sets_no_layout`
+(`viewStartsApplyingTo:/Plugins/Pickup.PickupInStore/Views/Configure.cshtml=<none>`).
+
+### 96.4 Other substitutions
+
+- Controller: `System.Web.Mvc` → `Microsoft.AspNetCore.Mvc` (+ `.Rendering` for `SelectListItem`).
+  `[ChildActionOnly]` on `Configure()` → `[NopChildActionOnly]` (the action
+  `PickupInStoreProvider.GetConfigurationRoute` names and the admin list renders as a child action).
+  `List`, `Create`, `Edit`, `Delete` are **not** marked — they are reached by URL from the grid /
+  the plugin's own named routes, matching 3.90's own attribute placement. The settings-form round
+  trip is protected by the group-11 `Html.Action` bridge fix (deferral 11.x-1), inherited unchanged.
+- `RouteProvider`: `RegisterRoutes(RouteCollection)` → `RegisterRoutes(IEndpointRouteBuilder)`,
+  route **names** and patterns kept (`Configure.cshtml` resolves the Create/Edit URLs by name),
+  `Priority` 0, namespaces argument dropped. Asserted by
+  `Task_13_1_the_ported_route_provider_registered_3_90s_two_named_routes`.
+- `PickupInStoreProvider`: `System.Web.Routing` → `Microsoft.AspNetCore.Routing` (for
+  `RouteValueDictionary`); behaviour otherwise unchanged.
+- `Models/StorePickupPointModel.cs`: `System.Web.Mvc` → `Microsoft.AspNetCore.Mvc.Rendering`; the
+  three `[AllowHtml]` attributes on the address fields **dropped** (no ASP.NET Core counterpart —
+  the recorded relaxation, deferral 7.3-3).
+- `Data/EfStartUpTask.cs`: the `IStartupTask` type is **kept** but its body is now an intentional
+  **no-op** — see 96.5.
+- `web.config`, `app.config`, `packages.config` deleted; `web.config`'s load-bearing content
+  transcribed to the new `Views/_ViewImports.cshtml`. `Properties/AssemblyInfo.cs` kept.
+  `logo.png` (this plugin ships `.png`, not `.jpg`) deployed under its own name; the probe's
+  `logoDeployed` check was widened to accept either.
+
+### 96.5 NEW deferral 13.1-1 — `EfStartUpTask.Execute()` is a no-op (Low, faithful)
+
+| # | Item | Owner | Severity |
+|---|------|-------|----------|
+| **13.1-1** | `Pickup.PickupInStore/Data/EfStartUpTask.cs`'s body was 3.90's `Database.SetInitializer<StorePickupPointObjectContext>(null)` — an **EF6-only** call that disabled EF6's global model-change database initializer. EF Core removed the entire initializer subsystem (no `Database.SetInitializer`, no auto-recreate on model drift; schema creation is explicit, done in `Install()` via `ExecuteSqlScript`). There is nothing to disable, so `Execute()` is now an intentional **no-op**. The `IStartupTask` type is kept (not deleted) so the plugin's discovered-type set is unchanged. `Shipping.FixedOrByWeight` (14.4) and `Tax.FixedOrByCountryStateZip` (15.1) carry the identical class and will make the identical decision | 14.4, 15.1 | **Low — faithful** |
+
+### 96.6 Shared test files touched (for concurrency conflict-checking)
+
+Groups 14 and 15 ran concurrently. This task edited two **shared** smoke-test files; the
+orchestrator should check these for merge conflicts against 14/15's edits:
+
+- `src/Tests/Nop.Web.SmokeTests/SmokeProbeMiddleware.cs` — added `"Pickup.PickupInStore"` to the
+  `shortNames` array; added the plugin's two route patterns to the endpoint loop; added its
+  Configure identifier to the `_ViewStart` loop; **generalised** `WritePluginDataContextProbe` into
+  a reusable `WriteOnePluginDataContextProbe(key, …)` called for both GoogleShopping and Pickup
+  (keeping the `pluginContext.batchesCreatingGoogleProduct` alias); widened the `logoDeployed`
+  check to accept `logo.png`.
+- `src/Tests/Nop.Web.SmokeTests/PluginViewRenderTests.cs` — added `PickupInStoreAsm` constant to
+  `ViewBearing`/`AllMigrated`; added nine `Task_13_1_*` / `Deferral_*_pickup*` tests and a
+  `GetProbeWithGetView` helper.
+- `src/Tests/Nop.Web.SmokeTests/Nop.Web.SmokeTests.csproj` — added one build-order
+  `ProjectReference` to the Pickup plugin.
+
+`PluginViewRenderTests`: **30 passed / 0 failed / 9 skipped** (Group B needs a database). The new
+identifier assertion was proven able to fail by planting a doubled-`Views\` `Link` canary (the
+identifiers became `/Plugins/Pickup.PickupInStore/Views/Views/…` and the test went red); the canary
+was reverted and the plugin rebuilt at 0 errors. A `using System.Web.Mvc;` canary was planted and
+caught by the comment-aware source scan, then removed. All six upstream projects re-gated at
+build-success one at a time, and the ten group-10–12 plugins still build.
+
+
+---
+
+## 97. Task 15 — Tax and Widgets plugins (15.1 / 15.2 / 15.3)
+
+Group 15 migrated three plugins: `Nop.Plugin.Tax.FixedOrByCountryStateZip` (17 `.cs`, 3 views, its
+own `DbContext` + a `RouteProvider`), `Nop.Plugin.Widgets.GoogleAnalytics` (thin, one view), and
+`Nop.Plugin.Widgets.NivoSlider` (8 `.cs`, 2 views, the largest static-asset tree of any plugin).
+All three build at **0 errors** (10 upstream `SYSLIB*` warnings each, none of their own), applying
+the group-10 recipe unchanged.
+
+### 97.1 Deferrals resolved by this group
+
+| # | Item | Where | Proven by |
+|---|------|-------|-----------|
+| **4.10** (15.1 quarter) | The 4th and last plugin `DbContext`. `CountryStateZipObjectContext.Install()` now calls `this.ExecuteSqlScript(CreateDatabaseScript())` instead of 3.90's single `Database.ExecuteSqlCommand`. **Deferral 4.10 now fully resolved except 14.4.** | `Data/CountryStateZipObjectContext.cs`, `Data/TaxRateMap.cs` (EF6→EF Core, following §92.3's `GoogleProductObjectContext`) | `PluginViewRenderTests.Deferral_4_10_tax_*` + `Task_15_1_the_tax_context_model_holds_ONLY_the_plugins_own_entity` (probe key `taxContext.*`), no database needed |
+| **8.2-3** (both remaining sites) | `Tax.../Views/_CountryStateZip.cshtml:80` and `_FixedRate.cshtml:60` rewrote `~/Administration/Views/Shared/_GridPagerMessages.cshtml` → `~/Areas/Admin/Views/Shared/…` (kept the explicit `~/`-rooted path — cross-assembly into `Nop.Admin.dll`) and `Html.Partial` → `await Html.PartialAsync`. **8.2-3 now fully resolved.** | those two views | `PluginViewRenderTests.Deferral_8_2_3_tax_grid_pager_partial_resolves_and_the_old_path_does_not` — asserts the new path resolves AND the pre-8.2 path does NOT |
+| **10.x-1** (NivoSlider) | ✅ **CONFIRMED — the provider needed NO change** (task 11.1 already widened `NopStaticFileProvider` with the third-level `Plugins/*/{Content,Scripts}/**` rule and pinned the `Scripts/` half with a planted file). 15.3 owed only the DEPLOY half: `<None Remove="Content\**"/>`+`<Content Include="Content\**" CopyToOutputDirectory="Always"/>` and the same for `Scripts\**`. | `Nop.Plugin.Widgets.NivoSlider.csproj` | `PluginStaticAssetTests.Task_15_3_NivoSliders_real_Scripts_and_Content_assets_serve` (26 asset files deploy; `jquery.nivo.slider.js`, `nivo-slider.css`, `sample-images/banner1.jpg` all serve 200 over HTTP) + `Task_15_3_NivoSliders_own_assembly_metadata_and_closed_paths_still_404_SECURITY` (its `.dll`/`.deps.json`/`Description.txt` still 404, mis-cased URL 404s) |
+
+### 97.2 New items opened by this group
+
+| # | Item | Owner | Severity |
+|---|------|-------|----------|
+| **15.x-1** | `[AllowHtml]` DELETED from `Widgets.GoogleAnalytics/Models/ConfigurationModel.cs` (4 sites: GoogleId/TrackingScript/EcommerceScript/EcommerceDetailScript) and `Widgets.NivoSlider/Models/ConfigurationModel.cs` (10 sites: Text*/Link*). `System.Web.Mvc.AllowHtmlAttribute` has no ASP.NET Core counterpart — ASP.NET Core does not request-validate input, so there is nothing to opt out of. Same recorded, security-relevant relaxation as **deferral 7.3-3**. The GA tracking-script fields legitimately hold `<script>` markup, which is exactly why 3.90 marked them `[AllowHtml]`; storefront output already goes through `Html.Raw` in `Configure.cshtml` and is written verbatim into the page — behaviour unchanged from 3.90, but the framework no longer flags it. | 15.2, 15.3 | **Low — faithful, matches 7.3-3** |
+| **15.x-2** | `Widgets.GoogleAnalytics/Controllers/WidgetsGoogleAnalyticsController.PublicInfo` read the current storefront page's route via `((System.Web.UI.Page)this.HttpContext.CurrentHandler).RouteData` to decide whether it is on the checkout "completed" page (to emit the richer e-commerce script). `System.Web.UI.Page`/`HttpContext.CurrentHandler` do not exist in ASP.NET Core. Replaced with `HttpContext.Request.RouteValues` — the endpoint-routing values of the AMBIENT request. `PublicInfo` runs through the `Html.Action` bridge (§77.1), which reuses the parent request's `HttpContext`, so `Request.RouteValues` holds the storefront page's own `controller`/`action` (the child `ActionContext`'s `RouteData` would report `WidgetsGoogleAnalytics`/`PublicInfo` instead — hence `Request.RouteValues`, not `this.RouteData`). Faithful; not exercisable without a database + storefront, so asserted by inspection. | 15.2 | **Low — faithful** |
+| **15.x-3** | `Tax.FixedOrByCountryStateZip/Controllers/FixedOrByCountryStateZipController` overrode `System.Web.Mvc.Controller.Initialize(RequestContext)` to force `en-US` (`CommonHelper.SetTelerikCulture()`) before the Kendo grid parsed decimals. ASP.NET Core's `Controller` has no `Initialize` seam; moved to `OnActionExecuting(ActionExecutingContext)`, the same seam `Nop.Admin`'s `BaseAdminController` uses (task 8.3). `SetTelerikCulture` survived the migration in `Nop.Core.CommonHelper` unchanged. | 15.1 | **Low — faithful** |
+| **13.1-1 / 15.1** | `Tax.../Data/EfStartUpTask.cs` carried the identical EF6-only `Database.SetInitializer<CountryStateZipObjectContext>(null)` as 13.1's Pickup and 14.4's Shipping; gutted to a documented no-op, `IStartupTask` kept so the discovered-type set is unchanged. Same decision §96.5/13.1-1 predicted. | 15.1 | **Low — faithful** |
+
+### 97.3 Shared test files touched (for concurrency conflict-checking)
+
+Groups 13 and 14 ran concurrently. This task edited three **shared** smoke-test files; the
+orchestrator should check these for merge conflicts against 13/14's edits:
+
+- `src/Tests/Nop.Web.SmokeTests/SmokeProbeMiddleware.cs` — added
+  `"Tax.FixedOrByCountryStateZip"`, `"Widgets.GoogleAnalytics"`, `"Widgets.NivoSlider"` to the
+  `shortNames` array; added the six 15.x controller view paths to the hardcoded `getView` list;
+  added the Tax route pattern to the endpoint loop and its route name to the `routeUrl` loop; added
+  one `WriteOnePluginDataContextProbe(sb, "taxContext", …)` call (using 13.1's generalised helper).
+- `src/Tests/Nop.Web.SmokeTests/PluginViewRenderTests.cs` — added `TaxCountryStateZipAsm`,
+  `WidgetsGoogleAnalyticsAsm`, `WidgetsNivoSliderAsm` to `ViewBearing`/`AllMigrated`; added three
+  systemName assertions, the group-15 identifier/getView assertions, and five `Task_15_*` /
+  `Deferral_4_10_tax` / `Deferral_8_2_3_tax` tests.
+- `src/Tests/Nop.Web.SmokeTests/PluginStaticAssetTests.cs` — added NivoSlider's four real asset
+  URLs to `MustServe` and two `Task_15_3_*` tests.
+- `src/Tests/Nop.Web.SmokeTests/Nop.Web.SmokeTests.csproj` — added three build-order
+  `ProjectReference`s (Tax + the two Widgets).
+
+### 97.4 Verification
+
+- Three plugins build at **0 errors** individually (containerised `mcr.microsoft.com/dotnet/sdk:10.0`,
+  `--no-incremental`, `obj`/`bin` removed first). Each deploys **only** its own assembly + `.deps.json`
+  + `.pdb` + `Description.txt` + `logo.jpg` (verified: no stray `Nop.*` dll, no `Views/` directory);
+  `NivoSlider` additionally deploys its `Content/` (25 files) + `Scripts/` (1 file) trees, physically
+  present so `NivoSliderPlugin.Install`'s `CommonHelper.MapPath` read of `Content/nivoslider/sample-images/`
+  works.
+- `Nop.Web.SmokeTests`: **184 passed / 0 failed / 58 skipped** without a database (baseline 164/0/58
+  at group 11; +20 from this group and group 13's concurrent additions). All five dedicated group-15
+  tests pass. New assertions shown able to fail: the NivoSlider asset test's `PREMISE BROKEN` guard
+  fires if the `Content\**`/`Scripts\**` glob is dropped, and the 8.2-3 test requires the pre-8.2
+  path to 404 (proving the rewrite was load-bearing).
+- No `System.Web*` / `JsonRequestBehavior` / `AllowHtml` / `HttpUtility` in any of the three plugins'
+  `.cs` or `.cshtml` outside comments (comment-aware scan, canary-proven — see §97.5).
+
+
+### 97.5 The `System.Web` scan, canary-proven
+
+A comment-and-string-blanking scanner (line `//`, block `/* */`, string and verbatim-string aware
+for `.cs`; `@* *@` + `<!-- -->` + `/* */` + `//` for `.cshtml`) searched all **39** `.cs`/`.cshtml`
+files of the three plugins for `System.Web`, `HttpContext.Current`, `System.Data.Entity`,
+`JsonRequestBehavior`, `[AllowHtml`, `HttpUtility` and the legacy `[ChildActionOnly]` attribute:
+**0 real hits**. (Note the `[ChildActionOnly` pattern is anchored on the opening `[` so it does not
+match the ported `[NopChildActionOnly]`.) The scanner was **proven able to fail** by planting a
+`using System.Web.Mvc;` line in `Widgets.NivoSlider/NivoSliderSettings.cs`, which it caught; the
+canary was reverted and `git status` confirmed the file byte-identical. The one remaining
+`System.Web` MENTION in this group's code is inside XML-doc comments explaining each substitution
+(e.g. the `CurrentHandler.RouteData` → `Request.RouteValues` note), which the scanner blanks.
+
+
+
+---
+
+## 98. Task group 14 — the six Shipping.* plugins
+
+All six `IShippingRateComputationMethod` plugins migrated to SDK-style `net10.0` at **0 errors**,
+following the annotated `Nop.Plugin.DiscountRules.CustomerRoles.csproj` recipe (§83). Each deploys
+**only its own assembly + Description.txt + logo.jpg** — verified no `Nop.*`, `Newtonsoft.Json`,
+`Autofac`, `FluentValidation`, `EntityFramework` or `SixLabors` in any of the six deploy folders —
+and each compiles its views at `/Plugins/Shipping.<X>/Views/…` (read out of the built dlls;
+`FixedOrByWeight` shows all 6 views + `_ViewImports`). All six upstream projects (`Nop.Core`,
+`Nop.Data`, `Nop.Services`, `Nop.Web.Framework`, `Nop.Web`, `Nop.Admin`) were re-gated one at a time
+at 0 errors, and the ten group-10–12 plugins still build. A comment-and-string-blanking scanner
+(proven able to fail with a planted `using System.Web.Mvc;`/`HttpContextBase` canary that it caught,
+then removed) found **0 live `System.Web*` / `JsonRequestBehavior` / `ChildActionOnly` hits** across
+all six plugins' `.cs`/`.cshtml`.
+
+### 98.1 DEFERRAL 14.x-1 (HIGH, RESOLVED here) — the FedEx and UPS SOAP proxies
+
+**FedEx (14.3) and UPS (14.5) reach their carriers over SOAP through WSDL-generated proxies deriving
+from `System.Web.Services.Protocols.SoapHttpClientProtocol`, which has NO net10.0 counterpart.**
+FedEx has two (`RateService`, ~16,700-line `Reference.cs`, and `TrackService`, ~4,850 lines); UPS
+one (`TrackService`, `Web References/track/Reference.cs`).
+
+**Resolution — the 4.2 precedent applied at scale.** Task 4.2 replaced the EU VAT ASMX proxy with a
+hand-built `HttpClient` SOAP envelope (§7.16 / §16). The same decision holds here, with the
+observation that the generated files are ~99% plain `[XmlType]`/`[XmlElement]` **DTO classes** that
+compile UNCHANGED on net10.0 — only the single `SoapHttpClientProtocol`-derived proxy class in each
+file is unportable. So **only the proxy classes were replaced**, by hand-built classes that preserve
+the exact public surface the plugins call and delegate to a small SOAP invoker
+(`FedexSoapInvoker.cs` / `UpsSoapInvoker.cs`). Every DTO is kept verbatim.
+
+**The wire shape is preserved because it is an external contract with the carrier — stated
+prominently as instructed.** The invokers reproduce SOAP 1.1, document/literal, `ParameterStyle=Bare`
+exactly: a single body element named for the message part in the operation namespace, `text/xml;
+charset=utf-8`, and a quoted `SOAPAction` HTTP header; `xsi`/`xsd` are declared on the serialized
+element as `SoapHttpClientProtocol` did. The action strings, request/reply element names and
+namespaces were transcribed verbatim from the generated `[SoapDocumentMethod]` / `[return:
+XmlElement]` / parameter `[XmlElement]` attributes:
+
+| Plugin | Operation | SOAPAction | body request → reply | operation namespace |
+|---|---|---|---|---|
+| FedEx rate | `getRates` | `http://fedex.com/ws/rate/v16/getRates` | `RateRequest` → `RateReply` | `http://fedex.com/ws/rate/v16` |
+| FedEx track | `track` | `track` | `TrackRequest` → `TrackReply` | `http://fedex.com/ws/track/v5` |
+| UPS track | `ProcessTrack` | `http://onlinetools.ups.com/webservices/TrackBinding/v2.0` | `TrackRequest` → `TrackResponse` | `http://www.ups.com/XMLSchema/XOLTWS/Track/v2.0` |
+
+**UPS differs from FedEx in ONE load-bearing way: a SOAP header.** The generated `ProcessTrack`
+carried `[SoapHeader("UPSSecurityValue")]`, so `UPSSecurity` (root ns
+`http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0`) is serialized into `<soap:Header>`, not the body.
+`UpsSoapInvoker` writes it there; `UPSSecurity`'s `: System.Web.Services.Protocols.SoapHeader` base
+was dropped (it is a plain `[XmlRoot]` type and serializes identically without it). FedEx has no
+header.
+
+**What was dropped, and why it is safe:**
+- The async machinery (`*Async` / `Begin*` / `End*` / `*Completed` events + `*CompletedEventArgs` +
+  event-handler delegates): nothing in either plugin used it (`GetShippingOptions` and
+  `GetShipmentEvents` call the synchronous operation only). The invokers call `HttpClient.Send`
+  synchronously, matching `SoapHttpClientProtocol.Invoke`.
+- FedEx's three unused track operations (`getTrackNotification`,
+  `retrieveSignatureProofOfDeliveryLetter`, `sendSignatureProofOfDeliveryFax`) — their DTOs remain.
+- `Properties/Settings.{settings,Designer.cs}` in BOTH plugins (`System.Configuration.
+  ApplicationSettingsBase`, no net10.0 counterpart). Only the removed proxies read the default URL.
+  FedEx's computation method always sets `service.Url = _fedexSettings.Url` first, so the default
+  was dead and simply removed. UPS's tracker never set the URL, so the generated default
+  (`https://wwwcie.ups.com/webservices/Track`, UPS's CIE test endpoint) was **transcribed verbatim**
+  into the hand-built `TrackService.Url` initializer so behaviour is unchanged.
+- `System.Web.Services.Protocols.SoapException` (thrown by the proxies, caught by both plugins to
+  read `ex.Detail.InnerText` / `ex.Detail.LastChild.InnerText`) → a plugin-local `SoapException`
+  with an `XmlNode Detail` of the same shape, thrown by the invoker on a SOAP 1.1 `<Fault>`. The
+  catch sites are UNCHANGED.
+
+**Note on `ServicePointManager`:** `UPSShipmentTracker` sets
+`ServicePointManager.ServerCertificateValidationCallback += delegate { return true; }` before the
+call. It still compiles on net10.0 and, being process-global, also governs `HttpClient`, so the
+(permissive) certificate behaviour 3.90 had is preserved without change.
+
+**A static `HttpClient`** is used in each invoker — the documented correct pattern and the reason
+this migration has consistently declined a naive per-call `HttpClient` for the `WebRequest` carriers.
+
+### 98.2 The `WebRequest` carriers — kept, consistent with prior stages
+
+`AustraliaPost` (14.1), `CanadaPost` (14.2), `USPS` (14.6) and UPS's *rating* half (14.5) post to
+the carrier over `WebRequest`/`HttpWebRequest`. Kept verbatim, `SYSLIB0014` left VISIBLE, consistent
+with the recorded decisions in `Nop.Core`, `Nop.Services`, `Nop.Admin`, `EcbExchange` and
+PayPalStandard. Two of them rely on a behaviour a naive `HttpClient` port would silently break:
+`AustraliaPost` and `CanadaPost` read `WebException.Response` in a `catch` to parse the carrier's
+error body, whereas `HttpClient.Send` does not throw on 4xx/5xx. `AustraliaPost` additionally carries
+a direct `Newtonsoft.Json` dependency (now a version-less `<PackageReference PrivateAssets="all">`,
+central 13.0.4 pin) for its `JObject`/`JArray` reply parsing.
+
+### 98.3 The FixedOrByWeight controller — the `Initialize(RequestContext)` override, and `RawUrl`
+
+3.90's `FixedOrByWeightController` overrode `Controller.Initialize(System.Web.Routing.RequestContext)`
+to call `CommonHelper.SetTelerikCulture()` (the "little hack" for editing decimals in non-en-US
+cultures). ASP.NET Core has no `Initialize(RequestContext)` seam, AND the culture is now set for
+every admin request by `Nop.Web.Framework`'s `WorkingCultureMiddleware` (which calls
+`SetTelerikCulture()` on the admin branch). The override was therefore **dropped as redundant**,
+matching how the migrated `Nop.Admin` controllers dropped the same pattern (0 `SetTelerikCulture`
+call sites remain in `Nop.Admin`). The four `this.Request.RawUrl` reads (in the `AccessDenied`
+redirects) → `this.Request.GetEncodedPathAndQuery()`, the §51 / task-8.3 substitution.
+
+### 98.4 Not extending the shared smoke suite here — a concurrency decision
+
+The existing plugin smoke coverage (`Nop.Web.SmokeTests` — `PluginViewRenderTests`,
+`SmokeProbeMiddleware`'s `/__smoke/plugins` probe, `PluginStaticAssetTests`) is driven by a
+`shortNames` list in `SmokeProbeMiddleware.cs` and build-order `ProjectReference`s in
+`Nop.Web.SmokeTests.csproj` — both **shared files that groups 13 and 15 are editing concurrently**
+(they add Pickup/Tax/Widgets entries). Adding the six shipping plugins there would be a three-way
+edit on the same lists. Per the group-14 concurrency guidance ("do NOT edit the gated shared
+projects … if you believe a shared change is genuinely required, STOP and say so"), the shipping
+plugins were **verified structurally instead** (0 errors; view identifiers read from the built dlls
+at `/Plugins/Shipping.<X>/Views/…`; deploy folders proven to contain no leaked `Nop.*`/third-party
+assembly; `Description.txt SupportedVersions: 3.90` present so `PluginManager` discovers them; the
+canary-proven `System.Web` scan). **Recommendation for the group-16 checkpoint:** a single owner adds
+all remaining plugins (Shipping.* ×6, plus whatever 13/15 leave) to `SmokeProbeMiddleware`'s
+`shortNames` and the csproj references in one pass, so the `/__smoke/plugins` probe exercises them
+without the mid-flight three-way race.

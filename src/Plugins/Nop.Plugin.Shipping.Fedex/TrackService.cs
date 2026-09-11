@@ -3,21 +3,37 @@
 // and then modified by Chris Trottier, based on: http://brianseekford.com/index.php/2010/05/06/fedex-integration-address-service-unable-to-generate-a-temporary-class-parsedelement/
 
 
-/// <remarks/>
-[System.CodeDom.Compiler.GeneratedCodeAttribute("wsdl", "4.0.30319.1")]
-[System.Diagnostics.DebuggerStepThroughAttribute()]
-[System.ComponentModel.DesignerCategoryAttribute("code")]
-[System.Web.Services.WebServiceBindingAttribute(Name = "TrackServiceSoapBinding", Namespace = "http://fedex.com/ws/track/v5")]
-public partial class TrackService : System.Web.Services.Protocols.SoapHttpClientProtocol
+//
+// TASK 14.3: the generated TrackService proxy that USED to sit here derived from
+// System.Web.Services.Protocols.SoapHttpClientProtocol, which has no net10.0 counterpart.
+// Following the 4.2 precedent (EU VAT ASMX proxy replaced by hand-built SOAP over HttpClient),
+// ONLY the proxy class is replaced - by the hand-built TrackService below, which preserves the
+// TrackService(string Url) constructor and the track(TrackRequest) method the plugin uses, plus
+// the exact SOAP 1.1 / document-literal-bare wire shape the generated proxy sent (SOAP action
+// "track", request element "TrackRequest", reply "TrackReply", namespace
+// "http://fedex.com/ws/track/v5"). Every DTO class below is KEPT verbatim - plain [XmlType]
+// serializable types that compile unchanged on net10.0.
+//
+// The three UNUSED operations (getTrackNotification, retrieveSignatureProofOfDeliveryLetter,
+// sendSignatureProofOfDeliveryFax) and all the async/Begin/End machinery were removed: nothing in
+// the plugin called them (FedexShipmentTracker uses only track). Their request/reply DTOs remain
+// below in case a future caller needs them. The trailing *CompletedEventHandler delegates and
+// *CompletedEventArgs classes were removed with the async members that referenced them.
+// See FedexSoapInvoker.cs.
+//
+public partial class TrackService
 {
+    //Transcribed from the generated method's attributes:
+    //  [SoapDocumentMethod("track", Use=Literal, ParameterStyle=Bare)]
+    //  [return: XmlElement("TrackReply", Namespace="http://fedex.com/ws/track/v5")]
+    //  track([XmlElement(Namespace="http://fedex.com/ws/track/v5")] TrackRequest TrackRequest)
+    private const string OperationNamespace = "http://fedex.com/ws/track/v5";
+    private const string TrackSoapAction = "track";
 
-    private System.Threading.SendOrPostCallback getTrackNotificationOperationCompleted;
-
-    private System.Threading.SendOrPostCallback retrieveSignatureProofOfDeliveryLetterOperationCompleted;
-
-    private System.Threading.SendOrPostCallback trackOperationCompleted;
-
-    private System.Threading.SendOrPostCallback sendSignatureProofOfDeliveryFaxOperationCompleted;
+    /// <summary>
+    /// Service endpoint URL. FedexShipmentTracker constructs the service with the URL.
+    /// </summary>
+    public string Url { get; set; }
 
     /// <remarks/>
     public TrackService(string Url)
@@ -26,221 +42,10 @@ public partial class TrackService : System.Web.Services.Protocols.SoapHttpClient
     }
 
     /// <remarks/>
-    public event getTrackNotificationCompletedEventHandler getTrackNotificationCompleted;
-
-    /// <remarks/>
-    public event retrieveSignatureProofOfDeliveryLetterCompletedEventHandler retrieveSignatureProofOfDeliveryLetterCompleted;
-
-    /// <remarks/>
-    public event trackCompletedEventHandler trackCompleted;
-
-    /// <remarks/>
-    public event sendSignatureProofOfDeliveryFaxCompletedEventHandler sendSignatureProofOfDeliveryFaxCompleted;
-
-    /// <remarks/>
-    [System.Web.Services.Protocols.SoapDocumentMethodAttribute("getTrackNotification", Use = System.Web.Services.Description.SoapBindingUse.Literal, ParameterStyle = System.Web.Services.Protocols.SoapParameterStyle.Bare)]
-    [return: System.Xml.Serialization.XmlElementAttribute("TrackNotificationReply", Namespace = "http://fedex.com/ws/track/v5")]
-    public TrackNotificationReply getTrackNotification([System.Xml.Serialization.XmlElementAttribute(Namespace = "http://fedex.com/ws/track/v5")] TrackNotificationRequest TrackNotificationRequest)
+    public TrackReply track(TrackRequest TrackRequest)
     {
-        object[] results = this.Invoke("getTrackNotification", new object[] {
-                    TrackNotificationRequest});
-        return ((TrackNotificationReply)(results[0]));
-    }
-
-    /// <remarks/>
-    public System.IAsyncResult BegingetTrackNotification(TrackNotificationRequest TrackNotificationRequest, System.AsyncCallback callback, object asyncState)
-    {
-        return this.BeginInvoke("getTrackNotification", new object[] {
-                    TrackNotificationRequest}, callback, asyncState);
-    }
-
-    /// <remarks/>
-    public TrackNotificationReply EndgetTrackNotification(System.IAsyncResult asyncResult)
-    {
-        object[] results = this.EndInvoke(asyncResult);
-        return ((TrackNotificationReply)(results[0]));
-    }
-
-    /// <remarks/>
-    public void getTrackNotificationAsync(TrackNotificationRequest TrackNotificationRequest)
-    {
-        this.getTrackNotificationAsync(TrackNotificationRequest, null);
-    }
-
-    /// <remarks/>
-    public void getTrackNotificationAsync(TrackNotificationRequest TrackNotificationRequest, object userState)
-    {
-        if ((this.getTrackNotificationOperationCompleted == null))
-        {
-            this.getTrackNotificationOperationCompleted = new System.Threading.SendOrPostCallback(this.OngetTrackNotificationOperationCompleted);
-        }
-        this.InvokeAsync("getTrackNotification", new object[] {
-                    TrackNotificationRequest}, this.getTrackNotificationOperationCompleted, userState);
-    }
-
-    private void OngetTrackNotificationOperationCompleted(object arg)
-    {
-        if ((this.getTrackNotificationCompleted != null))
-        {
-            System.Web.Services.Protocols.InvokeCompletedEventArgs invokeArgs = ((System.Web.Services.Protocols.InvokeCompletedEventArgs)(arg));
-            this.getTrackNotificationCompleted(this, new getTrackNotificationCompletedEventArgs(invokeArgs.Results, invokeArgs.Error, invokeArgs.Cancelled, invokeArgs.UserState));
-        }
-    }
-
-    /// <remarks/>
-    [System.Web.Services.Protocols.SoapDocumentMethodAttribute("retrieveSignatureProofOfDeliveryLetter", Use = System.Web.Services.Description.SoapBindingUse.Literal, ParameterStyle = System.Web.Services.Protocols.SoapParameterStyle.Bare)]
-    [return: System.Xml.Serialization.XmlElementAttribute("SignatureProofOfDeliveryLetterReply", Namespace = "http://fedex.com/ws/track/v5")]
-    public SignatureProofOfDeliveryLetterReply retrieveSignatureProofOfDeliveryLetter([System.Xml.Serialization.XmlElementAttribute(Namespace = "http://fedex.com/ws/track/v5")] SignatureProofOfDeliveryLetterRequest SignatureProofOfDeliveryLetterRequest)
-    {
-        object[] results = this.Invoke("retrieveSignatureProofOfDeliveryLetter", new object[] {
-                    SignatureProofOfDeliveryLetterRequest});
-        return ((SignatureProofOfDeliveryLetterReply)(results[0]));
-    }
-
-    /// <remarks/>
-    public System.IAsyncResult BeginretrieveSignatureProofOfDeliveryLetter(SignatureProofOfDeliveryLetterRequest SignatureProofOfDeliveryLetterRequest, System.AsyncCallback callback, object asyncState)
-    {
-        return this.BeginInvoke("retrieveSignatureProofOfDeliveryLetter", new object[] {
-                    SignatureProofOfDeliveryLetterRequest}, callback, asyncState);
-    }
-
-    /// <remarks/>
-    public SignatureProofOfDeliveryLetterReply EndretrieveSignatureProofOfDeliveryLetter(System.IAsyncResult asyncResult)
-    {
-        object[] results = this.EndInvoke(asyncResult);
-        return ((SignatureProofOfDeliveryLetterReply)(results[0]));
-    }
-
-    /// <remarks/>
-    public void retrieveSignatureProofOfDeliveryLetterAsync(SignatureProofOfDeliveryLetterRequest SignatureProofOfDeliveryLetterRequest)
-    {
-        this.retrieveSignatureProofOfDeliveryLetterAsync(SignatureProofOfDeliveryLetterRequest, null);
-    }
-
-    /// <remarks/>
-    public void retrieveSignatureProofOfDeliveryLetterAsync(SignatureProofOfDeliveryLetterRequest SignatureProofOfDeliveryLetterRequest, object userState)
-    {
-        if ((this.retrieveSignatureProofOfDeliveryLetterOperationCompleted == null))
-        {
-            this.retrieveSignatureProofOfDeliveryLetterOperationCompleted = new System.Threading.SendOrPostCallback(this.OnretrieveSignatureProofOfDeliveryLetterOperationCompleted);
-        }
-        this.InvokeAsync("retrieveSignatureProofOfDeliveryLetter", new object[] {
-                    SignatureProofOfDeliveryLetterRequest}, this.retrieveSignatureProofOfDeliveryLetterOperationCompleted, userState);
-    }
-
-    private void OnretrieveSignatureProofOfDeliveryLetterOperationCompleted(object arg)
-    {
-        if ((this.retrieveSignatureProofOfDeliveryLetterCompleted != null))
-        {
-            System.Web.Services.Protocols.InvokeCompletedEventArgs invokeArgs = ((System.Web.Services.Protocols.InvokeCompletedEventArgs)(arg));
-            this.retrieveSignatureProofOfDeliveryLetterCompleted(this, new retrieveSignatureProofOfDeliveryLetterCompletedEventArgs(invokeArgs.Results, invokeArgs.Error, invokeArgs.Cancelled, invokeArgs.UserState));
-        }
-    }
-
-    /// <remarks/>
-    [System.Web.Services.Protocols.SoapDocumentMethodAttribute("track", Use = System.Web.Services.Description.SoapBindingUse.Literal, ParameterStyle = System.Web.Services.Protocols.SoapParameterStyle.Bare)]
-    [return: System.Xml.Serialization.XmlElementAttribute("TrackReply", Namespace = "http://fedex.com/ws/track/v5")]
-    public TrackReply track([System.Xml.Serialization.XmlElementAttribute(Namespace = "http://fedex.com/ws/track/v5")] TrackRequest TrackRequest)
-    {
-        object[] results = this.Invoke("track", new object[] {
-                    TrackRequest});
-        return ((TrackReply)(results[0]));
-    }
-
-    /// <remarks/>
-    public System.IAsyncResult Begintrack(TrackRequest TrackRequest, System.AsyncCallback callback, object asyncState)
-    {
-        return this.BeginInvoke("track", new object[] {
-                    TrackRequest}, callback, asyncState);
-    }
-
-    /// <remarks/>
-    public TrackReply Endtrack(System.IAsyncResult asyncResult)
-    {
-        object[] results = this.EndInvoke(asyncResult);
-        return ((TrackReply)(results[0]));
-    }
-
-    /// <remarks/>
-    public void trackAsync(TrackRequest TrackRequest)
-    {
-        this.trackAsync(TrackRequest, null);
-    }
-
-    /// <remarks/>
-    public void trackAsync(TrackRequest TrackRequest, object userState)
-    {
-        if ((this.trackOperationCompleted == null))
-        {
-            this.trackOperationCompleted = new System.Threading.SendOrPostCallback(this.OntrackOperationCompleted);
-        }
-        this.InvokeAsync("track", new object[] {
-                    TrackRequest}, this.trackOperationCompleted, userState);
-    }
-
-    private void OntrackOperationCompleted(object arg)
-    {
-        if ((this.trackCompleted != null))
-        {
-            System.Web.Services.Protocols.InvokeCompletedEventArgs invokeArgs = ((System.Web.Services.Protocols.InvokeCompletedEventArgs)(arg));
-            this.trackCompleted(this, new trackCompletedEventArgs(invokeArgs.Results, invokeArgs.Error, invokeArgs.Cancelled, invokeArgs.UserState));
-        }
-    }
-
-    /// <remarks/>
-    [System.Web.Services.Protocols.SoapDocumentMethodAttribute("sendSignatureProofOfDeliveryFax", Use = System.Web.Services.Description.SoapBindingUse.Literal, ParameterStyle = System.Web.Services.Protocols.SoapParameterStyle.Bare)]
-    [return: System.Xml.Serialization.XmlElementAttribute("SignatureProofOfDeliveryFaxReply", Namespace = "http://fedex.com/ws/track/v5")]
-    public SignatureProofOfDeliveryFaxReply sendSignatureProofOfDeliveryFax([System.Xml.Serialization.XmlElementAttribute(Namespace = "http://fedex.com/ws/track/v5")] SignatureProofOfDeliveryFaxRequest SignatureProofOfDeliveryFaxRequest)
-    {
-        object[] results = this.Invoke("sendSignatureProofOfDeliveryFax", new object[] {
-                    SignatureProofOfDeliveryFaxRequest});
-        return ((SignatureProofOfDeliveryFaxReply)(results[0]));
-    }
-
-    /// <remarks/>
-    public System.IAsyncResult BeginsendSignatureProofOfDeliveryFax(SignatureProofOfDeliveryFaxRequest SignatureProofOfDeliveryFaxRequest, System.AsyncCallback callback, object asyncState)
-    {
-        return this.BeginInvoke("sendSignatureProofOfDeliveryFax", new object[] {
-                    SignatureProofOfDeliveryFaxRequest}, callback, asyncState);
-    }
-
-    /// <remarks/>
-    public SignatureProofOfDeliveryFaxReply EndsendSignatureProofOfDeliveryFax(System.IAsyncResult asyncResult)
-    {
-        object[] results = this.EndInvoke(asyncResult);
-        return ((SignatureProofOfDeliveryFaxReply)(results[0]));
-    }
-
-    /// <remarks/>
-    public void sendSignatureProofOfDeliveryFaxAsync(SignatureProofOfDeliveryFaxRequest SignatureProofOfDeliveryFaxRequest)
-    {
-        this.sendSignatureProofOfDeliveryFaxAsync(SignatureProofOfDeliveryFaxRequest, null);
-    }
-
-    /// <remarks/>
-    public void sendSignatureProofOfDeliveryFaxAsync(SignatureProofOfDeliveryFaxRequest SignatureProofOfDeliveryFaxRequest, object userState)
-    {
-        if ((this.sendSignatureProofOfDeliveryFaxOperationCompleted == null))
-        {
-            this.sendSignatureProofOfDeliveryFaxOperationCompleted = new System.Threading.SendOrPostCallback(this.OnsendSignatureProofOfDeliveryFaxOperationCompleted);
-        }
-        this.InvokeAsync("sendSignatureProofOfDeliveryFax", new object[] {
-                    SignatureProofOfDeliveryFaxRequest}, this.sendSignatureProofOfDeliveryFaxOperationCompleted, userState);
-    }
-
-    private void OnsendSignatureProofOfDeliveryFaxOperationCompleted(object arg)
-    {
-        if ((this.sendSignatureProofOfDeliveryFaxCompleted != null))
-        {
-            System.Web.Services.Protocols.InvokeCompletedEventArgs invokeArgs = ((System.Web.Services.Protocols.InvokeCompletedEventArgs)(arg));
-            this.sendSignatureProofOfDeliveryFaxCompleted(this, new sendSignatureProofOfDeliveryFaxCompletedEventArgs(invokeArgs.Results, invokeArgs.Error, invokeArgs.Cancelled, invokeArgs.UserState));
-        }
-    }
-
-    /// <remarks/>
-    public new void CancelAsync(object userState)
-    {
-        base.CancelAsync(userState);
+        return Nop.Plugin.Shipping.Fedex.FedexSoapInvoker.Invoke<TrackRequest, TrackReply>(
+            Url, TrackSoapAction, "TrackRequest", "TrackReply", OperationNamespace, TrackRequest);
     }
 }
 
@@ -4725,126 +4530,6 @@ public partial class EMailNotificationDetail
         set
         {
             this.recipientsField = value;
-        }
-    }
-}
-
-/// <remarks/>
-[System.CodeDom.Compiler.GeneratedCodeAttribute("wsdl", "4.0.30319.1")]
-public delegate void getTrackNotificationCompletedEventHandler(object sender, getTrackNotificationCompletedEventArgs e);
-
-/// <remarks/>
-[System.CodeDom.Compiler.GeneratedCodeAttribute("wsdl", "4.0.30319.1")]
-[System.Diagnostics.DebuggerStepThroughAttribute()]
-[System.ComponentModel.DesignerCategoryAttribute("code")]
-public partial class getTrackNotificationCompletedEventArgs : System.ComponentModel.AsyncCompletedEventArgs
-{
-
-    private object[] results;
-
-    internal getTrackNotificationCompletedEventArgs(object[] results, System.Exception exception, bool cancelled, object userState) :
-        base(exception, cancelled, userState)
-    {
-        this.results = results;
-    }
-
-    /// <remarks/>
-    public TrackNotificationReply Result
-    {
-        get
-        {
-            this.RaiseExceptionIfNecessary();
-            return ((TrackNotificationReply)(this.results[0]));
-        }
-    }
-}
-
-/// <remarks/>
-[System.CodeDom.Compiler.GeneratedCodeAttribute("wsdl", "4.0.30319.1")]
-public delegate void retrieveSignatureProofOfDeliveryLetterCompletedEventHandler(object sender, retrieveSignatureProofOfDeliveryLetterCompletedEventArgs e);
-
-/// <remarks/>
-[System.CodeDom.Compiler.GeneratedCodeAttribute("wsdl", "4.0.30319.1")]
-[System.Diagnostics.DebuggerStepThroughAttribute()]
-[System.ComponentModel.DesignerCategoryAttribute("code")]
-public partial class retrieveSignatureProofOfDeliveryLetterCompletedEventArgs : System.ComponentModel.AsyncCompletedEventArgs
-{
-
-    private object[] results;
-
-    internal retrieveSignatureProofOfDeliveryLetterCompletedEventArgs(object[] results, System.Exception exception, bool cancelled, object userState) :
-        base(exception, cancelled, userState)
-    {
-        this.results = results;
-    }
-
-    /// <remarks/>
-    public SignatureProofOfDeliveryLetterReply Result
-    {
-        get
-        {
-            this.RaiseExceptionIfNecessary();
-            return ((SignatureProofOfDeliveryLetterReply)(this.results[0]));
-        }
-    }
-}
-
-/// <remarks/>
-[System.CodeDom.Compiler.GeneratedCodeAttribute("wsdl", "4.0.30319.1")]
-public delegate void trackCompletedEventHandler(object sender, trackCompletedEventArgs e);
-
-/// <remarks/>
-[System.CodeDom.Compiler.GeneratedCodeAttribute("wsdl", "4.0.30319.1")]
-[System.Diagnostics.DebuggerStepThroughAttribute()]
-[System.ComponentModel.DesignerCategoryAttribute("code")]
-public partial class trackCompletedEventArgs : System.ComponentModel.AsyncCompletedEventArgs
-{
-
-    private object[] results;
-
-    internal trackCompletedEventArgs(object[] results, System.Exception exception, bool cancelled, object userState) :
-        base(exception, cancelled, userState)
-    {
-        this.results = results;
-    }
-
-    /// <remarks/>
-    public TrackReply Result
-    {
-        get
-        {
-            this.RaiseExceptionIfNecessary();
-            return ((TrackReply)(this.results[0]));
-        }
-    }
-}
-
-/// <remarks/>
-[System.CodeDom.Compiler.GeneratedCodeAttribute("wsdl", "4.0.30319.1")]
-public delegate void sendSignatureProofOfDeliveryFaxCompletedEventHandler(object sender, sendSignatureProofOfDeliveryFaxCompletedEventArgs e);
-
-/// <remarks/>
-[System.CodeDom.Compiler.GeneratedCodeAttribute("wsdl", "4.0.30319.1")]
-[System.Diagnostics.DebuggerStepThroughAttribute()]
-[System.ComponentModel.DesignerCategoryAttribute("code")]
-public partial class sendSignatureProofOfDeliveryFaxCompletedEventArgs : System.ComponentModel.AsyncCompletedEventArgs
-{
-
-    private object[] results;
-
-    internal sendSignatureProofOfDeliveryFaxCompletedEventArgs(object[] results, System.Exception exception, bool cancelled, object userState) :
-        base(exception, cancelled, userState)
-    {
-        this.results = results;
-    }
-
-    /// <remarks/>
-    public SignatureProofOfDeliveryFaxReply Result
-    {
-        get
-        {
-            this.RaiseExceptionIfNecessary();
-            return ((SignatureProofOfDeliveryFaxReply)(this.results[0]));
         }
     }
 }

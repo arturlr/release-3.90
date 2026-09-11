@@ -1,8 +1,9 @@
-﻿using System.Web.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Nop.Plugin.Shipping.CanadaPost.Models;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Web.Framework.Controllers;
+using Nop.Web.Framework.Mvc;
 
 namespace Nop.Plugin.Shipping.CanadaPost.Controllers
 {
@@ -32,7 +33,7 @@ namespace Nop.Plugin.Shipping.CanadaPost.Controllers
 
         #region Methods
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure()
         {
             var model = new CanadaPostShippingModel
@@ -47,7 +48,7 @@ namespace Nop.Plugin.Shipping.CanadaPost.Controllers
         }
 
         [HttpPost]
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure(CanadaPostShippingModel model)
         {
             if (!ModelState.IsValid)

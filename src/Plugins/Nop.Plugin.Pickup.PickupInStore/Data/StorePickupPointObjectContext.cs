@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
+using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 using Nop.Data;
 using Nop.Plugin.Pickup.PickupInStore.Domain;
@@ -11,51 +11,125 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
     /// <summary>
     /// Object context
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>TASK 13.1 — the third of the four plugin object contexts (after Feed.GoogleShopping at
+    /// 11.2), and one of the places runtime deferral 4.10 bites.</b> The EF6 → EF Core port is the
+    /// mechanical shape task 11.2 established in
+    /// <c>Nop.Plugin.Feed.GoogleShopping/Data/GoogleProductObjectContext.cs</c>; that file carries
+    /// the full reasoning and is the worked example. Only what is specific to this context is noted
+    /// below.
+    /// </para>
+    /// <para>
+    /// ===================================================================================
+    /// <b>DEFERRAL 4.10 — <c>Install()</c> COULD NOT WORK, AND THE FIX IS SHARED.</b>
+    /// ===================================================================================
+    /// 3.90's <c>Install()</c> was <c>Database.ExecuteSqlCommand(CreateDatabaseScript())</c> — one
+    /// command for the whole script, correct for EF6 because <c>ObjectContext.CreateDatabaseScript()</c>
+    /// emitted a single unseparated batch. Task 3.2 substituted EF Core's
+    /// <c>Database.GenerateCreateScript()</c>, whose output is <b><c>GO</c>-batched</b>, and <c>GO</c>
+    /// is a CLIENT directive, not T-SQL, so sending it as one command fails with
+    /// <c>Incorrect syntax near 'GO'</c>. For a model this small EF Core also emits a <b>trailing</b>
+    /// <c>GO</c>, which is on its own still fatal to a single <c>ExecuteSqlCommand</c> (11.2's measured
+    /// refinement). The split lives in ONE place —
+    /// <c>Nop.Data.DbContextExtensions.SplitSqlIntoBatches</c>, exposed as
+    /// <c>ExecuteSqlScript(this DbContext, string)</c>, which this <c>Install()</c> calls. Do not
+    /// re-derive a splitter: <c>CreateTablesIfNotExist</c> was refactored onto the same method so the
+    /// two cannot drift.
+    /// </para>
+    /// <para>
+    /// ===================================================================================
+    /// <b>WHAT CHANGED, AND WHAT DID NOT</b>
+    /// ===================================================================================
+    /// <list type="bullet">
+    /// <item><c>System.Data.Entity.DbContext</c> → <c>Microsoft.EntityFrameworkCore.DbContext</c>.
+    /// The <c>(string nameOrConnectionString)</c> constructor is <b>preserved and load-bearing</b>:
+    /// <c>Nop.Web.Framework.RegisterPluginDataContext</c> constructs this type with
+    /// <c>Activator.CreateInstance(typeof(T), new object[] { connectionString })</c>, so removing or
+    /// renaming it fails at RUNTIME with a <c>MissingMethodException</c> and no compile error. EF Core
+    /// stashes the string and applies it in <see cref="OnConfiguring"/>.</item>
+    /// <item><c>OnModelCreating(DbModelBuilder)</c> → <c>OnModelCreating(ModelBuilder)</c>, and
+    /// <c>modelBuilder.Configurations.Add(new StorePickupPointMap())</c> →
+    /// <c>ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly())</c>. <b>The assembly
+    /// argument matters:</b> it confines the scan to THIS plugin's one map, guaranteeing the model
+    /// does NOT gain <c>Nop.Data</c>'s ~105 entities — which would make <see cref="Install"/> generate
+    /// a create script for the whole nopCommerce schema.</item>
+    /// <item><c>Set&lt;T&gt;</c> returns <c>DbSet&lt;TEntity&gt;</c> (was EF6 <c>IDbSet&lt;TEntity&gt;</c>),
+    /// matching <c>IDbContext</c> after task 3.2.</item>
+    /// <item><c>Detach</c>: <c>((IObjectContextAdapter)this).ObjectContext.Detach(entity)</c> →
+    /// <c>Entry(entity).State = EntityState.Detached</c>.</item>
+    /// <item><c>ProxyCreationEnabled</c> / <c>AutoDetectChangesEnabled</c>: <c>this.Configuration.*</c>
+    /// → <c>ChangeTracker.*</c>, the same compromise <c>NopObjectContext</c> and
+    /// <c>GoogleProductObjectContext</c> document (deferral 4.7). Neither property is read or written
+    /// anywhere in this plugin; they exist because <c>IDbContext</c> declares them.</item>
+    /// <item><c>ExecuteStoredProcedureList</c>, <c>SqlQuery</c> and <c>ExecuteSqlCommand</c>
+    /// <b>still throw <c>NotImplementedException</c></b>, exactly as in 3.90 — this context serves one
+    /// table through <c>EfRepository&lt;StorePickupPoint&gt;</c> and 3.90 declared the raw-SQL surface
+    /// unsupported. Implementing it would be inventing behaviour the plugin never had.</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// Lazy-loading proxies are NOT enabled: <see cref="StorePickupPoint"/> has only scalar properties
+    /// and no navigation, so a proxy dependency would serve nothing — the same decision as
+    /// <c>GoogleProductObjectContext</c>.
+    /// </para>
+    /// </remarks>
     public class StorePickupPointObjectContext : DbContext, IDbContext
     {
-        #region Ctor
+        #region Fields
 
-        public StorePickupPointObjectContext(string nameOrConnectionString) : base(nameOrConnectionString)
-        {
-            //((IObjectContextAdapter) this).ObjectContext.ContextOptions.LazyLoadingEnabled = true;
-        }
+        private readonly string _nameOrConnectionString;
+
+        //EF Core has no DbContextConfiguration.ProxyCreationEnabled; see the property below.
+        private bool _proxyCreationEnabled = true;
 
         #endregion
 
-        #region Properties
+        #region Ctor
 
         /// <summary>
-        /// Gets or sets a value indicating whether proxy creation setting is enabled (used in EF)
+        /// Ctor. DO NOT REMOVE OR RESHAPE - Nop.Web.Framework's RegisterPluginDataContext
+        /// constructs this type reflectively with exactly this signature.
         /// </summary>
-        public virtual bool ProxyCreationEnabled
+        public StorePickupPointObjectContext(string nameOrConnectionString)
         {
-            get { return this.Configuration.ProxyCreationEnabled; }
-            set { this.Configuration.ProxyCreationEnabled = value; }
+            _nameOrConnectionString = nameOrConnectionString;
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether auto detect changes setting is enabled (used in EF)
+        /// Ctor accepting pre-built options, for hosts/tests that configure the provider
+        /// themselves. Additive; mirrors the one task 3.2 added to <c>NopObjectContext</c>.
         /// </summary>
-        public virtual bool AutoDetectChangesEnabled
+        /// <param name="options">Context options</param>
+        public StorePickupPointObjectContext(DbContextOptions<StorePickupPointObjectContext> options)
+            : base(options)
         {
-            get { return this.Configuration.AutoDetectChangesEnabled; }
-            set { this.Configuration.AutoDetectChangesEnabled = value; }
         }
 
         #endregion
 
         #region Utilities
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            //when the context was built from a DbContextOptions instance the provider is already
+            //configured and _nameOrConnectionString is null - do not override it.
+            if (!optionsBuilder.IsConfigured && !string.IsNullOrEmpty(_nameOrConnectionString))
+                optionsBuilder.UseSqlServer(_nameOrConnectionString);
+
+            base.OnConfiguring(optionsBuilder);
+        }
+
         /// <summary>
         /// Add entity to the configuration of the model for a derived context before it is locked down
         /// </summary>
         /// <param name="modelBuilder">The builder that defines the model for the context being created</param>
-        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Configurations.Add(new StorePickupPointMap());
+            //EF6: modelBuilder.Configurations.Add(new StorePickupPointMap());
+            //The assembly argument confines the scan to THIS plugin - see the class remarks.
+            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
-            //disable EdmMetadata generation
-            //modelBuilder.Conventions.Remove<IncludeMetadataConvention>();
             base.OnModelCreating(modelBuilder);
         }
 
@@ -69,15 +143,18 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
         /// <returns>A DDL script</returns>
         public string CreateDatabaseScript()
         {
-            return ((IObjectContextAdapter)this).ObjectContext.CreateDatabaseScript();
+            //EF6: ((IObjectContextAdapter)this).ObjectContext.CreateDatabaseScript()
+            //NOTE the result is GO-batched - see deferral 4.10 in the class remarks. Callers must
+            //go through DbContextExtensions.ExecuteSqlScript, as Install() below does.
+            return Database.GenerateCreateScript();
         }
 
         /// <summary>
-        /// Returns a System.Data.Entity.DbSet`1 instance for access to entities of the given type in the context and the underlying store
+        /// Returns a DbSet instance for access to entities of the given type in the context and the underlying store
         /// </summary>
         /// <typeparam name="TEntity">The type entity for which a set should be returned</typeparam>
         /// <returns>A set for the given entity type</returns>
-        public new IDbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
+        public new DbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity
         {
             return base.Set<TEntity>();
         }
@@ -88,7 +165,10 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
         public void Install()
         {
             //create the table
-            Database.ExecuteSqlCommand(CreateDatabaseScript());
+            //RUNTIME DEFERRAL 4.10: one command PER GO BATCH. 3.90's single
+            //Database.ExecuteSqlCommand(dbScript) throws "Incorrect syntax near 'GO'" against the
+            //EF Core script. The split lives in Nop.Data so all four plugin contexts share it.
+            this.ExecuteSqlScript(CreateDatabaseScript());
             SaveChanges();
         }
 
@@ -104,22 +184,16 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
         /// <summary>
         /// Execute stores procedure and load a list of entities at the end
         /// </summary>
-        /// <typeparam name="TEntity">Entity type</typeparam>
-        /// <param name="commandText">Command text</param>
-        /// <param name="parameters">Parameters</param>
-        /// <returns>Entities</returns>
+        /// <remarks>Unsupported by this context, as in 3.90.</remarks>
         public IList<TEntity> ExecuteStoredProcedureList<TEntity>(string commandText, params object[] parameters) where TEntity : BaseEntity, new()
         {
             throw new NotImplementedException();
         }
 
         /// <summary>
-        /// Creates a raw SQL query that will return elements of the given generic type.  The type can be any type that has properties that match the names of the columns returned from the query, or can be a simple primitive type. The type does not have to be an entity type. The results of this query are never tracked by the context even if the type of object returned is an entity type.
+        /// Creates a raw SQL query that will return elements of the given generic type.
         /// </summary>
-        /// <typeparam name="TElement">The type of object returned by the query.</typeparam>
-        /// <param name="sql">The SQL query string.</param>
-        /// <param name="parameters">The parameters to apply to the SQL query string.</param>
-        /// <returns>Result</returns>
+        /// <remarks>Unsupported by this context, as in 3.90.</remarks>
         public IEnumerable<TElement> SqlQuery<TElement>(string sql, params object[] parameters)
         {
             throw new NotImplementedException();
@@ -128,11 +202,7 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
         /// <summary>
         /// Executes the given DDL/DML command against the database.
         /// </summary>
-        /// <param name="sql">The command string</param>
-        /// <param name="doNotEnsureTransaction">false - the transaction creation is not ensured; true - the transaction creation is ensured.</param>
-        /// <param name="timeout">Timeout value, in seconds. A null value indicates that the default value of the underlying provider will be used</param>
-        /// <param name="parameters">The parameters to apply to the command string.</param>
-        /// <returns>The result returned by the database after executing the command.</returns>
+        /// <remarks>Unsupported by this context, as in 3.90.</remarks>
         public int ExecuteSqlCommand(string sql, bool doNotEnsureTransaction = false, int? timeout = null, params object[] parameters)
         {
             throw new NotImplementedException();
@@ -147,7 +217,45 @@ namespace Nop.Plugin.Pickup.PickupInStore.Data
             if (entity == null)
                 throw new ArgumentNullException("entity");
 
-            ((IObjectContextAdapter)this).ObjectContext.Detach(entity);
+            //EF6: ((IObjectContextAdapter)this).ObjectContext.Detach(entity)
+            Entry(entity).State = EntityState.Detached;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Gets or sets a value indicating whether proxy creation setting is enabled (used in EF)
+        /// </summary>
+        /// <remarks>See the class remarks: EF Core cannot toggle proxy creation per instance, so
+        /// this maps onto the runtime analogue and the flag is remembered.</remarks>
+        public virtual bool ProxyCreationEnabled
+        {
+            get
+            {
+                return _proxyCreationEnabled;
+            }
+            set
+            {
+                _proxyCreationEnabled = value;
+                ChangeTracker.LazyLoadingEnabled = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether auto detect changes setting is enabled (used in EF)
+        /// </summary>
+        public virtual bool AutoDetectChangesEnabled
+        {
+            get
+            {
+                return ChangeTracker.AutoDetectChangesEnabled;
+            }
+            set
+            {
+                ChangeTracker.AutoDetectChangesEnabled = value;
+            }
         }
 
         #endregion

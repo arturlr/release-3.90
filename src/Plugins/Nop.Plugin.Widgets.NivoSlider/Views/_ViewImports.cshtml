@@ -1,0 +1,29 @@
+@*
+    Task 15.3 — the ASP.NET Core replacement for this plugin's web.config
+    <system.web.webPages.razor><pages> element (Requirement 4.4).
+
+    THIS FILE IS PART OF THE PLUGIN RECIPE. See
+    src/Plugins/Nop.Plugin.DiscountRules.CustomerRoles/Views/_ViewImports.cshtml for the full
+    reasoning. @inherits WebViewPage<TModel> is what makes T("…") resolve and the @model bind; the
+    @using directives are the four System.Web <namespaces> translated (System.Web.Mvc.Ajax dropped,
+    no counterpart).
+
+    Both views (Configure.cshtml, PublicInfo.cshtml) declare their @model fully qualified, so the
+    @using Nop.Plugin.Widgets.NivoSlider.Models below is not strictly required — present for
+    consistency. @using Nop.Web.Framework.UI covers Html.AddScriptParts / Html.AddCssFileParts
+    used by PublicInfo.cshtml.
+*@
+@inherits Nop.Web.Framework.ViewEngines.Razor.WebViewPage<TModel>
+
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Routing
+
+@using Nop.Core.Infrastructure
+@using Nop.Web.Framework
+@using Nop.Web.Framework.UI
+@using Nop.Plugin.Widgets.NivoSlider.Models
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

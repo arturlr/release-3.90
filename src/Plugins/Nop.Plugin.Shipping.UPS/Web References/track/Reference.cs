@@ -15,123 +15,24 @@
 
 namespace Nop.Plugin.Shipping.UPS.track {
     using System;
-    using System.Web.Services;
     using System.Diagnostics;
-    using System.Web.Services.Protocols;
     using System.Xml.Serialization;
     using System.ComponentModel;
     
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Web.Services", "4.0.30319.18408")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Web.Services.WebServiceBindingAttribute(Name="TrackBinding", Namespace="http://www.ups.com/WSDL/XOLTWS/Track/v2.0")]
-    public partial class TrackService : System.Web.Services.Protocols.SoapHttpClientProtocol {
-        
-        private UPSSecurity uPSSecurityValueField;
-        
-        private System.Threading.SendOrPostCallback ProcessTrackOperationCompleted;
-        
-        private bool useDefaultCredentialsSetExplicitly;
-        
-        /// <remarks/>
-        public TrackService() {
-            this.Url = global::Nop.Plugin.Shipping.UPS.Properties.Settings.Default.Nop_Plugin_Shipping_UPS_track_TrackService;
-            if ((this.IsLocalFileSystemWebService(this.Url) == true)) {
-                this.UseDefaultCredentials = true;
-                this.useDefaultCredentialsSetExplicitly = false;
-            }
-            else {
-                this.useDefaultCredentialsSetExplicitly = true;
-            }
-        }
-        
-        public UPSSecurity UPSSecurityValue {
-            get {
-                return this.uPSSecurityValueField;
-            }
-            set {
-                this.uPSSecurityValueField = value;
-            }
-        }
-        
-        public new string Url {
-            get {
-                return base.Url;
-            }
-            set {
-                if ((((this.IsLocalFileSystemWebService(base.Url) == true) 
-                            && (this.useDefaultCredentialsSetExplicitly == false)) 
-                            && (this.IsLocalFileSystemWebService(value) == false))) {
-                    base.UseDefaultCredentials = false;
-                }
-                base.Url = value;
-            }
-        }
-        
-        public new bool UseDefaultCredentials {
-            get {
-                return base.UseDefaultCredentials;
-            }
-            set {
-                base.UseDefaultCredentials = value;
-                this.useDefaultCredentialsSetExplicitly = true;
-            }
-        }
-        
-        /// <remarks/>
-        public event ProcessTrackCompletedEventHandler ProcessTrackCompleted;
-        
-        /// <remarks/>
-        [System.Web.Services.Protocols.SoapHeaderAttribute("UPSSecurityValue")]
-        [System.Web.Services.Protocols.SoapDocumentMethodAttribute("http://onlinetools.ups.com/webservices/TrackBinding/v2.0", Use=System.Web.Services.Description.SoapBindingUse.Literal, ParameterStyle=System.Web.Services.Protocols.SoapParameterStyle.Bare)]
-        [return: System.Xml.Serialization.XmlElementAttribute("TrackResponse", Namespace="http://www.ups.com/XMLSchema/XOLTWS/Track/v2.0")]
-        public TrackResponse ProcessTrack([System.Xml.Serialization.XmlElementAttribute(Namespace="http://www.ups.com/XMLSchema/XOLTWS/Track/v2.0")] TrackRequest TrackRequest) {
-            object[] results = this.Invoke("ProcessTrack", new object[] {
-                        TrackRequest});
-            return ((TrackResponse)(results[0]));
-        }
-        
-        /// <remarks/>
-        public void ProcessTrackAsync(TrackRequest TrackRequest) {
-            this.ProcessTrackAsync(TrackRequest, null);
-        }
-        
-        /// <remarks/>
-        public void ProcessTrackAsync(TrackRequest TrackRequest, object userState) {
-            if ((this.ProcessTrackOperationCompleted == null)) {
-                this.ProcessTrackOperationCompleted = new System.Threading.SendOrPostCallback(this.OnProcessTrackOperationCompleted);
-            }
-            this.InvokeAsync("ProcessTrack", new object[] {
-                        TrackRequest}, this.ProcessTrackOperationCompleted, userState);
-        }
-        
-        private void OnProcessTrackOperationCompleted(object arg) {
-            if ((this.ProcessTrackCompleted != null)) {
-                System.Web.Services.Protocols.InvokeCompletedEventArgs invokeArgs = ((System.Web.Services.Protocols.InvokeCompletedEventArgs)(arg));
-                this.ProcessTrackCompleted(this, new ProcessTrackCompletedEventArgs(invokeArgs.Results, invokeArgs.Error, invokeArgs.Cancelled, invokeArgs.UserState));
-            }
-        }
-        
-        /// <remarks/>
-        public new void CancelAsync(object userState) {
-            base.CancelAsync(userState);
-        }
-        
-        private bool IsLocalFileSystemWebService(string url) {
-            if (((url == null) 
-                        || (url == string.Empty))) {
-                return false;
-            }
-            System.Uri wsUri = new System.Uri(url);
-            if (((wsUri.Port >= 1024) 
-                        && (string.Compare(wsUri.Host, "localHost", System.StringComparison.OrdinalIgnoreCase) == 0))) {
-                return true;
-            }
-            return false;
-        }
-    }
+    //
+    // TASK 14.5: the generated TrackService proxy that USED to sit here derived from
+    // System.Web.Services.Protocols.SoapHttpClientProtocol, which has no net10.0 counterpart.
+    // Following the 4.2 precedent (EU VAT ASMX proxy replaced by hand-built SOAP over HttpClient)
+    // and the 14.3 FedEx port, ONLY the proxy class was replaced - by the hand-built TrackService
+    // in TrackService.cs, which preserves the parameterless ctor, the UPSSecurityValue property and
+    // the ProcessTrack(TrackRequest) method, plus the exact SOAP 1.1 / document-literal-bare wire
+    // shape the generated proxy sent. UNLIKE FedEx, UPS sends UPSSecurity as a SOAP HEADER
+    // ([SoapHeader("UPSSecurityValue")]): the invoker serializes it into <soap:Header>. SOAP action
+    // "http://onlinetools.ups.com/webservices/TrackBinding/v2.0", body element "TrackRequest"
+    // (ns http://www.ups.com/XMLSchema/XOLTWS/Track/v2.0), reply "TrackResponse", header UPSSecurity
+    // (ns http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0). Every DTO below is KEPT verbatim; the
+    // async machinery was removed as unused. See UpsSoapInvoker.cs.
+    //
     
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.18408")]
@@ -140,7 +41,10 @@ namespace Nop.Plugin.Shipping.UPS.track {
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0")]
     [System.Xml.Serialization.XmlRootAttribute(Namespace="http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0", IsNullable=false)]
-    public partial class UPSSecurity : System.Web.Services.Protocols.SoapHeader {
+    //TASK 14.5: base was System.Web.Services.Protocols.SoapHeader (no net10.0 counterpart). It is
+    //a plain [XmlRoot]/[XmlType] type, so dropping the base changes nothing about how it serializes
+    //into <soap:Header> - UpsSoapInvoker writes it there explicitly.
+    public partial class UPSSecurity {
         
         private UPSSecurityUsernameToken usernameTokenField;
         
@@ -2754,32 +2658,6 @@ namespace Nop.Plugin.Shipping.UPS.track {
             }
             set {
                 this.disclaimerField = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Web.Services", "4.0.30319.18408")]
-    public delegate void ProcessTrackCompletedEventHandler(object sender, ProcessTrackCompletedEventArgs e);
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Web.Services", "4.0.30319.18408")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.ComponentModel.DesignerCategoryAttribute("code")]
-    public partial class ProcessTrackCompletedEventArgs : System.ComponentModel.AsyncCompletedEventArgs {
-        
-        private object[] results;
-        
-        internal ProcessTrackCompletedEventArgs(object[] results, System.Exception exception, bool cancelled, object userState) : 
-                base(exception, cancelled, userState) {
-            this.results = results;
-        }
-        
-        /// <remarks/>
-        public TrackResponse Result {
-            get {
-                this.RaiseExceptionIfNecessary();
-                return ((TrackResponse)(this.results[0]));
             }
         }
     }

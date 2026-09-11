@@ -1,0 +1,47 @@
+@*
+    Task 15.1 — the ASP.NET Core replacement for this plugin's web.config
+    <system.web.webPages.razor><pages> element (Requirement 4.4).
+
+    THIS FILE IS PART OF THE PLUGIN RECIPE. Every plugin that ships a .cshtml needs one; see
+    src/Plugins/Nop.Plugin.DiscountRules.CustomerRoles/Views/_ViewImports.cshtml for the full
+    reasoning. In brief: all 20 plugins ship a byte-identical web.config declaring
+    pageBaseType="Nop.Web.Framework.ViewEngines.Razor.WebViewPage" (→ the @inherits below, which
+    is what makes T("…") resolve and an unqualified @model bind) plus four System.Web <namespaces>
+    (→ the @using directives; System.Web.Mvc.Ajax has no ASP.NET Core counterpart and is dropped).
+
+    It must sit at Views/ and inside the project file's Content/Link glob (Views\**\*.cshtml), so
+    that this file, Configure.cshtml, _FixedRate.cshtml and _CountryStateZip.cshtml all link into
+    the SAME directory (/Plugins/Tax.FixedOrByCountryStateZip/Views/) — Razor resolves imports by
+    walking up from the view's LINKED path.
+
+    NOTE Configure.cshtml and _CountryStateZip.cshtml both declare `@model … .ConfigurationModel`
+    fully QUALIFIED, and _FixedRate.cshtml has no @model, so the
+    @using Nop.Plugin.Tax.FixedOrByCountryStateZip.Models below is not strictly required by them —
+    it is present for consistency with the other plugins and so an unqualified @model added later
+    resolves.
+*@
+@inherits Nop.Web.Framework.ViewEngines.Razor.WebViewPage<TModel>
+
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Routing
+
+@*
+    Nop.Web.Framework carries HtmlExtensions (Html.NopLabelFor / NopEditorFor /
+    NopDropDownListFor / FieldIdFor / ValidationMessageFor bridge), ViewCompatibilityExtensions
+    and ChildActionExtensions. Extensions.SelectionIsNotPossible (used by the store dropdown in
+    _CountryStateZip.cshtml) is in the same namespace. One import covers all of them.
+*@
+@using Nop.Core.Infrastructure
+@using Nop.Web.Framework
+@using Nop.Web.Framework.UI
+@using Nop.Plugin.Tax.FixedOrByCountryStateZip.Models
+
+@*
+    Tag helpers. 3.90 had none (they do not exist in MVC 5). Added for the same reason task 7.3
+    added them to Nop.Web: the framework's form/validation tag helpers are the supported route to
+    an anti-forgery token, and Html.BeginForm uses the same infrastructure.
+*@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

@@ -1,0 +1,34 @@
+@*
+    Task 14.1 — the ASP.NET Core replacement for this plugin's web.config
+    <system.web.webPages.razor><pages> element (Requirement 4.4).
+
+    Identical in shape to tasks 10.1/11.2's; only the plugin's own Models namespace differs.
+    See src/Plugins/Nop.Plugin.DiscountRules.CustomerRoles/Views/_ViewImports.cshtml for the full
+    reasoning. In brief: all 20 plugins ship a byte-identical web.config declaring
+    pageBaseType="Nop.Web.Framework.ViewEngines.Razor.WebViewPage" (→ the @inherits below, which
+    is what makes T("…") and an unqualified @model resolve) plus four System.Web <namespaces>
+    (→ the @using directives; System.Web.Mvc.Ajax has no ASP.NET Core counterpart and is dropped).
+
+    It must sit at Views/ and inside the project file's Content/Link glob (Views\**\*.cshtml), so
+    that this file and Configure.cshtml are linked into the SAME directory
+    (/Plugins/Shipping.AustraliaPost/Views/) — Razor resolves imports by walking up from the
+    view's LINKED path.
+
+    NOTE Configure.cshtml declares `@model Nop.Plugin.Shipping.AustraliaPost.Models.AustraliaPostShippingModel`
+    FULLY QUALIFIED, so the @using of the Models namespace below is not strictly required for it,
+    but is kept for consistency with the recipe.
+*@
+@inherits Nop.Web.Framework.ViewEngines.Razor.WebViewPage<TModel>
+
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Routing
+
+@using Nop.Core.Infrastructure
+@using Nop.Web.Framework
+@using Nop.Web.Framework.UI
+@using Nop.Plugin.Shipping.AustraliaPost.Models
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

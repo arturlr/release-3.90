@@ -15,111 +15,23 @@
 
 namespace Nop.Plugin.Shipping.Fedex.RateServiceWebReference {
     using System;
-    using System.Web.Services;
     using System.Diagnostics;
-    using System.Web.Services.Protocols;
     using System.Xml.Serialization;
     using System.ComponentModel;
     
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Web.Services", "4.0.30319.18408")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Web.Services.WebServiceBindingAttribute(Name="RateServiceSoapBinding", Namespace="http://fedex.com/ws/rate/v16")]
-    public partial class RateService : System.Web.Services.Protocols.SoapHttpClientProtocol {
-        
-        private System.Threading.SendOrPostCallback getRatesOperationCompleted;
-        
-        private bool useDefaultCredentialsSetExplicitly;
-        
-        /// <remarks/>
-        public RateService() {
-            this.Url = global::Nop.Plugin.Shipping.Fedex.Properties.Settings.Default.Nop_Plugin_Shipping_Fedex_RateServiceWebReference_RateService;
-            if ((this.IsLocalFileSystemWebService(this.Url) == true)) {
-                this.UseDefaultCredentials = true;
-                this.useDefaultCredentialsSetExplicitly = false;
-            }
-            else {
-                this.useDefaultCredentialsSetExplicitly = true;
-            }
-        }
-        
-        public new string Url {
-            get {
-                return base.Url;
-            }
-            set {
-                if ((((this.IsLocalFileSystemWebService(base.Url) == true) 
-                            && (this.useDefaultCredentialsSetExplicitly == false)) 
-                            && (this.IsLocalFileSystemWebService(value) == false))) {
-                    base.UseDefaultCredentials = false;
-                }
-                base.Url = value;
-            }
-        }
-        
-        public new bool UseDefaultCredentials {
-            get {
-                return base.UseDefaultCredentials;
-            }
-            set {
-                base.UseDefaultCredentials = value;
-                this.useDefaultCredentialsSetExplicitly = true;
-            }
-        }
-        
-        /// <remarks/>
-        public event getRatesCompletedEventHandler getRatesCompleted;
-        
-        /// <remarks/>
-        [System.Web.Services.Protocols.SoapDocumentMethodAttribute("http://fedex.com/ws/rate/v16/getRates", Use=System.Web.Services.Description.SoapBindingUse.Literal, ParameterStyle=System.Web.Services.Protocols.SoapParameterStyle.Bare)]
-        [return: System.Xml.Serialization.XmlElementAttribute("RateReply", Namespace="http://fedex.com/ws/rate/v16")]
-        public RateReply getRates([System.Xml.Serialization.XmlElementAttribute(Namespace="http://fedex.com/ws/rate/v16")] RateRequest RateRequest) {
-            object[] results = this.Invoke("getRates", new object[] {
-                        RateRequest});
-            return ((RateReply)(results[0]));
-        }
-        
-        /// <remarks/>
-        public void getRatesAsync(RateRequest RateRequest) {
-            this.getRatesAsync(RateRequest, null);
-        }
-        
-        /// <remarks/>
-        public void getRatesAsync(RateRequest RateRequest, object userState) {
-            if ((this.getRatesOperationCompleted == null)) {
-                this.getRatesOperationCompleted = new System.Threading.SendOrPostCallback(this.OngetRatesOperationCompleted);
-            }
-            this.InvokeAsync("getRates", new object[] {
-                        RateRequest}, this.getRatesOperationCompleted, userState);
-        }
-        
-        private void OngetRatesOperationCompleted(object arg) {
-            if ((this.getRatesCompleted != null)) {
-                System.Web.Services.Protocols.InvokeCompletedEventArgs invokeArgs = ((System.Web.Services.Protocols.InvokeCompletedEventArgs)(arg));
-                this.getRatesCompleted(this, new getRatesCompletedEventArgs(invokeArgs.Results, invokeArgs.Error, invokeArgs.Cancelled, invokeArgs.UserState));
-            }
-        }
-        
-        /// <remarks/>
-        public new void CancelAsync(object userState) {
-            base.CancelAsync(userState);
-        }
-        
-        private bool IsLocalFileSystemWebService(string url) {
-            if (((url == null) 
-                        || (url == string.Empty))) {
-                return false;
-            }
-            System.Uri wsUri = new System.Uri(url);
-            if (((wsUri.Port >= 1024) 
-                        && (string.Compare(wsUri.Host, "localHost", System.StringComparison.OrdinalIgnoreCase) == 0))) {
-                return true;
-            }
-            return false;
-        }
-    }
+    //
+    // TASK 14.3: the generated RateService proxy that USED to sit here derived from
+    // System.Web.Services.Protocols.SoapHttpClientProtocol, which has no net10.0 counterpart.
+    // Following the 4.2 precedent (EU VAT ASMX proxy replaced by hand-built SOAP over HttpClient),
+    // ONLY the proxy class was replaced - by Nop.Plugin.Shipping.Fedex.RateServiceWebReference's
+    // RateService in RateService.cs, which preserves the getRates(RateRequest) signature, the Url
+    // property and the exact SOAP 1.1 / document-literal-bare wire shape (SOAP action
+    // "http://fedex.com/ws/rate/v16/getRates", request element "RateRequest", reply "RateReply",
+    // namespace "http://fedex.com/ws/rate/v16"). Every DTO class below is KEPT verbatim - they are
+    // plain [XmlType] serializable types that compile unchanged on net10.0. The async machinery
+    // (getRatesAsync / getRatesCompleted / getRatesCompletedEventArgs) was removed because nothing
+    // in the plugin used it. See FedexSoapInvoker.cs.
+    //
     
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
@@ -16690,32 +16602,6 @@ namespace Nop.Plugin.Shipping.Fedex.RateServiceWebReference {
         
         /// <remarks/>
         FXSP,
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Web.Services", "4.0.30319.18408")]
-    public delegate void getRatesCompletedEventHandler(object sender, getRatesCompletedEventArgs e);
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Web.Services", "4.0.30319.18408")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.ComponentModel.DesignerCategoryAttribute("code")]
-    public partial class getRatesCompletedEventArgs : System.ComponentModel.AsyncCompletedEventArgs {
-        
-        private object[] results;
-        
-        internal getRatesCompletedEventArgs(object[] results, System.Exception exception, bool cancelled, object userState) : 
-                base(exception, cancelled, userState) {
-            this.results = results;
-        }
-        
-        /// <remarks/>
-        public RateReply Result {
-            get {
-                this.RaiseExceptionIfNecessary();
-                return ((RateReply)(this.results[0]));
-            }
-        }
     }
 }
 

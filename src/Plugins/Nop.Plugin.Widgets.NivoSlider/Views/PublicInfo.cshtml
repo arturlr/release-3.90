@@ -1,4 +1,4 @@
-﻿@model Nop.Plugin.Widgets.NivoSlider.Models.PublicInfoModel
+@model Nop.Plugin.Widgets.NivoSlider.Models.PublicInfoModel
 @{
     Layout = "";
 
@@ -6,10 +6,16 @@
     Html.AddCssFileParts("~/Plugins/Widgets.NivoSlider/Content/nivoslider/nivo-slider.css");
     Html.AddCssFileParts("~/Plugins/Widgets.NivoSlider/Content/nivoslider/themes/custom/custom.css");
 }
-@using Nop.Web.Framework.UI
-
-@helper RenderSliderLine(string pictureUrl, string text, string link, string dataTransition = "")
-{
+@functions {
+    //task 15.3: this was a Razor v2 "helper" declaration, which ASP.NET Core Razor does not
+    //support (RZ1002). Every call site below invokes it as a STATEMENT (@{ RenderSliderLine(...); }),
+    //so a plain void method in @functions is enough - it writes its markup straight to the page
+    //output, so the same HTML lands in the same place (task 7.3's technique, e.g.
+    //Nop.Web/Views/Catalog/_FilterPriceBox.cshtml). The body is unchanged apart from the call
+    //syntax. NOTE async Task would be needed only if the result were passed as an ARGUMENT
+    //(MVC1006 + CS4033 otherwise); it is not, so void is correct here.
+    void RenderSliderLine(string pictureUrl, string text, string link, string dataTransition = "")
+    {
     if (!string.IsNullOrEmpty(pictureUrl))
     {
         if (!string.IsNullOrEmpty(link))
@@ -24,13 +30,14 @@
         }
     }
 }
+}
 <div class="slider-wrapper theme-custom">
     <div id="nivo-slider" class="nivoSlider">
-        @RenderSliderLine(Model.Picture1Url, Model.Text1, Model.Link1)
-        @RenderSliderLine(Model.Picture2Url, Model.Text2, Model.Link2)
-        @RenderSliderLine(Model.Picture3Url, Model.Text3, Model.Link3, "slideInLeft")
-        @RenderSliderLine(Model.Picture4Url, Model.Text4, Model.Link4)
-        @RenderSliderLine(Model.Picture5Url, Model.Text5, Model.Link5)
+        @{ RenderSliderLine(Model.Picture1Url, Model.Text1, Model.Link1); }
+        @{ RenderSliderLine(Model.Picture2Url, Model.Text2, Model.Link2); }
+        @{ RenderSliderLine(Model.Picture3Url, Model.Text3, Model.Link3, "slideInLeft"); }
+        @{ RenderSliderLine(Model.Picture4Url, Model.Text4, Model.Link4); }
+        @{ RenderSliderLine(Model.Picture5Url, Model.Text5, Model.Link5); }
     </div>
 </div>
 <script type="text/javascript">

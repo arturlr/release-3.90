@@ -58,7 +58,9 @@
                                     numeric: false,
                                     previousNext: false,
                                     info: false,
-                                    @Html.Partial("~/Administration/Views/Shared/_GridPagerMessages.cshtml")
+                                    @*  DEFERRAL 8.2-3 (task 14.4): ~/Administration/Views/Shared/ -> ~/Areas/Admin/Views/Shared/,
+                                        and Html.Partial -> await Html.PartialAsync. Cross-assembly into Nop.Admin.dll. See §51 / §83.5.  *@
+                                    @await Html.PartialAsync("~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml")
                                 },
                                 editable: {
                                     confirmation: "@T("Admin.Common.DeleteConfirmation")",

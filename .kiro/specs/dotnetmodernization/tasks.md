@@ -419,36 +419,42 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
   - **DEFERRAL 11.x-1 IS FIXED — your `Configure` POST now works, and did not before (§92.1).** The `Html.Action` bridge is constraint-aware and model-binds complex parameters. Nothing to do; do not revert it.
   - **DEFERRAL 8.2-3 — 3 sites here:** `Views/Configure.cshtml:57` (`_GridPagerMessages.cshtml`), `Views/Create.cshtml:2` and `Views/Edit.cshtml:2` (`_AdminPopupLayout.cshtml`).
   - **`Views/Configure.cshtml` SETS NO `Layout` AT ALL** — the one view in the whole solution that relies on no `_ViewStart` applying. That property is preserved by the recipe's `Content`/`Link` block (the identifier stays under `/Plugins/…`, whose ancestors have no `_ViewStart`) and it is the reason the views were NOT relocated under `/Views/<Controller>/`, where `Nop.Web/Views/_ViewStart.cshtml` would have wrapped it in the storefront's one-column layout. See runtime-deferrals.md §83.1. If you change the view layout of this plugin, re-read that section first.
-  - [ ] 13.1 Migrate Nop.Plugin.Pickup.PickupInStore
+  - [x] 13.1 Migrate Nop.Plugin.Pickup.PickupInStore
     - Apply per-project recipe (controllers/views/DI to ASP.NET Core); fix `ProjectReference`s; clean-compile
     - _Requirements: 5.5, 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 4.2, 4.3, 4.4, 5.1, 5.3, 3.1_
 
-- [ ] 14. Migrate Shipping plugins
+- [x] 14. Migrate Shipping plugins
   - **APPLY THE PLUGIN RECIPE established by group 10** — the block immediately after task 10.3, and the annotated `Nop.Plugin.DiscountRules.CustomerRoles.csproj` it points at. Four decisions there fail silently if copied wrongly: `AddRazorSupportForMvc=true`, the `Content`/`Link` block, `Private="false"` **plus** the `NopPluginDoNotDeployHostAssemblies` target, and `AppendTargetFrameworkToOutputPath=false`. Full reasoning: runtime-deferrals.md §83.
   - **DEFERRAL 8.2-3 — 4 sites, all in 14.4 `Shipping.FixedOrByWeight`:** `Views/AddRateByWeightPopup.cshtml:2` and `Views/EditRateByWeightPopup.cshtml:2` (`_AdminPopupLayout.cshtml`), `Views/_ByWeight.cshtml:71` and `Views/_FixedRate.cshtml:61` (`_GridPagerMessages.cshtml`).
   - **DEFERRAL 4.10 — 14.4's context is `Data/ShippingByWeightObjectContext.cs`, AND THE HELPER ALREADY EXISTS (task 11.2, §92.3).** Replace `Database.ExecuteSqlCommand(CreateDatabaseScript())` in `Install()` with **`this.ExecuteSqlScript(CreateDatabaseScript())`** (`Nop.Data.DbContextExtensions`, which splits on `GO` via `SplitSqlIntoBatches`). Do not re-derive a splitter. Worked example: `Nop.Plugin.Feed.GoogleShopping/Data/GoogleProductObjectContext.cs`.
   - **DEFERRAL 11.x-1 IS FIXED (§92.1)** — 14.4's `Configure` POST reaches its `[HttpPost]` overload with a bound model, which it did not before task 11.1. Do not revert it.
   - `Shipping.AustraliaPost` references `Newtonsoft.Json` directly — version-less `PackageReference`. `Shipping.FixedOrByWeight` also carries `EntityFramework`/`EntityFramework.SqlServer` `<Reference>`s: those are EF6 and arrive as EF Core transitively through `Nop.Data`; do not restate them.
-  - [ ] 14.1 Migrate Nop.Plugin.Shipping.AustraliaPost
+  - [x] 14.1 Migrate Nop.Plugin.Shipping.AustraliaPost
     - Apply per-project recipe; fix `ProjectReference`s; clean-compile
+    - **DONE — 0 errors.** SDK-style `Microsoft.NET.Sdk.Razor` csproj per the 10.1 recipe (all five silently-failing decisions applied); deleted app/packages/web.config; added `Views/_ViewImports.cshtml`; controller `System.Web.Mvc`→`Microsoft.AspNetCore.Mvc` + `[ChildActionOnly]`→`[NopChildActionOnly]`; computation method `System.Web.Routing`→`Microsoft.AspNetCore.Routing`. **`Newtonsoft.Json` is a version-less `<PackageReference PrivateAssets="all">`** (central 13.0.4 pin). **`WebRequest`/`HttpWebRequest` KEPT** (the JSON GET relies on `WebException.Response` in its catch — HttpClient.Send would not throw on 4xx/5xx); `SYSLIB0014` left visible, consistent with the five prior WebRequest carriers. Deploy verified: only own dll/pdb + Description.txt/logo.jpg — no `Nop.*`, no `Newtonsoft.Json.dll`, no views. Compiled view identifier at `/Plugins/Shipping.AustraliaPost/Views/Configure.cshtml`.
     - _Requirements: 5.5, 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 4.2, 5.1, 5.3, 3.1_
-  - [ ] 14.2 Migrate Nop.Plugin.Shipping.CanadaPost
+  - [x] 14.2 Migrate Nop.Plugin.Shipping.CanadaPost
     - Apply per-project recipe; fix `ProjectReference`s; clean-compile
+    - **DONE — 0 errors.** Same recipe. `CanadaPostHelper.Request` **keeps `WebRequest`** — it reads `ex.Response` in `catch (WebException)` to deserialize the carrier's XML `<messages>` error body, which HttpClient.Send would break; `SYSLIB0014` visible. No third-party `<PackageReference>` (parses reply with `System.Xml.Serialization`). 28 pre-existing `CS8981` warnings are the lowercase XSD-generated `Domain/{discovery,messages,rating,track}.cs` types — a faithful port does not rename generated carrier DTOs. Deploy clean.
     - _Requirements: 5.5, 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 4.2, 5.1, 5.3, 3.1_
-  - [ ] 14.3 Migrate Nop.Plugin.Shipping.Fedex
+  - [x] 14.3 Migrate Nop.Plugin.Shipping.Fedex
     - Apply per-project recipe; fix `ProjectReference`s; clean-compile
+    - **DONE — 0 errors. SOAP: see the prominent record in runtime-deferrals.md §14.x-1.** FedEx was reached via TWO WSDL-generated `SoapHttpClientProtocol` proxies — `RateService` (`Web References/RateServiceWebReference/Reference.cs`, ~16,700 lines) and `TrackService` (`TrackService.cs`, ~4,850 lines). `SoapHttpClientProtocol` has no net10.0 counterpart. **Following the 4.2 precedent** (EU VAT ASMX proxy → hand-built SOAP over HttpClient): the DTO classes are plain `[XmlType]` serializable types that compile unchanged, so **only the two proxy classes were replaced** — by a `RateService`/`TrackService` calling `FedexSoapInvoker.cs`, which reproduces the EXACT SOAP 1.1 / document-literal-bare wire shape (action `http://fedex.com/ws/rate/v16/getRates` and `track`, request/reply element names and operation namespaces transcribed from the generated method attributes) — **the carrier request shape is preserved because it is an external contract.** Async machinery removed (unused). `System.Web.Services.Protocols.SoapException` → plugin-local `SoapException.cs` (same `XmlNode Detail` shape, read by both catch sites). Deleted `Properties/Settings.{settings,Designer.cs}` (`System.Configuration.ApplicationSettingsBase`; only the removed proxy read the default URL, always overridden by `FedexSettings.Url`). Controller/model ported. Deploy clean.
     - _Requirements: 5.5, 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 4.2, 5.1, 5.3, 3.1_
-  - [ ] 14.4 Migrate Nop.Plugin.Shipping.FixedOrByWeight
+  - [x] 14.4 Migrate Nop.Plugin.Shipping.FixedOrByWeight
     - Apply per-project recipe (controllers/views to ASP.NET Core); fix `ProjectReference`s; clean-compile
+    - **DONE — 0 errors. The group-14 outlier: own DbContext + RouteProvider + 6 views.** DbContext `Data/ShippingByWeightObjectContext.cs` ported EF6→EF Core following the §92.3 GoogleShopping worked example — preserved the load-bearing `(string nameOrConnectionString)` ctor (RegisterPluginDataContext constructs it reflectively), `ApplyConfigurationsFromAssembly(GetExecutingAssembly())` confining the model to the one table, and **`Install()` now calls `this.ExecuteSqlScript(CreateDatabaseScript())`** (the SHARED `Nop.Data.DbContextExtensions` helper from task 11.2 — deferral **4.10**'s 14.4 quarter RESOLVED, splitter not re-derived). `ShippingByWeightRecordMap` → `Configure(EntityTypeBuilder<...>)` preserving `ToTable("ShippingByWeight")` and `Zip HasMaxLength(400)`. **`Data/EfStartUpTask.cs` DELETED** (EF Core has no initializer pipeline). `RouteProvider` → `RegisterRoutes(IEndpointRouteBuilder)` + `MapControllerRoute`, names/patterns 3.90's. Controller: dropped the `Initialize(RequestContext)` override (culture is now set globally by `WorkingCultureMiddleware`, matching migrated Nop.Admin), `this.Request.RawUrl`→`this.Request.GetEncodedPathAndQuery()` (×4, the §51 pattern), `[ChildActionOnly]`→`[NopChildActionOnly]`, `JsonRequestBehavior.AllowGet` dropped. **Deferral 8.2-3 — all 4 sites RESOLVED** (see below). No `Nop.Data.dll` leaked (the sharpest leakage case, since this references Nop.Data directly). Deploy clean.
     - _Requirements: 5.5, 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 4.2, 4.3, 4.4, 5.1, 5.3, 3.1_
-  - [ ] 14.5 Migrate Nop.Plugin.Shipping.UPS
+  - [x] 14.5 Migrate Nop.Plugin.Shipping.UPS
     - Apply per-project recipe; fix `ProjectReference`s; clean-compile
+    - **DONE — 0 errors. Hybrid: rating over `WebRequest`, tracking over SOAP.** Rating (`UPSComputationMethod.DoRequest`) **keeps `WebRequest`** (XML POST); `SYSLIB0014` visible. Tracking used the `SoapHttpClientProtocol` `TrackService` proxy (`Web References/track/Reference.cs`); **replaced only the proxy class** with a hand-built `TrackService`→`UpsSoapInvoker.cs`, following 4.3. **UNLIKE FedEx, UPS sends `UPSSecurity` as a SOAP HEADER** (`[SoapHeader("UPSSecurityValue")]`): the invoker serializes it into `<soap:Header>`, and `UPSSecurity`'s `: SoapHeader` base was dropped (plain `[XmlRoot]` type). Wire shape preserved (action `http://onlinetools.ups.com/webservices/TrackBinding/v2.0`, body `TrackRequest`, reply `TrackResponse`, header ns `.../UPSS/v1.0`). Default track URL `https://wwwcie.ups.com/webservices/Track` transcribed from the deleted `Settings.Designer.cs` into the hand-built proxy. Plugin-local `SoapException.cs`. Controller/model ported. Deploy clean.
     - _Requirements: 5.5, 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 4.2, 5.1, 5.3, 3.1_
-  - [ ] 14.6 Migrate Nop.Plugin.Shipping.USPS
+  - [x] 14.6 Migrate Nop.Plugin.Shipping.USPS
     - Apply per-project recipe; fix `ProjectReference`s; clean-compile
+    - **DONE — 0 errors.** Same recipe. `USPSComputationMethod.DoRequest` **keeps `WebRequest`** (`WebRequestMethods.Http.Post` + `GetResponse()`); `SYSLIB0014` visible. No third-party `<PackageReference>` (parses reply with `System.Xml`). Controller `[ChildActionOnly]`→`[NopChildActionOnly]`, computation method `System.Web.Routing`→`Microsoft.AspNetCore.Routing`. Deploy clean.
     - _Requirements: 5.5, 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 4.2, 5.1, 5.3, 3.1_
 
-- [ ] 15. Migrate Tax and Widgets plugins
+- [x] 15. Migrate Tax and Widgets plugins
   - **APPLY THE PLUGIN RECIPE established by group 10** — the block immediately after task 10.3, and the annotated `Nop.Plugin.DiscountRules.CustomerRoles.csproj` it points at. Four decisions there fail silently if copied wrongly: `AddRazorSupportForMvc=true`, the `Content`/`Link` block, `Private="false"` **plus** the `NopPluginDoNotDeployHostAssemblies` target, and `AppendTargetFrameworkToOutputPath=false`. Full reasoning: runtime-deferrals.md §83.
   - **DEFERRAL 8.2-3 — 2 sites, both in 15.1 `Tax.FixedOrByCountryStateZip`:** `Views/_CountryStateZip.cshtml:80` and `Views/_FixedRate.cshtml:60` (`_GridPagerMessages.cshtml`).
   - **DEFERRAL 4.10 — 15.1's context is `Data/CountryStateZipObjectContext.cs`, AND THE HELPER ALREADY EXISTS (task 11.2, §92.3).** Replace `Database.ExecuteSqlCommand(CreateDatabaseScript())` in `Install()` with **`this.ExecuteSqlScript(CreateDatabaseScript())`** (`Nop.Data.DbContextExtensions`, which splits on `GO` via `SplitSqlIntoBatches`). Do not re-derive a splitter. Worked example: `Nop.Plugin.Feed.GoogleShopping/Data/GoogleProductObjectContext.cs`.
@@ -456,13 +462,13 @@ Each project's task group ends with a **clean-compile gate** (zero compiler erro
   - **DEFERRAL 11.x-1 IS FIXED (§92.1)** — the `Configure`/settings POSTs in 15.1, 15.2 and 15.3 reach their `[HttpPost]` overloads with a bound model, which they did not before task 11.1. Do not revert it.
   - **`Widgets.NivoSlider/Views/PublicInfo.cshtml` USES `@helper`, which does not exist in ASP.NET Core (RZ1002).** It is the last of the two such files in the solution; task 11.2 converted the other (`Feed.GoogleShopping/Views/Configure.cshtml`). If the helper's result is passed as an ARGUMENT, use `@functions { async Task X() { … } }` + `Capture(X)` — `WebViewPage.Capture(Func<Task>)`, task 8.4's seam — and note `async Task` rather than `void` is required, not stylistic (a `void` conversion produces `MVC1006` + `CS4033`). If it is invoked as a statement, a plain `void` method is enough (task 7.3's technique).
   - Both widget plugins render through `IWidgetPlugin`'s action/controller/`RouteValueDictionary` triple, i.e. the `Html.Action` bridge (deferral 7.3-1), which is now area-aware (§77.1) — a widget action whose controller+action name collides across areas now resolves to its own area's.
-  - [ ] 15.1 Migrate Nop.Plugin.Tax.FixedOrByCountryStateZip
+  - [x] 15.1 Migrate Nop.Plugin.Tax.FixedOrByCountryStateZip
     - Apply per-project recipe (controllers/views to ASP.NET Core); fix `ProjectReference`s; clean-compile
     - _Requirements: 5.5, 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 4.2, 4.3, 4.4, 5.1, 5.3, 3.1_
-  - [ ] 15.2 Migrate Nop.Plugin.Widgets.GoogleAnalytics
+  - [x] 15.2 Migrate Nop.Plugin.Widgets.GoogleAnalytics
     - Apply per-project recipe (widget view components/views to ASP.NET Core); fix `ProjectReference`s; clean-compile
     - _Requirements: 5.5, 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 4.2, 4.3, 4.4, 5.1, 5.3, 3.1_
-  - [ ] 15.3 Migrate Nop.Plugin.Widgets.NivoSlider
+  - [x] 15.3 Migrate Nop.Plugin.Widgets.NivoSlider
     - Apply per-project recipe (widget view components/views to ASP.NET Core); fix `ProjectReference`s; clean-compile
     - _Requirements: 5.5, 1.1, 1.2, 1.3, 1.4, 1.5, 2.4, 4.2, 4.3, 4.4, 5.1, 5.3, 3.1_
 

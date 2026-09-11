@@ -618,7 +618,13 @@ namespace Nop.Web.SmokeTests
                 "ExchangeRate.EcbExchange",
                 //task 11.1 / 11.2
                 "ExternalAuth.Facebook",
-                "Feed.GoogleShopping"
+                "Feed.GoogleShopping",
+                //task 13.1
+                "Pickup.PickupInStore",
+                //task 15.1 / 15.2 / 15.3
+                "Tax.FixedOrByCountryStateZip",
+                "Widgets.GoogleAnalytics",
+                "Widgets.NivoSlider"
             };
             var assemblyNames = shortNames.Select(n => "Nop.Plugin." + n).ToArray();
 
@@ -711,8 +717,11 @@ namespace Nop.Web.SmokeTests
                             dir.GetFiles("*.config", System.IO.SearchOption.AllDirectories).Length);
                         sb.AppendLine("plugin:" + assemblyName + ".descriptionTxtDeployed=" +
                             System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "Description.txt")));
+                        //Most plugins ship logo.jpg; Pickup.PickupInStore ships logo.png (task 13.1).
+                        //Accept either so this fact is meaningful for every plugin.
                         sb.AppendLine("plugin:" + assemblyName + ".logoDeployed=" +
-                            System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "logo.jpg")));
+                            (System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "logo.jpg")) ||
+                             System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "logo.png"))));
                     }
                 }
             }
@@ -768,6 +777,13 @@ namespace Nop.Web.SmokeTests
                 "~/Plugins/ExternalAuth.Facebook/Views/Configure.cshtml",
                 "~/Plugins/ExternalAuth.Facebook/Views/PublicInfo.cshtml",
                 "~/Plugins/Feed.GoogleShopping/Views/Configure.cshtml",
+                //task 15.1 / 15.2 / 15.3, verbatim from the ported controllers
+                "~/Plugins/Tax.FixedOrByCountryStateZip/Views/Configure.cshtml",
+                "~/Plugins/Tax.FixedOrByCountryStateZip/Views/_FixedRate.cshtml",
+                "~/Plugins/Tax.FixedOrByCountryStateZip/Views/_CountryStateZip.cshtml",
+                "~/Plugins/Widgets.GoogleAnalytics/Views/Configure.cshtml",
+                "~/Plugins/Widgets.NivoSlider/Views/Configure.cshtml",
+                "~/Plugins/Widgets.NivoSlider/Views/PublicInfo.cshtml",
                 //deferral 8.2-3: cross-assembly, compiled into Nop.Admin.dll
                 "~/Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml",
                 "~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml",
@@ -797,7 +813,10 @@ namespace Nop.Web.SmokeTests
             foreach (var identifier in new[]
             {
                 "/Plugins/DiscountRules.CustomerRoles/Views/Configure.cshtml",
-                "/Views/DiscountRulesCustomerRoles/Configure.cshtml"
+                "/Views/DiscountRulesCustomerRoles/Configure.cshtml",
+                //task 13.1 - the one view in the solution that sets NO Layout, so it relies on no
+                //_ViewStart applying (deferral 83.1). Its identifier stays under /Plugins/... .
+                "/Plugins/Pickup.PickupInStore/Views/Configure.cshtml"
             })
             {
                 var hits = ViewStartAncestorsOf(identifier)
@@ -843,7 +862,13 @@ namespace Nop.Web.SmokeTests
                 "Plugins/DiscountRulesHasOneProduct/LoadProductFriendlyNames",
                 //task 11.1 - ExternalAuth.Facebook's two storefront routes
                 "Plugins/ExternalAuthFacebook/Login",
-                "Plugins/ExternalAuthFacebook/LoginCallback"
+                "Plugins/ExternalAuthFacebook/LoginCallback",
+                //task 13.1 - Pickup.PickupInStore's two admin routes (names resolved from its views)
+                "Plugins/PickupInStore/Create",
+                "Plugins/PickupInStore/Edit",
+                //task 15.1 - Tax.FixedOrByCountryStateZip's one admin route (name resolved from its
+                //_CountryStateZip.cshtml Url.RouteUrl call)
+                "Plugins/FixedOrByCountryStateZip/AddRateByCountryStateZip"
             })
             {
                 sb.AppendLine("liveEndpoint:" + expected + ".count=" + liveEndpoints
@@ -910,7 +935,10 @@ namespace Nop.Web.SmokeTests
                 "Plugin.DiscountRules.HasOneProduct.LoadProductFriendlyNames",
                 //task 11.1 - PublicInfo.cshtml resolves the login button's href by THIS name
                 "Plugin.ExternalAuth.Facebook.Login",
-                "Plugin.ExternalAuth.Facebook.LoginCallback"
+                "Plugin.ExternalAuth.Facebook.LoginCallback",
+                //task 15.1 - _CountryStateZip.cshtml resolves the "Add tax rate" AJAX target by
+                //THIS name (Url.RouteUrl("Plugin.Tax.FixedOrByCountryStateZip.AddRateByCountryStateZip"))
+                "Plugin.Tax.FixedOrByCountryStateZip.AddRateByCountryStateZip"
             })
             {
                 var url = linkGenerator.GetPathByName(context, routeName, null);
@@ -955,85 +983,29 @@ namespace Nop.Web.SmokeTests
         /// </remarks>
         private static void WritePluginDataContextProbe(StringBuilder sb)
         {
-            const string typeName = "Nop.Plugin.Feed.GoogleShopping.Data.GoogleProductObjectContext";
+            //Feed.GoogleShopping (task 11.2) - the first plugin context, keyed "pluginContext.*".
+            WriteOnePluginDataContextProbe(sb, "pluginContext",
+                "Nop.Plugin.Feed.GoogleShopping",
+                "Nop.Plugin.Feed.GoogleShopping.Data.GoogleProductObjectContext",
+                "GoogleProductRecord", "GoogleProduct");
 
-            var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                .FirstOrDefault(a => a.GetName().Name == "Nop.Plugin.Feed.GoogleShopping");
-            if (assembly == null)
-            {
-                sb.AppendLine("pluginContext.assemblyLoaded=False");
-                return;
-            }
-            sb.AppendLine("pluginContext.assemblyLoaded=True");
+            //Pickup.PickupInStore (task 13.1) - the third plugin context, keyed "pickupContext.*".
+            //Same deferral 4.10 shape: EF Core's create script is GO-batched (for this one-table
+            //model, a single statement + a TRAILING GO), and Install() goes through the shared
+            //DbContextExtensions.ExecuteSqlScript splitter rather than a single ExecuteSqlCommand.
+            WriteOnePluginDataContextProbe(sb, "pickupContext",
+                "Nop.Plugin.Pickup.PickupInStore",
+                "Nop.Plugin.Pickup.PickupInStore.Data.StorePickupPointObjectContext",
+                "StorePickupPoint", "StorePickupPoint");
 
-            var contextType = assembly.GetType(typeName, false);
-            sb.AppendLine("pluginContext.typePresent=" + (contextType != null));
-            if (contextType == null)
-                return;
-
-            //3.90's (string nameOrConnectionString) ctor must still exist: Nop.Web.Framework's
-            //RegisterPluginDataContext constructs the type with Activator.CreateInstance and exactly
-            //that signature, so losing it fails at RUNTIME with MissingMethodException and no
-            //compile error anywhere.
-            var stringCtor = contextType.GetConstructor(new[] { typeof(string) });
-            sb.AppendLine("pluginContext.stringCtorPresent=" + (stringCtor != null));
-            if (stringCtor == null)
-                return;
-
-            try
-            {
-                //A syntactically valid connection string to nowhere. GenerateCreateScript is a model
-                //operation and never connects.
-                using (var ctx = (Microsoft.EntityFrameworkCore.DbContext)stringCtor.Invoke(
-                    new object[] { "Server=(localdb)\\nowhere;Database=nop_11_2_probe;Trusted_Connection=True;" }))
-                {
-                    var entityTypes = ctx.Model.GetEntityTypes()
-                        .Select(e => e.ClrType == null ? e.Name : e.ClrType.Name)
-                        .OrderBy(n => n, StringComparer.Ordinal)
-                        .ToList();
-                    sb.AppendLine("pluginContext.entityTypeCount=" + entityTypes.Count);
-                    sb.AppendLine("pluginContext.entityTypes=" + string.Join("|", entityTypes));
-
-                    var tableNames = ctx.Model.GetEntityTypes()
-                        .Select(e => Microsoft.EntityFrameworkCore.RelationalEntityTypeExtensions.GetTableName(e))
-                        .Where(t => t != null)
-                        .OrderBy(t => t, StringComparer.Ordinal)
-                        .ToList();
-                    sb.AppendLine("pluginContext.tableNames=" + string.Join("|", tableNames));
-
-                    var script = Microsoft.EntityFrameworkCore
-                        .RelationalDatabaseFacadeExtensions.GenerateCreateScript(ctx.Database);
-                    sb.AppendLine("pluginContext.scriptLength=" + script.Length);
-
-                    //THE DEFERRAL: the script really does contain a bare GO line, so 3.90's single
-                    //Database.ExecuteSqlCommand(script) would throw "Incorrect syntax near 'GO'".
-                    //MEASURED SHAPE, and it is narrower than deferral 4.10's wording suggests: for
-                    //this one-table model EF Core emits ONE statement followed by a TRAILING GO, so
-                    //the failure is the trailing directive rather than multiple batches. Either way
-                    //the raw script is not executable as one command.
-                    var goLines = script.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
-                        .Count(l => string.Equals(l.Trim(), "GO", StringComparison.OrdinalIgnoreCase));
-                    sb.AppendLine("pluginContext.scriptGoLineCount=" + goLines);
-                    sb.AppendLine("pluginContext.rawScriptWouldBeRejected=" + (goLines > 0));
-
-                    //...and the SHARED helper splits it into executable batches, none of which
-                    //still contains a bare GO
-                    var batches = Nop.Data.DbContextExtensions.SplitSqlIntoBatches(script).ToList();
-                    sb.AppendLine("pluginContext.batchCount=" + batches.Count);
-                    sb.AppendLine("pluginContext.batchesWithBareGo=" + batches.Count(b =>
-                        b.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
-                            .Any(l => string.Equals(l.Trim(), "GO", StringComparison.OrdinalIgnoreCase))));
-                    sb.AppendLine("pluginContext.batchesCreatingGoogleProduct=" + batches.Count(b =>
-                        b.IndexOf("CREATE TABLE", StringComparison.OrdinalIgnoreCase) >= 0 &&
-                        b.IndexOf("GoogleProduct", StringComparison.OrdinalIgnoreCase) >= 0));
-                }
-            }
-            catch (Exception exc)
-            {
-                sb.AppendLine("pluginContext.EXCEPTION=" +
-                    (exc.InnerException ?? exc).GetType().FullName + ": " +
-                    (exc.InnerException ?? exc).Message);
-            }
+            //Tax.FixedOrByCountryStateZip (task 15.1) - the fourth and last plugin context,
+            //keyed "taxContext.*". Same deferral 4.10 shape: EF Core's create script is GO-batched
+            //and Install() goes through the shared DbContextExtensions.ExecuteSqlScript splitter
+            //rather than a single Database.ExecuteSqlCommand.
+            WriteOnePluginDataContextProbe(sb, "taxContext",
+                "Nop.Plugin.Tax.FixedOrByCountryStateZip",
+                "Nop.Plugin.Tax.FixedOrByCountryStateZip.Data.CountryStateZipObjectContext",
+                "TaxRate", "TaxRate");
 
             //And the helper's own contract, on inputs the generator does not produce, so a future
             //"improvement" to the splitter cannot quietly change what a batch is.
@@ -1044,6 +1016,100 @@ namespace Nop.Web.SmokeTests
                 craftedBatches.Count(b => b.Contains("SELECT 'GO'")));
             sb.AppendLine("splitSql.emptyInputBatchCount=" +
                 Nop.Data.DbContextExtensions.SplitSqlIntoBatches("   ").Count());
+        }
+
+        /// <summary>
+        /// Emits the deferral-4.10 facts for ONE plugin <c>DbContext</c>, under the given
+        /// <paramref name="key"/> prefix. Task 11.2 established this for Feed.GoogleShopping; task
+        /// 13.1 generalised it so Pickup.PickupInStore (and later the two remaining plugin contexts)
+        /// are measured by the same code rather than a copied block that could drift.
+        /// </summary>
+        private static void WriteOnePluginDataContextProbe(StringBuilder sb, string key,
+            string assemblyName, string typeName, string entitySimpleName, string tableName)
+        {
+            var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == assemblyName);
+            if (assembly == null)
+            {
+                sb.AppendLine(key + ".assemblyLoaded=False");
+                return;
+            }
+            sb.AppendLine(key + ".assemblyLoaded=True");
+
+            var contextType = assembly.GetType(typeName, false);
+            sb.AppendLine(key + ".typePresent=" + (contextType != null));
+            if (contextType == null)
+                return;
+
+            //3.90's (string nameOrConnectionString) ctor must still exist: Nop.Web.Framework's
+            //RegisterPluginDataContext constructs the type with Activator.CreateInstance and exactly
+            //that signature, so losing it fails at RUNTIME with MissingMethodException and no
+            //compile error anywhere.
+            var stringCtor = contextType.GetConstructor(new[] { typeof(string) });
+            sb.AppendLine(key + ".stringCtorPresent=" + (stringCtor != null));
+            if (stringCtor == null)
+                return;
+
+            try
+            {
+                //A syntactically valid connection string to nowhere. GenerateCreateScript is a model
+                //operation and never connects.
+                using (var ctx = (Microsoft.EntityFrameworkCore.DbContext)stringCtor.Invoke(
+                    new object[] { "Server=(localdb)\\nowhere;Database=nop_4_10_probe;Trusted_Connection=True;" }))
+                {
+                    var entityTypes = ctx.Model.GetEntityTypes()
+                        .Select(e => e.ClrType == null ? e.Name : e.ClrType.Name)
+                        .OrderBy(n => n, StringComparer.Ordinal)
+                        .ToList();
+                    sb.AppendLine(key + ".entityTypeCount=" + entityTypes.Count);
+                    sb.AppendLine(key + ".entityTypes=" + string.Join("|", entityTypes));
+
+                    var tableNames = ctx.Model.GetEntityTypes()
+                        .Select(e => Microsoft.EntityFrameworkCore.RelationalEntityTypeExtensions.GetTableName(e))
+                        .Where(t => t != null)
+                        .OrderBy(t => t, StringComparer.Ordinal)
+                        .ToList();
+                    sb.AppendLine(key + ".tableNames=" + string.Join("|", tableNames));
+
+                    var script = Microsoft.EntityFrameworkCore
+                        .RelationalDatabaseFacadeExtensions.GenerateCreateScript(ctx.Database);
+                    sb.AppendLine(key + ".scriptLength=" + script.Length);
+
+                    //THE DEFERRAL: the script really does contain a bare GO line, so 3.90's single
+                    //Database.ExecuteSqlCommand(script) would throw "Incorrect syntax near 'GO'".
+                    //MEASURED SHAPE, and it is narrower than deferral 4.10's wording suggests: for
+                    //a one-table model EF Core emits ONE statement followed by a TRAILING GO, so
+                    //the failure is the trailing directive rather than multiple batches. Either way
+                    //the raw script is not executable as one command.
+                    var goLines = script.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                        .Count(l => string.Equals(l.Trim(), "GO", StringComparison.OrdinalIgnoreCase));
+                    sb.AppendLine(key + ".scriptGoLineCount=" + goLines);
+                    sb.AppendLine(key + ".rawScriptWouldBeRejected=" + (goLines > 0));
+
+                    //...and the SHARED helper splits it into executable batches, none of which
+                    //still contains a bare GO
+                    var batches = Nop.Data.DbContextExtensions.SplitSqlIntoBatches(script).ToList();
+                    sb.AppendLine(key + ".batchCount=" + batches.Count);
+                    sb.AppendLine(key + ".batchesWithBareGo=" + batches.Count(b =>
+                        b.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                            .Any(l => string.Equals(l.Trim(), "GO", StringComparison.OrdinalIgnoreCase))));
+                    sb.AppendLine(key + ".batchesCreatingTable=" + batches.Count(b =>
+                        b.IndexOf("CREATE TABLE", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                        b.IndexOf(tableName, StringComparison.OrdinalIgnoreCase) >= 0));
+                    //Backward-compatible alias for the group-11 assertion that predates the
+                    //generalisation (task 11.2's test reads pluginContext.batchesCreatingGoogleProduct).
+                    if (key == "pluginContext")
+                        sb.AppendLine(key + ".batchesCreatingGoogleProduct=" + batches.Count(b =>
+                            b.IndexOf("CREATE TABLE", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                            b.IndexOf(tableName, StringComparison.OrdinalIgnoreCase) >= 0));
+                }
+            }
+            catch (Exception exc)
+            {
+                sb.AppendLine(key + ".EXCEPTION=" +
+                    (exc.InnerException ?? exc).GetType().FullName + ": " +
+                    (exc.InnerException ?? exc).Message);
+            }
         }
 
         /// <summary>

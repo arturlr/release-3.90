@@ -80,23 +80,29 @@ namespace Nop.Web.SmokeTests
         private const string EcbAsm = "Nop.Plugin.ExchangeRate.EcbExchange";
         private const string FacebookAsm = "Nop.Plugin.ExternalAuth.Facebook";
         private const string GoogleShoppingAsm = "Nop.Plugin.Feed.GoogleShopping";
+        private const string PickupInStoreAsm = "Nop.Plugin.Pickup.PickupInStore";
+        private const string TaxCountryStateZipAsm = "Nop.Plugin.Tax.FixedOrByCountryStateZip";
+        private const string WidgetsGoogleAnalyticsAsm = "Nop.Plugin.Widgets.GoogleAnalytics";
+        private const string WidgetsNivoSliderAsm = "Nop.Plugin.Widgets.NivoSlider";
 
         /// <summary>
-        /// The three plugins that ship a compiled view, i.e. the ones deferral 1.2's Razor half
+        /// The plugins that ship a compiled view, i.e. the ones deferral 1.2's Razor half
         /// applies to. <c>ExchangeRate.EcbExchange</c> is deliberately excluded — it is the only
         /// viewless plugin in the solution and is what makes those assertions discriminating.
         /// </summary>
         private static readonly string[] ViewBearing =
         {
-            CustomerRolesAsm, HasOneProductAsm, FacebookAsm, GoogleShoppingAsm
+            CustomerRolesAsm, HasOneProductAsm, FacebookAsm, GoogleShoppingAsm, PickupInStoreAsm,
+            TaxCountryStateZipAsm, WidgetsGoogleAnalyticsAsm, WidgetsNivoSliderAsm
         };
 
         /// <summary>
-        /// Every migrated plugin, as of task 11.2.
+        /// Every migrated plugin covered by this fixture (through task 15.3).
         /// </summary>
         private static readonly string[] AllMigrated =
         {
-            CustomerRolesAsm, HasOneProductAsm, EcbAsm, FacebookAsm, GoogleShoppingAsm
+            CustomerRolesAsm, HasOneProductAsm, EcbAsm, FacebookAsm, GoogleShoppingAsm, PickupInStoreAsm,
+            TaxCountryStateZipAsm, WidgetsGoogleAnalyticsAsm, WidgetsNivoSliderAsm
         };
 
         private const string SkipNoDatabase =
@@ -218,6 +224,16 @@ namespace Nop.Web.SmokeTests
             AssertReport("plugin:" + GoogleShoppingAsm + ".systemName=PromotionFeed.Froogle",
                 "Feed.GoogleShopping's system name is 3.90's PromotionFeed.Froogle. " +
                 "FeedGoogleShoppingController.GenerateFeed resolves the plugin by that literal.");
+
+            //Task 15.1 / 15.2 / 15.3 - 3.90's system names, verbatim from each Description.txt.
+            //These are the keys InstalledPlugins.txt and every ITaxProvider / IWidgetPlugin lookup
+            //use, so a rename would orphan an installed store's configuration.
+            AssertReport("plugin:" + TaxCountryStateZipAsm + ".systemName=Tax.FixedOrByCountryStateZip",
+                "system name changed");
+            AssertReport("plugin:" + WidgetsGoogleAnalyticsAsm + ".systemName=Widgets.GoogleAnalytics",
+                "system name changed");
+            AssertReport("plugin:" + WidgetsNivoSliderAsm + ".systemName=Widgets.NivoSlider",
+                "system name changed");
         }
 
         [Test]
@@ -314,6 +330,28 @@ namespace Nop.Web.SmokeTests
             AssertReport("identifier=/Plugins/Feed.GoogleShopping/Views/Configure.cshtml", "");
             AssertReport("identifier=/Plugins/Feed.GoogleShopping/Views/_ViewImports.cshtml", "");
 
+            //--- task 15.1 / 15.2 / 15.3 ---
+            AssertReport("identifiers:Tax.FixedOrByCountryStateZip.count=4",
+                "expected Configure.cshtml + _FixedRate.cshtml + _CountryStateZip.cshtml + " +
+                "_ViewImports.cshtml under /Plugins/Tax.FixedOrByCountryStateZip/Views/.");
+            AssertReport("identifier=/Plugins/Tax.FixedOrByCountryStateZip/Views/Configure.cshtml", "");
+            AssertReport("identifier=/Plugins/Tax.FixedOrByCountryStateZip/Views/_FixedRate.cshtml", "");
+            AssertReport("identifier=/Plugins/Tax.FixedOrByCountryStateZip/Views/_CountryStateZip.cshtml", "");
+            AssertReport("identifier=/Plugins/Tax.FixedOrByCountryStateZip/Views/_ViewImports.cshtml", "");
+
+            AssertReport("identifiers:Widgets.GoogleAnalytics.count=2",
+                "expected Configure.cshtml + _ViewImports.cshtml under " +
+                "/Plugins/Widgets.GoogleAnalytics/Views/.");
+            AssertReport("identifier=/Plugins/Widgets.GoogleAnalytics/Views/Configure.cshtml", "");
+            AssertReport("identifier=/Plugins/Widgets.GoogleAnalytics/Views/_ViewImports.cshtml", "");
+
+            AssertReport("identifiers:Widgets.NivoSlider.count=3",
+                "expected Configure.cshtml + PublicInfo.cshtml + _ViewImports.cshtml under " +
+                "/Plugins/Widgets.NivoSlider/Views/.");
+            AssertReport("identifier=/Plugins/Widgets.NivoSlider/Views/Configure.cshtml", "");
+            AssertReport("identifier=/Plugins/Widgets.NivoSlider/Views/PublicInfo.cshtml", "");
+            AssertReport("identifier=/Plugins/Widgets.NivoSlider/Views/_ViewImports.cshtml", "");
+
             //and none of them landed in the host's own /Views/ identifier namespace, where
             ///Views/_ViewImports.cshtml and /Views/_ViewStart.cshtml already exist in Nop.Web.dll
             AssertReport("pluginViewsUnderHostViewsPath=0",
@@ -333,6 +371,15 @@ namespace Nop.Web.SmokeTests
             AssertReport("getView:~/Plugins/ExternalAuth.Facebook/Views/Configure.cshtml=True", "");
             AssertReport("getView:~/Plugins/ExternalAuth.Facebook/Views/PublicInfo.cshtml=True", "");
             AssertReport("getView:~/Plugins/Feed.GoogleShopping/Views/Configure.cshtml=True", "");
+            //task 15.1 / 15.2 / 15.3, verbatim from the ported controllers (the Tax partials are
+            //resolved through Html.PartialAsync at the exact ~/Plugins/... strings Configure.cshtml
+            //passes, so the view engine must find all three)
+            AssertReport("getView:~/Plugins/Tax.FixedOrByCountryStateZip/Views/Configure.cshtml=True", "");
+            AssertReport("getView:~/Plugins/Tax.FixedOrByCountryStateZip/Views/_FixedRate.cshtml=True", "");
+            AssertReport("getView:~/Plugins/Tax.FixedOrByCountryStateZip/Views/_CountryStateZip.cshtml=True", "");
+            AssertReport("getView:~/Plugins/Widgets.GoogleAnalytics/Views/Configure.cshtml=True", "");
+            AssertReport("getView:~/Plugins/Widgets.NivoSlider/Views/Configure.cshtml=True", "");
+            AssertReport("getView:~/Plugins/Widgets.NivoSlider/Views/PublicInfo.cshtml=True", "");
         }
 
         [Test]
@@ -834,6 +881,332 @@ namespace Nop.Web.SmokeTests
             AssertReport("splitSql.emptyInputBatchCount=0",
                 "whitespace input produced a batch, which would be sent to the server as an empty " +
                 "command.");
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Task 13.1 — Nop.Plugin.Pickup.PickupInStore (its own DbContext + RouteProvider)
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        public void Task_13_1_pickup_is_discovered_loaded_and_contributes_both_application_parts()
+        {
+            //Discovery/compatibility/load-context are asserted for every plugin in AllMigrated by
+            //Task_10_x_all_three_plugins_are_discovered_and_version_compatible; this pins the two
+            //facts specific to THIS plugin having views + its 3.90 system name.
+            AssertReport("plugin:" + PickupInStoreAsm + ".discovered=True",
+                "Pickup.PickupInStore was not discovered - check OutputPath and " +
+                "AppendTargetFrameworkToOutputPath=false.");
+            AssertReport("plugin:" + PickupInStoreAsm + ".supportsCurrentVersion=True",
+                "Description.txt SupportedVersions must list NopVersion.CurrentVersion (3.90).");
+            //It contributes BOTH parts: the AssemblyPart (controllers routable) and the
+            //CompiledRazorAssemblyPart (its 4 views resolvable). Without AddRazorSupportForMvc=true
+            //only the AssemblyPart would appear - deferral 1.2, measured.
+            AssertReport("part:" + PickupInStoreAsm + "=AssemblyPart",
+                PickupInStoreAsm + " is not an MVC AssemblyPart, so its controller is not routable.");
+            AssertReport("part:" + PickupInStoreAsm + "=CompiledRazorAssemblyPart",
+                PickupInStoreAsm + " contributed no Razor part, so none of its views can be found. " +
+                "Check Sdk=\"Microsoft.NET.Sdk.Razor\" AND <AddRazorSupportForMvc>true</> in its " +
+                "project file - deferral 1.2.");
+        }
+
+        [Test]
+        public void Task_13_1_compiled_view_identifiers_are_3_90s_Plugins_paths()
+        {
+            //The five compiled Razor identifiers, at 3.90's ~/Plugins/... paths, produced by the
+            //Content/Link block. If the Link metadata were missing they would be under /Views/;
+            //if it repeated "Views\" they would be doubled. Measured on the real assembly via the
+            //live ApplicationPartManager.
+            AssertReport("identifiers:Pickup.PickupInStore.count=5",
+                "expected Configure + Create + Edit + _CreateOrUpdate + _ViewImports under " +
+                "/Plugins/Pickup.PickupInStore/Views/.");
+            foreach (var id in new[]
+            {
+                "/Plugins/Pickup.PickupInStore/Views/Configure.cshtml",
+                "/Plugins/Pickup.PickupInStore/Views/Create.cshtml",
+                "/Plugins/Pickup.PickupInStore/Views/Edit.cshtml",
+                "/Plugins/Pickup.PickupInStore/Views/_CreateOrUpdate.cshtml",
+                "/Plugins/Pickup.PickupInStore/Views/_ViewImports.cshtml"
+            })
+                AssertReport("identifier=" + id,
+                    "the compiled identifier " + id + " is not present at 3.90's path.");
+        }
+
+        [Test]
+        public void Task_13_1_the_real_view_engine_finds_every_path_the_controller_and_views_pass()
+        {
+            //The four ~/Plugins/... strings the ported controller and views pass, driven through
+            //the real IRazorViewEngine via the probe's caller-supplied ?getView= parameter (so no
+            //edit to the probe's hardcoded list is needed - which keeps this change off the lines
+            //groups 14/15 are also editing).
+            foreach (var path in new[]
+            {
+                "~/Plugins/Pickup.PickupInStore/Views/Configure.cshtml",
+                "~/Plugins/Pickup.PickupInStore/Views/Create.cshtml",
+                "~/Plugins/Pickup.PickupInStore/Views/Edit.cshtml",
+                "~/Plugins/Pickup.PickupInStore/Views/_CreateOrUpdate.cshtml"
+            })
+            {
+                var report = GetProbeWithGetView(path);
+                AssertLine(report, "getView:" + path + "=True",
+                    "the real view engine did not resolve " + path + ". If the Content/Link " +
+                    "identifier is wrong the controller's View(\"" + path + "\") throws at runtime.");
+            }
+        }
+
+        [Test]
+        public void Deferral_8_2_3_pickups_admin_layout_and_partial_resolve_and_the_old_paths_do_not()
+        {
+            //DEFERRAL 8.2-3, THREE SITES in this plugin: Configure.cshtml named
+            //_GridPagerMessages.cshtml, Create.cshtml and Edit.cshtml named _AdminPopupLayout.cshtml,
+            //all under the PRE-8.2 ~/Administration/Views/... tree. Rewritten to
+            //~/Areas/Admin/Views/... (cross-assembly references compiled into Nop.Admin.dll). The
+            //getView facts for both the new and old paths are already in the setup report (the
+            //probe's hardcoded list checks exactly these), so assert them there.
+            AssertReport("getView:~/Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml=True",
+                "the admin popup layout does not resolve, so Create/Edit cannot render - the " +
+                "8.2-3 rewrite target is unreachable.");
+            AssertReport("getView:~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml=True",
+                "the Kendo grid pager partial does not resolve, so Configure cannot render.");
+            //...and the pre-8.2 paths must NOT resolve, which is what proves the rewrite was needed.
+            AssertReport("getView:~/Administration/Views/Shared/_AdminPopupLayout.cshtml=False",
+                "the PRE-8.2 admin path still resolves; the 8.2-3 rewrite would then be unnecessary.");
+            AssertReport("getView:~/Administration/Views/Shared/_GridPagerMessages.cshtml=False",
+                "the PRE-8.2 admin path still resolves.");
+        }
+
+        [Test]
+        public void Task_13_1_no_ViewStart_applies_to_pickups_Configure_which_sets_no_layout()
+        {
+            //*** THE SPECIFIC VIEW THE RELOCATION ALTERNATIVE WOULD HAVE BROKEN. ***
+            //Pickup.PickupInStore/Views/Configure.cshtml assigns NO Layout at all - the one view in
+            //the solution that relies on no _ViewStart applying. Because the Content/Link block
+            //keeps its identifier under /Plugins/... (whose ancestors have no _ViewStart), none
+            //applies, and it renders as a bare admin panel - correct. Had the views been relocated
+            //under /Views/<Controller>/, Nop.Web's /Views/_ViewStart.cshtml
+            //(Layout="~/Views/Shared/_ColumnsOne.cshtml") would have wrapped it in the storefront's
+            //one-column layout. Deferral 83.1.
+            AssertReport("viewStartsApplyingTo:/Plugins/Pickup.PickupInStore/Views/Configure.cshtml=<none>",
+                "a _ViewStart now applies to Pickup's Configure.cshtml, which sets no Layout - it " +
+                "would silently render inside whatever layout that _ViewStart names.");
+        }
+
+        [Test]
+        public void Task_13_1_the_ported_route_provider_registered_3_90s_two_named_routes()
+        {
+            //IRouteProvider is now void RegisterRoutes(IEndpointRouteBuilder); patterns, route NAMES
+            //and defaults are 3.90's, only the string[] namespaces argument dropped. Both names are
+            //load-bearing: Configure.cshtml resolves the Create/Edit popup URLs by
+            //Url.RouteUrl("Plugin.Pickup.PickupInStore.Create"/".Edit"). Driven against a scratch
+            //IEndpointRouteBuilder over the real service provider (the live EndpointDataSource
+            //carries no plugin route until the plugin is INSTALLED).
+            AssertReport("routeProviders:" + PickupInStoreAsm + ".count=1",
+                "Pickup.PickupInStore's IRouteProvider was not found.");
+            AssertReport("routeProviders:" + PickupInStoreAsm + ".priority=0", "3.90's Priority was 0.");
+
+            AssertReport("endpoint:Plugins/PickupInStore/Create.actions=" +
+                "Nop.Plugin.Pickup.PickupInStore.Controllers.PickupInStoreController.Create",
+                "the ported Create route does not reach the controller's Create action.");
+            AssertReport("endpoint:Plugins/PickupInStore/Create.routeNames=Plugin.Pickup.PickupInStore.Create",
+                "the Create route name changed; Configure.cshtml resolves the popup URL by that name.");
+            AssertReport("endpoint:Plugins/PickupInStore/Edit.actions=" +
+                "Nop.Plugin.Pickup.PickupInStore.Controllers.PickupInStoreController.Edit",
+                "the ported Edit route does not reach the controller's Edit action.");
+            AssertReport("endpoint:Plugins/PickupInStore/Edit.routeNames=Plugin.Pickup.PickupInStore.Edit",
+                "the Edit route name changed; Configure.cshtml resolves the edit-button URL by it.");
+        }
+
+        [Test]
+        public void Task_13_1_pickup_deploys_only_its_own_assembly_and_runtime_content()
+        {
+            //Private="false" + NopPluginDoNotDeployHostAssemblies: no OTHER Nop.* dll next to the
+            //plugin. This plugin is a sharp case like Feed.GoogleShopping - it references Nop.Data
+            //DIRECTLY - so a missing filter would leak Nop.Data.dll and PluginManager would load
+            //the stale copy as the process's Nop.Data.
+            AssertReport("plugin:" + PickupInStoreAsm + ".strayNopDlls=<none>",
+                PickupInStoreAsm + " deploys another Nop.* assembly - it references Nop.Data " +
+                "directly, so Nop.Data.dll would be copied by name.");
+            AssertReport("plugin:" + PickupInStoreAsm + ".deployDirParent=Plugins",
+                "the deployment folder's parent is not \"Plugins\" - PluginManager rejects it. " +
+                "Check OutputPath and AppendTargetFrameworkToOutputPath=false.");
+            AssertReport("plugin:" + PickupInStoreAsm + ".descriptionTxtDeployed=True", "");
+            AssertReport("plugin:" + PickupInStoreAsm + ".logoDeployed=True",
+                "logo.png (this plugin ships .png, not .jpg) did not deploy.");
+            AssertReport("plugin:" + PickupInStoreAsm + ".deployedConfigCount=0",
+                "a .config reached the deployment folder; web/app/packages.config are deleted at 13.1.");
+            AssertReport("plugin:" + PickupInStoreAsm + ".deployedCshtmlCount=0",
+                "a loose .cshtml was deployed; the views are compiled into the dll now.");
+        }
+
+        [Test]
+        public void Deferral_4_10_pickups_create_script_is_GO_batched_and_split_before_execution()
+        {
+            //RUNTIME DEFERRAL 4.10 for THIS plugin's context, without a database.
+            //GenerateCreateScript is a model operation. Same shape as the GoogleShopping proof.
+            AssertReport("pickupContext.assemblyLoaded=True",
+                "Pickup.PickupInStore is not loaded, so nothing below is measured.");
+            AssertReport("pickupContext.typePresent=True",
+                "StorePickupPointObjectContext is gone or was renamed.");
+            AssertReport("pickupContext.stringCtorPresent=True",
+                "StorePickupPointObjectContext lost its (string nameOrConnectionString) ctor. " +
+                "RegisterPluginDataContext constructs it reflectively with exactly that signature, " +
+                "so losing it fails at RUNTIME with MissingMethodException.");
+            AssertReport("pickupContext.rawScriptWouldBeRejected=True",
+                "EF Core's create script contains NO GO line, so deferral 4.10's premise no longer " +
+                "holds for this context. Re-read the deferral before simplifying Install().");
+            Assert.IsFalse((_report ?? string.Empty).Split('\n').Select(l => l.Trim())
+                    .Any(l => l == "pickupContext.batchCount=0"),
+                "SplitSqlIntoBatches produced NO batches from a non-empty create script, so " +
+                "Install() would create nothing at all." + Environment.NewLine + _report);
+            AssertReport("pickupContext.batchesWithBareGo=0",
+                "a batch still contains a bare GO line, which SQL Server rejects - exactly what " +
+                "3.90's Database.ExecuteSqlCommand(CreateDatabaseScript()) would have sent.");
+            AssertReport("pickupContext.batchesCreatingTable=1",
+                "no single batch creates the StorePickupPoint table. Either the table name changed " +
+                "(StorePickupPointMap.ToTable is load-bearing - Uninstall resolves it back through " +
+                "GetTableName<StorePickupPoint>() and drops it) or the CREATE TABLE was split.");
+        }
+
+        [Test]
+        public void Task_13_1_the_pickup_context_model_holds_ONLY_the_plugins_own_entity()
+        {
+            //OnModelCreating calls ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly()).
+            //If that ever widened to Nop.Data's assembly, this context's model would gain all ~105
+            //nopCommerce entities and Install() would generate a create script for the WHOLE
+            //nopCommerce schema against a live store.
+            AssertReport("pickupContext.entityTypeCount=1",
+                "the plugin context's model holds more than its own entity - the assembly-scoped " +
+                "ApplyConfigurationsFromAssembly was probably widened to Nop.Data's maps.");
+            AssertReport("pickupContext.entityTypes=StorePickupPoint", "");
+            AssertReport("pickupContext.tableNames=StorePickupPoint",
+                "the mapped table name is not 3.90's StorePickupPoint - StorePickupPointMap.ToTable " +
+                "is load-bearing (Uninstall drops the resolved name).");
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Task 15.1 / 15.2 / 15.3 — Tax.FixedOrByCountryStateZip, Widgets.GoogleAnalytics,
+        // Widgets.NivoSlider. Discovery/compatibility/parts/identifiers/getView are asserted for
+        // all three above (they are in ViewBearing and AllMigrated, and the probe's hardcoded
+        // getView list carries their controller paths). These tests pin the facts specific to this
+        // group: the Tax DbContext (deferral 4.10, the 4th and last plugin context), the Tax route
+        // provider + 8.2-3 rewrites, and each plugin's deployment shape.
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        public void Deferral_4_10_tax_create_script_is_GO_batched_and_split_before_execution()
+        {
+            //RUNTIME DEFERRAL 4.10 for the FOURTH AND LAST plugin context, without a database.
+            //GenerateCreateScript is a model operation. Same shape as the GoogleShopping/Pickup
+            //proofs: 3.90's Install() was Database.ExecuteSqlCommand(CreateDatabaseScript()), which
+            //throws "Incorrect syntax near 'GO'" against the EF Core create script; the ported
+            //Install() goes through the shared Nop.Data.DbContextExtensions.ExecuteSqlScript.
+            AssertReport("taxContext.assemblyLoaded=True",
+                "Tax.FixedOrByCountryStateZip is not loaded, so nothing below is measured.");
+            AssertReport("taxContext.typePresent=True",
+                "CountryStateZipObjectContext is gone or was renamed.");
+            AssertReport("taxContext.stringCtorPresent=True",
+                "CountryStateZipObjectContext lost its (string nameOrConnectionString) ctor. " +
+                "Nop.Web.Framework's RegisterPluginDataContext constructs it reflectively with " +
+                "exactly that signature, so losing it fails at RUNTIME with MissingMethodException " +
+                "and no compile error anywhere.");
+            AssertReport("taxContext.rawScriptWouldBeRejected=True",
+                "EF Core's create script contains NO GO line, so deferral 4.10's premise no longer " +
+                "holds for this context. Re-read the deferral before simplifying Install().");
+            Assert.IsFalse((_report ?? string.Empty).Split('\n').Select(l => l.Trim())
+                    .Any(l => l == "taxContext.batchCount=0"),
+                "SplitSqlIntoBatches produced NO batches from a non-empty create script, so " +
+                "Install() would create nothing at all." + Environment.NewLine + _report);
+            AssertReport("taxContext.batchesWithBareGo=0",
+                "a batch still contains a bare GO line, which SQL Server rejects - exactly what " +
+                "3.90's Database.ExecuteSqlCommand(CreateDatabaseScript()) would have sent.");
+            AssertReport("taxContext.batchesCreatingTable=1",
+                "no single batch creates the TaxRate table. Either the table name changed " +
+                "(TaxRateMap.ToTable is load-bearing - Uninstall resolves it back through " +
+                "GetTableName<TaxRate>() and drops it) or the CREATE TABLE was split.");
+        }
+
+        [Test]
+        public void Task_15_1_the_tax_context_model_holds_ONLY_the_plugins_own_entity()
+        {
+            //OnModelCreating calls ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly()).
+            //If that ever widened to Nop.Data's assembly, this context's model would gain all ~105
+            //nopCommerce entities and Install() would generate a create script for the WHOLE
+            //nopCommerce schema against a live store.
+            AssertReport("taxContext.entityTypeCount=1",
+                "the plugin context's model holds more than its own entity - the assembly-scoped " +
+                "ApplyConfigurationsFromAssembly was probably widened to Nop.Data's maps.");
+            AssertReport("taxContext.entityTypes=TaxRate", "");
+            AssertReport("taxContext.tableNames=TaxRate",
+                "the mapped table name is not 3.90's TaxRate - TaxRateMap.ToTable is load-bearing " +
+                "(Uninstall drops the resolved name).");
+        }
+
+        [Test]
+        public void Task_15_1_the_ported_tax_route_provider_registered_3_90s_named_route()
+        {
+            //IRouteProvider is now void RegisterRoutes(IEndpointRouteBuilder); pattern, route NAME
+            //and defaults are 3.90's, only the string[] namespaces argument dropped. The name is
+            //load-bearing: _CountryStateZip.cshtml resolves the "Add tax rate" AJAX target by
+            //Url.RouteUrl("Plugin.Tax.FixedOrByCountryStateZip.AddRateByCountryStateZip"). Driven
+            //against a scratch IEndpointRouteBuilder over the real service provider.
+            AssertReport("routeProviders:" + TaxCountryStateZipAsm + ".count=1",
+                "Tax.FixedOrByCountryStateZip's IRouteProvider was not found.");
+            AssertReport("routeProviders:" + TaxCountryStateZipAsm + ".priority=0", "3.90's Priority was 0.");
+            AssertReport("endpoint:Plugins/FixedOrByCountryStateZip/AddRateByCountryStateZip.actions=" +
+                "Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers.FixedOrByCountryStateZipController.AddRateByCountryStateZip",
+                "the ported route does not reach the controller's AddRateByCountryStateZip action.");
+            AssertReport("endpoint:Plugins/FixedOrByCountryStateZip/AddRateByCountryStateZip.routeNames=" +
+                "Plugin.Tax.FixedOrByCountryStateZip.AddRateByCountryStateZip",
+                "the route name changed; _CountryStateZip.cshtml resolves the Add button URL by it.");
+        }
+
+        [Test]
+        public void Deferral_8_2_3_tax_grid_pager_partial_resolves_and_the_old_path_does_not()
+        {
+            //DEFERRAL 8.2-3, TWO SITES in this plugin: _FixedRate.cshtml and _CountryStateZip.cshtml
+            //each named ~/Administration/Views/Shared/_GridPagerMessages.cshtml, rewritten to
+            //~/Areas/Admin/Views/Shared/... (a cross-assembly reference compiled into Nop.Admin.dll).
+            //The getView facts for both the new and old paths are in the setup report.
+            AssertReport("getView:~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml=True",
+                "the Kendo grid pager partial does not resolve, so the tax grids cannot render.");
+            AssertReport("getView:~/Administration/Views/Shared/_GridPagerMessages.cshtml=False",
+                "the PRE-8.2 admin path still resolves; the 8.2-3 rewrite would then be unnecessary.");
+        }
+
+        [Test]
+        public void Task_15_x_each_plugin_deploys_only_its_own_assembly_and_runtime_content()
+        {
+            //Private="false" + NopPluginDoNotDeployHostAssemblies: no OTHER Nop.* dll next to a
+            //plugin. Tax.FixedOrByCountryStateZip is a sharp case like Feed.GoogleShopping/Pickup -
+            //it references Nop.Data DIRECTLY - so a missing filter would leak Nop.Data.dll and
+            //PluginManager would load the stale copy as the process's Nop.Data.
+            foreach (var asm in new[] { TaxCountryStateZipAsm, WidgetsGoogleAnalyticsAsm, WidgetsNivoSliderAsm })
+            {
+                AssertReport("plugin:" + asm + ".strayNopDlls=<none>",
+                    asm + " deploys another Nop.* assembly next to itself.");
+                AssertReport("plugin:" + asm + ".deployDirParent=Plugins",
+                    "the deployment folder's parent is not \"Plugins\" - PluginManager rejects it. " +
+                    "Check OutputPath and AppendTargetFrameworkToOutputPath=false.");
+                AssertReport("plugin:" + asm + ".descriptionTxtDeployed=True", "");
+                AssertReport("plugin:" + asm + ".logoDeployed=True", "logo.jpg did not deploy.");
+                AssertReport("plugin:" + asm + ".deployedConfigCount=0",
+                    "a .config reached the deployment folder; web/app/packages.config are deleted at 15.x.");
+                AssertReport("plugin:" + asm + ".deployedCshtmlCount=0",
+                    "a loose .cshtml was deployed; the views are compiled into the dll now.");
+            }
+        }
+
+        /// <summary>
+        /// Fetches <c>/__smoke/plugins?getView=&lt;path&gt;</c>, driving the real
+        /// <see cref="Microsoft.AspNetCore.Mvc.Razor.IRazorViewEngine"/> for a caller-supplied path.
+        /// Used so this fixture can assert view-engine resolution for its own plugin without editing
+        /// the probe's hardcoded path list (which groups 14/15 edit concurrently).
+        /// </summary>
+        private string GetProbeWithGetView(string viewPath)
+        {
+            var url = SmokeProbeMiddleware.Prefix + "plugins?getView=" +
+                Uri.EscapeDataString(viewPath);
+            var report = _client.GetStringAsync(url).Result ?? string.Empty;
+            return report;
         }
 
         #endregion

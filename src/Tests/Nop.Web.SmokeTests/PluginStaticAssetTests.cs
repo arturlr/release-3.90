@@ -88,7 +88,17 @@ namespace Nop.Web.SmokeTests
         {
             "/Plugins/ExternalAuth.Facebook/Content/facebookstyles.css",
             "/Plugins/ExternalAuth.Facebook/Content/Images/facebook-signing.png",
-            "/Plugins/Feed.GoogleShopping/Content/styles.css"
+            "/Plugins/Feed.GoogleShopping/Content/styles.css",
+            //Task 15.3 - Widgets.NivoSlider is the first plugin that ships a Scripts/ tree as well
+            //as a Content/ tree. Its Views/PublicInfo.cshtml names all four of these by ordinary
+            //~/Plugins/... URL (Html.AddScriptParts / Html.AddCssFileParts). The Scripts half of the
+            //allow-list rule was pinned with a planted file at task 11.1
+            //(Task_11_1_the_Scripts_half_of_the_rule_works_for_15_3); these are the FIRST real
+            //Scripts/ asset URLs, and the sample-images jpg the storefront slider actually renders.
+            "/Plugins/Widgets.NivoSlider/Scripts/jquery.nivo.slider.js",
+            "/Plugins/Widgets.NivoSlider/Content/nivoslider/nivo-slider.css",
+            "/Plugins/Widgets.NivoSlider/Content/nivoslider/themes/custom/custom.css",
+            "/Plugins/Widgets.NivoSlider/Content/nivoslider/sample-images/banner1.jpg"
         };
 
         [OneTimeSetUp]
@@ -280,6 +290,74 @@ namespace Nop.Web.SmokeTests
                 .GetAsync("/Plugins/ExternalAuth.Facebook/Scripts/11_1_smoke_planted.js").Result;
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode,
                 "the Scripts half of AllowedPluginRoots does not serve. Task 15.3 depends on it.");
+        }
+
+        [Test]
+        public void Task_15_3_NivoSliders_real_Scripts_and_Content_assets_serve()
+        {
+            //Task 11.1 pinned the Scripts/ half of the rule with a PLANTED file specifically so
+            //15.3 would inherit a proven rule. This is the same rule exercised by the FIRST plugin
+            //that actually ships a Scripts/ tree - jquery.nivo.slider.js and the nivoslider css /
+            //sample images that Views/PublicInfo.cshtml references by ordinary ~/Plugins/... URL.
+            //(The paths are also in MustServe, which asserts existence-on-disk + 200 + non-empty
+            //body for every one; this test states the 15.3-specific reasoning and would fail loudly
+            //if the asset tree stopped deploying.)
+            foreach (var path in new[]
+            {
+                "/Plugins/Widgets.NivoSlider/Scripts/jquery.nivo.slider.js",
+                "/Plugins/Widgets.NivoSlider/Content/nivoslider/nivo-slider.css",
+                "/Plugins/Widgets.NivoSlider/Content/nivoslider/sample-images/banner1.jpg"
+            })
+            {
+                var onDisk = CommonHelper.MapPath("~" + path);
+                Assert.IsTrue(File.Exists(onDisk),
+                    "PREMISE BROKEN: " + path + " is not deployed. Task 15.3's project file must " +
+                    "carry <None Remove=\"Content\\**\"/><Content Include=\"Content\\**\" " +
+                    "CopyToOutputDirectory=\"Always\"/> AND the same for Scripts\\** - under " +
+                    "Microsoft.NET.Sdk.Razor the default Content glob covers only .cshtml/.razor, " +
+                    "so a bare Update matches nothing. Expected at " + onDisk);
+
+                var response = _client.GetAsync(path).Result;
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode,
+                    "NivoSlider asset does not serve: " + path);
+                Assert.Greater(response.Content.ReadAsByteArrayAsync().Result.Length, 0,
+                    "served an EMPTY body for " + path);
+            }
+        }
+
+        [Test]
+        public void Task_15_3_NivoSliders_own_assembly_metadata_and_closed_paths_still_404_SECURITY()
+        {
+            //Widening the allow-list to reach NivoSlider's large Content/+Scripts/ trees must NOT
+            //expose the plugin's own assembly, dependency graph or PluginManager metadata. Every
+            //path below is a REAL file on disk (a deployed plugin), so each 404 is a decision, not a
+            //file that happened not to exist. This is the same property
+            //Task_11_1_widening_the_allow_list_did_not_expose_a_plugin_DEPLOYMENT_SECURITY asserts
+            //for the 11.x plugins, restated against the plugin with the biggest asset surface.
+            var mustNotServe = new[]
+            {
+                "/Plugins/Widgets.NivoSlider/Nop.Plugin.Widgets.NivoSlider.dll",
+                "/Plugins/Widgets.NivoSlider/Nop.Plugin.Widgets.NivoSlider.deps.json",
+                "/Plugins/Widgets.NivoSlider/Description.txt"
+            };
+            foreach (var path in mustNotServe)
+            {
+                var onDisk = CommonHelper.MapPath("~" + path);
+                Assert.IsTrue(File.Exists(onDisk),
+                    "PREMISE BROKEN: " + path + " is not on disk, so refusing it proves nothing. " +
+                    "Expected at " + onDisk);
+            }
+            foreach (var path in mustNotServe)
+                AssertNotServed(path);
+
+            //A mis-cased asset URL still 404s from the filesystem (PhysicalFileProvider is
+            //case-sensitive on Linux) - the allow-list matches the DIRECTORY segment
+            //case-insensitively, the FILE name exactly. Same property as
+            //Task_11_1_a_plugin_asset_url_is_case_exact_against_the_filesystem.
+            Assert.AreEqual(HttpStatusCode.OK,
+                _client.GetAsync("/Plugins/Widgets.NivoSlider/Scripts/jquery.nivo.slider.js")
+                    .Result.StatusCode);
+            AssertNotServed("/Plugins/Widgets.NivoSlider/Scripts/JQUERY.NIVO.SLIDER.JS");
         }
 
         // -----------------------------------------------------------------------------------

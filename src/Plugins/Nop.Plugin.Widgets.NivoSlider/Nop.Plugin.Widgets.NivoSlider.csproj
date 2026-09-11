@@ -1,250 +1,136 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{9978B382-0BCD-4621-B6B5-52E0E3B5F464}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Nop.Plugin.Widgets.NivoSlider</RootNamespace>
-    <AssemblyName>Nop.Plugin.Widgets.NivoSlider</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Widgets.NivoSlider\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Widgets.NivoSlider\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="Autofac, Version=4.4.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Autofac.4.4.0\lib\net45\Autofac.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions.Desktop, Version=1.0.168.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.Desktop.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Net" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Net.Http.Extensions, Version=2.2.29.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Extensions.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Net.Http.Primitives, Version=4.2.29.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Primitives.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Net.Http.WebRequest" />
-    <Reference Include="System.Web" />
-    <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.Helpers.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.Mvc, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Mvc.5.2.3\lib\net45\System.Web.Mvc.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Razor.3.2.3\lib\net45\System.Web.Razor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages.Deployment, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Deployment.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Controllers\WidgetsNivoSliderController.cs" />
-    <Compile Include="Infrastructure\Cache\ModelCacheEventConsumer.cs" />
-    <Compile Include="Infrastructure\DependencyRegistrar.cs" />
-    <Compile Include="NivoSliderPlugin.cs" />
-    <Compile Include="NivoSliderSettings.cs" />
-    <Compile Include="Models\ConfigurationModel.cs" />
-    <Compile Include="Models\PublicInfoModel.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Content\nivoslider\sample-images\banner1.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\sample-images\banner2.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\custom\arrows.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\custom\bullets.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\custom\custom.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\custom\loading.gif">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Views\Configure.cshtml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Views\PublicInfo.cshtml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Content\nivoslider\license.txt" />
-    <Content Include="Content\nivoslider\nivo-slider.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\bar\arrows.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\bar\bar.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\bar\bullets.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\bar\loading.gif">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\dark\arrows.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\dark\bullets.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\dark\dark.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\dark\loading.gif">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\default\arrows.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\default\bullets.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\default\default.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\default\loading.gif">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\light\arrows.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\light\bullets.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\light\light.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\nivoslider\themes\light\loading.gif">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Description.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="logo.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Notes.txt" />
-    <Content Include="Scripts\jquery.nivo.slider.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Content\nivoslider\README" />
-    <None Include="app.config" />
-    <None Include="packages.config" />
-    <Content Include="web.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj">
-      <Project>{6bda8332-939f-45b7-a25e-7a797260ae59}</Project>
-      <Name>Nop.Core</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj">
-      <Project>{210541ad-f659-47da-8763-16f36c5cd2f4}</Project>
-      <Name>Nop.Services</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj">
-      <Project>{75fd4163-333c-4dd5-854d-2ef294e45d94}</Project>
-      <Name>Nop.Web.Framework</Name>
-      <Private>False</Private>
-    </ProjectReference>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets'))" />
-  </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+    Nop.Plugin.Widgets.NivoSlider - task 15.3
+    (Requirements 5.5, 1.1-1.5, 2.4, 4.2, 4.3, 4.4, 5.1, 5.3, 3.1).
+
+    THE RECIPE THIS FOLLOWS is the annotated
+    src/Plugins/Nop.Plugin.DiscountRules.CustomerRoles/Nop.Plugin.DiscountRules.CustomerRoles.csproj
+    (task 10.1) and the static-asset variant established by task 11.1's
+    Nop.Plugin.ExternalAuth.Facebook.csproj / task 11.2's Nop.Plugin.Feed.GoogleShopping.csproj.
+    Only what is DIFFERENT about this plugin is documented here.
+
+    ===================================================================================
+    WHAT IS DIFFERENT - THE LARGEST STATIC-ASSET TREE OF ANY PLUGIN, IN TWO ROOTS
+    ===================================================================================
+    This plugin ships Content\ (the nivoslider css + theme images + two sample banner jpgs) AND
+    Scripts\ (jquery.nivo.slider.js), both referenced by ordinary ~/Plugins/Widgets.NivoSlider/...
+    URLs from Views/PublicInfo.cshtml (Html.AddScriptParts / Html.AddCssFileParts). They are
+    therefore deployed as loose files (CopyToOutputDirectory="Always", as in 3.90).
+
+    *** THE SERVE HALF IS ALREADY DONE (runtime deferral 10.x-1, task 11.1). ***
+    NopStaticFileProvider's allow-list already has a third-level Plugins/*/{Content,Scripts}/**
+    rule (Plugins/bin separately DENIED), and task 11.1 PLANTED a file to prove the Scripts half
+    specifically for this task
+    (PluginStaticAssetTests.Task_11_1_the_Scripts_half_of_the_rule_works_for_15_3). So the
+    provider needs NO change. What 15.3 owes is the DEPLOY half - the two Content/Scripts item
+    pairs below - and extending PluginStaticAssetTests.MustServe to NivoSlider's real asset URLs.
+
+    *** WHY <None Remove> + <Content Include> AND NOT the Content/Link block. ***
+    The Content/Link block below is for the .cshtml VIEWS - Link rewrites their compiled Razor
+    identifiers and sets CopyToOutputDirectory="Never" (the views are compiled INTO the assembly).
+    The asset trees are different: they must be deployed as loose files and keep their on-disk
+    layout, so they are plain <Content Include="Content\**" CopyToOutputDirectory="Always"> with
+    NO Link. Under Microsoft.NET.Sdk.Razor the default Content glob covers only .cshtml/.razor, so
+    .css/.js/.jpg/.png/.gif arrive as <None> and a bare <Content Update="Content\**"> would match
+    NOTHING - hence the <None Remove> first, exactly as ExternalAuth.Facebook / Feed.GoogleShopping
+    do. This matters TWICE for NivoSlider: NivoSliderPlugin.Install does a
+    CommonHelper.MapPath("~/Plugins/Widgets.NivoSlider/Content/nivoslider/sample-images/") +
+    File.ReadAllBytes physical read to seed the two sample pictures, so the tree must be physically
+    present in the deployment directory (another reason it stays there rather than under wwwroot),
+    and the on-disk casing is load-bearing (PhysicalFileProvider is case-sensitive on Linux).
+
+    ===================================================================================
+    DROPPED IN THE CLASSIC -> SDK CONVERSION (Requirements 1.4, 1.5)
+    ===================================================================================
+    As in the 10.1 template: ToolsVersion/DefaultTargets/xmlns, ProjectGuid, ProductVersion,
+    SchemaVersion, FileAlignment, AppDesignerFolder, OutputType, TargetFrameworkProfile,
+    NuGetPackageImportStamp, TargetFrameworkVersion v4.5.1, Prefer32Bit, ErrorReport, WarningLevel,
+    DefineConstants and the Debug/Release blocks; the explicit <Compile Include> list and the
+    explicit Content entries for each asset; the Microsoft.CSharp.targets / Microsoft.Bcl.Build.targets
+    imports and the EnsureNuGetPackageBuildImports guard; every <Reference> with a HintPath into
+    ..\..\packages\ (the Microsoft.AspNet.Mvc 5.2.3 / Razor 3.2.3 / WebPages 3.2.3 System.Web MVC
+    stack, Autofac, the net40/net45 polyfills); the BCL <Reference>s; and
+    <Reference Include="System.Web" />, which has no net10.0 counterpart at all.
+
+    app.config, packages.config and web.config are DELETED; web.config's load-bearing content is
+    transcribed to Views/_ViewImports.cshtml. Properties/AssemblyInfo.cs is KEPT. Notes.txt stays
+    non-deployed Content, as in 3.90. No <PackageReference>: no third-party dependency of its own.
   -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Widgets.NivoSlider\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!--
+    Required explicitly - Microsoft.NET.Sdk.Razor does not add it implicitly. The controller binds
+    Microsoft.AspNetCore.Mvc (+ .Rendering for SelectListItem) and the plugin class binds
+    Microsoft.AspNetCore.Routing (RouteValueDictionary, on IWidgetPlugin).
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" Private="false" />
+    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj" Private="false" />
+    <ProjectReference Include="..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj" Private="false" />
+  </ItemGroup>
+
+  <!--
+    Private="false" alone is NOT sufficient - a transitive Nop.Data.dll leaks in through the
+    ProjectReference closure. See runtime-deferrals.md section 83.3. Verbatim from the template;
+    the "Nop." prefix filter keeps Payments.PayPalDirect's private PayPal SDK working (task 12.3).
+  -->
+  <Target Name="NopPluginDoNotDeployHostAssemblies" AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths
+          Remove="@(ReferenceCopyLocalPaths)"
+          Condition="$([System.String]::Copy('%(Filename)').StartsWith('Nop.'))" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    View resolution. %(Link) becomes the compiled Razor identifier, so the views compile as
+    /Plugins/Widgets.NivoSlider/Views/*.cshtml and the controller's two
+    View("~/Plugins/Widgets.NivoSlider/Views/....cshtml") call sites stay UNEDITED.
+    %(RecursiveDir) already contains "Views/" - do not repeat it.
+  -->
+  <ItemGroup>
+    <Content Update="Views\**\*.cshtml"
+             Link="Plugins\Widgets.NivoSlider\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+  <!--
+    The static asset trees - see "WHAT IS DIFFERENT" above. Include, NOT Update, with the
+    <None Remove> first; recursive globs rather than 3.90's explicit per-file entries so an added
+    asset cannot be silently left undeployed. NO Link: these are loose files served by ordinary
+    URL, and their on-disk layout under Plugins\Widgets.NivoSlider\{Content,Scripts}\ is what both
+    the ~/Plugins/... URLs and NivoSliderPlugin.Install's physical read resolve against.
+  -->
+  <ItemGroup>
+    <None Remove="Content\**" />
+    <None Remove="Scripts\**" />
+    <Content Include="Content\**" CopyToOutputDirectory="Always" />
+    <Content Include="Scripts\**" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
+  <!--
+    Runtime-read content, deployed exactly as in 3.90. Include, NOT Update - AND the <None Remove>
+    first; under Microsoft.NET.Sdk.Razor the default Content glob covers only .cshtml/.razor.
+  -->
+  <ItemGroup>
+    <None Remove="Description.txt" />
+    <None Remove="logo.jpg" />
+    <None Remove="Notes.txt" />
+    <Content Include="Description.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="logo.jpg" CopyToOutputDirectory="Always" />
+    <Content Include="Notes.txt" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
 </Project>

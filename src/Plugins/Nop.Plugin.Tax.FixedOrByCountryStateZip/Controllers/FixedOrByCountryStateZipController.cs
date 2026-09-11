@@ -1,5 +1,7 @@
-﻿using System.Linq;
-using System.Web.Mvc;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Plugin.Tax.FixedOrByCountryStateZip.Domain;
 using Nop.Plugin.Tax.FixedOrByCountryStateZip.Models;
@@ -16,6 +18,43 @@ using Nop.Web.Framework.Security;
 
 namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
 {
+    /// <remarks>
+    /// Task 15.1 substitutions — all of them decisions tasks 7.3 (§30), 8.3 (§55) and 10.x/11.x
+    /// already made and recorded:
+    /// <list type="bullet">
+    /// <item><c>using System.Web.Mvc;</c> → <c>using Microsoft.AspNetCore.Mvc;</c> plus
+    /// <c>Microsoft.AspNetCore.Mvc.Rendering</c> for <see cref="SelectListItem"/>.</item>
+    /// <item><c>using System.Web.Routing;</c> DELETED — see <see cref="OnActionExecuting"/>, where
+    /// the <c>Initialize(RequestContext)</c> override it existed for is replaced.</item>
+    /// <item><c>[ChildActionOnly]</c> on <c>Configure</c> → <c>[NopChildActionOnly]</c>
+    /// (deferral 7.3-4, resolved at 8.3). Without it <c>GET /FixedOrByCountryStateZip/Configure</c>
+    /// would serve the bare admin panel over the <c>Default</c> route. The grid/save actions are
+    /// deliberately NOT marked: they are called by URL from the Kendo grids and the AJAX buttons
+    /// in <c>Views/_FixedRate.cshtml</c> / <c>Views/_CountryStateZip.cshtml</c>, so suppressing
+    /// their endpoints would break the page. They were never <c>[ChildActionOnly]</c> in 3.90
+    /// either.</item>
+    /// <item><c>Json(new { Result = true }, JsonRequestBehavior.AllowGet)</c> → <c>Json(new {
+    /// Result = true })</c>. <c>JsonRequestBehavior</c> does not exist in ASP.NET Core (there is
+    /// no JSON-hijacking guard and therefore no opt-out); this call site explicitly opted out of
+    /// <c>DenyGet</c>, so the ported behaviour is what 3.90 asked for (§55.5).</item>
+    /// <item><c>View("~/Plugins/Tax.FixedOrByCountryStateZip/Views/Configure.cshtml", model)</c> —
+    /// call site UNCHANGED, thanks to the project file's <c>Content</c>/<c>Link</c> block.</item>
+    /// </list>
+    /// Needed no edit: <c>[AdminAuthorize]</c>, <c>[AdminAntiForgery]</c>,
+    /// <c>ErrorForKendoGridJson</c>, <c>DataSourceRequest</c>/<c>DataSourceResult</c>,
+    /// <c>NullJsonResult</c>, <c>[NonAction]</c>, <c>Content(...)</c> — every one ported in place
+    /// by tasks 6.2/6.3 with its signature intact.
+    /// <para>
+    /// <b>THE TELERIK-CULTURE HACK MOVES FROM <c>Initialize</c> TO <c>OnActionExecuting</c>.</b>
+    /// 3.90 overrode <c>System.Web.Mvc.Controller.Initialize(RequestContext)</c> to force
+    /// <c>en-US</c> before the Kendo grid parsed decimals. ASP.NET Core's
+    /// <c>Microsoft.AspNetCore.Mvc.Controller</c> has no <c>Initialize</c> seam; the equivalent —
+    /// the same one <c>Nop.Admin</c>'s <c>BaseAdminController</c> uses (task 8.3) — is
+    /// <see cref="OnActionExecuting"/>, which the base controller already implements as
+    /// <see cref="IActionFilter"/> so no registration is needed. <c>CommonHelper.SetTelerikCulture</c>
+    /// survived the migration in <c>Nop.Core</c> unchanged.
+    /// </para>
+    /// </remarks>
     [AdminAuthorize]
     public class FixedOrByCountryStateZipController : BasePluginController
     {
@@ -47,16 +86,19 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
             this._countryStateZipSettings = countryStateZipSettings;
         }
 
-        protected override void Initialize(System.Web.Routing.RequestContext requestContext)
+        public override void OnActionExecuting(ActionExecutingContext context)
         {
             //little hack here
-            //always set culture to 'en-US' (Telerik has a bug related to editing decimal values in other cultures). Like currently it's done for admin area in Global.asax.cs
+            //always set culture to 'en-US' (Telerik/Kendo UI has a bug related to editing decimal
+            //values in other cultures). 3.90 did this in an Initialize(RequestContext) override,
+            //which ASP.NET Core's Controller does not have; OnActionExecuting is the equivalent
+            //seam (same one Nop.Admin's BaseAdminController uses).
             CommonHelper.SetTelerikCulture();
 
-            base.Initialize(requestContext);
+            base.OnActionExecuting(context);
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure()
         {
             var taxCategories = _taxCategoryService.GetAllTaxCategories();
@@ -99,10 +141,11 @@ namespace Nop.Plugin.Tax.FixedOrByCountryStateZip.Controllers
             _countryStateZipSettings.CountryStateZipEnabled = value;
             _settingService.SaveSetting(_countryStateZipSettings);
 
+            //task 15.1: JsonRequestBehavior.AllowGet dropped - see the remarks on this class
             return Json(new
             {
                 Result = true
-            }, JsonRequestBehavior.AllowGet);
+            });
         }
 
         #region Fixed tax

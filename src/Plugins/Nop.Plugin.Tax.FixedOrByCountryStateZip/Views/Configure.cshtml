@@ -45,5 +45,6 @@
             });
 </script>
 
-@Html.Partial("~/Plugins/Tax.FixedOrByCountryStateZip/Views/_FixedRate.cshtml")
-@Html.Partial("~/Plugins/Tax.FixedOrByCountryStateZip/Views/_CountryStateZip.cshtml", Model)
+@* Html.Partial is not available in ASP.NET Core; PartialAsync is (task 10.x substitution). *@
+@await Html.PartialAsync("~/Plugins/Tax.FixedOrByCountryStateZip/Views/_FixedRate.cshtml")
+@await Html.PartialAsync("~/Plugins/Tax.FixedOrByCountryStateZip/Views/_CountryStateZip.cshtml", Model)

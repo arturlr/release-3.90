@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Directory;
 using Nop.Plugin.Pickup.PickupInStore.Domain;
@@ -19,6 +20,30 @@ using Nop.Web.Framework.Security;
 
 namespace Nop.Plugin.Pickup.PickupInStore.Controllers
 {
+    /// <remarks>
+    /// Task 13.1 substitutions — all decisions tasks 7.3 (§30), 8.3 (§55) and groups 10/11 already
+    /// made and recorded:
+    /// <list type="bullet">
+    /// <item><c>using System.Web.Mvc;</c> → <c>using Microsoft.AspNetCore.Mvc;</c> plus
+    /// <c>Microsoft.AspNetCore.Mvc.Rendering</c> for <see cref="SelectListItem"/>.</item>
+    /// <item><c>[ChildActionOnly]</c> → <c>[NopChildActionOnly]</c> on <see cref="Configure()"/>
+    /// only — it is the action <c>PickupInStoreProvider.GetConfigurationRoute</c> names and that the
+    /// admin plugin list renders as a child action. Without the marker,
+    /// <c>GET /PickupInStore/Configure</c> would serve the bare admin panel over the Default route.
+    /// <b>The other actions are deliberately NOT marked:</b> <c>List</c> and <c>Delete</c> are called
+    /// by URL from the Kendo grid in <c>Configure.cshtml</c>, and <c>Create</c>/<c>Edit</c> are
+    /// reached by the plugin's own named routes (RouteProvider) from the grid's popup buttons —
+    /// suppressing any of their endpoints would break the page. None of them were
+    /// <c>[ChildActionOnly]</c> in 3.90 either.</item>
+    /// <item><c>View("~/Plugins/Pickup.PickupInStore/Views/Xyz.cshtml", model)</c> — call sites
+    /// UNCHANGED, thanks to the project file's <c>Content</c>/<c>Link</c> block.</item>
+    /// </list>
+    /// Needed no edit: <c>[AdminAuthorize]</c>, <c>[AdminAntiForgery]</c>, <c>ErrorForKendoGridJson</c>,
+    /// <c>DataSourceRequest</c>/<c>DataSourceResult</c>, <c>NullJsonResult</c>, <c>Content(...)</c>,
+    /// <c>RedirectToAction(...)</c>, <c>Json(...)</c> (this file never used
+    /// <c>JsonRequestBehavior.AllowGet</c>) — each ported in place by tasks 6.2/6.3 with its
+    /// signature intact.
+    /// </remarks>
     [AdminAuthorize]
     public class PickupInStoreController : BasePluginController
     {
@@ -57,7 +82,7 @@ namespace Nop.Plugin.Pickup.PickupInStore.Controllers
 
         #region Methods
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))

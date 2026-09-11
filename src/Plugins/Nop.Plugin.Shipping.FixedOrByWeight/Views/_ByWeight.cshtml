@@ -68,7 +68,11 @@
                                     pageable: {
                                         refresh: true,
                                         pageSizes: [@(gridPageSizes)],
-                                        @Html.Partial("~/Administration/Views/Shared/_GridPagerMessages.cshtml")
+                                        @*  DEFERRAL 8.2-3 (task 14.4): ~/Administration/Views/Shared/ -> ~/Areas/Admin/Views/Shared/,
+                                            and Html.Partial -> await Html.PartialAsync (MVC1000 - the synchronous overload is gone).
+                                            Cross-assembly into Nop.Admin.dll; stays an explicit ~/-rooted path (a bare name goes
+                                            through the location formats and finds nothing). See §51 / §83.5.  *@
+                                        @await Html.PartialAsync("~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml")
                                     },
                                     editable: {
                                         confirmation: "@T("Admin.Common.DeleteConfirmation")",

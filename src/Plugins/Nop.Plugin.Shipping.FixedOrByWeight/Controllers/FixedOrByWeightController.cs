@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
 using Nop.Plugin.Shipping.FixedOrByWeight.Domain;
@@ -67,16 +69,15 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
             this._measureSettings = measureSettings;
         }
 
-        protected override void Initialize(System.Web.Routing.RequestContext requestContext)
-        {
-            //little hack here
-            //always set culture to 'en-US' (Telerik has a bug related to editing decimal values in other cultures). Like currently it's done for admin area in Global.asax.cs
-            CommonHelper.SetTelerikCulture();
+        //NOTE (task 14.4): 3.90 overrode Controller.Initialize(RequestContext) to call
+        //CommonHelper.SetTelerikCulture() ("little hack" for editing decimals in non-en-US
+        //cultures). ASP.NET Core has no Initialize(RequestContext) seam, and the culture is now
+        //set globally for every admin request by Nop.Web.Framework's WorkingCultureMiddleware
+        //(which calls CommonHelper.SetTelerikCulture() on the admin branch). The override is
+        //therefore dropped as redundant, matching how the migrated Nop.Admin controllers dropped
+        //the same pattern.
 
-            base.Initialize(requestContext);
-        }
-
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure()
         {
             var model = new ConfigurationModel
@@ -111,10 +112,14 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
             _fixedOrByWeightSettings.ShippingByWeightEnabled = value;
             _settingService.SaveSetting(_fixedOrByWeightSettings);
 
+            //task 14.4: JsonRequestBehavior.AllowGet dropped - JsonRequestBehavior does not exist
+            //in ASP.NET Core (there is no JSON-hijacking guard and therefore no opt-out). Same
+            //direction (RELAX) as task 10.1's DiscountRules.CustomerRoles and the 32 admin sites
+            //at §55.5.
             return Json(new
             {
                 Result = true
-            }, JsonRequestBehavior.AllowGet);
+            });
         }
 
         #region Fixed rate
@@ -242,7 +247,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
         public ActionResult AddRateByWeighPopup()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.GetEncodedPathAndQuery() });
 
             var model = new ShippingByWeightModel
             {
@@ -283,7 +288,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
         public ActionResult AddRateByWeighPopup(string btnId, string formId, ShippingByWeightModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.GetEncodedPathAndQuery() });
 
             var sbw = new ShippingByWeightRecord
             {
@@ -312,7 +317,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
         public ActionResult EditRateByWeighPopup(int id)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.GetEncodedPathAndQuery() });
 
             var sbw = _shippingByWeightService.GetById(id);
             if (sbw == null)
@@ -377,7 +382,7 @@ namespace Nop.Plugin.Shipping.FixedOrByWeight.Controllers
         public ActionResult EditRateByWeighPopup(string btnId, string formId, ShippingByWeightModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
-                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.RawUrl });
+                return RedirectToAction("AccessDenied", "Security", new { pageUrl = this.Request.GetEncodedPathAndQuery() });
 
             var sbw = _shippingByWeightService.GetById(model.Id);
             if (sbw == null)

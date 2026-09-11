@@ -201,6 +201,45 @@
                       ReferenceOutputAssembly="false"
                       ExcludeAssets="all"
                       PrivateAssets="all" />
+
+    <!--
+      TASK 13.1 - the Pickup plugin. Same three attributes and the same build-order-only reason
+      as the plugins above. Like Feed.GoogleShopping it has its OWN DbContext and references
+      Nop.Data DIRECTLY, so PluginViewRenderTests' pickupContext.* / strayNopDlls assertions
+      depend on this reference for their premise (the plugin must be built and deployed to
+      Presentation/Nop.Web/Plugins/Pickup.PickupInStore/ before the host scans it).
+    -->
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.Pickup.PickupInStore\Nop.Plugin.Pickup.PickupInStore.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+
+    <!--
+      TASK 15.1-15.3 - the Tax and Widgets plugins. Same three attributes and the same
+      build-order-only reason as the plugins above.
+
+      Tax.FixedOrByCountryStateZip (15.1) has its OWN DbContext and references Nop.Data DIRECTLY,
+      like Feed.GoogleShopping and Pickup.PickupInStore, so PluginViewRenderTests'
+      taxContext.* / strayNopDlls assertions depend on this reference for their premise.
+
+      Widgets.NivoSlider (15.3) is the FIRST plugin that ships a Scripts/ tree as well as a
+      Content/ tree; its OutputPath puts Plugins/Widgets.NivoSlider/{Content,Scripts}/** under the
+      Nop.Web content root NopStaticFileProvider serves from, so PluginStaticAssetTests depends on
+      this build-order reference for its premise (its NivoSlider "must serve" cases would otherwise
+      fail on their PREMISE BROKEN guard rather than passing silently).
+    -->
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.Tax.FixedOrByCountryStateZip\Nop.Plugin.Tax.FixedOrByCountryStateZip.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.Widgets.GoogleAnalytics\Nop.Plugin.Widgets.GoogleAnalytics.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.Widgets.NivoSlider\Nop.Plugin.Widgets.NivoSlider.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
   </ItemGroup>
 
   <!--

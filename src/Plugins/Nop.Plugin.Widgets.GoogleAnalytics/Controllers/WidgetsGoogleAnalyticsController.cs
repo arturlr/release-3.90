@@ -2,7 +2,9 @@
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Plugin.Widgets.GoogleAnalytics.Models;
@@ -14,9 +16,42 @@ using Nop.Services.Logging;
 using Nop.Services.Orders;
 using Nop.Services.Stores;
 using Nop.Web.Framework.Controllers;
+using Nop.Web.Framework.Mvc;
+using Nop.Web.Framework.Security;
 
 namespace Nop.Plugin.Widgets.GoogleAnalytics.Controllers
 {
+    /// <remarks>
+    /// Task 15.2 substitutions — decisions tasks 7.3 (§30), 8.3 (§55) and 10.x/11.x already made:
+    /// <list type="bullet">
+    /// <item><c>using System.Web.Mvc;</c> → <c>using Microsoft.AspNetCore.Mvc;</c> plus
+    /// <c>Microsoft.AspNetCore.Mvc.Rendering</c> for <see cref="SelectListItem"/>.</item>
+    /// <item><c>[ChildActionOnly]</c> → <c>[NopChildActionOnly]</c> on both <c>Configure</c>
+    /// overloads and on <c>PublicInfo</c> (deferral 7.3-4). All three are reached only through the
+    /// <c>Html.Action</c> bridge — the two <c>Configure</c>s from the admin plugin-config page,
+    /// <c>PublicInfo</c> from the storefront widget zone — so their endpoints are suppressed for
+    /// direct URL matching, exactly as MVC 5's <c>[ChildActionOnly]</c> did.</item>
+    /// <item><c>View("~/Plugins/Widgets.GoogleAnalytics/Views/Configure.cshtml", model)</c> — call
+    /// site UNCHANGED, thanks to the project file's <c>Content</c>/<c>Link</c> block.</item>
+    /// </list>
+    /// <c>[AdminAuthorize]</c>, <c>[HttpPost]</c>, <c>Content(...)</c>,
+    /// <c>GetActiveStoreScopeConfiguration</c>, <c>SuccessNotification</c> needed no edit.
+    /// <para>
+    /// <b>THE ONE REAL <c>System.Web</c> DEPENDENCY: reading the CURRENT request's route in
+    /// <see cref="PublicInfo"/>.</b> 3.90 did
+    /// <c>((System.Web.UI.Page)this.HttpContext.CurrentHandler).RouteData</c> to discover which
+    /// controller/action the storefront was actually rendering, so it could emit the richer
+    /// e-commerce tracking script only on the checkout "completed" page. <c>HttpContext.CurrentHandler</c>
+    /// and <c>System.Web.UI.Page</c> do not exist in ASP.NET Core. The faithful replacement is
+    /// <c>HttpContext.Request.RouteValues</c> (the endpoint-routing values of the AMBIENT request):
+    /// <c>PublicInfo</c> runs through the <c>Html.Action</c> bridge, which reuses the parent
+    /// request's <c>HttpContext</c>, so <c>Request.RouteValues</c> holds the storefront page's own
+    /// <c>controller</c>/<c>action</c> — which is precisely what <c>CurrentHandler.RouteData</c>
+    /// gave 3.90. (The bridge builds a fresh child <c>RouteData</c> for the invoked action, so
+    /// <c>this.RouteData</c> would report <c>WidgetsGoogleAnalytics</c>/<c>PublicInfo</c> instead —
+    /// hence <c>Request.RouteValues</c>, not <c>ControllerContext.RouteData</c>.)
+    /// </para>
+    /// </remarks>
     public class WidgetsGoogleAnalyticsController : BasePluginController
     {
         private const string ORDER_ALREADY_PROCESSED_ATTRIBUTE_NAME = "GoogleAnalytics.OrderAlreadyProcessed";
@@ -55,7 +90,7 @@ namespace Nop.Plugin.Widgets.GoogleAnalytics.Controllers
         }
 
         [AdminAuthorize]
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure()
         {
             //load settings for a chosen store scope
@@ -87,7 +122,7 @@ namespace Nop.Plugin.Widgets.GoogleAnalytics.Controllers
 
         [HttpPost]
         [AdminAuthorize]
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure(ConfigurationModel model)
         {
             //load settings for a chosen store scope
@@ -118,16 +153,24 @@ namespace Nop.Plugin.Widgets.GoogleAnalytics.Controllers
             return Configure();
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult PublicInfo(string widgetZone, object additionalData = null)
         {
             string globalScript = "";
-            var routeData = ((System.Web.UI.Page)this.HttpContext.CurrentHandler).RouteData;
 
             try
             {
-                var controller = routeData.Values["controller"];
-                var action = routeData.Values["action"];
+                //TASK 15.2: 3.90 read
+                //   ((System.Web.UI.Page)this.HttpContext.CurrentHandler).RouteData
+                //to discover which storefront page is being rendered. System.Web.UI.Page /
+                //HttpContext.CurrentHandler do not exist in ASP.NET Core. This widget is invoked
+                //through the Html.Action bridge, which reuses the PARENT request's HttpContext, so
+                //Request.RouteValues holds the storefront page's own controller/action - the
+                //faithful replacement. (this.RouteData would be the bridge's child route data
+                //naming this controller/action instead.)
+                var routeValues = HttpContext.Request.RouteValues;
+                var controller = routeValues.ContainsKey("controller") ? routeValues["controller"] : null;
+                var action = routeValues.ContainsKey("action") ? routeValues["action"] : null;
 
                 if (controller == null || action == null)
                     return Content("");
