@@ -5036,3 +5036,414 @@ Stated so a green run is not over-read.
   (`Profile.Info` vs `Customer.Info`), and three plain ones. That the other 41 are marked is
   verified by the set-comparison script, not by an HTTP assertion each.
 - **No new deferral was opened by this work**, and nothing was added to the `Administration/` tree.
+
+
+
+---
+
+# Nop.Admin — SDK-style project conversion and package migration (task 8.1)
+
+Task 8.1 is project-file plumbing only: no `.cs`, no `.cshtml`, no `AdminAreaRegistration.cs`,
+no `Web.config` and no `sitemap.config` was edited. As with 7.1, **its success criterion was
+never a clean compile** — it is a clean restore, a project MSBuild can evaluate with correct
+resolved item sets, and a CS\*/RZ\* error inventory for tasks 8.2–8.7 to consume.
+
+| Measurement | Value |
+|---|---|
+| restore | **clean** — all 5 projects, **0** `NU*` diagnostics of any severity |
+| project load / MSBuild evaluation | **clean** — **0** `MSB*`, **0** `NETSDK*` |
+| upstream projects, re-gated `--no-incremental` after `rm -rf obj bin` | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 — every one matching its recorded baseline exactly, **no warning added**. Adding Nop.Admin to the build perturbs **nothing**: they are siblings with no `ProjectReference` in either direction |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| `Nop.Web.SmokeTests` | **48 passed / 0 failed / 18 skipped** — unchanged. `HarnessCanaryTests` (`[Explicit]`) still **4 failed / 0 passed**, as required |
+| `Nop.Admin` errors | **2959 unique** `(file, line, col, code)` diagnostics across **673 files**, **100% `CS*`/`RZ*`**. Zero errors of any other category |
+| warnings | **10**, and **0 of them originate in Nop.Admin** — all ten are the pre-existing upstream `SYSLIB0014`/`SYSLIB0021`/`SYSLIB0023`/`SYSLIB0045`/`SYSLIB0051` obsolescence notices in `Nop.Core`/`Nop.Services`, unchanged since 6.5 |
+| swallowed-diagnostics check (`-v:normal`) | `"converted to a warning"` **0** · `ContinueOnError` **0** · `NU1901`–`NU1904` **0** · Six Labors licence lines **0** (see §46.4) |
+| new central package pins added | **0** — all six `PackageReference`s already had a `PackageVersion` entry |
+| packages removed | **9 of 15** |
+
+## 46. Task 8.1 — what changed
+
+### 46.1 The resolved item sets — measured, with the delta fully explained
+
+The structural trap runs both ways. Task 7.1 had to add `Administration\**` to
+`Nop.Web.csproj`'s `DefaultItemExcludes` so Nop.Web's globs would not swallow this tree. The
+inverse needs **no** exclusion, and that was established by evaluating the resolved item lists
+(`dotnet msbuild -getItem:Compile,Content,None,EmbeddedResource`), not by reading globs:
+MSBuild roots the default globs at the directory holding the project file, so Nop.Admin's
+globs cannot reach *up* into Nop.Web, and nothing is nested inside `Administration\`.
+
+| Item | Count | Composition | Leakage outside `Administration/` |
+|---|---|---|---|
+| `Compile` | **277** | Models 156, Validators 57, Controllers 55, Infrastructure 3, Extensions 2, Helpers 2, `AdminAreaRegistration.cs`, `Properties/AssemblyInfo.cs` | **0** |
+| `Content` | **340** | 325 `.cshtml` + 12 `.json` + 3 `.config` | **0** |
+| `None` | **1200** | 534 `.js`, 355 `.png`, 104 `.gif`, 87 `.css`, 71 `.map`, 11 `.jpg`, 6 `.ttf`, 6 `.woff`, 5 `.eot`, 5 `.svg`, 4 `.txt`, 3 `.html`, 2 `.woff2`, 1 `.otf`, 1 `.swf`, plus 2 extension-less | **0** |
+| `EmbeddedResource` | 0 | — | **0** |
+
+**277 is exactly the length of the legacy explicit `<Compile>` list and exactly the `.cs`
+count on disk; 325 is exactly the `.cshtml` count on disk.** The globs reproduce the old
+compilation set precisely.
+
+The legacy explicit `<Content>` list had 1527 entries against 1540 resolved `Content`+`None`
+items, and rather than accept a 13-item discrepancy the two sets were diffed against each
+other. It resolves completely:
+
+- **−1**: `packages.config`, deleted by this task.
+- **+14**: `Content/tinymce/langs/{ar,de_AT,de_DE,es_ES,es_MX,fr_CH,fr_FR,it_IT,nl_NL,pt_BR,pt_PT,ru_RU,zh_CN,zh_TW}.js`.
+  These exist in source control but were **never listed** in the legacy `<Content>` list, so
+  **3.90 did not deploy them** — a deployed admin could not load a non-English TinyMCE
+  language pack. (`Content/tinymce/langs/readme.md` *was* listed, which is how the omission
+  went unnoticed.) Implicit globbing silently fixes a pre-existing 3.90 packaging omission.
+  Recorded because it is a change relative to a 3.90 *deployment*, not because it is a
+  problem: it is a benign improvement and the files are already in the repository.
+
+### 46.2 Publish shaping — deferral 7.4-2 RESOLVED, and a defect found inside this task
+
+Deferral 7.4-2 assigned two entries from 3.90's `Nop.Web.csproj` `ExcludeFilesFromDeployment`
+list here, because `Administration\**` is in that project's `DefaultItemExcludes` and nothing
+under this directory is an item of it. `Administration\bin\**` needs no entry (the SDK never
+publishes intermediate output, and the flat shared `..\bin\` `OutputPath` is gone).
+**`Administration\db_backups\*.bak` is the security-relevant one and is now handled.**
+
+As on the storefront side (§31.4), the larger half of the work turned out to be **inclusions**,
+not exclusions: the legacy project used ~1200 explicit `<Content Include>` entries to copy
+`Content\` and `Scripts\` into the output, but the SDK classifies
+`.js`/`.css`/`.png`/`.gif`/`.map`/`.woff`/`.svg`/`.eot`/`.ttf`/`.otf`/`.swf` as `None`, and
+`None` defaults to `CopyToPublishDirectory=Never`. Without the added include rules a published
+Nop.Admin would have had **no admin CSS, no admin JavaScript, no AdminLTE, no bootstrap, no
+Kendo, no TinyMCE and no Roxy Fileman** — an unstyled, non-functional admin UI. Deferral 7.4-2
+did not mention this half.
+
+#### The defect: `db_backups\**` alone is wrong in BOTH directions
+
+`tasks.md` step 8.1 and deferral 7.4-2 both prescribe
+`<None Update="db_backups\**" CopyToPublishDirectory="Never" />`. That is wrong, and the task
+brief's instruction to *verify rather than assume* is what caught it.
+
+1. **Too broad.** It also withholds `db_backups\placeholder.txt`, and
+   `MaintenanceService.GetAllBackupFiles()` opens with
+   `if (!Directory.Exists(path)) throw new IOException("Backup directory not exists")` —
+   so an absent directory makes the admin Maintenance page **throw** instead of showing "no
+   backups". The legacy project shipped the placeholder via
+   `<Content Include="db_backups\placeholder.txt" />` for exactly this reason. Same trap task
+   7.4 hit and fixed for `Content\Images\Thumbs\placeholder.txt` (§31.3).
+2. **Not sufficient either, and this was measured.** Narrowing to `*.bak` is necessary but
+   does not by itself make the placeholder publish: `placeholder.txt` is a `.txt`, hence a
+   `None` item, hence `CopyToPublishDirectory=Never` **by default**. The first computed
+   publish set for this project confirmed it — placeholder **absent** with no exclusion
+   touching it at all.
+
+The final shape is therefore an ordered pair: `db_backups\**` → `PreserveNewest` in the
+include group, then `db_backups\**\*.bak` → `Never` in the withheld group.
+
+Note this also means testing the exclusion *alone* proves nothing — an absent `.bak` is
+equally consistent with "my rule works" and with "`None` defaults to `Never` anyway". The
+placeholder/`.bak` pair is the discriminating test, and it passes.
+
+#### Verified publish set
+
+`ComputeFilesToPublish` was evaluated with `-getItem:ResolvedFileToPublish`
+(`-p:StaticWebAssetsEnabled=false`, which removes the `staticwebassets.build.json`
+dependency so the computation runs without a successful compile), with a **real `.bak`
+planted on disk** so the exclusions were tested against a file that actually existed.
+1630 distinct published paths.
+
+| Must be absent | Result |
+|---|---|
+| `db_backups/*.bak` — **the database backups** | ✅ withheld |
+| any `*.bak` anywhere | ✅ withheld |
+| `Web.config` (legacy, capital W) | ✅ withheld |
+| `Views/Web.config` | ✅ withheld |
+| any `.cs` | ✅ none |
+
+| Must be present | Result |
+|---|---|
+| `db_backups/placeholder.txt` | ✅ |
+| `sitemap.config` (read by `Views/Shared/Menu.cshtml` line 7 via `XmlSiteMap.LoadFrom`) | ✅ |
+| `Content/Roxy_Fileman/conf.json` (read by `RoxyFilemanController`) | ✅ |
+| `Content/**` · `Scripts/**` | ✅ 682 · 529 |
+| `Nop.Admin.dll` | ✅ |
+
+**One assertion is explicitly NOT trustworthy from this invocation and must be re-checked at
+8.8 with a real publish:** `.cshtml` files appear in the computed set (325). A control run of
+the identical partial invocation against **`Nop.Web`** — whose *real* publish task 7.5 verified
+contains **zero** `.cshtml` — likewise reports 195, so the appearance is an artifact of
+bypassing the Razor publish targets, not of this project file (which sets no metadata on
+`.cshtml` at all). The same control confirmed `App_Data/Settings.txt` is correctly **absent**,
+so the exclusion metadata *is* honoured by the invocation and the assertions above are sound.
+
+#### The `.bak` download link is dead by design — 8.3/8.5 must not "fix" it the easy way
+
+`Controllers/CommonController.cs` line 584 still builds
+`_webHelper.GetStoreLocation(false) + "Administration/db_backups/" + p.Name`, i.e. 3.90 served
+backups as **static files** — which is why `Nop.Web/Web.config` carried
+`<mimeMap fileExtension=".bak" mimeType="application/octet-stream"/>` with the comment "Allow
+database backup (.bak) file loading". Task 7.4 deliberately did not reproduce that mimeMap
+(§33.2), and `NopStaticFileProvider` additionally denies the `.bak` extension *and* excludes
+`Administration/` from its allow-list. So the link is refused three times over. **Task 8.3/8.5
+must replace it with a controller action that streams the file under the existing admin
+permission check** — which is the correct design regardless — and must **not** re-add the
+mimeMap or widen the static-file allow-list to `db_backups`.
+
+### 46.3 The error inventory handed to 8.2–8.7
+
+**2959 unique errors across 673 files, and only three missing namespaces plus one Razor
+family account for all of them.** Nothing is a packaging problem.
+
+| Root cause | Sites | Owner |
+|---|---|---|
+| `System.Web.Mvc` — 330 `CS0234` sites, and the overwhelming majority of the 2687 `CS0246`: `ActionResult` (1594), `HttpPost`/`HttpPostAttribute` (980 each), `AllowHtml`/`AllowHtmlAttribute` (790 each), `SelectListItem` (366), `NonAction` (254), `ActionName` (140), `FormCollection` (58), `ValidateInput` (48), `ChildActionOnly` (32), `Bind` (32), `SelectList` (14), `HttpVerbs` (the 5 `CS0103`) | the bulk | **8.3** (controllers), **8.4** (views) |
+| `System.Web.Routing` — 30 `CS0234` sites, `RouteValueDictionary` (16 `CS0246`) | — | **8.2** (`AdminAreaRegistration.cs`, and the new `IRouteProvider`), **8.3** |
+| `System.Web.Configuration` — 2 `CS0234` sites | — | **8.7** — see §46.5 |
+| Razor: **78 `RZ1002`** "the helper directive is not supported" in **26 view files**, plus **4 `RZ2005`** + **4 `RZ1011`** in exactly two files (`Views/Customer/_CustomerAttributes.cshtml`, `Views/Shared/_AddressAttributes.cshtml`) | 86 | **8.4** |
+| cascade failures inside views — `ProductModel` (96), `OrderModel` (52), `DiscountModel` (24), `CategoryModel`/`CustomerModel`/`CustomerRoleModel`/`ManufacturerModel` (16 each), `TopicModel`/`StoreModel`/`VendorModel`/`WarehouseModel` (12 each) … | — | **8.4** — these are *not* independent defects; see below |
+
+Distribution by directory (files carrying at least one error): `Views` **253 of 325**,
+`obj` **252** (the Razor source generator's virtual `*_cshtml.g.cs`, i.e. views again),
+`Models` **110 of 156**, `Controllers` **55 of 55**, `Helpers` 1, `Extensions` 1,
+`AdminAreaRegistration.cs`.
+
+**The `_ViewImports.cshtml` leverage point, and it is even larger here than on the
+storefront.** The `*Model` CS0246 cluster is not 300-odd separate problems: those types exist
+and compile fine in `Models/`, and they are unresolvable *only inside views*, because
+`Views/Web.config`'s `pageBaseType` + `<namespaces>` no longer apply and nothing replaces
+them yet. On `Nop.Web` the single `Views/_ViewImports.cshtml` file took the count from **1974
+to 24** (§27). Nop.Admin has 325 views to Nop.Web's 193 and the identical dependency, so
+**task 8.4 must create `Views/_ViewImports.cshtml` from `Views/Web.config`'s `pageBaseType`
+and `<namespaces>` FIRST**, before any per-view work. Two constraints on its content:
+
+- it must **not** carry `System.Web.Optimization` (bundling is dropped — design §8), and
+- `Views/Web.config`'s `<namespaces>` is the source list, but the whole `System.Web.*` set in
+  it maps to ASP.NET Core equivalents rather than transferring verbatim.
+
+**Which trees need a `_ViewImports.cshtml`, per deferral 7.5-1.** Razor discovers
+`_ViewImports.cshtml` by walking up from the view's **own** directory to the project root, so
+it is per-tree, not per-project. Nop.Admin has exactly **one** view tree — `Views/` (with
+`Views/Shared/`, `Views/Shared/EditorTemplates/`, `Views/Shared/DisplayTemplates/` beneath it,
+all of which the single `Views/_ViewImports.cshtml` covers). There is **no** `Themes/` tree and
+no second root under `Administration/`, so one file suffices. Note this differs from
+`tasks.md` step 8.4's wording: the file to delete is **`Views/Web.config`**, not
+`Areas/Admin/Views/web.config` — the admin views live at `Administration/Views/`, and there is
+no `Areas/` directory anywhere in this project.
+
+### 46.4 Two corrections to earlier recorded statements
+
+- **§7.18 says the ImageSharp licence diagnostic "affects `Nop.Services` now and `Nop.Admin`
+  at task 8.6". It does NOT affect `Nop.Admin`.** That sentence was written when the pin was
+  4.1.1; the pin was subsequently moved to **2.1.13**, the last purely Apache-2.0 line, which
+  ships **no `build/` targets at all** and therefore no `ValidateLicenseTask`. Measured: with
+  `SixLabors.ImageSharp` referenced and restored, a `-v:normal` build log contains **zero**
+  Six Labors licence lines and **zero** `"converted to a warning"` lines. The only
+  `sixlabors` strings in the log are NuGet download URLs. `Directory.Packages.props` already
+  documents this; §7.18 was not updated at the time.
+- **`tasks.md` step 8.7's instruction to remove `Properties/AssemblyInfo.cs` is WRONG for this
+  solution**, for exactly the reason task 7.5 measured for `Nop.Web` (§37.1):
+  `Directory.Build.props` sets `GenerateAssemblyInfo=false` solution-wide (task 2.3), so the
+  SDK emits **no** replacement attributes and deleting the file drops `AssemblyVersion` from
+  `3.9.0.0` to `0.0.0.0` and loses `AssemblyTitle`/`AssemblyFileVersion`/`ComVisible`/`Guid`
+  outright. The file is **KEPT**, consistent with all five migrated projects. Moving to
+  SDK-generated assembly info is a solution-wide change (flip the property, add
+  `Version`/`FileVersion`/`Title`, delete all six files together), not a per-project one.
+
+### 46.5 `System.Configuration` here is a REMOVAL, not a configuration migration
+
+`tasks.md` step 8.7 says "rewrite `ConfigurationManager.*` call-sites" to `IConfiguration`.
+There is exactly **one** call site in this project and it cannot be rewritten that way:
+
+`Controllers/CommonController.cs` line 458 —
+`ConfigurationManager.GetSection("system.web/machineKey") as MachineKeySection` — in the admin
+**System Info** page. `MachineKeySection` does not exist on .NET in any form; ASP.NET Core
+replaced `<machineKey>` with **Data Protection**. So there is no setting to carry across, and
+`appsettings.json` must not grow a `machineKey` key. 8.7 either deletes the block or reports
+the Data Protection key-ring state instead (which is the genuinely useful equivalent, and
+relates directly to deferral 7.13's multi-instance key-ring caveat).
+
+The same file has a second System-Info item already recorded: §2 requires lines 205 and 217 to
+report trust level `"Full"` unconditionally, because `CommonHelper.GetTrustLevel()` and
+`AspNetHostingPermissionLevel` were deleted in task 2.4.
+
+## 47. Case-sensitivity audits over `Administration/` — deferral 7.7-4 RESOLVED (findings), run early
+
+Deferral 7.7-4 assigned these to 8.4/8.5. They were run **now**, at 8.1, because the finding
+list shapes those tasks. Task 7.7's own scripts were throwaway and not committed, so both were
+re-implemented to the same specification: extract the references, strip comments first
+(`//`, `/* */`, `@* *@`, with string-literal tracking so a `//` inside a URL is not mistaken
+for a comment), then resolve **segment by segment** against the real filesystem, reporting any
+segment whose spelling differs in case from the entry on disk. All paths resolve against the
+**host content root** `src/Presentation/Nop.Web`, because `CommonHelper.MapPath` resolves `~/`
+against `CommonHelper.BaseDirectory` — which task 7.2 sets to the Nop.Web content root — and
+`Url.Content("~/…")` resolves against `PathBase`.
+
+**Fixing them is task 8.4's job** (both are in a view). They are recorded, not fixed, because
+8.1's scope is the project file.
+
+### Audit A — `MapPath("~/…")` literals in `Administration/**/*.cs`
+
+**5 literals checked, 0 case mismatches.** Clean.
+
+Two further `Server.MapPath` calls are **relative, not `~/`-rooted**, and are reported rather
+than audited because relative `MapPath` has no ASP.NET Core equivalent at all —
+`HttpServerUtility` is gone, and `IWebHostEnvironment.ContentRootPath` composition has no
+notion of "relative to the current request's directory":
+
+- `Controllers/RoxyFilemanController.cs:241` — `MapPath("../Uploads")`
+- `Controllers/RoxyFilemanController.cs:505` — `MapPath("../tmp/")`
+
+Both are **task 8.6's**, and 505 is also the subject of deferral 8.1-1 below.
+
+### Audit B — filesystem-rooted `~/…` references in admin views, stylesheets and scripts
+
+**116 references checked across `.cshtml` / `.css` / `.js`, 2 case mismatches — and both are
+in `Views/Shared/_AdminLayout.cshtml`, the layout every single admin page uses.**
+
+| Site | Written | On disk | Consequence on a case-sensitive filesystem |
+|---|---|---|---|
+| `Views/Shared/_AdminLayout.cshtml:43` | `Html.AppendScriptParts("~/Administration/scripts/admin.navigation.js")` | `Administration/Scripts/…` | the admin **navigation script 404s** on every admin page |
+| `Views/Shared/_AdminLayout.cshtml:99` | `@Url.Content("~/administration/content/images/throbber-synchronizing.gif")` | `Administration/Content/images/…` | the "synchronizing" throbber image 404s |
+
+Line 43 is the more serious of the two: it goes through `IPageHeadBuilder.AppendScriptParts`,
+so it is also the path `IFileVersionProvider` fingerprints (§14.33) — a missing file gets **no
+`?v=` suffix and no warning**, so the failure is doubly silent until the browser 404s.
+
+33 further `~/…` literals are **MVC routes, not filesystem paths** (`~/Admin/Customer/Edit/`,
+`~/admin`, …) and are correctly out of scope for a filesystem audit. They are, however, task
+8.2's concern: they hard-code the `Admin` route prefix that `MapAreaControllerRoute` must
+preserve.
+
+### Supplementary audit — relative `url(...)` in admin stylesheets
+
+Not part of 7.7's two audits, added because the class of defect is identical and the admin CSS
+surface is large (87 stylesheets). Every relative `url(...)` reference was resolved
+case-exactly against the stylesheet's own directory: **582 references checked, 0 case
+mismatches**, 25 unresolved (referenced files genuinely absent — third-party font/image
+references in vendored libraries, pre-existing in 3.90 and not a casing problem).
+
+**Still not audited, and 8.4/8.5 should extend the scan:** the `~/Administration/Content/kendo/{0}/…`
+family, whose `{0}` is the Kendo culture folder substituted at runtime, and any path composed
+by string concatenation rather than written as a literal.
+
+## 48. NEW deferrals opened by task 8.1
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 8.1-1 | `Content/Roxy_Fileman/tmp/` does not exist, so the file manager's "download folder as zip" throws | 8.5 / 8.6 | Low |
+| 8.1-2 | Two case-sensitivity defects in `_AdminLayout.cshtml` | 8.4 | Medium |
+| 8.1-3 | `Server.MapPath` with a **relative** path has no ASP.NET Core equivalent | 8.6 | Medium |
+| 8.1-4 | The admin views' compiled Razor identifiers will be `/Views/…`, which `ThemeableViewLocationExpander` does **not** search | 8.2 / 8.4 | **High** |
+
+### 8.1-1 `Content/Roxy_Fileman/tmp/` does not exist
+
+The legacy project carried `<Folder Include="Content\Roxy_Fileman\tmp\" />`, a Visual Studio
+empty-folder placeholder. **The directory is not in this checkout** — git does not track empty
+directories and there is no placeholder file in it — and an SDK project has no `<Folder>`
+equivalent, so the item was dropped.
+
+`Controllers/RoxyFilemanController.cs` line 505 does
+`MapPath("../tmp/" + dirName + ".zip")` and then `ZipFile.CreateFromDirectory(..., tmpZip, …)`,
+which throws `DirectoryNotFoundException` when the parent is absent. So the file manager's
+DOWNLOADDIR operation fails.
+
+**This is PRE-EXISTING in 3.90**, not a regression: the `<Folder>` item created the directory
+in a developer's working copy, but MSBuild's `_CopyWebApplication` does not deploy empty
+directories either. It is recorded because dropping the `<Folder>` item is the moment the last
+trace of the intent disappears from the build.
+
+**Fix (8.5 or 8.6):** commit a placeholder file, as `db_backups/placeholder.txt` and
+`Content/Images/Thumbs/placeholder.txt` already do — and then add a publish include for it,
+since a `.txt` is a `None` item and defaults to `Never` (§46.2) — or `Directory.CreateDirectory`
+before writing, which is the better fix and is a one-liner inside the rewrite 8.6 performs
+anyway. Note `.gitignore` line 40's `*.tmp` does **not** match a directory named `tmp`.
+
+### 8.1-2 Two case-sensitivity defects in `_AdminLayout.cshtml`
+
+Full detail in §47. `Views/Shared/_AdminLayout.cshtml` lines 43 and 99. **Task 8.4.** They are
+masked twice over today — the admin assets do not serve at all yet (deferral 7.4-2), so
+widening `NopStaticFileProvider`'s allow-list at 8.5 without fixing these two will still 404,
+which is exactly the interaction `tasks.md` step 8.5 warns about.
+
+### 8.1-3 `Server.MapPath` with a relative path has no equivalent
+
+`RoxyFilemanController.cs` lines 241 (`"../Uploads"`) and 505 (`"../tmp/"`). Every other
+`MapPath` in the project is `~/`-rooted and maps cleanly onto `CommonHelper.MapPath`; these two
+do not, because `HttpServerUtility.MapPath` resolved a relative path against the *current
+request's* virtual directory and nothing in ASP.NET Core has that notion. **Task 8.6** must
+resolve them to explicit content-root-relative paths — and note that
+`~/Administration/Content/Roxy_Fileman/../Uploads` is `~/Administration/Content/Uploads`,
+which does **not** exist on disk either, so 8.6 should establish what the intended target is
+rather than mechanically translating the `..`.
+
+### 8.1-4 Compiled admin view identifiers will not match the themeable view-location expander — HIGHEST IMPACT
+
+**Measured, not inferred.** The Razor source generator names a view by its path **relative to
+its own project directory**. Confirmed two ways:
+
+- the generator's own output paths for this project are
+  `obj/Debug/net10.0/…/RazorSourceGenerator/Views/ActivityLog/ListLogs_cshtml.g.cs` — i.e.
+  `Views/…`, with no `Administration/` prefix;
+- reading the **built `Nop.Web.dll`**, its 108 compiled view identifiers are `/Views/Blog/BlogPost.cshtml`
+  and so on — relative to *that* project's root, which is why they match the expander's
+  `/Views/{1}/{0}.cshtml` format.
+
+So `Nop.Admin`'s views will compile with identifiers `/Views/Shared/_AdminLayout.cshtml`,
+`/Views/Product/List.cshtml`, …
+
+`Nop.Web.Framework`'s `ThemeableViewLocationExpander` (task 6.3, §16.1) emits, for the `admin`
+area, `/Administration/Views/Shared/{0}.cshtml` and `/Administration/Views/{1}/{0}.cshtml`, and
+for non-area lookups the same two paths as its last entries. Those formats faithfully preserve
+3.90, where admin views were **physical files under the Nop.Web application root**. Under
+ASP.NET Core they are **compiled into `Nop.Admin.dll`** and discovered as an application part
+at their compiled identifiers, so `/Administration/Views/…` matches nothing.
+
+**§14.30 flagged the opposite direction** — that if the expander is not registered, "the
+`/Administration/Views/…` locations are not searched at all, so if task 8.x leaves the admin
+views where 3.90 put them the whole admin UI 404s on view lookup". The finding here is sharper
+and survives the expander being registered correctly: the mismatch is between the expander's
+**location formats** and the views' **compiled identifiers**, not between formats and physical
+file locations.
+
+**Impact if unaddressed:** every admin view lookup fails. Loud (an
+`InvalidOperationException` naming the searched locations), not silent — but it will look like
+a routing or area bug rather than a view-location one, so it is worth knowing the cause before
+8.2/8.4 start.
+
+**Options for 8.2/8.4, none of them decided here:**
+
+1. Prefix the compiled identifiers, so views compile as `/Administration/Views/…` and the
+   existing expander formats work untouched. The Razor SDK exposes this per-item
+   (`_RazorGenerateRelativePath`-style metadata on the `RazorGenerate`/`Content` items); this
+   is the least-change option with respect to `Nop.Web.Framework`, which is committed and
+   gated.
+2. Change the expander's two admin formats to `/Views/…`. **Careful**: those entries are
+   `/Views/Shared/{0}.cshtml` and `/Views/{1}/{0}.cshtml`, which are *already* the non-themed
+   storefront fallbacks, so the admin and storefront view namespaces would collide — a
+   same-named view could resolve to the wrong project's copy. This option needs the collision
+   thought through, and it edits a gated project.
+3. Contribute the admin views under an explicit area, i.e. move them to `Areas/Admin/Views/`
+   and let ASP.NET Core's own area location formats find them. Most idiomatic, largest diff
+   (325 file moves), and it makes the "little hack" in §16.1 that exists solely to serve
+   `/Administration/` instead of `Areas/Admin/` redundant — which may be a feature.
+
+Whichever is chosen, note that §16.1 preserved a **3.90 ordering quirk verbatim** in the admin
+area formats: `…/Views/Shared/{0}.cshtml` is searched **before** `…/Views/{1}/{0}.cshtml`, so a
+same-named Shared view shadows the controller-specific one. That quirk must survive the change,
+or admin view resolution changes behaviour.
+
+## 49. Deferrals explicitly NOT closed by 8.1, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **7.4-2** (admin static assets half) | admin `Content/`/`Scripts/` do not **serve** | **8.5**. 8.1 fixed the *publish* half only (§46.2). The serving half is `NopStaticFileProvider`'s allow-list, and it must be widened with `Administration/Content/**` and `Administration/Scripts/**` specifically — **not** by widening the root, or `db_backups` and the admin `.cshtml` tree come with it |
+| **7.7-4** | case-sensitivity audits over `Administration/` | **RUN HERE, findings recorded** (§47); the two fixes are **8.4**'s, and extending the scan to `{0}`-substituted and concatenated paths is 8.4/8.5's |
+| **7.3-1** | the `Html.Action` bridge lives in `Nop.Web` and the admin views need it | **8.3**. Recommend promoting `Nop.Web/Extensions/ChildActionExtensions.cs` to `Nop.Web.Framework` |
+| **7.3-4** | apply `[NopChildActionOnly]` to the admin actions | **8.3**. The mechanism is finished (§45.1); the 32 `ChildActionOnly` `CS0246` sites in this project's error inventory are the ones to mark, identified from the pre-migration tree per step 8.3, never by guessing |
+| **18.4** | `CA1416` at the two `Nop.Admin` `CommonController` call sites | **8.3**. They are not visible yet — the file has 55 `CS0246`/`CS0234` errors, so the analyser has not run on it |
+| **35** | minification gone, nothing replaces it | post-migration (design §8). Note the two now-inert bundling checkboxes in `Views/Setting/GeneralCommon.cshtml` are **8.4**'s to remove (design §8) |
+| **7.2-3** | `TaskManager.Instance.Stop()` never called | none (3.90 parity) |
+| **7.4-1** | a Kestrel-only deployment gets no response compression | deployment decision |
+| **4.11** | `ExecuteSqlCommand` per-batch transaction during the Fast installer | needs a real database; unexercised (§44/7.7-5) |
+| **4.10** | `GO`-batched `CreateDatabaseScript()` in four plugin contexts | 11.2, 13.1, 14.4, 15.1 |
+| **9 / 4.9** | `NopObjectContext` needs a real connection string | 3.4 (`Nop.Data.Tests` fixtures only) |
+| **7.7-2** | the smoke project is not in `NopCommerce.sln` | 18.1. `Nop.Admin` **is** already in the solution under the plain C# project GUID, so no solution edit was needed at 8.1 either |
+| **7.7-3** | EF Core adds ~97 unrequested FK indexes | schema review (post-migration) |
+| **11.27** | `BaseNopModel.BindModel` no longer invoked | accepted; no override exists anywhere |
+| **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** | payment `CustomValues` JSON, request validation gone, browser detection gone, bridge skips filters | 12.1–12.5 / accepted |
+| **18 / 7.18** | ImageSharp licence diagnostic | business decision — **and it does not affect this project**, see §46.4 |
