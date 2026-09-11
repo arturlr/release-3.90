@@ -19,6 +19,7 @@ using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Security;
 using Nop.Web.Framework.Security.Captcha;
+using Nop.Web.Framework.Mvc;
 using Nop.Web.Models.News;
 
 namespace Nop.Web.Controllers
@@ -214,6 +215,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult RssHeaderLink()
         {
             if (!_newsSettings.Enabled || !_newsSettings.ShowHeaderRssUrl)

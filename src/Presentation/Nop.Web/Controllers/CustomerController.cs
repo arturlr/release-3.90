@@ -34,6 +34,7 @@ using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Security;
 using Nop.Web.Framework.Security.Captcha;
 using Nop.Web.Framework.Security.Honeypot;
+using Nop.Web.Framework.Mvc;
 using Nop.Web.Models.Customer;
 
 namespace Nop.Web.Controllers
@@ -883,6 +884,7 @@ namespace Nop.Web.Controllers
 
         #region My account / Info
 
+        [NopChildActionOnly]
         public virtual ActionResult CustomerNavigation(int selectedTabId = 0)
         {
             var model = _customerModelFactory.PrepareCustomerNavigationModel(selectedTabId);

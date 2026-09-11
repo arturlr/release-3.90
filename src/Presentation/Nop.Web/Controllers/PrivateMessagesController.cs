@@ -11,6 +11,7 @@ using Nop.Services.Logging;
 using Nop.Web.Factories;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Security;
+using Nop.Web.Framework.Mvc;
 using Nop.Web.Models.PrivateMessages;
 
 namespace Nop.Web.Controllers
@@ -73,6 +74,7 @@ namespace Nop.Web.Controllers
         }
 
         //inbox tab
+        [NopChildActionOnly]
         public virtual ActionResult Inbox(int page, string tab)
         {
             var model = _privateMessagesModelFactory.PrepareInboxModel(page, tab);
@@ -80,6 +82,7 @@ namespace Nop.Web.Controllers
         }
 
         //sent items tab
+        [NopChildActionOnly]
         public virtual ActionResult SentItems(int page, string tab)
         {
             var model = _privateMessagesModelFactory.PrepareSentModel(page, tab);

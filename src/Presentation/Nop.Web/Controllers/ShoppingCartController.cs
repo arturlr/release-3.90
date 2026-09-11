@@ -1312,6 +1312,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult OrderSummary(bool? prepareAndDisplayOrderReviewData)
         {
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -1584,6 +1585,7 @@ namespace Nop.Web.Controllers
             return PartialView("_EstimateShippingResult", model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult OrderTotals(bool isEditable)
         {
             var cart = _workContext.CurrentCustomer.ShoppingCartItems
@@ -1642,6 +1644,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult FlyoutShoppingCart()
         {
             if (!_shoppingCartSettings.MiniShoppingCartEnabled)

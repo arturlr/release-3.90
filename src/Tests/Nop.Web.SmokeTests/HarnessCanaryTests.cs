@@ -24,6 +24,8 @@ namespace Nop.Web.SmokeTests
     /// <item>a real HTTP request through TestServer</item>
     /// <item>a resolve through the real Autofac container</item>
     /// <item>the <c>/__smoke/*</c> probe middleware's text output</item>
+    /// <item>the <c>/__smoke/action</c> probe's endpoint / descriptor report, which is what the
+    /// deferral 7.3-4 assertions read</item>
     /// </list>
     /// <para>
     /// The fixture is <see cref="ExplicitAttribute"/>, so an ordinary <c>dotnet test</c> reports it
@@ -33,7 +35,8 @@ namespace Nop.Web.SmokeTests
     /// <para>
     /// <b>All three MUST report Failed.</b> If any of them passes, or is silently skipped when
     /// selected explicitly, the corresponding group of real assertions cannot be trusted.
-    /// Task 7.7 ran this and observed 3 failed / 0 passed.
+    /// Task 7.7 ran this and observed 3 failed / 0 passed; the deferral 7.3-4 / 7.7-1 fix added a
+    /// fourth and observed 4 failed / 0 passed.
     /// </para>
     /// </remarks>
     [TestFixture]
@@ -83,6 +86,20 @@ namespace Nop.Web.SmokeTests
             //The scope probe never emits this token. Asserting it does must be reported as a failure.
             var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "scope").Result;
             StringAssert.Contains("thisTokenIsNeverEmitted=True", body,
+                "CANARY: this assertion is meant to fail.");
+        }
+
+        [Test]
+        public void CANARY_action_probe_assertions_can_fail()
+        {
+            //Guards the deferral 7.3-4 assertions specifically. They are shaped as substring
+            //matches on the /__smoke/action probe output, and a substring match that never appears
+            //is the failure mode that would make them vacuous. There is no
+            //Common.NoSuchActionExists, so the probe reports visibleToChildActionBridge=False and
+            //endpointCount=0; asserting the opposite must be reported as a failure.
+            var body = _client.GetStringAsync(
+                SmokeProbeMiddleware.Prefix + "action?controller=Common&action=NoSuchActionExists").Result;
+            StringAssert.Contains("visibleToChildActionBridge=True", body,
                 "CANARY: this assertion is meant to fail.");
         }
     }

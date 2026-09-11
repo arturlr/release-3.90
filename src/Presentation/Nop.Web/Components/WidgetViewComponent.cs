@@ -22,12 +22,24 @@ namespace Nop.Web.Components
     /// <para>
     /// The logic is <c>WidgetController.WidgetsByZone</c> verbatim, including the
     /// "return empty content when no widget is registered" short-circuit.
-    /// <c>WidgetController</c> is <b>retained</b> rather than deleted: <c>RouteProvider</c>
-    /// registers a named <c>WidgetsByZone</c> route for it, with the comment "we have this
-    /// route for performance optimization because named routes are MUCH faster than usual
-    /// Html.Action(...)", so the URL endpoint is part of the public surface and a plugin or
-    /// script may call it. Both paths now feed off the same
+    /// <c>WidgetController</c> is <b>retained</b> rather than deleted, because
+    /// <c>RouteProvider</c> registers a named <c>WidgetsByZone</c> route for it with the comment
+    /// "we have this route for performance optimization because named routes are MUCH faster than
+    /// usual Html.Action(...)". Both paths now feed off the same
     /// <see cref="IWidgetModelFactory"/>.
+    /// </para>
+    /// <para>
+    /// <b>CORRECTION (deferral 7.3-4 fix).</b> An earlier version of this remark said that URL
+    /// endpoint "is part of the public surface and a plugin or script may call it". That was
+    /// <b>wrong about 3.90</b>: <c>WidgetsByZone</c> carried <c>[ChildActionOnly]</c>, which in
+    /// MVC 5 threw <c>InvalidOperationException</c> for a non-child invocation — so
+    /// <c>GET /widgetsbyzone/</c> answered <b>500</b>, and the route was only ever reachable for
+    /// URL <i>generation</i>. The action is therefore marked
+    /// <c>[NopChildActionOnly]</c> like the other 47, so
+    /// <c>NopChildActionOnlyConvention</c> suppresses <b>both</b> its endpoints (the explicit
+    /// <c>widgetsbyzone/</c> route and the <c>Default</c> route) and the URL now answers 404.
+    /// Nothing in the tree requests that path — verified by grep across views, scripts and
+    /// controllers.
     /// </para>
     /// <para>
     /// <b>Two behaviour notes carried over from deferral 32.</b> The <c>area</c> parameter of

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
@@ -514,6 +515,117 @@ namespace Nop.Web.SmokeTests
             Assert.IsEmpty(unsuppressed,
                 "These single-segment {SeName} endpoints are still matchable and will collide with " +
                 "{generic_se_name}:" + Environment.NewLine + string.Join(Environment.NewLine, unsuppressed));
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Runtime deferral 7.3-4 — former [ChildActionOnly] actions must not be URL-reachable.
+        //
+        // Fixed ahead of its assigned task (8.3) so Nop.Admin ports onto the finished mechanism:
+        // Nop.Web.Framework.Mvc.NopChildActionOnlyAttribute selects the actions and
+        // NopChildActionOnlyConvention adds SuppressMatchingMetadata to their endpoints. These
+        // assertions read the LIVE endpoint table and the LIVE descriptor collection, so they hold
+        // with or without a database — which matters, because the HTTP-level symptom is only
+        // observable on an installed store (InstallUrlMiddleware redirects everything otherwise).
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        [TestCase("Common", "Footer")]
+        [TestCase("Common", "Logo")]
+        [TestCase("Catalog", "TopMenu")]
+        [TestCase("ShoppingCart", "OrderSummary")]
+        [TestCase("Product", "RelatedProducts")]
+        [TestCase("Profile", "Info")]
+        [TestCase("Widget", "WidgetsByZone")]
+        public void Deferral_7_3_4_a_marked_child_action_has_no_matchable_endpoint(
+            string controller, string action)
+        {
+            //Widget/WidgetsByZone is the interesting case: RouteProvider registers an EXPLICIT
+            //"widgetsbyzone/" route for it as well as the Default route, so this proves the
+            //suppression is scoped to the ACTION rather than to one route - which is what 3.90's
+            //[ChildActionOnly] did (that URL answered 500 there).
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix +
+                "action?controller=" + controller + "&action=" + action).Result;
+            TestContext.WriteLine(body);
+
+            StringAssert.DoesNotContain("EXCEPTION=", body);
+            //sanity: the action must actually exist, or "0 matchable endpoints" would be vacuous
+            Assert.IsFalse(body.Contains("endpointCount=0"),
+                "No endpoint at all for " + controller + "." + action +
+                " - the probe found nothing, so the suppression assertion would be vacuous.");
+            StringAssert.Contains("matchableEndpointCount=0", body,
+                controller + "." + action + " is still reachable by URL. Either the " +
+                "[NopChildActionOnly] marker is missing or NopChildActionOnlyConvention is not " +
+                "registered in AddNopFramework.");
+        }
+
+        [Test]
+        [TestCase("Common", "Footer")]
+        [TestCase("Catalog", "TopMenu")]
+        [TestCase("ShoppingCart", "FlyoutShoppingCart")]
+        [TestCase("Widget", "WidgetsByZone")]
+        public void Deferral_7_3_4_a_marked_child_action_is_STILL_visible_to_the_Html_Action_bridge(
+            string controller, string action)
+        {
+            //THE CRITICAL CONSTRAINT. Task 7.3's ChildActionExtensions bridge resolves these
+            //actions through IActionDescriptorCollectionProvider and invokes them by reflection; it
+            //never touches the matcher. So suppressing MATCHING must leave the descriptor in place.
+            //If this ever fails, the home page's ~15 child actions stop rendering and the fix has
+            //traded a minor information exposure for a broken storefront - so it is asserted
+            //directly rather than reasoned about, and asserted here (no database required) rather
+            //than only via a rendered page.
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix +
+                "action?controller=" + controller + "&action=" + action).Result;
+            TestContext.WriteLine(body);
+
+            StringAssert.Contains("visibleToChildActionBridge=True", body,
+                controller + "." + action + " has vanished from IActionDescriptorCollectionProvider. " +
+                "@Html.Action would now throw \"could not find an action\" - see " +
+                "Nop.Web/Extensions/ChildActionExtensions.cs.");
+        }
+
+        [Test]
+        [TestCase("Home", "Index")]
+        [TestCase("Customer", "Info")]
+        [TestCase("Catalog", "Search")]
+        [TestCase("Common", "ContactUs")]
+        public void Deferral_7_3_4_an_UNMARKED_action_is_still_matchable(string controller, string action)
+        {
+            //The other side of the ledger. The convention must only remove the marked 48; marking
+            //an action that was never [ChildActionOnly] would delete a legitimate URL endpoint.
+            //Customer/Info is deliberately included: ProfileController.Info IS marked and both are
+            //called "Info", so this catches a name-based rather than method-based application of
+            //the marker.
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix +
+                "action?controller=" + controller + "&action=" + action).Result;
+            TestContext.WriteLine(body);
+
+            StringAssert.DoesNotContain("EXCEPTION=", body);
+            Assert.IsFalse(body.Contains("matchableEndpointCount=0"),
+                controller + "." + action + " has NO matchable endpoint but was never " +
+                "[ChildActionOnly] in 3.90 - the marker has been applied too widely.");
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Runtime deferral 7.7-1 — a bodiless non-404 must keep its own status code
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        public void Deferral_7_7_1_a_bodiless_non_404_keeps_its_status_code()
+        {
+            //InstallController.RestartInstall is [HttpPost]-only, so a GET matches the route
+            //pattern but no HTTP method - routing produces a BODILESS 405. That is the same shape
+            //as PublicAntiForgeryAttribute's BadRequestResult, and unlike the antiforgery path it
+            //is reachable with no database at all (InstallUrlMiddleware lets /install/* through).
+            //
+            //Before the fix, UseStatusCodePagesWithReExecute swallowed the 405 and re-executed
+            ///page-not-found; measured, that produced a 302 to /install in install mode and a 404
+            //"Page not found" on an installed store. Either way the 405 was lost.
+            var response = _client.GetAsync("/install/restartinstall").Result;
+            TestContext.WriteLine("GET /install/restartinstall -> " + (int)response.StatusCode);
+
+            Assert.AreEqual(HttpStatusCode.MethodNotAllowed, response.StatusCode,
+                "A bodiless non-404 was rewritten by the status-code-pages middleware. " +
+                "Program.cs must call UseNopStatusCodePages(), not UseStatusCodePagesWithReExecute().");
         }
     }
 }

@@ -23,6 +23,7 @@ using Nop.Web.Extensions;
 using Nop.Web.Factories;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Security;
+using Nop.Web.Framework.Mvc;
 using Nop.Web.Models.Checkout;
 
 namespace Nop.Web.Controllers
@@ -943,6 +944,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult CheckoutProgress(CheckoutProgressStep step)
         {
             var model = _checkoutModelFactory.PrepareCheckoutProgressModel(step);
@@ -1109,6 +1111,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult OpcBillingForm()
         {
             var cart = _workContext.CurrentCustomer.ShoppingCartItems

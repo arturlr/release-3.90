@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using Nop.Web.Factories;
+using Nop.Web.Framework.Mvc;
 
 namespace Nop.Web.Controllers
 {
@@ -23,6 +24,7 @@ namespace Nop.Web.Controllers
 
         #region Methods
 
+        [NopChildActionOnly]
         public virtual ActionResult WidgetsByZone(string widgetZone, object additionalData = null)
         {
             var model = _widgetModelFactory.GetRenderWidgetModels(widgetZone, additionalData);

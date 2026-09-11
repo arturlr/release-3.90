@@ -20,6 +20,7 @@ using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Security;
 using Nop.Web.Framework.Security.Captcha;
 using Nop.Web.Framework.Themes;
+using Nop.Web.Framework.Mvc;
 using Nop.Web.Models.Common;
 
 namespace Nop.Web.Controllers
@@ -116,6 +117,7 @@ namespace Nop.Web.Controllers
         }
 
         //logo
+        [NopChildActionOnly]
         public virtual ActionResult Logo()
         {
             var model = _commonModelFactory.PrepareLogoModel();
@@ -123,6 +125,7 @@ namespace Nop.Web.Controllers
         }
 
         //language
+        [NopChildActionOnly]
         public virtual ActionResult LanguageSelector()
         {
             var model = _commonModelFactory.PrepareLanguageSelectorModel();
@@ -174,6 +177,7 @@ namespace Nop.Web.Controllers
         }
 
         //currency
+        [NopChildActionOnly]
         public virtual ActionResult CurrencySelector()
         {
             var model = _commonModelFactory.PrepareCurrencySelectorModel();
@@ -202,6 +206,7 @@ namespace Nop.Web.Controllers
         }
 
         //tax type
+        [NopChildActionOnly]
         public virtual ActionResult TaxTypeSelector()
         {
             if (!_taxSettings.AllowCustomersToSelectTaxDisplayType)
@@ -229,6 +234,7 @@ namespace Nop.Web.Controllers
         }
 
         //footer
+        [NopChildActionOnly]
         public virtual ActionResult JavaScriptDisabledWarning()
         {
             if (!_commonSettings.DisplayJavaScriptDisabledWarning)
@@ -238,11 +244,13 @@ namespace Nop.Web.Controllers
         }
 
         //header links
+        [NopChildActionOnly]
         public virtual ActionResult HeaderLinks()
         {
             var model = _commonModelFactory.PrepareHeaderLinksModel();
             return PartialView(model);
         }
+        [NopChildActionOnly]
         public virtual ActionResult AdminHeaderLinks()
         {
             var model = _commonModelFactory.PrepareAdminHeaderLinksModel();
@@ -251,6 +259,7 @@ namespace Nop.Web.Controllers
 
 
         //social
+        [NopChildActionOnly]
         public virtual ActionResult Social()
         {
             var model = _commonModelFactory.PrepareSocialModel();
@@ -259,6 +268,7 @@ namespace Nop.Web.Controllers
 
 
         //footer
+        [NopChildActionOnly]
         public virtual ActionResult Footer()
         {
             var model = _commonModelFactory.PrepareFooterModel();
@@ -387,6 +397,7 @@ namespace Nop.Web.Controllers
         }
 
         //store theme
+        [NopChildActionOnly]
         public virtual ActionResult StoreThemeSelector()
         {
             if (!_storeInformationSettings.AllowCustomerToSelectTheme)
@@ -411,6 +422,7 @@ namespace Nop.Web.Controllers
         }
 
         //favicon
+        [NopChildActionOnly]
         public virtual ActionResult Favicon()
         {
             var model = _commonModelFactory.PrepareFaviconModel();
@@ -421,6 +433,7 @@ namespace Nop.Web.Controllers
         }
 
         //EU Cookie law
+        [NopChildActionOnly]
         public virtual ActionResult EuCookieLaw()
         {
             if (!_storeInformationSettings.DisplayEuCookieLawWarning)

@@ -369,28 +369,28 @@ namespace Nop.Web.SmokeTests
         }
 
         [Test]
-        public void Deferral_7_7_1_a_refused_XSRF_post_answers_404_instead_of_400_KNOWN_GAP()
+        public void Deferral_7_7_1_a_refused_XSRF_post_keeps_its_400_status()
         {
-            //NEW FINDING (task 7.7), recorded as deferral 7.7-1 and asserted so it cannot be lost.
+            //Task 7.7 FINDING, now FIXED ahead of task 8.3 (see runtime-deferrals.md §7.7-1).
             //
-            //PublicAntiForgeryAttribute correctly sets BadRequestResult (400) when the token is
-            //missing. But Program.cs registers UseStatusCodePagesWithReExecute("/page-not-found"),
-            //which fires for ANY empty-bodied 4xx/5xx - and CommonController.PageNotFound then sets
-            //Response.StatusCode = 404. So the 400 is REWRITTEN to 404 with the "Page not found"
-            //page. Task 7.2 recorded the imprecision (runtime-deferrals.md §23) but judged only
-            //"the uncommon bare 403/400" affected; in fact it hits EVERY XSRF refusal on the public
-            //store, and it will hit the whole admin surface at task 8.3.
+            //PublicAntiForgeryAttribute sets BadRequestResult (400) when the token is missing. That
+            //response is bodiless, and Program.cs used to register a bare
+            //UseStatusCodePagesWithReExecute("/page-not-found"), which fires for ANY bodiless
+            //4xx/5xx - so CommonController.PageNotFound re-executed and assigned
+            //Response.StatusCode = 404. Measured at task 7.7: POST /register and POST /contactus
+            //answered 404 while POST /login (no [PublicAntiForgery]) answered 200.
             //
-            //Not a security hole - the request IS refused and the action does NOT run (see the test
-            //above) - but the status code is wrong and misleading to any client that distinguishes
-            //them. When it is fixed this test should flip to expecting 400.
+            //Program.cs now calls UseNopStatusCodePages(), which re-executes for a 404 and only for
+            //a 404, so the 400 survives. The genuine-404 behaviour is asserted separately by
+            //Priority_2_an_unknown_slug_yields_the_PageNotFound_view - both halves matter.
             var form = new Dictionary<string, string> { { "Email", "x@example.com" } };
             var response = _client.PostAsync("/register", new FormUrlEncodedContent(form)).Result;
 
-            Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode,
-                "The XSRF refusal status changed. If it is now 400, deferral 7.7-1 is fixed - " +
-                "update this test and the register.");
-            StringAssert.Contains("html-not-found-page", response.Content.ReadAsStringAsync().Result);
+            Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode,
+                "The XSRF refusal status is not 400. If it is 404, the status-code-pages middleware " +
+                "is swallowing it again - deferral 7.7-1 has regressed.");
+            StringAssert.DoesNotContain("html-not-found-page", response.Content.ReadAsStringAsync().Result,
+                "The 400 was re-executed through CommonController.PageNotFound.");
         }
 
         /// <summary>
@@ -480,20 +480,38 @@ namespace Nop.Web.SmokeTests
         // -----------------------------------------------------------------------------------
 
         [Test]
-        public void Deferral_7_3_4_former_child_actions_are_reachable_by_URL_KNOWN_GAP()
+        public void Deferral_7_3_4_a_former_child_action_is_no_longer_reachable_by_URL()
         {
-            //Now observable for real, which install mode could not do. This asserts the CURRENT
-            //(undesired) behaviour so that task 8.3's fix - a marker attribute plus an
-            //IActionModelConvention adding SuppressMatchingMetadata, per runtime-deferrals.md
-            //§32.2 - has a test that flips when it lands.
+            //Task 7.3-4, FIXED ahead of its assigned task (8.3) so that Nop.Admin's 325-view
+            //surface ports onto the finished mechanism instead of needing a second pass.
+            //
+            //This is the HTTP-level half, only observable on an installed store: the endpoint is
+            //suppressed from matching, so nothing matches, so the request 404s through
+            //CommonController.PageNotFound instead of returning the bare partial. In 3.90 the same
+            //request threw (MVC 5's [ChildActionOnly] raised InvalidOperationException, i.e. a
+            //500); 404 is the better answer and is what the endpoint-routing mechanism gives.
             var response = _client.GetAsync("/Common/Footer").Result;
             TestContext.WriteLine("/Common/Footer -> " + (int)response.StatusCode);
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode,
-                "Former child actions are no longer URL-reachable - deferral 7.3-4 is fixed, update this test.");
+            Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode,
+                "A former child action is still URL-reachable - deferral 7.3-4 has regressed.");
             var html = response.Content.ReadAsStringAsync().Result;
-            StringAssert.Contains("class=\"footer\"", html);
-            StringAssert.DoesNotContain("<!DOCTYPE html>", html,
-                "Expected the bare partial, which is exactly the exposure 7.3-4 describes.");
+            StringAssert.DoesNotContain("class=\"footer\"", html,
+                "The bare footer partial was served - exactly the exposure 7.3-4 describes.");
+            StringAssert.Contains("html-not-found-page", html,
+                "Expected the PageNotFound view, i.e. a genuine 404 that still re-executes.");
+        }
+
+        [Test]
+        public void Deferral_7_3_4_an_UNMARKED_action_is_still_reachable_by_URL()
+        {
+            //The complement: the marker must not have been applied too widely. Catalog/Search was
+            //never [ChildActionOnly], so the Default {controller}/{action}/{id?} route must still
+            //serve it.
+            var response = _client.GetAsync("/Catalog/Search").Result;
+            TestContext.WriteLine("/Catalog/Search -> " + (int)response.StatusCode);
+            Assert.AreNotEqual(HttpStatusCode.NotFound, response.StatusCode,
+                "Catalog/Search is no longer URL-reachable - NopChildActionOnlyConvention is " +
+                "suppressing more than the 48 former child actions.");
         }
 
         // -----------------------------------------------------------------------------------

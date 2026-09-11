@@ -7,6 +7,7 @@ using Nop.Core.Domain.Polls;
 using Nop.Services.Localization;
 using Nop.Services.Polls;
 using Nop.Web.Factories;
+using Nop.Web.Framework.Mvc;
 
 namespace Nop.Web.Controllers
 {
@@ -38,6 +39,7 @@ namespace Nop.Web.Controllers
 
         #region Methods
 
+        [NopChildActionOnly]
         public virtual ActionResult PollBlock(string systemKeyword)
         {
             if (String.IsNullOrWhiteSpace(systemKeyword))
@@ -94,6 +96,7 @@ namespace Nop.Web.Controllers
             });
         }
         
+        [NopChildActionOnly]
         public virtual ActionResult HomePagePolls()
         {
             var model = _pollModelFactory.PrepareHomePagePollModels();

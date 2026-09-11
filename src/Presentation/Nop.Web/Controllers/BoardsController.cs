@@ -67,6 +67,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult ActiveDiscussionsSmall()
         {
             if (!_forumSettings.ForumsEnabled)
@@ -1004,6 +1005,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult LastPost(int forumPostId, bool showTopic)
         {
             var forumPost = _forumService.GetPostById(forumPostId);
@@ -1011,6 +1013,7 @@ namespace Nop.Web.Controllers
             return PartialView(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult ForumBreadcrumb(int? forumGroupId, int? forumId, int? forumTopicId)
         {
             var model = _forumModelFactory.PrepareForumBreadcrumbModel(forumGroupId, forumId, forumTopicId);

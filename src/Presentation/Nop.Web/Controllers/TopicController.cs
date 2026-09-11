@@ -5,6 +5,7 @@ using Nop.Services.Stores;
 using Nop.Services.Topics;
 using Nop.Web.Factories;
 using Nop.Web.Framework.Security;
+using Nop.Web.Framework.Mvc;
 
 namespace Nop.Web.Controllers
 {
@@ -71,6 +72,7 @@ namespace Nop.Web.Controllers
             return PartialView(templateViewPath, model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult TopicBlock(string systemName)
         {
             var model = _topicModelFactory.PrepareTopicModelBySystemName(systemName);

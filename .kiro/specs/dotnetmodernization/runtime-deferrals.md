@@ -3318,7 +3318,7 @@ but the *pattern segment* was made optional only under rule **O1**:
 | 7.3-1 | The `Html.Action` bridge lives in `Nop.Web`; `Nop.Admin` and the plugins need it too | 8.3 (decision) | Medium |
 | 7.3-2 | Session-stored `ProcessPaymentRequest.CustomValues` round-trips as `JsonElement` | 12.1–12.5 | Medium |
 | 7.3-3 | ASP.NET request validation is gone — every model property now behaves as `[AllowHtml]` | none (accept) | **Low–Medium, security-relevant** |
-| 7.3-4 | 48 former `[ChildActionOnly]` actions are now reachable by URL | ~~7.4~~ **8.3** | Low–Medium — **7.4 declined it deliberately and re-targeted it** (§32.2): the `IActionModelConvention` needs a marker that 7.3 removed from all 48 actions, and 8.3 must make the identical decision for the ~325-view admin surface, so it should be done once in `Nop.Web.Framework` |
+| 7.3-4 | ~~48 former `[ChildActionOnly]` actions are now reachable by URL~~ | — | ✅ **RESOLVED ahead of 8.3** (§45.1) — `NopChildActionOnlyAttribute` + `NopChildActionOnlyConvention` in `Nop.Web.Framework`, marker applied to all 48. 7.4 declined it deliberately and re-targeted it to 8.3; it was pulled forward so `Nop.Admin` ports onto the finished mechanism |
 | 7.3-5 | Server-side browser detection removed (IE8 CSS/JS, mobile `readonly`) | none (accept) | Low |
 | 7.3-6 | The child-action bridge does not run action filters | none (accept) | Low |
 
@@ -3399,7 +3399,7 @@ guard). ASP.NET Core has no request validation at all.
 - `Views/Web.config` also carried `<pages validateRequest="false">`, i.e. 3.90 already disabled
   request validation for *view* rendering; only the controller-input direction changes.
 
-### 7.3-4 Former child actions are now URL-reachable
+### 7.3-4 Former child actions are now URL-reachable — ✅ RESOLVED, see §45.1
 
 `[ChildActionOnly]` was deleted from **48 actions** (no counterpart — the attribute existed to
 make an action invocable only via `Html.Action`). Those actions are now matched by the `Default`
@@ -4735,13 +4735,13 @@ up** with an unreachable database (the run had to be killed by `timeout`).
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 7.7-1 | A refused XSRF POST answers **404**, not 400 | 8.3 | Low–Medium |
+| 7.7-1 | ~~A refused XSRF POST answers **404**, not 400~~ | — | ✅ **RESOLVED ahead of 8.3** (§45.2) — `Program.cs` now calls `UseNopStatusCodePages()` |
 | 7.7-2 | The smoke project is not in `NopCommerce.sln` | 18.1 | Low |
 | 7.7-3 | EF Core adds ~97 unrequested foreign-key indexes | schema review (post-migration) | Low–Medium |
 | 7.7-4 | The two case-sensitivity audits have not been run over `Administration/` | 8.4 / 8.5 | Medium |
 | 7.7-5 | Large parts of the application are still unexercised | 8.x / 16.x / 17.x | — (scope note) |
 
-### 7.7-1 A refused XSRF POST answers 404 instead of 400
+### 7.7-1 A refused XSRF POST answers 404 instead of 400 — ✅ RESOLVED, see §45.2
 
 `PublicAntiForgeryAttribute` behaves correctly: a token-less POST is refused and the action does not
 run. But `BadRequestResult` produces a **bodiless 400**, and `Program.cs` registers
@@ -4824,3 +4824,215 @@ Stated so a green suite is not mistaken for coverage.
 - **Windows.** Everything here ran on Linux. `FilePermissionHelper`'s ACL surface
   (`[SupportedOSPlatform("windows")]`, deferral 18.4) is skipped by `OperatingSystem.IsWindows()`
   and is therefore untested in both directions.
+
+
+
+---
+
+# Two defect fixes pulled forward out of task 8.3 — deferrals 7.3-4 and 7.7-1
+
+**Not a numbered spec task.** Both items were assigned to task **8.3** (`Nop.Admin` controllers) on
+the reasoning that the identical decision has to be made for the ~325-view admin surface. Both were
+implemented early, on the user's approval, in **`Nop.Web.Framework`** — so that group 8 ports its
+277 controllers and 325 views onto correct infrastructure instead of needing a second pass over the
+whole admin surface once the mechanism finally exists. `tasks.md` step 8.3 has been rewritten
+accordingly: for 7.3-4 its remaining job is only to apply the marker to the admin actions, and for
+7.7-1 there is nothing left to do.
+
+| Measurement | Value |
+|---|---|
+| `Nop.Core` / `Nop.Data` / `Nop.Services` / `Nop.Web.Framework` / `Nop.Web` re-gate, `--no-incremental` after `rm -rf obj bin` | **0/3 · 0/3 · 0/10 · 0/10 · 0/15** — every project matching its recorded baseline exactly, **no warning added** |
+| `Nop.Web.SmokeTests`, no database | **48 passed / 0 failed / 18 skipped** (was 32/0/17). All 32 previously-passing tests still pass; **+16** new passing, **+1** new skipped |
+| `HarnessCanaryTests` (`[Explicit]`) | **4 failed / 0 passed** — a fourth canary was added for the new probe (§45.3) |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| files touched | 3 new in `Nop.Web.Framework`, 2 modified (`NopServiceCollectionExtensions`, `NopApplicationBuilderExtensions` doc), `Nop.Web/Program.cs`, 16 `Nop.Web` controllers (+62 lines, all attribute/`using`), `Nop.Web/Components/WidgetViewComponent.cs` (doc correction), 5 smoke-test files |
+| `Administration/` | **untouched** — group 8 owns it |
+| `Validators/` | **untouched** — the 5 `CS0618` FluentValidation warnings are design §9's deliberate pin |
+
+## 45. What changed
+
+### 45.1 Deferral 7.3-4 — RESOLVED
+
+**New:** `src/Presentation/Nop.Web.Framework/Mvc/NopChildActionOnlyAttribute.cs` and
+`src/Presentation/Nop.Web.Framework/Mvc/NopChildActionOnlyConvention.cs`.
+**Registered** in `NopServiceCollectionExtensions.AddNopFramework`'s `MvcOptions` delegate:
+`options.Conventions.Add(new NopChildActionOnlyConvention());`.
+
+The attribute is **inert** — it carries no behaviour and is purely a selector for the convention,
+which adds `Microsoft.AspNetCore.Routing.SuppressMatchingMetadata` to every `SelectorModel` of a
+marked action. That is the mechanism §28.1 established and measured for
+`GenericUrlRouteProvider`'s seven name-only routes, and it is the only one that expresses "never
+match": ordering tricks can only say "match later", and §28.1 already showed that forcing a shared
+`Endpoint.Order` **creates** `AmbiguousMatchException` rather than preventing it.
+
+**The 48 actions were identified from git history, not by inspection of the current tree.**
+`git grep -n ChildActionOnly 9cb503f -- 'src/Presentation/Nop.Web/*'` (the pre-task-7.3 commit),
+excluding `Administration/`, returns exactly 48 hits. A script applied `[NopChildActionOnly]` to
+those 48 methods, and a second, independently written script then compared the two sets by
+`(file, method)` — parsing attribute blocks upward from each `public virtual ActionResult` signature
+in both the old and new trees:
+
+```
+pre-7.3 [ChildActionOnly] actions : 48
+now [NopChildActionOnly] actions  : 48
+missing (had it, not marked)      : []
+EXTRA  (marked, never had it)     : []
+```
+
+The "EXTRA" line is the one that matters: marking an action that was never `[ChildActionOnly]`
+would **delete a legitimate URL endpoint**. `ProfileController.Info` is marked and
+`CustomerController.Info` and `VendorController.Info` are not, which is exactly the trap a
+name-based application of the marker would fall into — so a parameterised test asserts
+`Customer.Info` is still matchable.
+
+#### The critical constraint: the `Html.Action` bridge still sees these actions — verified, not reasoned
+
+Task 7.3's `Nop.Web/Extensions/ChildActionExtensions.cs` resolves child actions through
+`IActionDescriptorCollectionProvider` and invokes them by reflection; it never touches the matcher.
+So suppressing *matching* should be invisible to it. "Should" is not evidence, and the downside of
+being wrong is severe — the home page's ~15 child actions would stop rendering, trading a minor
+information exposure for a broken storefront. A new `/__smoke/action` probe therefore reports, for
+one `Controller.Action`, **both** the endpoint table and the descriptor collection, and a
+parameterised test asserts both. Measured for `Common.Footer`:
+
+```
+endpointCount=1
+endpoint pattern={controller=Home}/{action=Index}/{id?} suppressMatching=True
+matchableEndpointCount=0
+actionDescriptorCount=1
+visibleToChildActionBridge=True
+```
+
+and for `Widget.WidgetsByZone`, which has an explicit route as well as the `Default` one:
+
+```
+endpointCount=2   (widgetsbyzone/ and {controller=Home}/{action=Index}/{id?})
+matchableEndpointCount=0
+visibleToChildActionBridge=True
+```
+
+Two properties fall out of that and are worth stating for task 8.3:
+
+- **Suppression is scoped to the ACTION, not to one route.** Every endpoint MVC builds for a marked
+  action is suppressed, including ones from an explicit `MapControllerRoute`. That is correct: a
+  `[ChildActionOnly]` action was unreachable by URL in 3.90 no matter which route reached it.
+- **The endpoint still exists in the table** (the endpoint count did not change: 398 default-route
+  endpoints before and after), it is simply not a match candidate. Nothing else is affected —
+  `ISuppressLinkGenerationMetadata` is a different marker, and neither touches
+  `ActionDescriptor`s.
+
+#### One in-tree behavioural note, and a doc correction
+
+`WidgetController.WidgetsByZone` is one of the 48 **and** is the target of `RouteProvider`'s named
+`widgetsbyzone/` route. Task 7.3's remark on `WidgetViewComponent` claimed that URL endpoint "is
+part of the public surface and a plugin or script may call it". **That claim was wrong about 3.90:**
+MVC 5's `[ChildActionOnly]` threw `InvalidOperationException` for a non-child invocation, so
+`GET /widgetsbyzone/` answered **500** in 3.90 and the route was only ever usable for URL
+*generation*. Marking the action is therefore the faithful choice; the URL now answers 404 instead
+of 500. Verified that nothing in the tree requests that path (grep across views, scripts and
+controllers). The `WidgetViewComponent` remark has been corrected in place rather than left to
+mislead task 8.x.
+
+#### What is deliberately NOT restored
+
+MVC 5 threw on a direct URL request; this yields a **404**. 404 is the better answer — it does not
+disclose that the action exists but may not be called that way — and it is what the endpoint-routing
+mechanism gives. The observable difference from 3.90 is 500 → 404 on a request that was already
+refused.
+
+### 45.2 Deferral 7.7-1 — RESOLVED
+
+**New:** `src/Presentation/Nop.Web.Framework/Infrastructure/NopStatusCodePagesExtensions.cs`.
+`Program.cs`'s `app.UseStatusCodePagesWithReExecute("/page-not-found")` became
+`app.UseNopStatusCodePages()`, at the same pipeline position.
+
+`UseNopStatusCodePages` registers the **stock** re-execute middleware — re-execution has to preserve
+`PathBase`, the original path and query through `IStatusCodeReExecuteFeature`, and clear the matched
+endpoint and route values, and re-deriving that by hand is pure risk — and then, **immediately
+inside it**, `NopStatusCodePagesScopeMiddleware`, which after `_next` sets
+`IStatusCodePagesFeature.Enabled = false` for any status that is not 404. Because the filter is
+inside, it runs first on the way back out and takes the decision with the final status code in hand;
+`StatusCodePagesMiddleware` then reads the feature and does nothing. That feature is the
+framework's sanctioned per-response opt-out, which is why it was preferred over the alternative
+that also works — writing a placeholder body so the stock middleware skips the response — since that
+one changes what is sent on the wire in order to influence control flow.
+
+**Verified by execution, in install mode, with no database.** `InstallController.RestartInstall` is
+`[HttpPost]`-only, so `GET /install/restartinstall` matches the route pattern but no HTTP method and
+routing produces a **bodiless 405** — the same shape as `PublicAntiForgeryAttribute`'s
+`BadRequestResult`, and reachable without a store because `InstallUrlMiddleware` lets `/install/*`
+through. Measured, same binary, before and after:
+
+| Request | Before | After |
+|---|---|---|
+| `GET /install/restartinstall` (bodiless 405) | **302 → /install** (405 swallowed, `/page-not-found` re-executed, `InstallUrlMiddleware` redirected that) | **405**, no body, no `Location` |
+| `GET /does-not-exist` (genuine 404) | 302 → /install | **302 → /install** — unchanged, i.e. 404 still re-executes |
+| `GET /install` | 200 | 200 |
+
+Both halves matter and both are asserted: a bodiless non-404 keeps its status, and a genuine 404
+still re-executes to nopCommerce's `PageNotFound` view at the original URL. On an installed store
+the antiforgery case is asserted directly — `POST /register` with no token must be **400** with no
+`html-not-found-page` marker.
+
+**Not fixed, and out of scope:** the 400 itself. MVC 5 let `HttpAntiForgeryException` propagate to a
+500, which `Application_Error` logged; ASP.NET Core's convention is a 400, which task 6.2 adopted
+(§12, "Anti-forgery failure status") and which `NopErrorLoggingMiddleware` does not log. That is a
+pre-existing recorded difference, not part of 7.7-1.
+
+### 45.3 Test coverage added, and proof that it can fail
+
+`src/Tests/Nop.Web.SmokeTests` gains 16 always-run assertions plus one installed-store one, and one
+new canary. Placement is deliberate: the endpoint-table and descriptor-collection assertions live in
+`HostAndContainerTests` because they need **no database**, which is what lets them protect the
+`Html.Action` bridge in install mode too — the state in which no rendered page could reveal that the
+bridge had broken.
+
+| Test | Fixture | Runs without a database |
+|---|---|---|
+| `Deferral_7_3_4_a_marked_child_action_has_no_matchable_endpoint` × 7 | HostAndContainer | yes |
+| `Deferral_7_3_4_a_marked_child_action_is_STILL_visible_to_the_Html_Action_bridge` × 4 | HostAndContainer | yes |
+| `Deferral_7_3_4_an_UNMARKED_action_is_still_matchable` × 4 | HostAndContainer | yes |
+| `Deferral_7_7_1_a_bodiless_non_404_keeps_its_status_code` | HostAndContainer | yes |
+| `Deferral_7_3_4_a_former_child_action_is_no_longer_reachable_by_URL` (rewritten from the `KNOWN_GAP` test) | InstalledStore | no |
+| `Deferral_7_3_4_an_UNMARKED_action_is_still_reachable_by_URL` | InstalledStore | no |
+| `Deferral_7_7_1_a_refused_XSRF_post_keeps_its_400_status` (rewritten from the `KNOWN_GAP` test) | InstalledStore | no |
+| `Deferral_7_3_4_a_former_child_action_URL_does_not_return_the_partial` (rewritten) | InstallMode | yes |
+
+The install-mode test was rewritten honestly rather than made to look stronger than it is: install
+mode **cannot** distinguish the fix from the bug at the HTTP level. Before the fix the endpoint
+matched and `InstallUrlMiddleware` redirected (302); after the fix nothing matches, the 404
+re-executes `/page-not-found`, and `InstallUrlMiddleware` redirects *that* (302 again). It therefore
+asserts only the invariant install mode can show — the bare partial is never returned — and points
+at the tests that carry the real proof.
+
+**Proof the new assertions can fail.** Two things were done, because a green suite is only evidence
+if it has been shown to go red.
+
+1. **A permanent fourth canary.** `HarnessCanaryTests.CANARY_action_probe_assertions_can_fail`
+   asserts `visibleToChildActionBridge=True` for `Common.NoSuchActionExists`, which the probe
+   reports as `False` — guarding specifically against the failure mode that would make the
+   substring-based 7.3-4 assertions vacuous. Run explicitly: **4 failed / 0 passed** (was 3/0).
+2. **A temporary regression, then reverted.** With the convention registration commented out **and**
+   `Program.cs` reverted to the stock `UseStatusCodePagesWithReExecute`, the suite reported
+   **8 failed / 40 passed / 18 skipped** — precisely the 7 `has_no_matchable_endpoint` cases plus
+   `a_bodiless_non_404_keeps_its_status_code`. The bridge-visibility and unmarked-action tests
+   **still passed** in that run, which is the desired result: they are independent of the fix rather
+   than tautologically coupled to it. Both files were then restored and the full suite re-run green.
+
+### 45.4 Not verified by execution
+
+Stated so a green run is not over-read.
+
+- **The three installed-store tests above did not run** — no database is installed in this
+  environment, and they `Assert.Ignore` with the reason rather than passing weakly. What was
+  verified for 7.7-1 is the *mechanism*, through a bodiless **405** rather than a bodiless **400**;
+  the two travel the identical code path (`StatusCodePagesMiddleware` does not inspect *which*
+  4xx it is), so the inference is narrow, but it is an inference. The next run against a real store
+  should confirm `POST /register` with no token → **400**, and `GET /Common/Footer` → **404** with
+  the `PageNotFound` view.
+- **Only 7 of the 48 marked actions** are covered by the parameterised endpoint assertion, chosen to
+  span the interesting shapes: two on the same controller, one with an explicit route as well as the
+  `Default` route (`Widget.WidgetsByZone`), one whose name collides with an unmarked action
+  (`Profile.Info` vs `Customer.Info`), and three plain ones. That the other 41 are marked is
+  verified by the set-comparison script, not by an HTTP assertion each.
+- **No new deferral was opened by this work**, and nothing was added to the `Administration/` tree.

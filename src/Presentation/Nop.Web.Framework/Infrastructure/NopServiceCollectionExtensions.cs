@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.Extensions.Configuration;
@@ -40,7 +41,9 @@ namespace Nop.Web.Framework.Infrastructure
     /// 11.22 (<c>NopModelBinderProvider</c> / string trimming),
     /// 11.23 (<c>JsonResult</c> PascalCase), 11.26 (<c>IAntiforgery</c>),
     /// 11.29/29 (forwarded headers), 30 (theming view-location expander),
-    /// 31 (<c>IFileVersionProvider</c> for <c>PageHeadBuilder</c>).
+    /// 31 (<c>IFileVersionProvider</c> for <c>PageHeadBuilder</c>),
+    /// 7.3-4 (former <c>[ChildActionOnly]</c> actions reachable by URL — the
+    /// <see cref="NopChildActionOnlyConvention"/> registration).
     /// </para>
     /// <para>
     /// <b>Runtime deferral 1.6 (<c>IHostApplicationLifetime</c>, needed by
@@ -278,6 +281,13 @@ namespace Nop.Web.Framework.Infrastructure
 
                 //deferral 11.22 - trims submitted strings except [NoTrim] members
                 options.ModelBinderProviders.Insert(0, new NopModelBinderProvider());
+
+                //deferral 7.3-4 - removes every [NopChildActionOnly] action from inbound route
+                //matching, restoring the property System.Web.Mvc's [ChildActionOnly] had. Without
+                //it the 48 former child actions in Nop.Web (and the admin equivalents at task 8.3)
+                //are matched by the Default {controller}/{action}/{id?} route and return the bare
+                //partial's HTML to anyone who asks for the URL.
+                options.Conventions.Add(new NopChildActionOnlyConvention());
 
                 if (configureMvc != null)
                     configureMvc(options);

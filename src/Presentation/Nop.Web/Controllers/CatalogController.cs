@@ -15,6 +15,7 @@ using Nop.Services.Stores;
 using Nop.Services.Vendors;
 using Nop.Web.Factories;
 using Nop.Web.Framework.Security;
+using Nop.Web.Framework.Mvc;
 using Nop.Web.Models.Catalog;
 
 namespace Nop.Web.Controllers
@@ -132,18 +133,21 @@ namespace Nop.Web.Controllers
             return View(templateViewPath, model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult CategoryNavigation(int currentCategoryId, int currentProductId)
         {
             var model = _catalogModelFactory.PrepareCategoryNavigationModel(currentCategoryId, currentProductId);
             return PartialView(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult TopMenu()
         {
             var model = _catalogModelFactory.PrepareTopMenuModel();
             return PartialView(model);
         }
         
+        [NopChildActionOnly]
         public virtual ActionResult HomepageCategories()
         {
             var model = _catalogModelFactory.PrepareHomepageCategoryModels();
@@ -204,6 +208,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult ManufacturerNavigation(int currentManufacturerId)
         {
             if (_catalogSettings.ManufacturersBlockItemsToDisplay == 0)
@@ -255,6 +260,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult VendorNavigation()
         {
             if (_vendorSettings.VendorsBlockItemsToDisplay == 0)
@@ -271,6 +277,7 @@ namespace Nop.Web.Controllers
 
         #region Product tags
         
+        [NopChildActionOnly]
         public virtual ActionResult PopularProductTags()
         {
             var model = _catalogModelFactory.PreparePopularProductTagsModel();
@@ -319,6 +326,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult SearchBox()
         {
             var model = _catalogModelFactory.PrepareSearchBoxModel();

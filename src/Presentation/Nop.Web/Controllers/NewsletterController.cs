@@ -7,6 +7,7 @@ using Nop.Services.Localization;
 using Nop.Services.Messages;
 using Nop.Web.Factories;
 using Nop.Web.Framework;
+using Nop.Web.Framework.Mvc;
 
 namespace Nop.Web.Controllers
 {
@@ -38,6 +39,7 @@ namespace Nop.Web.Controllers
             this._customerSettings = customerSettings;
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult NewsletterBox()
         {
             if (_customerSettings.HideNewsletterBlock)

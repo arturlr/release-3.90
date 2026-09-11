@@ -61,8 +61,10 @@ namespace Nop.Web.Framework.Infrastructure
     /// <list type="bullet">
     /// <item><c>Application_Error</c> — exception logging via <c>ILogger</c> plus the
     /// re-execution of <c>CommonController.PageNotFound</c> for 404s. Use
-    /// <c>UseExceptionHandler</c> + <c>UseStatusCodePagesWithReExecute("/page-not-found")</c>,
-    /// and keep the <c>CommonSettings.Log404Errors</c> check.</item>
+    /// <c>UseExceptionHandler</c> + <c>UseNopStatusCodePages()</c> (see
+    /// <see cref="NopStatusCodePagesExtensions"/> — the stock
+    /// <c>UseStatusCodePagesWithReExecute</c> also swallows bodiless 400/403/405 responses,
+    /// deferral 7.7-1), and keep the <c>CommonSettings.Log404Errors</c> check.</item>
     /// <item><c>Application_BeginRequest</c>/<c>EndRequest</c> MiniProfiler start/stop, and the
     /// <c>GlobalFilters.Filters.Add(new ProfilingActionFilter())</c> in
     /// <c>Application_Start</c>. MiniProfiler 3.x / <c>StackExchange.Profiling.Mvc</c> is
@@ -92,7 +94,7 @@ namespace Nop.Web.Framework.Infrastructure
         /// <code>
         /// app.UseForwardedHeaders();
         /// app.UseExceptionHandler("/error");                 // task 7.2
-        /// app.UseStatusCodePagesWithReExecute("/page-not-found");
+        /// app.UseNopStatusCodePages();                       // 404 -> /page-not-found, 404 ONLY
         /// app.UseStaticFiles();
         /// app.UseNopPipeline();                              // this method
         /// </code>

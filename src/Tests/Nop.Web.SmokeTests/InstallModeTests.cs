@@ -321,18 +321,29 @@ namespace Nop.Web.SmokeTests
         }
 
         // -----------------------------------------------------------------------------------
-        // Runtime deferral 7.3-4 — former [ChildActionOnly] actions are URL-reachable
+        // Runtime deferral 7.3-4 — RESOLVED. Former [ChildActionOnly] actions are suppressed.
         // -----------------------------------------------------------------------------------
 
         [Test]
-        public void Deferral_7_3_4_former_child_actions_are_URL_reachable_KNOWN_GAP()
+        public void Deferral_7_3_4_a_former_child_action_URL_does_not_return_the_partial()
         {
-            //Cannot be observed in install mode (everything redirects), so this only records that
-            //the endpoint EXISTS in the route table rather than being suppressed. The redirect is
-            //InstallUrlMiddleware, not a 404 - i.e. routing would have matched it.
+            //HONEST LIMITATION: install mode cannot distinguish the fix from the bug at the HTTP
+            //level. Before the fix the endpoint matched and InstallUrlMiddleware redirected (302);
+            //after the fix nothing matches, the resulting 404 re-executes /page-not-found, and
+            //InstallUrlMiddleware redirects THAT (302 again). Both are 302 to /install.
+            //
+            //So the real proof of 7.3-4 lives in HostAndContainerTests, which reads the endpoint
+            //table and the descriptor collection directly:
+            //  Deferral_7_3_4_a_marked_child_action_has_no_matchable_endpoint
+            //  Deferral_7_3_4_a_marked_child_action_is_STILL_visible_to_the_Html_Action_bridge
+            //and the HTTP-level assertion lives in InstalledStoreTests. What is asserted here is
+            //the invariant install mode CAN show: the bare partial is never returned.
             var response = _client.GetAsync("/Common/Footer").Result;
-            Assert.AreEqual(HttpStatusCode.Found, response.StatusCode);
-            StringAssert.EndsWith("/install", response.Headers.Location.ToString());
+            Assert.AreNotEqual(HttpStatusCode.OK, response.StatusCode,
+                "A former child action returned 200 in install mode.");
+            StringAssert.DoesNotContain("class=\"footer\"",
+                response.Content.ReadAsStringAsync().Result ?? string.Empty,
+                "The bare partial was served - exactly the exposure deferral 7.3-4 describes.");
         }
 
         // -----------------------------------------------------------------------------------

@@ -19,6 +19,7 @@ using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Security;
 using Nop.Web.Framework.Security.Captcha;
+using Nop.Web.Framework.Mvc;
 using Nop.Web.Models.Blogs;
 
 namespace Nop.Web.Controllers
@@ -219,6 +220,7 @@ namespace Nop.Web.Controllers
             return View(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult BlogTags()
         {
             if (!_blogSettings.Enabled)
@@ -228,6 +230,7 @@ namespace Nop.Web.Controllers
             return PartialView(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult BlogMonths()
         {
             if (!_blogSettings.Enabled)
@@ -237,6 +240,7 @@ namespace Nop.Web.Controllers
             return PartialView(model);
         }
 
+        [NopChildActionOnly]
         public virtual ActionResult RssHeaderLink()
         {
             if (!_blogSettings.Enabled || !_blogSettings.ShowHeaderRssUrl)

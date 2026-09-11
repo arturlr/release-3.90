@@ -58,9 +58,10 @@ Paths inside the container are rooted at `/workspace`, which maps to `/home/artr
 
 `src/Tests/Nop.Web.SmokeTests` boots the real `Nop.Web` host in-process through
 `WebApplicationFactory<Nop.Web.Program>`. **It is deliberately NOT part of any clean-compile gate** —
-task 7.7 is non-gating and 13 of its 49 tests need a database.
+task 7.7 is non-gating and 14 of its 66 tests need a database.
 
-Without a database (32 pass, 17 skip — install-mode coverage plus the canaries):
+Without a database (48 pass, 18 skip — install-mode coverage, the host/container group, plus the
+canaries):
 
 ```bash
 docker run --rm -u "$(id -u):$(id -g)" -e DOTNET_CLI_HOME=/tmp -e HOME=/tmp \
@@ -72,7 +73,7 @@ docker run --rm -u "$(id -u):$(id -g)" -e DOTNET_CLI_HOME=/tmp -e HOME=/tmp \
 Tests that need an installed store `Assert.Ignore` with `"NOT EXERCISED: no database is
 installed …"`, so the run is green and the gap is visible rather than silently passed.
 
-### With a database (36 pass, 13 skip — full storefront coverage)
+### With a database (full storefront coverage — the `InstalledStoreTests` group stops skipping)
 
 ```bash
 docker network create nopnet
@@ -107,5 +108,6 @@ dotnet test src/Tests/Nop.Web.SmokeTests/Nop.Web.SmokeTests.csproj \
   --filter "FullyQualifiedName~HarnessCanaryTests"
 ```
 
-**All three must report Failed.** If any passes, the corresponding group of real assertions cannot be
-trusted.
+**All four must report Failed.** If any passes, the corresponding group of real assertions cannot be
+trusted. (Task 7.7 shipped three; the deferral 7.3-4 / 7.7-1 fix added a fourth for the
+`/__smoke/action` probe.)

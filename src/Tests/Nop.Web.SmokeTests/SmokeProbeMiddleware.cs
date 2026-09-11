@@ -8,6 +8,8 @@ using Autofac;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
@@ -111,6 +113,9 @@ namespace Nop.Web.SmokeTests
                         break;
                     case "endpoints":
                         WriteEndpointsProbe(context, sb);
+                        break;
+                    case "action":
+                        WriteActionProbe(context, sb);
                         break;
                     default:
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -244,6 +249,71 @@ namespace Nop.Web.SmokeTests
                     suppressed,
                     endpoint.DisplayName));
             }
+        }
+
+        /// <summary>
+        /// Runtime deferral 7.3-4 — reports, for one <c>Controller.Action</c>, (a) every registered
+        /// endpoint MVC built for it and whether that endpoint is suppressed from inbound matching,
+        /// and (b) whether its <c>ControllerActionDescriptor</c> is still present in the collection
+        /// <c>Html.Action</c>'s bridge queries.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Both halves are needed, and (b) is the one that matters most. The fix for 7.3-4 adds
+        /// <c>ISuppressMatchingMetadata</c> to the action's endpoints. Task 7.3's
+        /// <c>ChildActionExtensions</c> bridge does not use the matcher at all — it resolves the
+        /// action through <c>IActionDescriptorCollectionProvider</c> and invokes the method by
+        /// reflection — so suppression should be invisible to it. "Should" is not evidence, and if
+        /// it were wrong the home page's ~15 child actions would silently stop rendering, which
+        /// would be a far worse outcome than the exposure being fixed. So the descriptor lookup is
+        /// asserted directly, and it is asserted in <b>install mode too</b>, where no page can be
+        /// rendered to notice the breakage.
+        /// </para>
+        /// <para>Query string: <c>?controller=Common&amp;action=Footer</c>.</para>
+        /// </remarks>
+        private static void WriteActionProbe(HttpContext context, StringBuilder sb)
+        {
+            var controllerName = context.Request.Query["controller"].ToString();
+            var actionName = context.Request.Query["action"].ToString();
+            sb.AppendLine("query=" + controllerName + "." + actionName);
+
+            //(a) the endpoint table - every endpoint built for this action, from the Default
+            //conventional route and from any explicit MapControllerRoute that targets it.
+            var sources = context.RequestServices.GetServices<EndpointDataSource>();
+            var endpoints = sources.SelectMany(s => s.Endpoints)
+                .Where(e =>
+                {
+                    var d = e.Metadata.GetMetadata<ControllerActionDescriptor>();
+                    return d != null &&
+                           string.Equals(d.ControllerName, controllerName, StringComparison.OrdinalIgnoreCase) &&
+                           string.Equals(d.ActionName, actionName, StringComparison.OrdinalIgnoreCase);
+                })
+                .ToList();
+
+            sb.AppendLine("endpointCount=" + endpoints.Count);
+            var matchable = 0;
+            foreach (var endpoint in endpoints)
+            {
+                var suppressed = endpoint.Metadata.GetMetadata<ISuppressMatchingMetadata>();
+                var isSuppressed = suppressed != null && suppressed.SuppressMatching;
+                if (!isSuppressed)
+                    matchable++;
+
+                var route = endpoint as RouteEndpoint;
+                sb.AppendLine("endpoint pattern=" + (route == null ? "<not-a-route>" : route.RoutePattern.RawText)
+                    + " suppressMatching=" + isSuppressed);
+            }
+            sb.AppendLine("matchableEndpointCount=" + matchable);
+
+            //(b) the descriptor collection Html.Action's bridge queries - MUST still contain it.
+            var provider = context.RequestServices.GetRequiredService<IActionDescriptorCollectionProvider>();
+            var descriptors = provider.ActionDescriptors.Items
+                .OfType<ControllerActionDescriptor>()
+                .Where(d => string.Equals(d.ControllerName, controllerName, StringComparison.OrdinalIgnoreCase) &&
+                            string.Equals(d.ActionName, actionName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            sb.AppendLine("actionDescriptorCount=" + descriptors.Count);
+            sb.AppendLine("visibleToChildActionBridge=" + (descriptors.Count > 0));
         }
 
         /// <summary>

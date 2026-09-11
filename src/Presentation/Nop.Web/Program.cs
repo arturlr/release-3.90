@@ -118,7 +118,12 @@ namespace Nop.Web
             //Application_Error, part 3 of 3: 404 -> CommonController.PageNotFound. Replaces the
             //Response.Clear() / Server.ClearError() / errorController.Execute(routeData) block.
             //"/page-not-found" is the route RouteProvider registers for Common/PageNotFound.
-            app.UseStatusCodePagesWithReExecute("/page-not-found");
+            //
+            //deferral 7.7-1: this was a bare UseStatusCodePagesWithReExecute("/page-not-found"),
+            //which fires for ANY bodiless 400-599 - so every antiforgery refusal (a bodiless 400
+            //from PublicAntiForgeryAttribute) was rewritten to "404 Page not found". The
+            //replacement re-executes for a 404 and ONLY for a 404; see NopStatusCodePagesExtensions.
+            app.UseNopStatusCodePages();
 
             //<system.webServer> static handling, 3.90's "ignore static resources" early exit in
             //Application_BeginRequest, and the DenyAccessToPluginDLLs HttpForbiddenHandler (.dll

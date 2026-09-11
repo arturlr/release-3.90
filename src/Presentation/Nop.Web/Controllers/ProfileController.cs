@@ -4,6 +4,7 @@ using Nop.Services.Customers;
 using Nop.Services.Security;
 using Nop.Web.Factories;
 using Nop.Web.Framework.Security;
+using Nop.Web.Framework.Mvc;
 
 namespace Nop.Web.Controllers
 {
@@ -54,6 +55,7 @@ namespace Nop.Web.Controllers
         }
 
         //profile info tab
+        [NopChildActionOnly]
         public virtual ActionResult Info(int customerProfileId)
         {
             var customer = _customerService.GetCustomerById(customerProfileId);
@@ -67,6 +69,7 @@ namespace Nop.Web.Controllers
         }
 
         //latest posts tab
+        [NopChildActionOnly]
         public virtual ActionResult Posts(int customerProfileId, int page)
         {
             var customer = _customerService.GetCustomerById(customerProfileId);
