@@ -1,135 +1,242 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{83235353-0D04-4028-82B2-81116E7361DA}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Nop.Plugin.Payments.PayPalDirect</RootNamespace>
-    <AssemblyName>Nop.Plugin.Payments.PayPalDirect</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Payments.PayPalDirect\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Payments.PayPalDirect\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="FluentValidation, Version=6.4.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\FluentValidation.6.4.0\lib\Net45\FluentValidation.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="PayPal, Version=1.8.0.0, Culture=neutral, PublicKeyToken=5b4afc1ccaef40fb, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\PayPal.1.8.0\lib\net451\PayPal.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Web" />
-    <Reference Include="System.Web.Mvc, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Mvc.5.2.3\lib\net45\System.Web.Mvc.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Controllers\PaymentPayPalDirectController.cs" />
-    <Compile Include="Models\ConfigurationModel.cs" />
-    <Compile Include="Models\PaymentInfoModel.cs" />
-    <Compile Include="PaypalHelper.cs" />
-    <Compile Include="PayPalDirectPaymentProcessor.cs" />
-    <Compile Include="PayPalDirectPaymentSettings.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RouteProvider.cs" />
-    <Compile Include="TransactMode.cs" />
-    <Compile Include="Validators\PaymentInfoValidator.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj">
-      <Project>{6BDA8332-939F-45B7-A25E-7A797260AE59}</Project>
-      <Name>Nop.Core</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj">
-      <Project>{210541AD-F659-47DA-8763-16F36C5CD2F4}</Project>
-      <Name>Nop.Services</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj">
-      <Project>{75FD4163-333C-4DD5-854D-2EF294E45D94}</Project>
-      <Name>Nop.Web.Framework</Name>
-      <Private>False</Private>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Views\Configure.cshtml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Views\PaymentInfo.cshtml">
-      <SubType>
-      </SubType>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="logo.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Notes.txt" />
-    <None Include="app.config" />
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
-    <Content Include="web.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Description.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets'))" />
-  </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+    Nop.Plugin.Payments.PayPalDirect - task 12.3
+    (Requirements 5.5, 1.1-1.5, 2.4, 4.2, 4.3, 4.4, 5.1, 5.3, 3.1).
+
+    THE PLUGIN RECIPE, applied verbatim - Sdk.Razor + AddRazorSupportForMvc, the Content/Link
+    block, Private="false" PLUS the NopPluginDoNotDeployHostAssemblies target, and OutputPath
+    PLUS AppendTargetFrameworkToOutputPath=false. Full reasoning: the annotated
+    Nop.Plugin.DiscountRules.CustomerRoles.csproj (task 10.1), runtime-deferrals.md 83-86, and
+    the group-12 restatement in Nop.Plugin.Payments.CheckMoneyOrder.csproj (task 12.1).
+
+    ===================================================================================
+    THIS IS THE ONE PLUGIN IN THE SOLUTION THAT DEPLOYS A PRIVATE THIRD-PARTY ASSEMBLY
+    ===================================================================================
+    3.90's project file carried the single <Private>True</Private> in all 20 legacy plugin
+    projects: the PayPal REST SDK, PayPal 1.8.0. Task 10.1 scoped
+    NopPluginDoNotDeployHostAssemblies to the "Nop." prefix precisely so this case keeps
+    working, and it does - PayPal.dll lands in Plugins\Payments.PayPalDirect\ next to the
+    plugin assembly, which is where PluginManager's shadow copy picks it up. Verified by
+    listing the deployment directory, and asserted at runtime by
+    Nop.Web.SmokeTests.PluginViewRenderTests.
+
+    ===================================================================================
+    THE PACKAGE HAS NO net10.0 VERSION, AND THERE IS NO SUCCESSOR. WHAT WAS DONE, AND WHY.
+    ===================================================================================
+    The `PayPal` package is DEPRECATED on nuget.org ("legacy and no longer maintained") and
+    NO release of it publishes a netstandard or net(core) asset - 1.8.0, the final 1.9.1 and
+    everything between ship lib/net40 + lib/net45 + lib/net451 only. PayPal's REST API v1
+    .NET SDK was discontinued; the v2 SDK is a different product with a different API surface.
+    So there is no version to advance to and no package to substitute.
+
+    DECISION: pin 1.8.0 - the version 3.90 shipped - as a version-less PackageReference under
+    central package management (src/Directory.Packages.props), consume its lib/net451 asset,
+    and LEAVE THE RESULTING NU1701 WARNING VISIBLE. That follows the two precedents this
+    migration has set: pinning an old package with a recorded reason (EPPlus 4.5.3.3,
+    FluentValidation 7.6.105, NUnit 3.14.0, iTextSharp.LGPLv2.Core, SixLabors.ImageSharp
+    2.1.13) and leaving an honest warning rather than suppressing it (the four remaining
+    SYSLIB0014 WebRequest sites). The alternative - rewriting PayPalDirect's ~1000 lines of
+    payment, recurring-payment, capture, refund, void and webhook logic against raw HTTP - is
+    a rewrite of a money path with no test coverage available, which is precisely what the
+    faithfulness rule forbids.
+
+    *** AND IT WAS VERIFIED TO RUN, NOT ASSUMED TO. *** A net451 assembly referenced from
+    net10.0 compiles happily and can still fail at the first call, so PayPal.dll's metadata
+    was read (System.Reflection.Metadata) and its IL scanned for members belonging to
+    assemblies that do not exist on .NET. Two were found:
+
+      System.Web       -> System.Web.HttpUtility.UrlEncode / .ParseQueryString, reached from
+                          PayPal.Util.SDKUtil.FormatURIPath - i.e. from EVERY resource GET the
+                          plugin performs (Sale.Get, Authorization.Get, Capture.Get,
+                          Agreement.Get, Webhook.Get) - plus Tokeninfo.CreateFromRefreshToken
+                          and PayPalRelationalObject.GetTokenFromApprovalUrl.
+      System.Configuration -> ConfigurationManager.GetSection / .AppSettings and the
+                          ConfigurationSection/Element/Collection base types, reached from
+                          PayPal.Api.ConfigManager's constructor and PayPal.Log.LogConfiguration.
+
+    Both were then EXERCISED on net10.0 (throwaway console probe, deleted afterwards):
+
+      * `System.Web` RESOLVES - the net10.0 shared framework ships a type-forwarding facade
+        whose System.Web.HttpUtility lives in System.Web.HttpUtility.dll. SDKUtil.FormatURIPath
+        returned the correct path. Nothing to do.
+      * `System.Configuration` also resolves as a facade, but its targets live in the
+        OUT-OF-BAND System.Configuration.ConfigurationManager package. Without that package
+        present, `new OAuthTokenCredential(config)` - the FIRST thing
+        PaypalHelper.GetApiContext does - threw
+        `FileNotFoundException: Could not load file or assembly
+        'System.Configuration.ConfigurationManager'`. With it present, every probe assertion
+        passed. So the plugin would have compiled, deployed, been discovered, loaded, listed in
+        the admin UI, and then failed on its first PayPal call with a missing-assembly error
+        that no compiler warning predicts.
+
+    That is why System.Configuration.ConfigurationManager is declared below. It is declared
+    ExcludeAssets="runtime" because the HOST already carries it (Nop.Web resolves 9.0.11
+    transitively through Microsoft.Data.SqlClient -> Azure.Identity, confirmed in
+    Nop.Web.deps.json), and PluginManager loads plugin assemblies into the DEFAULT
+    AssemblyLoadContext, which resolves their dependencies from the host's trusted-platform
+    list. Deploying a second copy next to the plugin would instead be shadow-copied and loaded
+    by PluginManager.PerformFileDeploy as the process's copy - the failure mode
+    NopPluginDoNotDeployHostAssemblies exists to prevent for Nop.* assemblies. Deferral
+    12.3-2 records that the host's copy arrives TRANSITIVELY, i.e. a change to the data
+    provider's dependency graph would silently break this payment plugin, and the smoke tests
+    now assert the type is loadable in the host so that regression is caught.
+
+    Deleted in the classic -> SDK conversion: packages.config, app.config, web.config
+    (transcribed to Views/_ViewImports.cshtml), the <Compile Include> list, the MVC 5
+    <Reference>s into ..\..\packages\, the BCL <Reference>s, the Microsoft.CSharp.targets and
+    Microsoft.Bcl.Build.targets imports plus the EnsureNuGetPackageBuildImports guard.
+    Kept: Properties/AssemblyInfo.cs.
   -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Payments.PayPalDirect\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The PayPal SDK. This ONE reference deliberately keeps its runtime asset, reproducing
+      3.90's <Private>True</Private>: PayPal.dll is not carried by the host and the plugin
+      cannot work without it. NU1701 is expected and left visible - see the note above.
+    -->
+    <PackageReference Include="PayPal" />
+
+    <!--
+      3.90 declared both of these as <Reference> items with Private=False, i.e. compile
+      against them, do not copy. ExcludeAssets="runtime" is the PackageReference spelling of
+      that: the host already carries FluentValidation.dll and Newtonsoft.Json.dll, and a
+      private copy next to the plugin would give the process a second one.
+
+      Newtonsoft.Json must stay DECLARED even though nothing here would otherwise need it:
+      PayPal 1.8.0's net451 dependency group asks for >= 7.0.1 and NuGet would resolve exactly
+      7.0.1, which carries NU1903 (GHSA-5crp-9r3c-p9vr, HIGH severity). The central 13.0.4 pin
+      lifts it. Measured both ways.
+    -->
+    <PackageReference Include="FluentValidation" ExcludeAssets="runtime" />
+    <PackageReference Include="Newtonsoft.Json" ExcludeAssets="runtime" />
+
+    <!-- See the long note above: PayPal.dll's System.Configuration facade forwards here. -->
+    <PackageReference Include="System.Configuration.ConfigurationManager" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" Private="false" />
+    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj" Private="false" />
+    <ProjectReference Include="..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj" Private="false" />
+  </ItemGroup>
+
+  <!--
+    Filters on the "Nop." prefix, so PayPal.dll is untouched. That scoping was task 10.1's
+    deliberate choice for exactly this plugin.
+  -->
+  <Target Name="NopPluginDoNotDeployHostAssemblies" AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths
+          Remove="@(ReferenceCopyLocalPaths)"
+          Condition="$([System.String]::Copy('%(Filename)').StartsWith('Nop.'))" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    ===================================================================================
+    DEFECT FOUND BY EXECUTION AT TASK 12.3 - THE RECIPE ALONE DOES NOT DEPLOY PayPal.dll
+    ===================================================================================
+    Task 10.1's template asserts that NopPluginDoNotDeployHostAssemblies "filters on the
+    'Nop.' prefix precisely so Payments.PayPalDirect's private PayPal SDK still deploys".
+    That statement is TRUE and NOT SUFFICIENT, and it had never been exercised, because none
+    of group 10's three plugins has a package runtime asset to deploy.
+
+    MEASURED: with everything above in place and nothing else, the deployment directory
+    contained Description.txt, logo.jpg, the plugin dll, its pdb and its deps.json - and NO
+    PayPal.dll. Removing the filter target entirely did not change that (it only made
+    Nop.Data.dll leak, reproducing section 83.3), so the filter is innocent.
+
+    THE REAL CAUSE is an SDK default that has nothing to do with the filter:
+    **$(CopyLocalLockFileAssemblies) is FALSE for a class library.** Only an application
+    (Exe / Web) copies its NuGet packages' runtime assets to its output directory; a library
+    copies only ProjectReference outputs, on the assumption that whoever consumes it will do
+    the package resolution. A nopCommerce plugin breaks that assumption completely: it is
+    deployed as a bare directory that PluginManager shadow-copies, nothing "consumes" it as a
+    library, and its deps.json is never read - PluginManager loads assemblies by PATH into the
+    default AssemblyLoadContext, which resolves their dependencies from the HOST's
+    trusted-platform list. A dependency the host does not have must therefore sit physically
+    next to the plugin, or it does not exist at runtime.
+
+    WHY THIS WOULD HAVE FAILED SILENTLY, WHICH IS WHY IT IS WORTH THIS MUCH TEXT: the build is
+    clean, the plugin is discovered, PluginManager records it as compatible, it appears in the
+    admin plugin list and can be installed. The first thing that fails is
+    PaypalHelper.GetApiContext -> new OAuthTokenCredential(...), i.e. the first real PayPal
+    call - a FileNotFoundException on a money path, at runtime, in production.
+
+    THE FIX, and why it is shaped this way. Turning $(CopyLocalLockFileAssemblies) on globally
+    for the project was rejected: it would deploy the ENTIRE transitive package closure
+    reached through Nop.Core / Nop.Services / Nop.Web.Framework - Autofac, Newtonsoft.Json,
+    EF Core, ImageSharp, EPPlus, the Azure and IdentityModel stacks - every one of which the
+    host already carries and each of which PluginManager would shadow-copy and load as the
+    process's copy. That is the same failure mode section 83.3 documents for Nop.Data.dll,
+    multiplied (measured: @(RuntimeCopyLocalItems) holds 50 items here, of which exactly ONE
+    is PayPal's). Instead the target below copies exactly the assets of the ONE package that
+    must travel with the plugin, selected by NuGetPackageId rather than by a hardcoded path,
+    so the version pin in src/Directory.Packages.props stays the single source of truth.
+
+    TWO EARLIER SHAPES OF THIS FIX WERE TRIED AND MEASURED TO FAIL, which is why it is a plain
+    Copy rather than the more idiomatic ReferenceCopyLocalPaths contribution:
+      * Adding the asset to @(ReferenceCopyLocalPaths) from a target hooked
+        AfterTargets="ResolveReferences" or BeforeTargets="_CopyFilesMarkedCopyLocal". The item
+        was verified present (a diagnostic Message showed ReferenceCopyLocalPaths going from 0
+        to 1 entry, PayPal.dll) and the file was still NOT copied - _CopyFilesMarkedCopyLocal
+        does not pick up a late contribution here. Note the "0" in that measurement: it also
+        shows that NopPluginDoNotDeployHostAssemblies above empties the list completely rather
+        than only its Nop.* entries, which is harmless given nothing else may be deployed, but
+        is not what its name suggests.
+      * Target-level Inputs/Outputs batching on @(RuntimeCopyLocalItems), which silently
+        batched the whole target per item and made the guard below fire.
+
+    The <Error> guard is deliberate: if a future version bump, retargeting or NuGet change
+    stops resolving the asset, the build FAILS with an explanatory message instead of quietly
+    producing a plugin that installs and then throws on its first payment.
+
+    ASSERTED AT RUNTIME, not just built: Nop.Web.SmokeTests.PluginViewRenderTests checks that
+    PayPal.dll is present in this plugin's deployment directory, that the four other payment
+    plugins deploy NO third-party assembly at all, and that the types PayPal.dll needs from
+    the System.Web and System.Configuration facades are loadable inside the running host.
+  -->
+  <Target Name="NopPluginDeployPayPalSdk" AfterTargets="Build">
+    <ItemGroup>
+      <_NopPayPalSdkAsset Include="@(RuntimeCopyLocalItems->WithMetadataValue('NuGetPackageId','PayPal'))" />
+    </ItemGroup>
+    <Error Condition="'@(_NopPayPalSdkAsset)' == ''"
+           Text="The PayPal SDK runtime asset was not resolved. Payments.PayPalDirect cannot work without PayPal.dll next to it - see the long note in this project file. Check the PayPal PackageReference and its central version pin." />
+    <Copy SourceFiles="@(_NopPayPalSdkAsset)"
+          DestinationFiles="@(_NopPayPalSdkAsset->'$(OutDir)%(DestinationSubPath)')"
+          SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <FileWrites Include="@(_NopPayPalSdkAsset->'$(OutDir)%(DestinationSubPath)')" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <Content Update="Views\**\*.cshtml"
+             Link="Plugins\Payments.PayPalDirect\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+  <!-- Include, NOT Update: under the Razor SDK .txt/.jpg arrive as <None>. -->
+  <ItemGroup>
+    <None Remove="Description.txt" />
+    <None Remove="logo.jpg" />
+    <None Remove="Notes.txt" />
+    <Content Include="Description.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="logo.jpg" CopyToOutputDirectory="Always" />
+    <Content Include="Notes.txt" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
 </Project>

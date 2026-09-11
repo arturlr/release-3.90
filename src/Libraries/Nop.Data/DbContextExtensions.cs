@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -165,6 +166,101 @@ namespace Nop.Data
                 context.Database.ExecuteSqlRaw(dbScript);
             }
             context.SaveChanges();
+        }
+
+        /// <summary>
+        /// Split a SQL Server script on its <c>GO</c> batch separators.
+        /// </summary>
+        /// <param name="script">The script to split. Null/whitespace yields nothing.</param>
+        /// <returns>One string per batch, in order, with the <c>GO</c> lines removed.</returns>
+        /// <remarks>
+        /// <para>
+        /// <b>TASK 11.2 — runtime deferral 4.10. THIS IS THE SHARED HELPER THE OTHER THREE
+        /// PLUGIN CONTEXTS MUST USE (tasks 13.1, 14.4, 15.1).</b>
+        /// </para>
+        /// <para>
+        /// <c>GO</c> is a <b>client</b> batch terminator understood by SSMS/sqlcmd, not a T-SQL
+        /// statement. EF6's <c>ObjectContext.CreateDatabaseScript()</c> emitted a single
+        /// unseparated batch, so every caller could send the whole thing as one command. EF
+        /// Core's <see cref="Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade">
+        /// Database</see><c>.GenerateCreateScript()</c> — which task 3.2 substituted for it —
+        /// separates statements with <c>GO</c>, so sending the script as one command fails with
+        /// <c>Incorrect syntax near 'GO'</c>.
+        /// </para>
+        /// <para>
+        /// <c>Nop.Data.Initializers.CreateTablesIfNotExist</c> already split the script; it now
+        /// delegates here so there is ONE implementation. The four <b>plugin</b> contexts do
+        /// <c>Database.ExecuteSqlCommand(CreateDatabaseScript())</c> in their own
+        /// <c>Install()</c> and never pass through that initializer, which is what deferral 4.10
+        /// records. Each of them calls <see cref="ExecuteSqlScript"/> below instead.
+        /// </para>
+        /// <para>
+        /// Deliberately simple: only a line that is <b>exactly</b> <c>GO</c> after trimming is a
+        /// separator. <c>GO 5</c> (the sqlcmd repeat count), <c>GO</c> inside a string literal or
+        /// a comment, and an identifier that merely starts with <c>GO</c> are all left alone —
+        /// EF Core's generator emits none of those, and a fuller T-SQL lexer would be
+        /// speculation. Empty batches are dropped so a trailing <c>GO</c> cannot produce an
+        /// empty command.
+        /// </para>
+        /// </remarks>
+        public static IEnumerable<string> SplitSqlIntoBatches(string script)
+        {
+            if (string.IsNullOrWhiteSpace(script))
+                yield break;
+
+            var batch = new StringBuilder();
+            foreach (var line in script.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
+            {
+                if (string.Equals(line.Trim(), "GO", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (batch.ToString().Trim().Length > 0)
+                        yield return batch.ToString();
+                    batch.Clear();
+                    continue;
+                }
+
+                batch.AppendLine(line);
+            }
+
+            if (batch.ToString().Trim().Length > 0)
+                yield return batch.ToString();
+        }
+
+        /// <summary>
+        /// Execute a possibly <c>GO</c>-batched SQL script, one command per batch.
+        /// </summary>
+        /// <param name="context">Context</param>
+        /// <param name="script">The script — typically <c>IDbContext.CreateDatabaseScript()</c></param>
+        /// <returns>The number of batches executed</returns>
+        /// <remarks>
+        /// <para>
+        /// <b>TASK 11.2 — runtime deferral 4.10.</b> The one line a plugin's
+        /// <c>ObjectContext.Install()</c> needs in place of EF6's
+        /// <c>Database.ExecuteSqlCommand(CreateDatabaseScript())</c>. See
+        /// <see cref="SplitSqlIntoBatches"/> for why the split is necessary.
+        /// </para>
+        /// <para>
+        /// No ambient transaction is opened. That is deliberate and matches
+        /// <c>CreateTablesIfNotExist</c>: a <c>GO</c> separator exists precisely because the
+        /// batches must be sent independently, and some DDL cannot run inside a transaction
+        /// (runtime deferral 4.11). It also matches EF6's behaviour at these call sites, which
+        /// passed <c>ExecuteSqlCommand</c>'s default <c>doNotEnsureTransaction: false</c> —
+        /// EF6's <c>DoNotEnsureTransaction</c> semantics.
+        /// </para>
+        /// </remarks>
+        public static int ExecuteSqlScript(this DbContext context, string script)
+        {
+            if (context == null)
+                throw new ArgumentNullException("context");
+
+            var executed = 0;
+            foreach (var batch in SplitSqlIntoBatches(script))
+            {
+                context.Database.ExecuteSqlRaw(batch);
+                executed++;
+            }
+
+            return executed;
         }
 
         /// <summary>

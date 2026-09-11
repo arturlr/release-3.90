@@ -39,7 +39,19 @@
                         @Html.NopLabelFor(model => model.WebhookId)
                     </div>
                     <div class="col-md-9">
-                        @if (Request.IsLocal)
+                        @*
+                            Task 12.3: System.Web's Request.IsLocal has NO ASP.NET Core
+                            counterpart. PaypalHelper.IsLocalRequest applies the same two tests
+                            System.Web applied (loopback remote address, or remote == local),
+                            identical to the private helper task 6.2 wrote for
+                            Nop.Web.Framework's WwwRequirementAttribute. Behaviour preserved: on
+                            a developer machine PayPal cannot reach the store, so the "create
+                            webhook" button is hidden and the id is entered by hand.
+                            `Context` is RazorPage's HttpContext - no new @using is needed
+                            because Views/_ViewImports.cshtml imports this plugin's root
+                            namespace.
+                        *@
+                        @if (PaypalHelper.IsLocalRequest(Context))
                         {
                             @Html.NopEditorFor(model => model.WebhookId)
                         }

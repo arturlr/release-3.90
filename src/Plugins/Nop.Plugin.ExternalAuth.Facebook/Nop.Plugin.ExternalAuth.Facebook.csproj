@@ -1,213 +1,166 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{446FED73-BCA1-4D8F-BC13-EA1507C7EF29}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Nop.Plugin.ExternalAuth.Facebook</RootNamespace>
-    <AssemblyName>Nop.Plugin.ExternalAuth.Facebook</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>11307c9a</NuGetPackageImportStamp>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\ExternalAuth.Facebook\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\ExternalAuth.Facebook\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="Autofac, Version=4.4.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Autofac.4.4.0\lib\net45\Autofac.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="DotNetOpenAuth.AspNet, Version=4.3.0.0, Culture=neutral, PublicKeyToken=2780ccd10d57b246, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\DotNetOpenAuth.AspNet.4.3.4.13329\lib\net45-full\DotNetOpenAuth.AspNet.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetOpenAuth.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=2780ccd10d57b246, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\DotNetOpenAuth.Core.4.3.4.13329\lib\net45-full\DotNetOpenAuth.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetOpenAuth.OAuth, Version=4.3.0.0, Culture=neutral, PublicKeyToken=2780ccd10d57b246, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\DotNetOpenAuth.OAuth.Core.4.3.4.13329\lib\net45-full\DotNetOpenAuth.OAuth.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetOpenAuth.OAuth.Consumer, Version=4.3.0.0, Culture=neutral, PublicKeyToken=2780ccd10d57b246, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\DotNetOpenAuth.OAuth.Consumer.4.3.4.13329\lib\net45-full\DotNetOpenAuth.OAuth.Consumer.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetOpenAuth.OpenId, Version=4.3.0.0, Culture=neutral, PublicKeyToken=2780ccd10d57b246, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\DotNetOpenAuth.OpenId.Core.4.3.4.13329\lib\net45-full\DotNetOpenAuth.OpenId.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetOpenAuth.OpenId.RelyingParty, Version=4.3.0.0, Culture=neutral, PublicKeyToken=2780ccd10d57b246, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\DotNetOpenAuth.OpenId.RelyingParty.4.3.4.13329\lib\net45-full\DotNetOpenAuth.OpenId.RelyingParty.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions.Desktop, Version=1.0.168.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.Desktop.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <Private>False</Private>
-      <HintPath>..\..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Net" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Net.Http.Extensions">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Extensions.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Net.Http.Primitives">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Primitives.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Net.Http.WebRequest" />
-    <Reference Include="System.Web" />
-    <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.Helpers.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.Mvc, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Mvc.5.2.3\lib\net45\System.Web.Mvc.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Razor.3.2.3\lib\net45\System.Web.Razor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages.Deployment, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Deployment.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Controllers\ExternalAuthFacebookController.cs" />
-    <Compile Include="Core\FacebookProviderAuthorizer.cs" />
-    <Compile Include="Core\IOAuthProviderFacebookAuthorizer.cs" />
-    <Compile Include="Core\OAuthAuthenticationParameters.cs" />
-    <Compile Include="Core\Provider.cs" />
-    <Compile Include="DependencyRegistrar.cs" />
-    <Compile Include="Models\ConfigurationModel.cs" />
-    <Compile Include="Models\LoginModel.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RouteProvider.cs" />
-    <Compile Include="FacebookExternalAuthMethod.cs" />
-    <Compile Include="FacebookExternalAuthSettings.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj">
-      <Project>{6BDA8332-939F-45B7-A25E-7A797260AE59}</Project>
-      <Name>Nop.Core</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj">
-      <Project>{210541AD-F659-47DA-8763-16F36C5CD2F4}</Project>
-      <Name>Nop.Services</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj">
-      <Project>{75FD4163-333C-4DD5-854D-2EF294E45D94}</Project>
-      <Name>Nop.Web.Framework</Name>
-      <Private>False</Private>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Content\facebookstyles.css">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\Images\facebook-signing.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Description.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="logo.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Notes.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Views\Configure.cshtml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Views\PublicInfo.cshtml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <None Include="app.config" />
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
-    <Content Include="web.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets'))" />
-  </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+    Nop.Plugin.ExternalAuth.Facebook - task 11.1
+    (Requirements 5.5, 1.1-1.5, 2.4, 4.2, 4.3, 5.1, 5.3, 3.1).
+
+    THE RECIPE THIS FOLLOWS is the annotated
+    src/Plugins/Nop.Plugin.DiscountRules.CustomerRoles/Nop.Plugin.DiscountRules.CustomerRoles.csproj
+    (task 10.1) - read that file for the reasoning behind the four silently-failing decisions
+    below and the fifth (Content Include vs Update for .txt/.jpg). Only what is DIFFERENT about
+    this plugin is documented here.
+
+    ===================================================================================
+    WHAT IS DIFFERENT (1) - THIS PLUGIN SHIPS STATIC ASSETS, AND THEY WOULD HAVE 404'd
+    ===================================================================================
+    Content/facebookstyles.css and Content/Images/facebook-signing.png are referenced by
+    ORDINARY URL from Views/PublicInfo.cshtml:
+
+        Html.AddCssFileParts("~/Plugins/ExternalAuth.Facebook/Content/facebookstyles.css");
+
+    and the css in turn names ../Content/Images/facebook-signing.png as the button background.
+    They are therefore deployed as loose files (CopyToOutputDirectory="Always", as in 3.90) -
+    unlike the .cshtml files, which are compiled into the assembly and NOT deployed.
+
+    That deployment is only half of it. Task 7.4 replaced System.Web's serve-the-whole-app-root
+    static handler with an ALLOW-LISTED IFileProvider (Nop.Web/Infrastructure/
+    NopStaticFileProvider), and `Plugins/` was not in the allow-list - runtime deferral 10.x-1,
+    opened by task 10.x and owned by this task. Task 11.1 added a THIRD-level
+    Plugins/<ShortName>/{Content,Scripts}/** rule to it. Without that the stylesheet 404s, and
+    because the button's entire appearance comes from the stylesheet the result is an invisible
+    control, not a differently-styled one. Asserted over real HTTP by
+    Nop.Web.SmokeTests.PluginStaticAssetTests.
+
+    ===================================================================================
+    WHAT IS DIFFERENT (2) - THE ONE PLUGIN WITH A DEAD THIRD-PARTY DEPENDENCY
+    ===================================================================================
+    The legacy project referenced DotNetOpenAuth 4.3.4 in six assemblies:
+    DotNetOpenAuth.AspNet, .Core, .OAuth, .OAuth.Consumer, .OpenId and
+    .OpenId.RelyingParty. There is no net10.0 build of any of them, no successor package, and
+    the project is unmaintained. They are DELETED and the OAuth 2 authorization-code flow is
+    implemented in Core/FacebookProviderAuthorizer.cs against HttpClient + System.Text.Json -
+    about 60 lines, half of which 3.90 had already hand-copied out of DotNetOpenAuth's own
+    FacebookClient. See the long remarks in that file for the flow, the two behavioural
+    differences and the one 3.90 defect that had to be fixed for the flow to work at all.
+
+    Microsoft.AspNetCore.Authentication.Facebook was evaluated and rejected; the reasoning,
+    including a correction to the instruction that it is "in the shared framework" (it is NOT -
+    only Microsoft.AspNetCore.Authentication.OAuth is), is in runtime-deferrals.md section 91.1.
+
+    Newtonsoft.Json was a direct <Reference Private=False> here, used only for one
+    JObject.Parse of the Graph API's /me response. The rewritten authorizer uses
+    System.Text.Json, which is in the shared framework, so this plugin ends up with NO
+    PackageReference at all.
+
+    ===================================================================================
+    DROPPED IN THE CLASSIC -> SDK CONVERSION (Requirements 1.4, 1.5)
+    ===================================================================================
+    As in the 10.1 template: ToolsVersion/DefaultTargets/xmlns, ProjectGuid
+    {446FED73-BCA1-4D8F-BC13-EA1507C7EF29}, ProductVersion, SchemaVersion, FileAlignment,
+    AppDesignerFolder, OutputType, TargetFrameworkProfile, NuGetPackageImportStamp,
+    TargetFrameworkVersion v4.5.1, Prefer32Bit, ErrorReport, WarningLevel, DefineConstants and
+    the Debug/Release DebugType/DebugSymbols/Optimize blocks; the explicit <Compile Include>
+    list of 12 files; the Microsoft.CSharp.targets import, the Microsoft.Bcl.Build.targets
+    import and its EnsureNuGetPackageBuildImports guard, and the commented
+    BeforeBuild/AfterBuild stubs.
+
+    Every <Reference> with a HintPath into ..\..\packages\ is gone: the Microsoft.AspNet.Mvc
+    5.2.3 / Razor 3.2.3 / WebPages 3.2.3 System.Web MVC stack (superseded wholesale by the
+    Microsoft.AspNetCore.App FrameworkReference), Autofac and Newtonsoft.Json (now transitive
+    through the project references), the six DotNetOpenAuth assemblies (see above), and the
+    net40/net45 polyfills Microsoft.Bcl.Async (Microsoft.Threading.Tasks*), Microsoft.Net.Http
+    (System.Net.Http.Extensions/.Primitives) and Microsoft.Web.Infrastructure. The BCL
+    <Reference>s (System, System.Configuration, System.Core, System.Net, System.Net.Http,
+    System.Net.Http.WebRequest, System.Xml.Linq, System.Data(.DataSetExtensions),
+    Microsoft.CSharp, System.Xml) are subsumed by the net10.0 shared framework, and
+    <Reference Include="System.Web" /> has no net10.0 counterpart at all.
+
+    app.config, packages.config and web.config are DELETED for the reasons the 10.1 template
+    records; web.config's one piece of load-bearing content is transcribed to
+    Views/_ViewImports.cshtml. Properties/AssemblyInfo.cs is KEPT (GenerateAssemblyInfo=false
+    is solution-wide, so deleting it would drop AssemblyVersion to 0.0.0.0). Notes.txt stays
+    non-deployed Content, as in 3.90.
   -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+    <OutputPath>..\..\Presentation\Nop.Web\Plugins\ExternalAuth.Facebook\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!--
+    The ASP.NET Core shared framework. Required explicitly: Microsoft.NET.Sdk.Razor with
+    AddRazorSupportForMvc does NOT add it implicitly (unlike Microsoft.NET.Sdk.Web, where
+    restating it fails with NETSDK1086). The controller binds Microsoft.AspNetCore.Mvc, the
+    route provider binds Microsoft.AspNetCore.Routing/.Builder, the authorizer binds
+    Microsoft.AspNetCore.Http (IHttpContextAccessor) and the plugin class binds
+    Microsoft.AspNetCore.Routing (RouteValueDictionary, on IExternalAuthenticationMethod).
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" Private="false" />
+    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj" Private="false" />
+    <ProjectReference Include="..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj" Private="false" />
+  </ItemGroup>
+
+  <!--
+    Private="false" alone is NOT sufficient - a transitive Nop.Data.dll leaks in through the
+    ProjectReference closure and PluginManager would shadow-copy and load it as the process's
+    Nop.Data (task 10.1, runtime-deferrals.md section 83.3). Verbatim from the template; the
+    "Nop." prefix filter is what keeps Payments.PayPalDirect's private PayPal SDK working
+    (task 12.3).
+  -->
+  <Target Name="NopPluginDoNotDeployHostAssemblies" AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths
+          Remove="@(ReferenceCopyLocalPaths)"
+          Condition="$([System.String]::Copy('%(Filename)').StartsWith('Nop.'))" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    View resolution. %(Link) becomes the compiled Razor identifier, so the views compile as
+    /Plugins/ExternalAuth.Facebook/Views/*.cshtml and the controller's two
+    View("~/Plugins/ExternalAuth.Facebook/Views/....cshtml") call sites stay UNEDITED.
+    %(RecursiveDir) already contains "Views/" - do not repeat it.
+  -->
+  <ItemGroup>
+    <Content Update="Views\**\*.cshtml"
+             Link="Plugins\ExternalAuth.Facebook\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+  <!--
+    Runtime-read content, deployed exactly as in 3.90.
+
+    Include, NOT Update - AND the <None Remove> first. Under Microsoft.NET.Sdk.Razor the default
+    Content glob covers only .cshtml/.razor, so .txt/.jpg/.css/.png arrive as <None> and a bare
+    <Content Update="Description.txt"> would match NOTHING, deploying the plugin without the one
+    file PluginManager needs to see it at all.
+
+      Description.txt   parsed by PluginManager.Initialize; its SupportedVersions must contain
+                        NopVersion.CurrentVersion ("3.90") - asserted, not assumed, by
+                        Nop.Web.SmokeTests.PluginViewRenderTests.
+      logo.jpg          shown by the admin plugin list.
+      Notes.txt         3.90 declared it Content with no CopyToOutputDirectory, i.e. not deployed.
+      Content\**        the static asset tree - see "WHAT IS DIFFERENT (1)" above. A recursive
+                        glob rather than 3.90's two explicit entries so an added asset cannot be
+                        silently left undeployed; it currently matches exactly those two files.
+  -->
+  <ItemGroup>
+    <None Remove="Description.txt" />
+    <None Remove="logo.jpg" />
+    <None Remove="Notes.txt" />
+    <None Remove="Content\**" />
+    <Content Include="Description.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="logo.jpg" CopyToOutputDirectory="Always" />
+    <Content Include="Notes.txt" CopyToOutputDirectory="Never" />
+    <Content Include="Content\**" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
 </Project>

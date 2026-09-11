@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
 using Nop.Core.Plugins;
@@ -15,6 +15,35 @@ namespace Nop.Plugin.Payments.CheckMoneyOrder
     /// <summary>
     /// CheckMoneyOrder payment processor
     /// </summary>
+    /// <remarks>
+    /// Task 12.1. The ONLY edit needed here is
+    /// <c>System.Web.Routing.RouteValueDictionary</c> -&gt;
+    /// <c>Microsoft.AspNetCore.Routing.RouteValueDictionary</c>, which is what
+    /// <see cref="IPaymentMethod.GetConfigurationRoute"/> /
+    /// <see cref="IPaymentMethod.GetPaymentInfoRoute"/> declare after task 4.1's port of
+    /// Nop.Services. The type name and the dictionary semantics are unchanged.
+    ///
+    /// The two <c>routeValues</c> entries are kept EXACTLY as 3.90 wrote them, including the
+    /// <c>"Namespaces"</c> entry that no longer does anything:
+    /// <list type="bullet">
+    /// <item><c>"Namespaces"</c> was consumed by MVC 5's <c>DefaultControllerFactory</c> to
+    /// disambiguate two controllers of the same name in different assemblies. ASP.NET Core
+    /// has no such mechanism - the <c>Html.Action</c> bridge in <c>Nop.Web.Framework</c>
+    /// resolves a controller from the <c>ApplicationPartManager</c>'s action descriptors, and
+    /// an unknown route value is simply ignored. It is left in place because these values
+    /// travel through <c>IPaymentMethod</c>'s public contract into the bridge, a third-party
+    /// plugin may still read them, and removing them would be a silent contract change with
+    /// no upside.</item>
+    /// <item><c>{"area", null}</c> DOES still matter, and in the same direction as in 3.90: it
+    /// says "this action is not in an area". Task 8.8 made the bridge area-aware (it prefers
+    /// candidates matching the caller's area, then falls back to all areas - section 77.1), so
+    /// an explicit null keeps the admin-side <c>Html.Action</c> from being resolved against
+    /// the Admin area, which is where <c>PaymentController.ConfigureMethod</c> renders it
+    /// from.</item>
+    /// </list>
+    /// Everything else in this file compiles unchanged: no <c>System.Web</c> type, no
+    /// <c>HttpContext</c>, no MVC 5 type appears outside those two signatures.
+    /// </remarks>
     public class CheckMoneyOrderPaymentProcessor : BasePlugin, IPaymentMethod
     {
         #region Fields

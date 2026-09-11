@@ -1,9 +1,15 @@
-﻿using System.Web.Mvc;
+﻿using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Plugin.Payments.PayPalDirect.Models
 {
+    /// <remarks>
+    /// Task 12.3: <c>using System.Web.Mvc;</c> -&gt;
+    /// <c>using Microsoft.AspNetCore.Mvc.Rendering;</c>. <see cref="SelectList"/> exists in
+    /// ASP.NET Core with the same shape but lives in the Rendering namespace. No attribute on
+    /// this model needed removing.
+    /// </remarks>
     public class ConfigurationModel : BaseNopModel
     {
         public int ActiveStoreScopeConfiguration { get; set; }

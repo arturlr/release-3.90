@@ -1,9 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
-using System.Web.Mvc;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
@@ -19,6 +23,42 @@ using Nop.Web.Framework.Controllers;
 
 namespace Nop.Plugin.Payments.PayPalStandard.Controllers
 {
+    /// <remarks>
+    /// <para>
+    /// Task 12.4 substitutions, reusing decisions tasks 7.3 (§30), 8.3 (§55) and 10.1 (§83.9)
+    /// already recorded: <c>System.Web.Mvc</c> -&gt; <c>Microsoft.AspNetCore.Mvc</c> +
+    /// <c>Microsoft.AspNetCore.Http</c>; <c>FormCollection</c> -&gt;
+    /// <see cref="IFormCollection"/> (four sites - the two
+    /// <see cref="BasePaymentController"/> overrides plus the <see cref="PDTHandler"/> and
+    /// <see cref="CancelOrder"/> action parameters); <c>[ChildActionOnly]</c> x2 deleted
+    /// (deferral 7.3-4); <c>Json(x, JsonRequestBehavior.AllowGet)</c> -&gt; <c>Json(x)</c> x2;
+    /// <c>[ValidateInput(false)]</c> x3 deleted. The
+    /// <c>View("~/Plugins/Payments.PayPalStandard/Views/...")</c> paths are unchanged.
+    /// </para>
+    /// <para>
+    /// <b><c>[ValidateInput(false)]</c> x3 DELETED - a SECURITY-RELEVANT RELAXATION, recorded.</b>
+    /// It existed only to opt OUT of ASP.NET request validation, which ASP.NET Core does not
+    /// have (deferral <b>7.3-3</b>, recorded at 42 Nop.Web sites and 24 admin ones). The
+    /// direction here is worth stating precisely, because these three are unusual: 3.90 marked
+    /// <see cref="PDTHandler"/>, <see cref="IPNHandler"/> and <see cref="RoundingWarning"/>
+    /// EXEMPT because PayPal's callbacks carry arbitrary text in fields like
+    /// <c>payment_status</c>, <c>memo</c> and address lines that request validation would have
+    /// rejected outright. So these three actions were never screened in 3.90 either - their
+    /// exposure is unchanged, not widened. What protects them is unchanged too, and it is the
+    /// part that matters: <see cref="IPNHandler"/> accepts nothing until
+    /// <c>PayPalStandardPaymentProcessor.VerifyIpn</c> has POSTed the raw body back to PayPal
+    /// and got <c>VERIFIED</c>, and <see cref="PDTHandler"/> accepts nothing until
+    /// <c>GetPdtDetails</c> has done the same with the PDT token. Both round trips are intact.
+    /// </para>
+    /// <para>
+    /// <b><c>JsonRequestBehavior.AllowGet</c> x2 -&gt; nothing.</b> The type does not exist in
+    /// ASP.NET Core: there is no JSON-hijacking guard and therefore no opt-out from one. Note
+    /// the direction - MVC 5's default was <c>DenyGet</c> and both call sites explicitly opted
+    /// out, so the ported behaviour is what 3.90 asked for. <see cref="RoundingWarning"/> is
+    /// fetched by <c>$.ajax</c> from the admin Configure view and returns a localized warning
+    /// string with no customer data in it.
+    /// </para>
+    /// </remarks>
     public class PaymentPayPalStandardController : BasePaymentController
     {
         private readonly IWorkContext _workContext;
@@ -68,7 +108,6 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
         }
         
         [AdminAuthorize]
-        [ChildActionOnly]
         public ActionResult Configure()
         {
             //load settings for a chosen store scope
@@ -109,7 +148,6 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
 
         [HttpPost]
         [AdminAuthorize]
-        [ChildActionOnly]
         public ActionResult Configure(ConfigurationModel model)
         {
             if (!ModelState.IsValid)
@@ -156,38 +194,43 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
         }
 
         //action displaying notification (warning) to a store owner about inaccurate PayPal rounding
-        [ValidateInput(false)]
         public ActionResult RoundingWarning(bool passProductNamesAndTotals)
         {
             //prices and total aren't rounded, so display warning
             if (passProductNamesAndTotals && !_shoppingCartSettings.RoundPricesDuringCalculation)
-                return Json(new { Result = _localizationService.GetResource("Plugins.Payments.PayPalStandard.RoundingWarning") }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = _localizationService.GetResource("Plugins.Payments.PayPalStandard.RoundingWarning") });
 
-            return Json(new { Result = string.Empty }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = string.Empty });
         }
 
-        [ChildActionOnly]
         public ActionResult PaymentInfo()
         {
             return View("~/Plugins/Payments.PayPalStandard/Views/PaymentInfo.cshtml");
         }
 
         [NonAction]
-        public override IList<string> ValidatePaymentForm(FormCollection form)
+        public override IList<string> ValidatePaymentForm(IFormCollection form)
         {
             var warnings = new List<string>();
             return warnings;
         }
 
         [NonAction]
-        public override ProcessPaymentRequest GetPaymentInfo(FormCollection form)
+        public override ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
         {
             var paymentInfo = new ProcessPaymentRequest();
             return paymentInfo;
         }
 
-        [ValidateInput(false)]
-        public ActionResult PDTHandler(FormCollection form)
+        /// <remarks>
+        /// The <see cref="IFormCollection"/> parameter is UNUSED by the body (the transaction
+        /// token comes from <c>_webHelper.QueryString&lt;string&gt;("tx")</c>) and is kept only
+        /// because it is part of 3.90's action signature. It binds safely on the GET that PayPal
+        /// redirects the customer back with: ASP.NET Core's <c>FormCollectionModelBinder</c>
+        /// checks <c>HasFormContentType</c> and supplies an EMPTY collection rather than
+        /// throwing, which is what <c>System.Web</c>'s binder did too.
+        /// </remarks>
+        public ActionResult PDTHandler(IFormCollection form)
         {
             var tx = _webHelper.QueryString<string>("tx");
             Dictionary<string, string> values;
@@ -335,11 +378,48 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
             }
         }
 
-        [ValidateInput(false)]
-        public ActionResult IPNHandler()
+        /// <summary>
+        /// PayPal Instant Payment Notification endpoint.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Task 12.4 - <c>Request.BinaryRead(Request.ContentLength)</c> has no ASP.NET Core
+        /// counterpart</b> (<c>HttpRequestBase.BinaryRead</c> and the <c>int ContentLength</c>
+        /// property are both <c>System.Web</c>). The replacement reads <c>Request.Body</c> to
+        /// completion, which is strictly MORE correct than what it replaces: 3.90's single
+        /// <c>BinaryRead(n)</c> was the same latent truncation shape task 4.2 fixed in
+        /// <c>Nop.Services</c>' <c>Media.Extensions</c> and task 7.3 in the two upload actions -
+        /// it trusted a client-declared length and one read call. Reading to completion cannot
+        /// truncate, and for a well-formed IPN the resulting string is byte-identical.
+        /// </para>
+        /// <para>
+        /// <b>The action became <c>async</c>, and that is required rather than stylistic.</b>
+        /// Kestrel sets <c>AllowSynchronousIO = false</c> by default (since .NET Core 3.0) and
+        /// this host does not override it, so a synchronous read of <c>Request.Body</c> throws
+        /// <c>InvalidOperationException</c>. There is no in-process caller to break: the only
+        /// way in is the <c>Plugin.Payments.PayPalStandard.IPNHandler</c> route, and ASP.NET
+        /// Core invokes an async action transparently. (Deferral <b>12.x-2</b> records that five
+        /// PRE-EXISTING sites in <c>Nop.Web</c>/<c>Nop.Admin</c> still do a synchronous
+        /// <c>Request.Body.CopyTo</c> and would hit the same wall - found while deciding this,
+        /// not introduced by it, and out of this task's scope.)
+        /// </para>
+        /// <para>
+        /// <b><c>Encoding.ASCII</c> is KEPT deliberately.</b> UTF-8 would be the modern choice
+        /// and would decode more characters, but the decoded string is fed straight into
+        /// <c>VerifyIpn</c>, which POSTs it back to PayPal as <c>cmd=_notify-validate&amp;...</c>
+        /// and requires a BYTE-FOR-BYTE echo of the original notification for the signature
+        /// check to succeed. Changing the decoding would change what is echoed and could make a
+        /// genuine IPN fail validation - a behaviour change on the payment-authenticity path.
+        /// 3.90 used ASCII; so does this.
+        /// </para>
+        /// </remarks>
+        public async Task<ActionResult> IPNHandler()
         {
-            byte[] param = Request.BinaryRead(Request.ContentLength);
-            string strRequest = Encoding.ASCII.GetString(param);
+            string strRequest;
+            using (var reader = new StreamReader(Request.Body, Encoding.ASCII))
+            {
+                strRequest = await reader.ReadToEndAsync();
+            }
             Dictionary<string, string> values;
 
             var processor = _paymentService.LoadPaymentMethodBySystemName("Payments.PayPalStandard") as PayPalStandardPaymentProcessor;
@@ -628,7 +708,7 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
             return Content("");
         }
 
-        public ActionResult CancelOrder(FormCollection form)
+        public ActionResult CancelOrder(IFormCollection form)
         {
             if (_payPalStandardPaymentSettings.ReturnFromPayPalWithoutPaymentRedirectsToOrderDetailsPage)
             {

@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Plugins;
@@ -11,9 +11,58 @@ using Nop.Services.Security;
 using Nop.Services.Stores;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
+using Nop.Web.Framework.Mvc;
+using Nop.Web.Framework.Security;
 
 namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
 {
+    /// <remarks>
+    /// Task 11.1 substitutions — all of them decisions tasks 7.3 (§30), 8.3 (§55) and 10.x
+    /// already made and recorded:
+    /// <list type="bullet">
+    /// <item><c>using System.Web.Mvc;</c> → <c>using Microsoft.AspNetCore.Mvc;</c>.</item>
+    /// <item><c>[ChildActionOnly]</c> → <c>[NopChildActionOnly]</c> (deferral 7.3-4, resolved at
+    /// 8.3). The attribute has no ASP.NET Core counterpart; the marker plus
+    /// <c>NopChildActionOnlyConvention</c> — registered by <c>AddNopFramework</c>, so a plugin
+    /// gets both halves for free — removes the action from INBOUND route matching while leaving
+    /// it invocable through the <c>Html.Action</c> bridge. Without it,
+    /// <c>GET /ExternalAuthFacebook/Configure</c> would return the bare admin settings panel over
+    /// the <c>Default</c> route. <b>This is the first PLUGIN use of that marker</b>; the 48
+    /// storefront and 32 admin sites were done at 7.3/8.3.</item>
+    /// <item><c>[NonAction]</c> on <c>LoginInternal</c> — <b>kept</b>. It exists in ASP.NET Core
+    /// with the same meaning, and it is load-bearing: the method is <c>private</c>, but 3.90
+    /// marked it and MVC's action discovery would otherwise be the only thing standing between a
+    /// future refactor and a routable <c>LoginInternal</c>.</item>
+    /// <item><c>TryUpdateModel(viewModel)</c> → <c>TryUpdateModelAsync(viewModel)</c> awaited
+    /// synchronously. ASP.NET Core has no synchronous overload. The call is 3.90's and is
+    /// <b>pointless in both versions</b> — <c>viewModel</c> is a local that nothing reads
+    /// afterwards — but removing it would be a behavioural change (it populates
+    /// <c>ModelState</c>, which <c>ExternalAuthorizer</c> does not consult but a future filter
+    /// might), so it is preserved verbatim in shape.</item>
+    /// <item><c>HttpContext.Request.IsAuthenticated</c> →
+    /// <c>User.Identity != null &amp;&amp; User.Identity.IsAuthenticated</c>.
+    /// <c>HttpRequest.IsAuthenticated</c> was a <c>System.Web</c> convenience over the same
+    /// principal; the null test is new only because <c>ClaimsPrincipal.Identity</c> is nullable in
+    /// ASP.NET Core, and it fails in the same direction 3.90 did (unauthenticated → redirect to
+    /// log on).</item>
+    /// <item><c>Content("Access denied")</c>, <c>ActionResult</c>, <c>[HttpPost]</c>,
+    /// <c>RedirectToRoute</c>, <c>new RedirectResult(...)</c>, <c>Url.LogOn(returnUrl)</c> (an
+    /// <c>IUrlHelper</c> extension after task 6.3) and
+    /// <c>this.GetActiveStoreScopeConfiguration(...)</c> needed <b>no</b> edit.</item>
+    /// <item><c>View("~/Plugins/ExternalAuth.Facebook/Views/….cshtml", model)</c> — <b>both call
+    /// sites UNCHANGED.</b> The project file's <c>Content</c>/<c>Link</c> block makes the compiled
+    /// Razor identifiers equal these paths.</item>
+    /// </list>
+    /// <para>
+    /// <b>The <c>[HttpPost] Configure(ConfigurationModel)</c> overload is the reason task 11.1
+    /// had to fix the <c>Html.Action</c> bridge (runtime deferral 11.x-1).</b> This page is
+    /// rendered as a child action from <c>Areas/Admin/Views/ExternalAuthentication/
+    /// ConfigureMethod.cshtml</c>, and <c>Html.BeginForm()</c> posts back to that admin URL — so
+    /// the POST arrives as another child-action render, and the bridge has to select the
+    /// <c>[HttpPost]</c> overload and model-bind it from the form. It did neither before 11.1,
+    /// which meant this form silently discarded every change.
+    /// </para>
+    /// </remarks>
     public class ExternalAuthFacebookController : BasePluginController
     {
         private readonly ISettingService _settingService;
@@ -51,7 +100,7 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
         }
         
         [AdminAuthorize]
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageExternalAuthenticationMethods))
@@ -77,7 +126,7 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
 
         [HttpPost]
         [AdminAuthorize]
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure(ConfigurationModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageExternalAuthenticationMethods))
@@ -108,7 +157,7 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
             return Configure();
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult PublicInfo()
         {
             return View("~/Plugins/ExternalAuth.Facebook/Views/PublicInfo.cshtml");
@@ -126,7 +175,7 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
                 throw new NopException("Facebook module cannot be loaded");
 
             var viewModel = new LoginModel();
-            TryUpdateModel(viewModel);
+            TryUpdateModelAsync(viewModel).GetAwaiter().GetResult();
 
             var result = _oAuthProviderFacebookAuthorizer.Authorize(returnUrl, verifyResponse);
             switch (result.AuthenticationStatus)
@@ -161,7 +210,8 @@ namespace Nop.Plugin.ExternalAuth.Facebook.Controllers
             }
 
             if (result.Result != null) return result.Result;
-            return HttpContext.Request.IsAuthenticated ? new RedirectResult(!string.IsNullOrEmpty(returnUrl) ? returnUrl : "~/") : new RedirectResult(Url.LogOn(returnUrl));
+            var isAuthenticated = User != null && User.Identity != null && User.Identity.IsAuthenticated;
+            return isAuthenticated ? new RedirectResult(!string.IsNullOrEmpty(returnUrl) ? returnUrl : "~/") : new RedirectResult(Url.LogOn(returnUrl));
         }
         
         public ActionResult Login(string returnUrl)

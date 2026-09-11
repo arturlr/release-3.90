@@ -1,4 +1,4 @@
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core.Plugins;
 using Nop.Services.Authentication.External;
 using Nop.Services.Configuration;
@@ -9,6 +9,23 @@ namespace Nop.Plugin.ExternalAuth.Facebook
     /// <summary>
     /// Facebook externalAuth processor
     /// </summary>
+    /// <remarks>
+    /// Task 11.1. One substitution: <c>using System.Web.Routing;</c> →
+    /// <c>using Microsoft.AspNetCore.Routing;</c>. <c>RouteValueDictionary</c> lives there now and
+    /// task 6.2 already changed the namespace on <c>IExternalAuthenticationMethod</c> itself, so
+    /// both <c>Get*Route</c> methods keep 3.90's signatures and bodies exactly — including the
+    /// <c>"Namespaces"</c> entry, which is inert in ASP.NET Core (§17.4a) but harmless: it is
+    /// carried into the <c>Html.Action</c> bridge's route values, where an unmatched key is simply
+    /// visible through <c>RouteData</c> as it was in MVC 5. It is left in place because these are
+    /// two of the five dynamically-named <c>Html.Action</c> call sites (deferral 7.3-1) and their
+    /// data shape is part of the contract other plugins copy.
+    /// <para>
+    /// The <c>{ "area", null }</c> entry is now doing real work rather than being decorative:
+    /// task 8.8 made the bridge area-aware, and an explicit <c>area</c> in the caller's route
+    /// values wins over the ambient one — so this is what sends the bridge looking for a
+    /// controller OUTSIDE the Admin area, which is where a plugin's controller is (§77.1).
+    /// </para>
+    /// </remarks>
     public class FacebookExternalAuthMethod : BasePlugin, IExternalAuthenticationMethod
     {
         #region Fields

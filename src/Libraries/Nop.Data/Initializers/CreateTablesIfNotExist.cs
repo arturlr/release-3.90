@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Nop.Core;
 
@@ -78,7 +77,10 @@ namespace Nop.Data.Initializers
                 return;
 
             //create all tables
-            foreach (var batch in SplitIntoBatches(context.Database.GenerateCreateScript()))
+            //TASK 11.2: the GO split moved to Nop.Data.DbContextExtensions.SplitSqlIntoBatches so
+            //the four plugin object contexts (runtime deferral 4.10) share ONE implementation with
+            //this initializer instead of each re-deriving it. Behaviour is unchanged.
+            foreach (var batch in DbContextExtensions.SplitSqlIntoBatches(context.Database.GenerateCreateScript()))
                 context.Database.ExecuteSqlRaw(batch);
 
             //Seed(context);
@@ -89,33 +91,6 @@ namespace Nop.Data.Initializers
                 foreach (var command in _customCommands)
                     context.Database.ExecuteSqlRaw(command);
             }
-        }
-
-        /// <summary>
-        /// Split a SQL Server script on its GO batch separators. GO is understood by client tools,
-        /// not by the server, so each batch has to be sent as its own command.
-        /// </summary>
-        private static IEnumerable<string> SplitIntoBatches(string script)
-        {
-            if (string.IsNullOrWhiteSpace(script))
-                yield break;
-
-            var batch = new StringBuilder();
-            foreach (var line in script.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
-            {
-                if (string.Equals(line.Trim(), "GO", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (batch.ToString().Trim().Length > 0)
-                        yield return batch.ToString();
-                    batch.Clear();
-                    continue;
-                }
-
-                batch.AppendLine(line);
-            }
-
-            if (batch.ToString().Trim().Length > 0)
-                yield return batch.ToString();
         }
     }
 }

@@ -1,11 +1,12 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
-using System.Web;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Net.Http.Headers;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Orders;
@@ -26,6 +27,58 @@ namespace Nop.Plugin.Payments.PayPalStandard
     /// <summary>
     /// PayPalStandard payment processor
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Task 12.4. Four System.Web substitutions, all of them reusing decisions this migration
+    /// already recorded elsewhere:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><b><c>System.Web.HttpContextBase</c> -&gt; <see cref="IHttpContextAccessor"/></b>
+    /// (design section 5; the same swap task 4.2 made in <c>CompareProductsService</c>,
+    /// <c>RecentlyViewedProductsService</c>, <c>UserAgentHelper</c> and
+    /// <c>WorkflowMessageService</c>, and the reason task 6.4 stopped registering
+    /// <c>HttpContextBase</c> at all). <c>HttpContextBase</c> was an ambient-context abstraction
+    /// with no ASP.NET Core counterpart; <c>IHttpContextAccessor</c> is the supported seam and
+    /// yields <c>null</c> outside a request instead of a fake context.</item>
+    /// <item><b><c>System.Web.HttpContext.Current.Request.UserAgent</c> -&gt; the
+    /// <c>User-Agent</c> REQUEST HEADER</b>, read through the same accessor.
+    /// <c>HttpRequest.UserAgent</c> does not exist in ASP.NET Core - identical to the note on
+    /// <c>UserAgentHelper</c>. See <see cref="GetCurrentUserAgent"/> for why this is
+    /// null-tolerant rather than eagerly dereferenced, and what 3.90 did.</item>
+    /// <item><b><c>System.Web.HttpUtility.UrlEncode</c>/<c>UrlDecode</c> -&gt;
+    /// <see cref="System.Net.WebUtility"/></b>, 21 sites - the same swap task 2.4 made in
+    /// <c>OfficialFeedManager</c> and task 4.2 in <c>MessageTokenProvider</c>.
+    /// <c>System.Net.WebUtility</c> is in the shared framework, so no <c>System.Web*</c>
+    /// assembly reference is reintroduced. Both encoders percent-encode the same character set
+    /// and both render a space as <c>+</c>; the ONE difference is hex digit case
+    /// (<c>HttpUtility</c> emits <c>%2f</c>, <c>WebUtility</c> emits <c>%2F</c>), which
+    /// RFC 3986 declares equivalent and which PayPal's form parser treats identically. The
+    /// decode direction is symmetric.</item>
+    /// <item><b><c>System.Web.Routing.RouteValueDictionary</c> -&gt;
+    /// <c>Microsoft.AspNetCore.Routing.RouteValueDictionary</c></b> on the two
+    /// <see cref="IPaymentMethod"/> route methods, whose contents are 3.90's, unchanged - see
+    /// the extended note on <c>CheckMoneyOrderPaymentProcessor</c> (task 12.1).</item>
+    /// </list>
+    /// <para>
+    /// <b><c>HttpWebRequest</c> IS DELIBERATELY KEPT, and the two SYSLIB0014 warnings are left
+    /// visible.</b> This is the fifth time this migration has faced the
+    /// <c>WebRequest</c>-to-<c>HttpClient</c> question and the fifth time it has declined, for
+    /// the reasons recorded at <c>Nop.Core</c>'s <c>OfficialFeedManager</c> (task 2.4),
+    /// <c>Nop.Services</c>' <c>KeepAliveTask</c> (task 4.2), <c>Nop.Admin</c>'s news feed
+    /// (deferral 8.7-1) and <c>ExchangeRate.EcbExchange</c> (deferral 10.3-1): the timeout
+    /// semantics differ, <c>GetResponse()</c> throws on 4xx/5xx where <c>HttpClient.Send</c>
+    /// does not, and a correct port needs a static, shared <c>HttpClient</c> with its own proxy
+    /// and DNS-refresh behaviour rather than a per-call instance. Being consistent matters more
+    /// here than anywhere else in the migration: <see cref="VerifyIpn"/> is the control that
+    /// decides whether an inbound IPN is genuine, and <see cref="GetPdtDetails"/> is what
+    /// confirms a payment. A behavioural change in either - for instance a 4xx that stops
+    /// throwing and instead returns a body that fails the "VERIFIED" string test in a
+    /// DIFFERENT way - is a change to a payment-authenticity check. <c>HttpWebRequest</c> is
+    /// still fully supported on .NET (it is implemented over <c>HttpClient</c> internally), so
+    /// keeping it preserves 3.90's behaviour exactly. Deferral <b>12.4-1</b> records it as
+    /// deliberate rather than overlooked.
+    /// </para>
+    /// </remarks>
     public class PayPalStandardPaymentProcessor : BasePlugin, IPaymentMethod
     {
         #region Constants
@@ -40,7 +93,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
         #region Fields
 
         private readonly CurrencySettings _currencySettings;
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ICheckoutAttributeParser _checkoutAttributeParser;
         private readonly ICurrencyService _currencyService;
         private readonly IGenericAttributeService _genericAttributeService;
@@ -56,7 +109,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
         #region Ctor
 
         public PayPalStandardPaymentProcessor(CurrencySettings currencySettings,
-            HttpContextBase httpContext,
+            IHttpContextAccessor httpContextAccessor,
             ICheckoutAttributeParser checkoutAttributeParser,
             ICurrencyService currencyService,
             IGenericAttributeService genericAttributeService,
@@ -68,7 +121,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             PayPalStandardPaymentSettings paypalStandardPaymentSettings)
         {
             this._currencySettings = currencySettings;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._checkoutAttributeParser = checkoutAttributeParser;
             this._currencyService = currencyService;
             this._genericAttributeService = genericAttributeService;
@@ -105,6 +158,36 @@ namespace Nop.Plugin.Payments.PayPalStandard
         }
 
         /// <summary>
+        /// Reads the current request's <c>User-Agent</c> header.
+        /// </summary>
+        /// <remarks>
+        /// Replaces <c>System.Web.HttpContext.Current.Request.UserAgent</c>, which has no
+        /// ASP.NET Core counterpart (<c>HttpRequest.UserAgent</c> does not exist - task 4.2's
+        /// <c>UserAgentHelper</c> reads the header the same way).
+        ///
+        /// <b>Null-tolerant on purpose, and this is a faithfulness point rather than defensive
+        /// padding.</b> 3.90 dereferenced <c>HttpContext.Current</c> unconditionally here, and
+        /// both callers are reached from a live request in normal operation
+        /// (<c>PDTHandler</c>/<c>IPNHandler</c> are HTTP endpoints), so in practice the value
+        /// was the caller's UA string. But <c>HttpContext.Current</c> was ambient: off a request
+        /// thread it was <c>null</c> and 3.90 would have thrown
+        /// <c>NullReferenceException</c>. Returning <c>null</c> instead is the behaviour
+        /// <c>HttpWebRequest.UserAgent = null</c> already accepts (it simply sends no header),
+        /// and it keeps the failure out of a payment-verification path. Note PayPal requires
+        /// SOME user-agent or it answers 403 - which is why 3.90 set it at all - so a null here
+        /// degrades exactly as an absent inbound UA header would have in 3.90, not worse.
+        /// </remarks>
+        private string GetCurrentUserAgent()
+        {
+            var httpContext = _httpContextAccessor == null ? null : _httpContextAccessor.HttpContext;
+            if (httpContext == null)
+                return null;
+
+            var userAgent = httpContext.Request.Headers[HeaderNames.UserAgent].ToString();
+            return string.IsNullOrEmpty(userAgent) ? null : userAgent;
+        }
+
+        /// <summary>
         /// Gets PDT details
         /// </summary>
         /// <param name="tx">TX</param>
@@ -117,7 +200,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             req.Method = WebRequestMethods.Http.Post;
             req.ContentType = MimeTypes.ApplicationXWwwFormUrlencoded;
             //now PayPal requires user-agent. otherwise, we can get 403 error
-            req.UserAgent = HttpContext.Current.Request.UserAgent;
+            req.UserAgent = GetCurrentUserAgent();
 
             string formContent = string.Format("cmd=_notify-synch&at={0}&tx={1}", _paypalStandardPaymentSettings.PdtToken, tx);
             req.ContentLength = formContent.Length;
@@ -126,7 +209,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
                 sw.Write(formContent);
 
             using (var sr = new StreamReader(req.GetResponse().GetResponseStream()))
-                response = HttpUtility.UrlDecode(sr.ReadToEnd());
+                response = WebUtility.UrlDecode(sr.ReadToEnd());
 
             values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             bool firstLine = true, success = false;
@@ -161,7 +244,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             req.Method = WebRequestMethods.Http.Post;
             req.ContentType = MimeTypes.ApplicationXWwwFormUrlencoded;
             //now PayPal requires user-agent. otherwise, we can get 403 error
-            req.UserAgent = HttpContext.Current.Request.UserAgent;
+            req.UserAgent = GetCurrentUserAgent();
 
             var formContent = string.Format("cmd=_notify-validate&{0}", formString);
             req.ContentLength = formContent.Length;
@@ -174,7 +257,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             string response;
             using (var sr = new StreamReader(req.GetResponse().GetResponseStream()))
             {
-                response = HttpUtility.UrlDecode(sr.ReadToEnd());
+                response = WebUtility.UrlDecode(sr.ReadToEnd());
             }
             bool success = response.Trim().Equals("VERIFIED", StringComparison.OrdinalIgnoreCase);
 
@@ -202,7 +285,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             var cmd = passProductNamesAndTotals
                 ? "_cart"
                 : "_xclick";
-            builder.AppendFormat("?cmd={0}&business={1}", cmd, HttpUtility.UrlEncode(_paypalStandardPaymentSettings.BusinessEmail));
+            builder.AppendFormat("?cmd={0}&business={1}", cmd, WebUtility.UrlEncode(_paypalStandardPaymentSettings.BusinessEmail));
             if (passProductNamesAndTotals)
             {
                 builder.AppendFormat("&upload=1");
@@ -218,7 +301,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
                     var priceExclTax = item.PriceExclTax;
                     //round
                     var unitPriceExclTaxRounded = Math.Round(unitPriceExclTax, 2);
-                    builder.AppendFormat("&item_name_" + x + "={0}", HttpUtility.UrlEncode(item.Product.Name));
+                    builder.AppendFormat("&item_name_" + x + "={0}", WebUtility.UrlEncode(item.Product.Name));
                     builder.AppendFormat("&amount_" + x + "={0}", unitPriceExclTaxRounded.ToString("0.00", CultureInfo.InvariantCulture));
                     builder.AppendFormat("&quantity_" + x + "={0}", item.Quantity);
                     x++;
@@ -239,7 +322,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
                         if (attribute != null)
                         {
                             var attName = attribute.Name; //set the name
-                            builder.AppendFormat("&item_name_" + x + "={0}", HttpUtility.UrlEncode(attName)); //name
+                            builder.AppendFormat("&item_name_" + x + "={0}", WebUtility.UrlEncode(attName)); //name
                             builder.AppendFormat("&amount_" + x + "={0}", attPriceRounded.ToString("0.00", CultureInfo.InvariantCulture)); //amount
                             builder.AppendFormat("&quantity_" + x + "={0}", 1); //quantity
                             x++;
@@ -285,7 +368,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
                     //builder.AppendFormat("&tax_1={0}", orderTax.ToString("0.00", CultureInfo.InvariantCulture));
 
                     //add tax as item
-                    builder.AppendFormat("&item_name_" + x + "={0}", HttpUtility.UrlEncode("Sales Tax")); //name
+                    builder.AppendFormat("&item_name_" + x + "={0}", WebUtility.UrlEncode("Sales Tax")); //name
                     builder.AppendFormat("&amount_" + x + "={0}", orderTaxRounded.ToString("0.00", CultureInfo.InvariantCulture)); //amount
                     builder.AppendFormat("&quantity_" + x + "={0}", 1); //quantity
 
@@ -323,7 +406,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
             builder.AppendFormat("&custom={0}", postProcessPaymentRequest.Order.OrderGuid);
             builder.AppendFormat("&charset={0}", "utf-8");
             builder.AppendFormat("&bn={0}", BN_CODE);
-            builder.Append(string.Format("&no_note=1&currency_code={0}", HttpUtility.UrlEncode(_currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode)));
+            builder.Append(string.Format("&no_note=1&currency_code={0}", WebUtility.UrlEncode(_currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode)));
             builder.AppendFormat("&invoice={0}", postProcessPaymentRequest.Order.Id);
             builder.AppendFormat("&rm=2", new object[0]);
             if (postProcessPaymentRequest.Order.ShippingStatus != ShippingStatus.ShippingNotRequired)
@@ -333,7 +416,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
 
             string returnUrl = _webHelper.GetStoreLocation(false) + "Plugins/PaymentPayPalStandard/PDTHandler";
             string cancelReturnUrl = _webHelper.GetStoreLocation(false) + "Plugins/PaymentPayPalStandard/CancelOrder";
-            builder.AppendFormat("&return={0}&cancel_return={1}", HttpUtility.UrlEncode(returnUrl), HttpUtility.UrlEncode(cancelReturnUrl));
+            builder.AppendFormat("&return={0}&cancel_return={1}", WebUtility.UrlEncode(returnUrl), WebUtility.UrlEncode(cancelReturnUrl));
 
             //Instant Payment Notification (server to server message)
             if (_paypalStandardPaymentSettings.EnableIpn)
@@ -348,32 +431,32 @@ namespace Nop.Plugin.Payments.PayPalStandard
 
             //address
             builder.AppendFormat("&address_override={0}", _paypalStandardPaymentSettings.AddressOverride ? "1" : "0");
-            builder.AppendFormat("&first_name={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.FirstName));
-            builder.AppendFormat("&last_name={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.LastName));
-            builder.AppendFormat("&address1={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Address1));
-            builder.AppendFormat("&address2={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Address2));
-            builder.AppendFormat("&city={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.City));
+            builder.AppendFormat("&first_name={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.FirstName));
+            builder.AppendFormat("&last_name={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.LastName));
+            builder.AppendFormat("&address1={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Address1));
+            builder.AppendFormat("&address2={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Address2));
+            builder.AppendFormat("&city={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.City));
             //if (!String.IsNullOrEmpty(postProcessPaymentRequest.Order.BillingAddress.PhoneNumber))
             //{
             //    //strip out all non-digit characters from phone number;
             //    string billingPhoneNumber = System.Text.RegularExpressions.Regex.Replace(postProcessPaymentRequest.Order.BillingAddress.PhoneNumber, @"\D", string.Empty);
             //    if (billingPhoneNumber.Length >= 10)
             //    {
-            //        builder.AppendFormat("&night_phone_a={0}", HttpUtility.UrlEncode(billingPhoneNumber.Substring(0, 3)));
-            //        builder.AppendFormat("&night_phone_b={0}", HttpUtility.UrlEncode(billingPhoneNumber.Substring(3, 3)));
-            //        builder.AppendFormat("&night_phone_c={0}", HttpUtility.UrlEncode(billingPhoneNumber.Substring(6, 4)));
+            //        builder.AppendFormat("&night_phone_a={0}", WebUtility.UrlEncode(billingPhoneNumber.Substring(0, 3)));
+            //        builder.AppendFormat("&night_phone_b={0}", WebUtility.UrlEncode(billingPhoneNumber.Substring(3, 3)));
+            //        builder.AppendFormat("&night_phone_c={0}", WebUtility.UrlEncode(billingPhoneNumber.Substring(6, 4)));
             //    }
             //}
             if (postProcessPaymentRequest.Order.BillingAddress.StateProvince != null)
-                builder.AppendFormat("&state={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.StateProvince.Abbreviation));
+                builder.AppendFormat("&state={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.StateProvince.Abbreviation));
             else
                 builder.AppendFormat("&state={0}", "");
             if (postProcessPaymentRequest.Order.BillingAddress.Country != null)
-                builder.AppendFormat("&country={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Country.TwoLetterIsoCode));
+                builder.AppendFormat("&country={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Country.TwoLetterIsoCode));
             else
                 builder.AppendFormat("&country={0}", "");
-            builder.AppendFormat("&zip={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.ZipPostalCode));
-            builder.AppendFormat("&email={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Email));
+            builder.AppendFormat("&zip={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.ZipPostalCode));
+            builder.AppendFormat("&email={0}", WebUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Email));
 
             return builder.ToString();
         }
@@ -407,7 +490,21 @@ namespace Nop.Plugin.Payments.PayPalStandard
             if (urlToRedirect.Length > 2048)
                 urlToRedirect = GenerationRedirectionUrl(postProcessPaymentRequest, false);
 
-            _httpContext.Response.Redirect(urlToRedirect);
+            //Task 12.4: HttpContextBase.Response.Redirect(url) -> the ASP.NET Core equivalent on
+            //Microsoft.AspNetCore.Http.HttpResponse. Same default in both: a 302 Found, i.e. a
+            //TEMPORARY redirect. System.Web's one-argument overload also did NOT end the
+            //response (Redirect(url) is Redirect(url, true) in System.Web - it DOES end it by
+            //throwing ThreadAbortException), and that difference is deliberate rather than
+            //overlooked: ASP.NET Core has no ThreadAbortException and no way to abort a
+            //response mid-pipeline. It does not matter here, because IWebHelper's
+            //IsRequestBeingRedirected flag is what CheckoutController tests immediately after
+            //calling PostProcessPayment (see Confirm/OpcConfirmOrder), so the caller returns
+            //without writing anything further - the same net effect 3.90 achieved by aborting.
+            //Verified: no code runs between this call and that check.
+            var httpContext = _httpContextAccessor == null ? null : _httpContextAccessor.HttpContext;
+            if (httpContext == null)
+                throw new NopException("Cannot redirect to PayPal outside an HTTP request");
+            httpContext.Response.Redirect(urlToRedirect);
         }
 
         /// <summary>

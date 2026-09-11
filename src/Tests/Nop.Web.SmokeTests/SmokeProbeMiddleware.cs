@@ -2,15 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Autofac;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.Razor.Compilation;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +25,49 @@ using Nop.Services.Helpers;
 
 namespace Nop.Web.SmokeTests
 {
+    /// <summary>
+    /// A model with one string and one int, used only by
+    /// <c>SmokeProbeMiddleware.WriteChildActionSelectionProbe</c>.
+    /// </summary>
+    /// <remarks>
+    /// Task 11.1. It stands in for a plugin's <c>ConfigurationModel</c> without dragging a plugin
+    /// assembly into this project's compile-time references — the plugin references here are
+    /// build-order only, deliberately (see <c>Nop.Web.SmokeTests.csproj</c>). Two properties of
+    /// different types so a bind that produced a default-constructed instance is distinguishable
+    /// from one that actually read the form.
+    /// </remarks>
+    public class ChildActionBindProbeModel
+    {
+        public string ProbeText { get; set; }
+        public int ProbeNumber { get; set; }
+    }
+
+    /// <summary>
+    /// A controller that exists solely so the probe can drive the bridge's own
+    /// <c>CreateController</c> and <c>ExecuteAction</c> against a real
+    /// <see cref="ControllerActionDescriptor"/> whose action takes a COMPLEX parameter — i.e. the
+    /// shape of a plugin's <c>[HttpPost] Configure(TSettingsModel)</c>.
+    /// </summary>
+    /// <remarks>
+    /// Task 11.1. It is never routed: it is not part of any application part (this is a test
+    /// assembly, not a plugin) and the probe hands it to the bridge directly. <see cref="Received"/>
+    /// is what makes the binding observable — <c>ExecuteAction</c> returns only the
+    /// <c>IActionResult</c>, so the bound argument has to be recorded by the action itself.
+    /// </remarks>
+    public class ChildActionBindProbeController : Controller
+    {
+        /// <summary>
+        /// What the bridge's own parameter binding handed the action, or null.
+        /// </summary>
+        public ChildActionBindProbeModel Received { get; private set; }
+
+        public IActionResult BindProbe(ChildActionBindProbeModel model)
+        {
+            Received = model;
+            return null;
+        }
+    }
+
     /// <summary>
     /// Registers <see cref="SmokeProbeMiddleware"/> at the very front of the real pipeline.
     /// </summary>
@@ -124,6 +171,14 @@ namespace Nop.Web.SmokeTests
                         break;
                     case "plugins":
                         WritePluginsProbe(context, sb);
+                        break;
+                    //Tasks 12.1-12.5. Deliberately a separate probe in its own file
+                    //(PaymentPluginProbe.cs) - see the remarks there: the five Payments plugins
+                    //have facts to report that no other plugin group has, and keeping them out
+                    //of WritePluginsProbe keeps this file's change to one line while group 11
+                    //edits the same method.
+                    case "payments":
+                        PaymentPluginProbe.Write(context, sb);
                         break;
                     default:
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -560,7 +615,10 @@ namespace Nop.Web.SmokeTests
             {
                 "DiscountRules.CustomerRoles",
                 "DiscountRules.HasOneProduct",
-                "ExchangeRate.EcbExchange"
+                "ExchangeRate.EcbExchange",
+                //task 11.1 / 11.2
+                "ExternalAuth.Facebook",
+                "Feed.GoogleShopping"
             };
             var assemblyNames = shortNames.Select(n => "Nop.Plugin." + n).ToArray();
 
@@ -604,10 +662,34 @@ namespace Nop.Web.SmokeTests
                     sb.AppendLine("plugin:" + assemblyName + ".loadedFrom=" +
                         d.ReferencedAssembly.Location);
 
+                    //TASK 11.2 - Feed.GoogleShopping's taxonomy list is an EMBEDDED RESOURCE that
+                    //GoogleService reads BY MANIFEST NAME. If the <EmbeddedResource> item is lost the
+                    //stream is null, GetTaxonomyList() returns an empty list, the "Default Google
+                    //category" dropdown is silently EMPTY and every feed generation throws
+                    //NopException("Default Google category is not set"). Read from the loaded
+                    //assembly rather than from disk, and without needing a database.
+                    if (assemblyName == "Nop.Plugin.Feed.GoogleShopping")
+                    {
+                        const string resourceName = "Nop.Plugin.Feed.GoogleShopping.Files.taxonomy.txt";
+                        using (var stream = d.ReferencedAssembly.GetManifestResourceStream(resourceName))
+                        {
+                            sb.AppendLine("plugin:" + assemblyName + ".taxonomyResourcePresent=" +
+                                (stream != null));
+                            if (stream != null)
+                                using (var reader = new System.IO.StreamReader(stream))
+                                {
+                                    //the exact split GoogleService.GetTaxonomyList performs
+                                    var categories = reader.ReadToEnd()
+                                        .Split(new[] { "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                                    sb.AppendLine("plugin:" + assemblyName + ".taxonomyCategoryCount=" +
+                                        categories.Length);
+                                }
+                        }
+                    }
+
                     //deployment shape - the directory PluginManager actually scanned
                     if (d.OriginalAssemblyFile != null && d.OriginalAssemblyFile.Directory != null)
-                    {
-                        var dir = d.OriginalAssemblyFile.Directory;
+                    {                        var dir = d.OriginalAssemblyFile.Directory;
                         sb.AppendLine("plugin:" + assemblyName + ".deployDir=" + dir.Name);
                         sb.AppendLine("plugin:" + assemblyName + ".deployDirParent=" +
                             (dir.Parent == null ? "<null>" : dir.Parent.Name));
@@ -660,9 +742,17 @@ namespace Nop.Web.SmokeTests
             }
             //the counterfactual: had the views been left to compile at their project-relative
             //path they would be under /Views/, in the host's own identifier namespace
+            //the counterfactual: had the views been left to compile at their project-relative
+            //path they would be under /Views/, in the host's own identifier namespace.
+            //NOTE the prefixes are the CONTROLLER-named directories the relocation alternative
+            //would have used, spelled in full - "/Views/ExternalAuth" would also match Nop.Web's
+            //own /Views/ExternalAuthentication/ tree and make this vacuously non-zero.
             sb.AppendLine("pluginViewsUnderHostViewsPath=" + allViewPaths.Count(p =>
                 p.StartsWith("/Views/DiscountRules", StringComparison.OrdinalIgnoreCase) ||
+                p.StartsWith("/Views/ExternalAuthFacebook/", StringComparison.OrdinalIgnoreCase) ||
+                p.StartsWith("/Views/FeedGoogleShopping/", StringComparison.OrdinalIgnoreCase) ||
                 p.Equals("/Views/Configure.cshtml", StringComparison.OrdinalIgnoreCase) ||
+                p.Equals("/Views/PublicInfo.cshtml", StringComparison.OrdinalIgnoreCase) ||
                 p.Equals("/Views/ProductAddPopup.cshtml", StringComparison.OrdinalIgnoreCase)));
 
             //--- (4) the real view engine finds them, at the exact strings the controllers pass --
@@ -674,6 +764,10 @@ namespace Nop.Web.SmokeTests
                 "~/Plugins/DiscountRules.CustomerRoles/Views/Configure.cshtml",
                 "~/Plugins/DiscountRules.HasOneProduct/Views/Configure.cshtml",
                 "~/Plugins/DiscountRules.HasOneProduct/Views/ProductAddPopup.cshtml",
+                //task 11.1 / 11.2, verbatim from the ported controllers
+                "~/Plugins/ExternalAuth.Facebook/Views/Configure.cshtml",
+                "~/Plugins/ExternalAuth.Facebook/Views/PublicInfo.cshtml",
+                "~/Plugins/Feed.GoogleShopping/Views/Configure.cshtml",
                 //deferral 8.2-3: cross-assembly, compiled into Nop.Admin.dll
                 "~/Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml",
                 "~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml",
@@ -746,7 +840,10 @@ namespace Nop.Web.SmokeTests
                 "Plugins/DiscountRulesHasOneProduct/Configure",
                 "Plugins/DiscountRulesHasOneProduct/ProductAddPopup",
                 "Plugins/DiscountRulesHasOneProduct/ProductAddPopupList",
-                "Plugins/DiscountRulesHasOneProduct/LoadProductFriendlyNames"
+                "Plugins/DiscountRulesHasOneProduct/LoadProductFriendlyNames",
+                //task 11.1 - ExternalAuth.Facebook's two storefront routes
+                "Plugins/ExternalAuthFacebook/Login",
+                "Plugins/ExternalAuthFacebook/LoginCallback"
             })
             {
                 sb.AppendLine("liveEndpoint:" + expected + ".count=" + liveEndpoints
@@ -810,11 +907,316 @@ namespace Nop.Web.SmokeTests
                 "Plugin.DiscountRules.HasOneProduct.Configure",
                 "Plugin.DiscountRules.HasOneProduct.ProductAddPopup",
                 "Plugin.DiscountRules.HasOneProduct.ProductAddPopupList",
-                "Plugin.DiscountRules.HasOneProduct.LoadProductFriendlyNames"
+                "Plugin.DiscountRules.HasOneProduct.LoadProductFriendlyNames",
+                //task 11.1 - PublicInfo.cshtml resolves the login button's href by THIS name
+                "Plugin.ExternalAuth.Facebook.Login",
+                "Plugin.ExternalAuth.Facebook.LoginCallback"
             })
             {
                 var url = linkGenerator.GetPathByName(context, routeName, null);
                 sb.AppendLine("routeUrl:" + routeName + "=" + (url ?? "<null>"));
+            }
+
+            //--- (7) TASK 11.1 - the Html.Action bridge's ACTION SELECTION and MODEL BINDING ----
+            WriteChildActionSelectionProbe(context, sb);
+
+            //--- (8) TASK 11.2 - the plugin's own DbContext, runtime deferral 4.10 --------------
+            WritePluginDataContextProbe(sb);
+        }
+
+        /// <summary>
+        /// Task 11.2 — <c>Feed.GoogleShopping</c>'s own <c>DbContext</c>, and runtime deferral
+        /// <b>4.10</b>: EF Core's create script is <c>GO</c>-batched and a plugin's
+        /// <c>Install()</c> does not pass through <c>Nop.Data</c>'s initializer.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>NO DATABASE IS REQUIRED and that is the point.</b>
+        /// <c>DbContext.Database.GenerateCreateScript()</c> is a MODEL operation — it needs a
+        /// provider selected but never opens a connection — so the whole of deferral 4.10 is
+        /// observable with a throwaway connection string. The alternative was to leave the fix
+        /// asserted only by an installed-store test, i.e. skipped in this environment.
+        /// </para>
+        /// <para>
+        /// The context type is reached <b>reflectively</b>, through the assembly
+        /// <c>PluginManager</c> already shadow-copied and loaded, because
+        /// <c>Nop.Web.SmokeTests.csproj</c> references the plugins for BUILD ORDER only — a
+        /// compiling reference would put the plugin in this project's output directory, where
+        /// <c>WebAppTypeFinder</c> would load it as an ordinary base-directory assembly and bypass
+        /// the plugin path under test entirely.
+        /// </para>
+        /// <para>
+        /// It also measures the <b>model scope</b>. <c>OnModelCreating</c> calls
+        /// <c>ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly())</c>; if that ever
+        /// widened to <c>Nop.Data</c>'s assembly the plugin's model would gain all ~105 nopCommerce
+        /// entities and <c>Install()</c> would emit a create script for the entire nopCommerce
+        /// schema against a live store.
+        /// </para>
+        /// </remarks>
+        private static void WritePluginDataContextProbe(StringBuilder sb)
+        {
+            const string typeName = "Nop.Plugin.Feed.GoogleShopping.Data.GoogleProductObjectContext";
+
+            var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "Nop.Plugin.Feed.GoogleShopping");
+            if (assembly == null)
+            {
+                sb.AppendLine("pluginContext.assemblyLoaded=False");
+                return;
+            }
+            sb.AppendLine("pluginContext.assemblyLoaded=True");
+
+            var contextType = assembly.GetType(typeName, false);
+            sb.AppendLine("pluginContext.typePresent=" + (contextType != null));
+            if (contextType == null)
+                return;
+
+            //3.90's (string nameOrConnectionString) ctor must still exist: Nop.Web.Framework's
+            //RegisterPluginDataContext constructs the type with Activator.CreateInstance and exactly
+            //that signature, so losing it fails at RUNTIME with MissingMethodException and no
+            //compile error anywhere.
+            var stringCtor = contextType.GetConstructor(new[] { typeof(string) });
+            sb.AppendLine("pluginContext.stringCtorPresent=" + (stringCtor != null));
+            if (stringCtor == null)
+                return;
+
+            try
+            {
+                //A syntactically valid connection string to nowhere. GenerateCreateScript is a model
+                //operation and never connects.
+                using (var ctx = (Microsoft.EntityFrameworkCore.DbContext)stringCtor.Invoke(
+                    new object[] { "Server=(localdb)\\nowhere;Database=nop_11_2_probe;Trusted_Connection=True;" }))
+                {
+                    var entityTypes = ctx.Model.GetEntityTypes()
+                        .Select(e => e.ClrType == null ? e.Name : e.ClrType.Name)
+                        .OrderBy(n => n, StringComparer.Ordinal)
+                        .ToList();
+                    sb.AppendLine("pluginContext.entityTypeCount=" + entityTypes.Count);
+                    sb.AppendLine("pluginContext.entityTypes=" + string.Join("|", entityTypes));
+
+                    var tableNames = ctx.Model.GetEntityTypes()
+                        .Select(e => Microsoft.EntityFrameworkCore.RelationalEntityTypeExtensions.GetTableName(e))
+                        .Where(t => t != null)
+                        .OrderBy(t => t, StringComparer.Ordinal)
+                        .ToList();
+                    sb.AppendLine("pluginContext.tableNames=" + string.Join("|", tableNames));
+
+                    var script = Microsoft.EntityFrameworkCore
+                        .RelationalDatabaseFacadeExtensions.GenerateCreateScript(ctx.Database);
+                    sb.AppendLine("pluginContext.scriptLength=" + script.Length);
+
+                    //THE DEFERRAL: the script really does contain a bare GO line, so 3.90's single
+                    //Database.ExecuteSqlCommand(script) would throw "Incorrect syntax near 'GO'".
+                    //MEASURED SHAPE, and it is narrower than deferral 4.10's wording suggests: for
+                    //this one-table model EF Core emits ONE statement followed by a TRAILING GO, so
+                    //the failure is the trailing directive rather than multiple batches. Either way
+                    //the raw script is not executable as one command.
+                    var goLines = script.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                        .Count(l => string.Equals(l.Trim(), "GO", StringComparison.OrdinalIgnoreCase));
+                    sb.AppendLine("pluginContext.scriptGoLineCount=" + goLines);
+                    sb.AppendLine("pluginContext.rawScriptWouldBeRejected=" + (goLines > 0));
+
+                    //...and the SHARED helper splits it into executable batches, none of which
+                    //still contains a bare GO
+                    var batches = Nop.Data.DbContextExtensions.SplitSqlIntoBatches(script).ToList();
+                    sb.AppendLine("pluginContext.batchCount=" + batches.Count);
+                    sb.AppendLine("pluginContext.batchesWithBareGo=" + batches.Count(b =>
+                        b.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                            .Any(l => string.Equals(l.Trim(), "GO", StringComparison.OrdinalIgnoreCase))));
+                    sb.AppendLine("pluginContext.batchesCreatingGoogleProduct=" + batches.Count(b =>
+                        b.IndexOf("CREATE TABLE", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                        b.IndexOf("GoogleProduct", StringComparison.OrdinalIgnoreCase) >= 0));
+                }
+            }
+            catch (Exception exc)
+            {
+                sb.AppendLine("pluginContext.EXCEPTION=" +
+                    (exc.InnerException ?? exc).GetType().FullName + ": " +
+                    (exc.InnerException ?? exc).Message);
+            }
+
+            //And the helper's own contract, on inputs the generator does not produce, so a future
+            //"improvement" to the splitter cannot quietly change what a batch is.
+            var crafted = "CREATE TABLE [A] ([Id] int);\nGO\n\nGO\nSELECT 'GO';\nGO";
+            var craftedBatches = Nop.Data.DbContextExtensions.SplitSqlIntoBatches(crafted).ToList();
+            sb.AppendLine("splitSql.craftedBatchCount=" + craftedBatches.Count);
+            sb.AppendLine("splitSql.craftedBatchesKeepStringLiteralGo=" +
+                craftedBatches.Count(b => b.Contains("SELECT 'GO'")));
+            sb.AppendLine("splitSql.emptyInputBatchCount=" +
+                Nop.Data.DbContextExtensions.SplitSqlIntoBatches("   ").Count());
+        }
+
+        /// <summary>
+        /// Task 11.1 — drives the <c>Html.Action</c> bridge's action-selection and complex-parameter
+        /// binding against the <b>real</b> action descriptors and the <b>real</b> request.
+        /// Runtime deferral <b>11.x-1</b>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>WHAT WENT WRONG.</b> A plugin's admin configuration page is rendered through the
+        /// bridge, and its <c>Html.BeginForm()</c> posts back to the ADMIN url — so the POST arrives
+        /// as another child-action render. The pre-11.1 bridge matched on action + controller NAME
+        /// and broke the tie by "fewest parameters", ignoring <c>[HttpPost]</c> and
+        /// <c>[FormValueRequired]</c>, and it handed every COMPLEX parameter <c>null</c>. So a
+        /// plugin settings form silently re-rendered the GET with the old values and discarded the
+        /// administrator's input. Every plugin with a settings form is affected: 11.1, 11.2, all
+        /// five of 12.x, 13.1, 14.4, 15.1, 15.2 and 15.3.
+        /// </para>
+        /// <para>
+        /// <b>WHY THIS IS A PROBE AND NOT A UNIT TEST.</b> The two mechanisms are private statics
+        /// inside <c>ChildActionExtensions</c>, and the inputs that make them meaningful — the
+        /// application's real <c>ControllerActionDescriptor</c> set, with its
+        /// <c>HttpMethodActionConstraint</c> and <c>FormValueRequiredAttribute</c> entries, plus a
+        /// live <c>HttpContext</c> whose method and form body are the thing being reacted to — only
+        /// exist inside the running host. Reflection is used deliberately rather than widening the
+        /// public surface of a shared framework file for a test's benefit. The code executed is the
+        /// production code, not a copy.
+        /// </para>
+        /// <para>
+        /// The <b>selection</b> half is reported for whatever request the test makes, so
+        /// <c>PluginViewRenderTests</c> can call <c>/__smoke/plugins</c> as a GET and as two
+        /// different POSTs and compare — which is what proves the mechanism reacts to the request
+        /// rather than returning a constant. The <b>binding</b> half reports the values it recovered
+        /// from the form, and reports the value-provider-factory count that
+        /// <c>PopulateValueProviderFactories</c> is responsible for: a hand-built
+        /// <c>ControllerContext</c> starts with ZERO, and with zero every bind silently succeeds
+        /// having read nothing.
+        /// </para>
+        /// </remarks>
+        private static void WriteChildActionSelectionProbe(HttpContext context, StringBuilder sb)
+        {
+            var bridge = typeof(Nop.Web.Framework.ChildActionExtensions);
+
+            //FindAction is the REAL entry point: the area preference, the constraint filter and the
+            //fewest-parameters tie-break in the order InvokeAction applies them. The probe drives
+            //THIS rather than ApplyActionConstraints directly, because a private helper can be
+            //present and correct while its call site is missing - which is exactly the shape of
+            //vacuous assertion task 8.8 §77.5 found.
+            var findAction = bridge.GetMethod("FindAction",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            var applyConstraints = bridge.GetMethod("ApplyActionConstraints",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            sb.AppendLine("childAction.findActionPresent=" + (findAction != null));
+            sb.AppendLine("childAction.applyActionConstraintsPresent=" + (applyConstraints != null));
+
+            var provider = context.RequestServices.GetRequiredService<IActionDescriptorCollectionProvider>();
+            sb.AppendLine("childAction.requestMethod=" + context.Request.Method);
+            sb.AppendLine("childAction.hasFormContentType=" + context.Request.HasFormContentType);
+
+            //Report the raw constraint metadata first. If MVC ever stopped materialising these the
+            //selection fix would silently become a no-op, and the assertion above would still pass.
+            foreach (var pair in new[]
+            {
+                new[] { "ExternalAuthFacebook", "Configure" },
+                new[] { "FeedGoogleShopping", "Configure" }
+            })
+            {
+                var candidates = provider.ActionDescriptors.Items
+                    .OfType<ControllerActionDescriptor>()
+                    .Where(d => d.ControllerName == pair[0] && d.ActionName == pair[1])
+                    .OrderBy(d => d.MethodInfo.Name, StringComparer.Ordinal)
+                    .ThenBy(d => d.Parameters.Count)
+                    .ToList();
+
+                var key = "childAction:" + pair[0] + "." + pair[1];
+                sb.AppendLine(key + ".candidateCount=" + candidates.Count);
+                foreach (var d in candidates)
+                {
+                    var constraints = d.ActionConstraints == null
+                        ? new List<string>()
+                        : d.ActionConstraints.Select(c => c.GetType().Name).OrderBy(x => x, StringComparer.Ordinal).ToList();
+                    sb.AppendLine(key + ".candidate=" + d.MethodInfo.Name + "(" +
+                        string.Join(",", d.Parameters.Select(p => p.ParameterType.Name)) + ")" +
+                        " constraints=" + (constraints.Count == 0 ? "<none>" : string.Join("|", constraints)));
+                }
+
+                if (findAction == null)
+                    continue;
+
+                //Drive the real selection with the real request. areaName = "" because a plugin
+                //controller is not in the Admin area, which is what the plugin contracts'
+                //{ "area", null } route value expresses.
+                try
+                {
+                    var selected = (ControllerActionDescriptor)findAction.Invoke(null,
+                        new object[] { context, pair[1], pair[0], string.Empty });
+                    sb.AppendLine(key + ".selected=" + (selected == null
+                        ? "<none>"
+                        : selected.MethodInfo.Name + "/" + selected.Parameters.Count));
+                }
+                catch (Exception exc)
+                {
+                    sb.AppendLine(key + ".selected=<threw:" +
+                        (exc.InnerException ?? exc).GetType().Name + ">");
+                }
+            }
+
+            //--- the binding half -------------------------------------------------------------
+            //DRIVEN THROUGH THE PRODUCTION CALL PATH, not through the helpers directly. CreateController
+            //is what installs the value provider factories (a hand-built ControllerContext has ZERO,
+            //and with zero every bind silently succeeds having read nothing) and ExecuteAction is what
+            //reaches BindParameter -> BindComplexParameter. Invoking the helpers directly would leave
+            //their CALL SITES unexercised, which is the vacuous-assertion trap task 8.8 §77.5 found.
+            var createController = bridge.GetMethod("CreateController",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            var executeAction = bridge.GetMethod("ExecuteAction",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            var bindParameter = bridge.GetMethod("BindParameter",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            sb.AppendLine("childAction.populateValueProviderFactoriesPresent=" +
+                (bridge.GetMethod("PopulateValueProviderFactories",
+                    BindingFlags.NonPublic | BindingFlags.Static) != null));
+            sb.AppendLine("childAction.bindParameterArity=" +
+                (bindParameter == null ? -1 : bindParameter.GetParameters().Length));
+
+            if (createController == null || executeAction == null)
+                return;
+
+            //A hand-made descriptor for the probe controller, shaped exactly as MVC shapes one.
+            var probeMethod = typeof(ChildActionBindProbeController).GetMethod("BindProbe");
+            var probeDescriptor = new ControllerActionDescriptor
+            {
+                ControllerTypeInfo = typeof(ChildActionBindProbeController).GetTypeInfo(),
+                MethodInfo = probeMethod,
+                ControllerName = "ChildActionBindProbe",
+                ActionName = "BindProbe",
+                Parameters = new List<Microsoft.AspNetCore.Mvc.Abstractions.ParameterDescriptor>
+                {
+                    new ControllerParameterDescriptor
+                    {
+                        Name = probeMethod.GetParameters()[0].Name,
+                        ParameterType = typeof(ChildActionBindProbeModel),
+                        ParameterInfo = probeMethod.GetParameters()[0]
+                    }
+                },
+                RouteValues = new Dictionary<string, string>()
+            };
+
+            try
+            {
+                var actionContext = new ActionContext(context, new RouteData(), probeDescriptor);
+                var controller = (ChildActionBindProbeController)createController
+                    .Invoke(null, new object[] { context.RequestServices, probeDescriptor, actionContext });
+
+                sb.AppendLine("childAction.valueProviderFactories=" +
+                    controller.ControllerContext.ValueProviderFactories.Count);
+
+                //the real ExecuteAction, i.e. the real BindParameter for a COMPLEX parameter
+                executeAction.Invoke(null,
+                    new object[] { controller, probeDescriptor, new RouteValueDictionary() });
+
+                sb.AppendLine("childAction.bindParameterResult=" +
+                    (controller.Received == null ? "<null>" : controller.Received.GetType().Name));
+                sb.AppendLine("childAction.boundText=" +
+                    (controller.Received == null ? "<null>" : (controller.Received.ProbeText ?? "<null>")));
+                sb.AppendLine("childAction.boundNumber=" +
+                    (controller.Received == null ? -1 : controller.Received.ProbeNumber));
+            }
+            catch (Exception exc)
+            {
+                sb.AppendLine("childAction.bindParameterResult=<threw:" +
+                    (exc.InnerException ?? exc).GetType().Name + ": " +
+                    (exc.InnerException ?? exc).Message + ">");
             }
         }
 

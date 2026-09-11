@@ -1,0 +1,47 @@
+@*
+    Task 11.2 — the ASP.NET Core replacement for this plugin's web.config
+    <system.web.webPages.razor><pages> element (Requirement 4.4).
+
+    Identical in shape to tasks 10.1/10.2/11.1's; only the plugin's own Models namespace differs.
+    See src/Plugins/Nop.Plugin.DiscountRules.CustomerRoles/Views/_ViewImports.cshtml for the full
+    reasoning. In brief: all 20 plugins ship a byte-identical web.config declaring
+    pageBaseType="Nop.Web.Framework.ViewEngines.Razor.WebViewPage" (→ the @inherits below, which
+    is what makes T("…") and an unqualified @model resolve) plus four System.Web <namespaces>
+    (→ the @using directives; System.Web.Mvc.Ajax has no ASP.NET Core counterpart and is
+    dropped).
+
+    It must sit at Views/ and inside the project file's Content/Link glob (Views\**\*.cshtml), so
+    that this file and Configure.cshtml are linked into the SAME directory
+    (/Plugins/Feed.GoogleShopping/Views/) — Razor resolves imports by walking up from the view's
+    LINKED path. Linking the two inconsistently would make the imports silently not apply and the
+    failure would look like a missing model type.
+
+    NOTE Configure.cshtml declares `@model FeedGoogleShoppingModel` UNQUALIFIED, so the
+    @using Nop.Plugin.Feed.GoogleShopping.Models below is not optional here — unlike 11.1's, where
+    the plugin's @model is fully qualified.
+*@
+@inherits Nop.Web.Framework.ViewEngines.Razor.WebViewPage<TModel>
+
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Routing
+
+@*
+    Nop.Web.Framework carries HtmlExtensions (Html.NopLabelFor / NopEditorFor /
+    NopDropDownListFor / RenderBootstrapTabHeader / RenderBootstrapTabContent),
+    ViewCompatibilityExtensions and ChildActionExtensions. Extensions.SelectionIsNotPossible
+    (used by the store dropdown below) is in the same namespace. One import covers all of them.
+*@
+@using Nop.Core.Infrastructure
+@using Nop.Web.Framework
+@using Nop.Web.Framework.UI
+@using Nop.Plugin.Feed.GoogleShopping.Models
+
+@*
+    Tag helpers. 3.90 had none (they do not exist in MVC 5). Added for the same reason task 7.3
+    added them to Nop.Web: the framework's form/validation tag helpers are the supported route to
+    an anti-forgery token, and Html.BeginForm uses the same infrastructure.
+*@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

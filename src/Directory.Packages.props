@@ -457,6 +457,66 @@
   </ItemGroup>
 
   <!-- ==========================================================
+       PayPal REST SDK  (Nop.Plugin.Payments.PayPalDirect, task 12.3)
+
+       ***** THIS IS A DELIBERATE PIN OF A DEPRECATED, .NET-FRAMEWORK-ONLY PACKAGE. *****
+
+       1.8.0 is the version 3.90 shipped. It is ALSO the only kind of version available:
+       nuget.org marks the `PayPal` package DEPRECATED ("legacy and no longer maintained"),
+       and NO release of it - 1.8.0, the final 1.9.1, or anything between - publishes a
+       netstandard or net(core) asset. Every one ships lib/net40 + lib/net45 + lib/net451
+       only. There is no successor package either: PayPal's REST API v1 .NET SDK was
+       discontinued, the v2 replacement is a different product with a different API surface,
+       and the community forks are unmaintained too. So there is nothing to advance TO. This
+       was checked, not assumed.
+
+       CONSEQUENCE, AND WHY IT IS ACCEPTED. net10.0 consumes the lib/net451 asset, which NuGet
+       reports as NU1701 ("restored using .NETFramework instead of net10.0"). That warning is
+       LEFT VISIBLE on the plugin, in the same spirit as the SYSLIB0014 warnings this migration
+       has deliberately left on its four remaining WebRequest sites: a visible warning that
+       states a real, recorded limitation is preferable to a suppression that hides it. See the
+       long note in Nop.Plugin.Payments.PayPalDirect.csproj for the runtime verification -
+       PayPal.dll's IL touches System.Web.HttpUtility and
+       System.Configuration.ConfigurationManager, and BOTH were exercised on net10.0 rather
+       than reasoned about.
+
+       Newtonsoft.Json MUST stay declared by any project referencing this package. PayPal
+       1.8.0's net451 dependency group asks for Newtonsoft.Json >= 7.0.1, and left to itself
+       NuGet resolves exactly 7.0.1, which carries NU1903 (GHSA-5crp-9r3c-p9vr, HIGH). The
+       central 13.0.4 pin above lifts it - measured: the warning appears without the explicit
+       reference and is absent with it.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="PayPal" Version="1.8.0" />
+  </ItemGroup>
+
+  <!-- ==========================================================
+       System.Configuration.ConfigurationManager  (task 12.3)
+
+       Not referenced for its API by any source file in this repository. It exists here for
+       one reason: PayPal.dll (above) has an assembly reference to `System.Configuration`, and
+       on .NET that name resolves to a TYPE-FORWARDING FACADE in the shared framework whose
+       targets live in this out-of-band package. Without the package present, the facade
+       resolves and then every forwarded type throws
+       `FileNotFoundException: Could not load file or assembly
+       'System.Configuration.ConfigurationManager'` - which for this plugin means the FIRST
+       PayPal call fails, because PaypalHelper.GetApiContext constructs an
+       OAuthTokenCredential and its constructor reads PayPal's own config section.
+       MEASURED both ways on net10.0 (task 12.3).
+
+       VERSION 9.0.11 IS CHOSEN TO CHANGE NOTHING. That is already the version Nop.Web
+       resolves transitively today (Microsoft.Data.SqlClient 6.1.6 -> Azure.Identity ->
+       System.Configuration.ConfigurationManager 9.0.11, confirmed in Nop.Web.deps.json), and
+       CentralPackageTransitivePinningEnabled is true, so any OTHER value here would lift the
+       version inside the gated Nop.Web/Nop.Admin outputs. Pinning the version already in use
+       makes this entry a documentation-and-stability measure with no resolution effect -
+       verified by rebuilding Nop.Web and re-reading its deps.json.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="System.Configuration.ConfigurationManager" Version="9.0.11" />
+  </ItemGroup>
+
+  <!-- ==========================================================
        Redis cache and distributed lock
        (replaces StackExchange.Redis.StrongName 1.2.1 and RedLock.net.StrongName 1.7.4;
        the StrongName variants are discontinued - the mainline packages are used)

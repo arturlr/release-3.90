@@ -85,6 +85,15 @@ namespace Nop.Web.Infrastructure
     /// relocating the admin trees under <c>wwwroot/</c>.
     /// </para>
     /// <para>
+    /// <b>Task 11.1 widened the allow-list with the plugin asset trees</b>
+    /// (<c>Plugins/*/Content/**</c>, <c>Plugins/*/Scripts/**</c>), closing deferral 10.x-1 for
+    /// all three affected plugins — <c>ExternalAuth.Facebook</c> (11.1),
+    /// <c>Feed.GoogleShopping</c> (11.2) and <c>Widgets.NivoSlider</c> (15.3). See
+    /// <see cref="AllowedPluginRoots"/> for why that is a <b>third</b>-level triple rather than
+    /// <c>"Plugins"</c> added to <see cref="AllowedRoots"/>, and for the deployment contents
+    /// that must stay unreachable.
+    /// </para>
+    /// <para>
     /// Static-file middleware never enumerates directories (<c>UseDirectoryBrowser</c> is not
     /// registered) and <c>IFileVersionProvider</c> only calls
     /// <see cref="GetFileInfo(string)"/>, so the conservative
@@ -163,6 +172,115 @@ namespace Nop.Web.Infrastructure
         private static readonly string[] AllowedAdministrationRoots = { "Content", "Scripts" };
 
         /// <summary>
+        /// The <b>third</b>-level directories served in full underneath
+        /// <see cref="PluginsRoot"/> — i.e. <c>~/Plugins/&lt;ShortName&gt;/Content/**</c> and
+        /// <c>~/Plugins/&lt;ShortName&gt;/Scripts/**</c> (task 11.1, runtime deferral 10.x-1).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>TASK 11.1 — runtime deferral 10.x-1, Medium, FAILS SILENTLY.</b> Three plugins ship
+        /// a static asset tree and name it by URL from a view or from their plugin class:
+        /// </para>
+        /// <list type="bullet">
+        /// <item><c>Nop.Plugin.ExternalAuth.Facebook</c> —
+        /// <c>~/Plugins/ExternalAuth.Facebook/Content/facebookstyles.css</c>
+        /// (<c>Views/PublicInfo.cshtml</c>), whose stylesheet is the ONLY thing that gives the
+        /// Facebook login button its dimensions and background image: without it the button
+        /// renders as a zero-size empty anchor, i.e. the control is invisible and nothing is
+        /// logged (task 11.1).</item>
+        /// <item><c>Nop.Plugin.Feed.GoogleShopping</c> —
+        /// <c>~/Plugins/Feed.GoogleShopping/Content/styles.css</c>
+        /// (<c>Views/Configure.cshtml</c>) (task 11.2).</item>
+        /// <item><c>Nop.Plugin.Widgets.NivoSlider</c> — the largest static tree of any plugin,
+        /// and the only one that also needs <c>Scripts/</c>:
+        /// <c>~/Plugins/Widgets.NivoSlider/Scripts/jquery.nivo.slider.js</c>, two CSS files
+        /// under <c>Content/nivoslider/</c>, and <c>Content/nivoslider/sample-images/</c>
+        /// (task 15.3). <c>Scripts</c> is in the list below FOR THAT PLUGIN — task 11.x's two
+        /// plugins do not need it, and 15.3 therefore has nothing left to do here.</item>
+        /// </list>
+        /// <para>
+        /// In 3.90 <c>System.Web</c>'s static handler served the whole application root, so
+        /// <c>~/Plugins/&lt;ShortName&gt;/Content/x.css</c> was served with no configuration at
+        /// all — and the only thing <b>refused</b> under <c>~/Plugins</c> was <c>*.dll</c>, by an
+        /// explicit <c>DenyAccessToPluginDLLs</c> <c>HttpForbiddenHandler</c> in
+        /// <c>Web.config</c>. This allow-list inverts that default, so the URLs 404 with nothing
+        /// reported.
+        /// </para>
+        /// <para>
+        /// <b>WHY THIS IS A THIRD-LEVEL PAIR AND NOT <c>"Plugins"</c> ADDED TO
+        /// <see cref="AllowedRoots"/>.</b> Same reasoning as
+        /// <see cref="AllowedAdministrationRoots"/>, and here the exposure is worse, because a
+        /// plugin directory is not a curated asset tree — it is a <b>deployment</b> directory
+        /// whose contents an administrator adds to at runtime:
+        /// </para>
+        /// <list type="bullet">
+        /// <item><c>Plugins/&lt;ShortName&gt;/&lt;plugin&gt;.dll</c>, <c>.pdb</c> and (new in
+        /// this migration, deferral 10.x-3) <c>.deps.json</c>. The <c>.deps.json</c> is the one
+        /// that would <b>not</b> be caught by <see cref="DeniedExtensions"/> and lists the
+        /// plugin's full dependency graph with versions.</item>
+        /// <item><c>Plugins/&lt;ShortName&gt;/Description.txt</c> — read by
+        /// <c>PluginManager.Initialize</c>. Harmless in itself, but it is the file that makes a
+        /// plugin folder enumerable and it is not an asset.</item>
+        /// <item>Whatever else a deployed plugin package contained. An administrator uploads a
+        /// plugin as a zip and unpacks it here; nothing constrains its contents, and
+        /// <c>PluginManager</c> does not clean the folder on uninstall — it only rewrites
+        /// <c>InstalledPlugins.txt</c>. A third-party plugin carrying a config file, a licence
+        /// key or a <c>.sql</c> seed script would become downloadable.</item>
+        /// </list>
+        /// <para>
+        /// Requiring segments 1 and 3 to be <c>Plugins</c> and <c>Content</c>/<c>Scripts</c>
+        /// refuses all of that <b>structurally</b>. Relying on
+        /// <see cref="DeniedExtensions"/> alone would be the wrong shape of defence: it is a
+        /// deny-list over an open directory whose contents this application does not control.
+        /// </para>
+        /// <para>
+        /// <b><see cref="PluginsShadowCopyDirectory"/> IS SEPARATELY DENIED.</b>
+        /// <c>~/Plugins/bin</c> is <c>PluginManager</c>'s shadow-copy directory: every plugin
+        /// assembly in the installation is copied there and loaded from there. It cannot match
+        /// the rule above as things stand (the copy is flat, so there is no
+        /// <c>Plugins/bin/Content</c>), but "cannot today" is not a reason to leave it to
+        /// chance — it is in <see cref="DeniedSubpaths"/>, which is evaluated before every allow
+        /// rule.
+        /// </para>
+        /// <para>
+        /// <b>The plugin VIEW tree is not part of the exposed surface at all.</b> Task 10.x's
+        /// recipe sets <c>CopyToOutputDirectory="Never"</c> on every plugin
+        /// <c>Views\**\*.cshtml</c>, because on .NET the views are compiled into the plugin
+        /// assembly — so <c>Plugins/&lt;ShortName&gt;/Views/</c> does not exist in a deployment.
+        /// It is refused twice over regardless (segment 3 is not <c>Content</c>/<c>Scripts</c>,
+        /// and <c>.cshtml</c> is in <see cref="DeniedExtensions"/>).
+        /// </para>
+        /// <para>
+        /// <b>Relocation under <c>wwwroot/</c> was not an option here even in principle</b>, and
+        /// for a stronger reason than for the storefront and admin trees: a plugin's
+        /// <c>OutputPath</c> is what puts the folder there in the first place
+        /// (<c>..\..\Presentation\Nop.Web\Plugins\&lt;ShortName&gt;\</c>, 3.90's, and load-bearing
+        /// — <c>PluginManager.IsPackagePluginFolder</c> requires the parent directory to be named
+        /// <c>Plugins</c>), and <c>NivoSliderPlugin.Install</c> additionally does a
+        /// <c>CommonHelper.MapPath</c>-based <b>physical read</b> of
+        /// <c>~/Plugins/Widgets.NivoSlider/Content/nivoslider/sample-images/</c> to seed its
+        /// sample pictures. The assembly and its assets have to stay in one directory.
+        /// </para>
+        /// </remarks>
+        private static readonly string[] AllowedPluginRoots = { "Content", "Scripts" };
+
+        /// <summary>
+        /// The plugin deployment directory, relative to the <b>Nop.Web</b> content root.
+        /// </summary>
+        /// <remarks>
+        /// Spelled to match the directory on disk exactly, for the reason recorded on
+        /// <see cref="AdministrationRoot"/>. The comparisons below are case-insensitive so the
+        /// allow-list decision matches 3.90's case-insensitive IIS behaviour and a mis-cased URL
+        /// is refused by the filesystem rather than mis-classified here.
+        /// </remarks>
+        private const string PluginsRoot = "Plugins";
+
+        /// <summary>
+        /// <c>PluginManager</c>'s shadow-copy directory, relative to the content root.
+        /// </summary>
+        private const string PluginsShadowCopyDirectory = PluginsRoot + "/bin";
+
+        /// <summary>
         /// The <c>Nop.Admin</c> project directory, relative to the <b>Nop.Web</b> content root.
         /// </summary>
         /// <remarks>
@@ -220,7 +338,13 @@ namespace Nop.Web.Infrastructure
         /// </remarks>
         private static readonly string[] DeniedSubpaths =
         {
-            AdministrationRoot + "/Content/Roxy_Fileman/tmp"
+            AdministrationRoot + "/Content/Roxy_Fileman/tmp",
+
+            //TASK 11.1 - PluginManager's shadow-copy directory. Every installed plugin's assembly
+            //is copied here and loaded from here (PerformFileDeploy). Denied structurally rather
+            //than relying on the AllowedPluginRoots shape or on DeniedExtensions; see the remarks
+            //on AllowedPluginRoots.
+            PluginsShadowCopyDirectory
         };
 
         /// <summary>
@@ -378,6 +502,23 @@ namespace Nop.Web.Infrastructure
                 }
             }
 
+            //---- ~/Plugins/<ShortName>/Content/** and ~/Plugins/<ShortName>/Scripts/**
+            //(task 11.1, runtime deferral 10.x-1). THIRD-level, so segments.Length >= 4 is
+            //required for a file: Plugins / <ShortName> / Content / <file>. Nothing else under
+            //Plugins/ is reachable - notably NOT the plugin assembly, its .pdb, its .deps.json,
+            //its Description.txt, the shadow-copy directory Plugins/bin (separately denied), or
+            //anything an administrator's plugin package happened to contain. See the remarks on
+            //AllowedPluginRoots for why this is nested rather than "Plugins" in AllowedRoots.
+            if (string.Equals(segments[0], PluginsRoot, StringComparison.OrdinalIgnoreCase)
+                && segments.Length >= 4)
+            {
+                foreach (var root in AllowedPluginRoots)
+                {
+                    if (string.Equals(segments[2], root, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+
             //---- ~/Themes/<theme>/Content/** and ~/Themes/<theme>/preview.jpg
             //Deliberately NOT the whole theme directory: ~/Themes/<theme>/Views/** holds
             //.cshtml plus a Web.config, and ~/Themes/<theme>/theme.config is configuration.
@@ -429,6 +570,22 @@ namespace Nop.Web.Infrastructure
                 foreach (var root in AllowedAdministrationRoots)
                 {
                     if (string.Equals(segments[1], root, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+
+            //~/Plugins/<ShortName>/Content/** and ~/Plugins/<ShortName>/Scripts/** (task 11.1).
+            //segments.Length >= 3 here, not >= 4, for the same reason as the Administration rule
+            //above: enumerating ~/Plugins/<ShortName>/Content itself is the directory equivalent
+            //of what the file rule allows underneath it. ~/Plugins and ~/Plugins/<ShortName> are
+            //both still refused, which is what keeps the assemblies, the .deps.json files and
+            //Description.txt from being discoverable by listing.
+            if (string.Equals(segments[0], PluginsRoot, StringComparison.OrdinalIgnoreCase)
+                && segments.Length >= 3)
+            {
+                foreach (var root in AllowedPluginRoots)
+                {
+                    if (string.Equals(segments[2], root, StringComparison.OrdinalIgnoreCase))
                         return true;
                 }
             }

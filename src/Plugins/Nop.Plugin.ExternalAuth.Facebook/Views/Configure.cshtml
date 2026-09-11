@@ -1,8 +1,40 @@
-﻿@{
+@*
+    Task 11.1. No API substitution was needed in this file — the only edits are the two duplicate
+    @using directives, dropped because Views/_ViewImports.cshtml now carries them (it is the
+    replacement for the deleted per-plugin web.config's <namespaces> list).
+
+    Everything else is 3.90's, unchanged, and each piece is worth a note because it is only
+    unchanged thanks to a decision an earlier task made:
+
+      Layout = ""            honoured by ASP.NET Core. It also does not matter here, because the
+                             recipe's Content/Link block compiles this view at
+                             /Plugins/ExternalAuth.Facebook/Views/Configure.cshtml, whose
+                             ancestors have no _ViewStart — the isolation §83.1 preserved
+                             deliberately.
+      @Html.Action(...)       the bridge in Nop.Web.Framework (deferral 7.3-1). Note this call
+                             passes area = "Admin" EXPLICITLY, which after task 8.8 is a real
+                             instruction: it sends the bridge to Nop.Admin's SettingController
+                             rather than to a storefront controller of the same name. This view is
+                             itself rendered from the Admin area, so the ambient area would have
+                             been right anyway — but the explicit value is what makes it certain.
+      @Html.OverrideStoreCheckboxFor / NopLabelFor / NopEditorFor / ValidationMessageFor
+                             ported in place on IHtmlHelper by task 6.3; they return IHtmlContent
+                             now instead of MvcHtmlString, which views do not notice.
+      @using (Html.BeginForm())
+                             renders action="" — i.e. this form POSTs to the ADMIN url that
+                             rendered it, not to the plugin. That is what makes the POST arrive as
+                             another child-action render and is why task 11.1 had to teach the
+                             bridge about [HttpPost] (runtime deferral 11.x-1). Before that fix
+                             pressing Save here did nothing at all, silently.
+      @Html.AntiForgeryToken()
+                             kept. The admin's ConfigureMethod action does not validate it, as in
+                             3.90; it is emitted so the field is present for the scripts that
+                             expect it.
+*@
+@{
     Layout = "";
 }
 @model Nop.Plugin.ExternalAuth.Facebook.Models.ConfigurationModel
-@using Nop.Web.Framework;
 
 @Html.Action("StoreScopeConfiguration", "Setting", new { area = "Admin" })
 

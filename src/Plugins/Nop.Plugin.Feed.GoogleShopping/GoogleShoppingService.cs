@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
-using System.Web;
-using System.Web.Routing;
 using System.Xml;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Directory;
@@ -25,6 +25,28 @@ using Nop.Services.Tax;
 
 namespace Nop.Plugin.Feed.GoogleShopping
 {
+    /// <remarks>
+    /// Task 11.2 substitutions (Requirements 4.2, 5.1, 5.3):
+    /// <list type="bullet">
+    /// <item><c>using System.Web.Routing;</c> → <c>using Microsoft.AspNetCore.Routing;</c> for
+    /// <c>RouteValueDictionary</c> on <see cref="GetConfigurationRoute"/>. Task 6.2 already moved
+    /// the namespace on <c>IMiscPlugin</c> itself, so the method keeps 3.90's signature and body —
+    /// including the inert <c>"Namespaces"</c> entry and the <c>{ "area", null }</c> that, after
+    /// task 8.8, is what sends the <c>Html.Action</c> bridge outside the Admin area to find this
+    /// plugin's controller.</item>
+    /// <item><c>System.Web.HttpUtility.HtmlDecode</c>/<c>HtmlEncode</c> →
+    /// <c>System.Net.WebUtility</c>. Same substitution task 4.2 made across
+    /// <c>Nop.Services</c>. Both round-trip the same entity set, so
+    /// <see cref="StripInvalidChars"/>'s decode-strip-re-encode is unchanged in effect.</item>
+    /// <item><c>System.Web.HttpRuntime.AppDomainAppPath</c> → <c>CommonHelper.MapPath("~/…")</c>,
+    /// with a defect fixed — see <see cref="GenerateStaticFile"/>.</item>
+    /// </list>
+    /// Needed no edit: the whole 300-line <c>XmlWriter</c> feed body, <c>BasePlugin</c>,
+    /// <c>IMiscPlugin</c>, <c>AddOrUpdatePluginLocaleResource</c>/<c>DeletePluginLocaleResource</c>,
+    /// <c>GetLocalized</c>/<c>GetSeName</c>/<c>GetFormattedBreadCrumb</c>,
+    /// <c>RoundingHelper.RoundPrice</c> and the <c>IPictureService</c> calls (task 4.2 re-based
+    /// those on ImageSharp behind unchanged signatures).
+    /// </remarks>
     public class GoogleShoppingService : BasePlugin, IMiscPlugin
     {
         #region Fields
@@ -107,7 +129,7 @@ namespace Nop.Plugin.Feed.GoogleShopping
             //http://www.atensoftware.com/p90.php?q=182
 
             if (isHtmlEncoded)
-                input = HttpUtility.HtmlDecode(input);
+                input = WebUtility.HtmlDecode(input);
 
             input = input.Replace("¼", "");
             input = input.Replace("½", "");
@@ -122,7 +144,7 @@ namespace Nop.Plugin.Feed.GoogleShopping
             //input = input.Replace("°", "");
             
             if (isHtmlEncoded)
-                input = HttpUtility.HtmlEncode(input);
+                input = WebUtility.HtmlEncode(input);
 
             return input;
         }
@@ -640,11 +662,20 @@ namespace Nop.Plugin.Feed.GoogleShopping
         /// Generate a static feed file
         /// </summary>
         /// <param name="store">Store</param>
+        /// <remarks>
+        /// Task 11.2. The path expression moved to <see cref="GoogleShoppingFeedFile"/>, which
+        /// documents the two silent 3.90 defects it fixes — <c>HttpRuntime.AppDomainAppPath</c> has
+        /// no net10.0 counterpart, and <c>"content\\files\\exportimport"</c> is a single directory
+        /// name with the wrong casing on a case-sensitive filesystem, so this method could not have
+        /// written a file at all. The <c>FileStream</c> flags are 3.90's, unchanged:
+        /// <c>FileShare.ReadWrite</c> is what lets the static-file middleware serve the previous
+        /// feed while a new one is being generated.
+        /// </remarks>
         public virtual void GenerateStaticFile(Store store)
         {
             if (store == null)
                 throw new ArgumentNullException("store");
-            string filePath = Path.Combine(HttpRuntime.AppDomainAppPath, "content\\files\\exportimport", store.Id + "-" + _googleShoppingSettings.StaticFileName);
+            string filePath = GoogleShoppingFeedFile.PhysicalPath(store.Id, _googleShoppingSettings.StaticFileName);
             using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
             {
                 GenerateFeed(fs, store);

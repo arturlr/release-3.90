@@ -1,6 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
 using Nop.Core.Plugins;
@@ -15,6 +15,14 @@ namespace Nop.Plugin.Payments.PurchaseOrder
     /// <summary>
     /// PurchaseOrder payment processor
     /// </summary>
+    /// <remarks>
+    /// Task 12.5. The only edit is <c>System.Web.Routing.RouteValueDictionary</c> -&gt;
+    /// <c>Microsoft.AspNetCore.Routing.RouteValueDictionary</c>, the type
+    /// <see cref="IPaymentMethod"/> declares after task 4.1's port of Nop.Services. The
+    /// <c>routeValues</c> contents - including the now-inert <c>"Namespaces"</c> entry and the
+    /// load-bearing <c>{"area", null}</c> - are 3.90's, unchanged; see the extended note on
+    /// <c>CheckMoneyOrderPaymentProcessor</c> (task 12.1) for why.
+    /// </remarks>
     public class PurchaseOrderPaymentProcessor : BasePlugin, IPaymentMethod
     {
         #region Fields

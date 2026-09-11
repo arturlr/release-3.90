@@ -154,6 +154,53 @@
                       ReferenceOutputAssembly="false"
                       ExcludeAssets="all"
                       PrivateAssets="all" />
+
+    <!--
+      TASKS 11.1 / 11.2 - the ExternalAuth and Feed plugins. Same three attributes and the same
+      reason as the group 10 three above.
+
+      THESE TWO ARE THE FIRST PLUGINS THAT SHIP STATIC ASSETS, and their OutputPath is what puts
+      Plugins/<ShortName>/Content/** under the Nop.Web content root - which is the directory
+      NopStaticFileProvider serves from. So PluginStaticAssetTests depends on this build-order
+      reference for its premise, not just for discovery: without it the assets are simply absent
+      and every "must serve" case would fail on its PREMISE BROKEN guard rather than silently
+      passing.
+    -->
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.ExternalAuth.Facebook\Nop.Plugin.ExternalAuth.Facebook.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.Feed.GoogleShopping\Nop.Plugin.Feed.GoogleShopping.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+    <!--
+      Tasks 12.1-12.5, the five Payments plugins. Same shape and same reasons as the three
+      above. Note Payments.PayPalDirect additionally deploys a PRIVATE third-party assembly
+      (PayPal.dll) into its plugin folder, which is what PaymentPluginTests asserts - and which
+      the recipe alone did NOT do, because $(CopyLocalLockFileAssemblies) is false for a class
+      library. See the long note in Nop.Plugin.Payments.PayPalDirect.csproj.
+    -->
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.Payments.CheckMoneyOrder\Nop.Plugin.Payments.CheckMoneyOrder.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.Payments.Manual\Nop.Plugin.Payments.Manual.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.Payments.PayPalDirect\Nop.Plugin.Payments.PayPalDirect.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.Payments.PayPalStandard\Nop.Plugin.Payments.PayPalStandard.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.Payments.PurchaseOrder\Nop.Plugin.Payments.PurchaseOrder.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
   </ItemGroup>
 
   <!--

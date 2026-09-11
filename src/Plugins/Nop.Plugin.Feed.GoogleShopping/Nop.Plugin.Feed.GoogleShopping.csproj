@@ -1,198 +1,169 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{965A02F0-FC84-4AC4-91E4-79EADFC1CA9D}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Nop.Plugin.Feed.GoogleShopping</RootNamespace>
-    <AssemblyName>Nop.Plugin.Feed.GoogleShopping</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Feed.GoogleShopping\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Feed.GoogleShopping\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="Autofac, Version=4.4.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Autofac.4.4.0\lib\net45\Autofac.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="EntityFramework">
-      <HintPath>..\..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="EntityFramework.SqlServer">
-      <HintPath>..\..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions.Desktop, Version=1.0.168.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.Desktop.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <Private>False</Private>
-      <HintPath>..\..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Net" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Net.Http.Extensions, Version=2.2.29.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Extensions.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Net.Http.Primitives, Version=4.2.29.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Primitives.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Net.Http.WebRequest" />
-    <Reference Include="System.Web" />
-    <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.Helpers.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.Mvc, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Mvc.5.2.3\lib\net45\System.Web.Mvc.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Razor.3.2.3\lib\net45\System.Web.Razor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages.Deployment, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Deployment.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Controllers\FeedGoogleShoppingController.cs" />
-    <Compile Include="Data\EfStartUpTask.cs" />
-    <Compile Include="Data\GoogleProductObjectContext.cs" />
-    <Compile Include="Data\GoogleProductRecordMap.cs" />
-    <Compile Include="DependencyRegistrar.cs" />
-    <Compile Include="Domain\GoogleProductRecord.cs" />
-    <Compile Include="GoogleShoppingService.cs" />
-    <Compile Include="GoogleShoppingSettings.cs" />
-    <Compile Include="Models\FeedGoogleShoppingModel.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Services\IGoogleService.cs" />
-    <Compile Include="Services\GoogleService.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj">
-      <Project>{6BDA8332-939F-45B7-A25E-7A797260AE59}</Project>
-      <Name>Nop.Core</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\Nop.Data\Nop.Data.csproj">
-      <Project>{CCD7F2C9-6A2C-4CF0-8E89-076B8FC0F144}</Project>
-      <Name>Nop.Data</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj">
-      <Project>{210541AD-F659-47DA-8763-16F36C5CD2F4}</Project>
-      <Name>Nop.Services</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj">
-      <Project>{75FD4163-333C-4DD5-854D-2EF294E45D94}</Project>
-      <Name>Nop.Web.Framework</Name>
-      <Private>False</Private>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Content\styles.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Views\Configure.cshtml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Description.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <EmbeddedResource Include="Files\taxonomy.txt" />
-    <Content Include="logo.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Notes.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="packages.config">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="web.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets'))" />
-  </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+    Nop.Plugin.Feed.GoogleShopping - task 11.2
+    (Requirements 5.5, 1.1-1.5, 2.4, 4.2, 5.1, 5.3, 3.1).
+
+    THE RECIPE THIS FOLLOWS is the annotated
+    src/Plugins/Nop.Plugin.DiscountRules.CustomerRoles/Nop.Plugin.DiscountRules.CustomerRoles.csproj
+    (task 10.1). Read that file for the reasoning behind the four silently-failing decisions and
+    the fifth (Content Include vs Update for non-.cshtml content). Only what is DIFFERENT about
+    this plugin is documented here.
+
+    ===================================================================================
+    WHAT IS DIFFERENT (1) - AN EmbeddedResource, AND IT IS NOT DECORATIVE
+    ===================================================================================
+    Files\taxonomy.txt is a 6000-line list of Google product categories, and
+    Services/GoogleService.GetTaxonomyList() reads it with
+
+        assem.GetManifestResourceStream("Nop.Plugin.Feed.GoogleShopping.Files.taxonomy.txt")
+
+    i.e. by MANIFEST RESOURCE NAME, which the SDK derives from $(RootNamespace) plus the file's
+    path with separators replaced by dots. RootNamespace defaults to $(AssemblyName), which is
+    already Nop.Plugin.Feed.GoogleShopping, so the derived name is byte-identical to 3.90's and
+    the call site needs no edit. It is restated in the ItemGroup below purely so this file
+    declares it - the default Content/None globs would otherwise claim the file and it would ship
+    as a loose deployed file whose stream lookup returns null, at which point the "Default Google
+    category" dropdown on the configuration page is silently EMPTY and every feed generation
+    throws NopException("Default Google category is not set"). Asserted by
+    Nop.Web.SmokeTests.PluginViewRenderTests.
+
+    ===================================================================================
+    WHAT IS DIFFERENT (2) - STATIC ASSETS (runtime deferral 10.x-1)
+    ===================================================================================
+    Content\styles.css is referenced by ordinary URL from Views/Configure.cshtml as
+    ~/Plugins/Feed.GoogleShopping/Content/styles.css, so it is deployed as a loose file
+    (CopyToOutputDirectory="Always", as in 3.90) AND requires the NopStaticFileProvider allow-list
+    entry task 11.1 added. See the equivalent block in
+    Nop.Plugin.ExternalAuth.Facebook.csproj and the remarks on
+    NopStaticFileProvider.AllowedPluginRoots.
+
+    ===================================================================================
+    WHAT IS DIFFERENT (3) - THIS PLUGIN HAS ITS OWN DbContext (runtime deferral 4.10)
+    ===================================================================================
+    Data\GoogleProductObjectContext.cs is an EF context of its own, registered by
+    DependencyRegistrar through Nop.Web.Framework's RegisterPluginDataContext. It is therefore
+    the first of the four plugin contexts deferral 4.10 names, and it is why this project
+    references Nop.Data DIRECTLY - the legacy project did too, alongside EF6 <Reference>s that
+    are NOT restated here: EntityFramework 6.1.3 and EntityFramework.SqlServer have no place in
+    this solution any more, and EF Core arrives transitively through Nop.Data (task 3.1).
+
+    ===================================================================================
+    DROPPED IN THE CLASSIC -> SDK CONVERSION (Requirements 1.4, 1.5)
+    ===================================================================================
+    As in the 10.1 template: ToolsVersion/DefaultTargets/xmlns, ProjectGuid, ProductVersion,
+    SchemaVersion, FileAlignment, AppDesignerFolder, OutputType, TargetFrameworkProfile,
+    NuGetPackageImportStamp, TargetFrameworkVersion v4.5.1, Prefer32Bit, ErrorReport,
+    WarningLevel, DefineConstants and the Debug/Release DebugType/DebugSymbols/Optimize blocks;
+    the explicit <Compile Include> list of 12 files; the Microsoft.CSharp.targets import, the
+    Microsoft.Bcl.Build.targets import and its EnsureNuGetPackageBuildImports guard, and the
+    commented BeforeBuild/AfterBuild stubs.
+
+    Every <Reference> with a HintPath into ..\..\packages\ is gone: the Microsoft.AspNet.Mvc
+    5.2.3 / Razor 3.2.3 / WebPages 3.2.3 System.Web MVC stack, Autofac (transitive now),
+    EntityFramework + EntityFramework.SqlServer (EF6, see above) and the net40/net45 polyfills
+    Microsoft.Bcl.Async, Microsoft.Net.Http and Microsoft.Web.Infrastructure. The BCL
+    <Reference>s are subsumed by the net10.0 shared framework, and
+    <Reference Include="System.Web" /> has no net10.0 counterpart at all.
+
+    app.config, packages.config and web.config are DELETED; web.config's load-bearing content is
+    transcribed to Views/_ViewImports.cshtml. Properties/AssemblyInfo.cs is KEPT. Notes.txt stays
+    non-deployed Content, as in 3.90.
+
+    No <PackageReference>: this plugin has no third-party dependency of its own once EF6 is gone.
   -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Feed.GoogleShopping\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!--
+    Required explicitly - Microsoft.NET.Sdk.Razor does not add it implicitly. The controller binds
+    Microsoft.AspNetCore.Mvc (+ .Rendering for SelectListItem), the plugin class binds
+    Microsoft.AspNetCore.Routing (RouteValueDictionary, on IMiscPlugin's GetConfigurationRoute)
+    and the view binds Microsoft.AspNetCore.Routing as well.
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" Private="false" />
+    <ProjectReference Include="..\..\Libraries\Nop.Data\Nop.Data.csproj" Private="false" />
+    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj" Private="false" />
+    <ProjectReference Include="..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj" Private="false" />
+  </ItemGroup>
+
+  <!--
+    Private="false" alone is NOT sufficient - see runtime-deferrals.md section 83.3. Note this
+    plugin is the case that makes the point sharpest: it references Nop.Data DIRECTLY, so
+    Nop.Data.dll would be copied here by name rather than by transitive accident, and
+    PluginManager would shadow-copy and load it as the process's Nop.Data. Verbatim from the
+    template; the "Nop." prefix filter keeps Payments.PayPalDirect's private PayPal SDK working
+    (task 12.3).
+  -->
+  <Target Name="NopPluginDoNotDeployHostAssemblies" AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths
+          Remove="@(ReferenceCopyLocalPaths)"
+          Condition="$([System.String]::Copy('%(Filename)').StartsWith('Nop.'))" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    View resolution. %(Link) becomes the compiled Razor identifier, so the view compiles as
+    /Plugins/Feed.GoogleShopping/Views/Configure.cshtml and the controller's
+    View("~/Plugins/Feed.GoogleShopping/Views/Configure.cshtml", model) call site stays UNEDITED.
+    %(RecursiveDir) already contains "Views/" - do not repeat it.
+  -->
+  <ItemGroup>
+    <Content Update="Views\**\*.cshtml"
+             Link="Plugins\Feed.GoogleShopping\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+  <!--
+    The manifest resource - see "WHAT IS DIFFERENT (1)". The <None Remove> keeps the file in
+    exactly one item type so it is not ALSO deployed as loose content, which is what 3.90 did
+    (its Content glob did not claim it).
+  -->
+  <ItemGroup>
+    <None Remove="Files\taxonomy.txt" />
+    <EmbeddedResource Include="Files\taxonomy.txt" />
+  </ItemGroup>
+
+  <!--
+    Runtime-read content, deployed exactly as in 3.90. Include, NOT Update - AND the <None Remove>
+    first; under Microsoft.NET.Sdk.Razor the default Content glob covers only .cshtml/.razor, so a
+    bare <Content Update="Description.txt"> would match NOTHING and PluginManager could not see
+    the plugin at all.
+
+      Description.txt   parsed by PluginManager.Initialize. NOTE its SystemName is
+                        "PromotionFeed.Froogle", NOT "Feed.GoogleShopping" - the plugin was
+                        renamed upstream and the system name was not, and
+                        FeedGoogleShoppingController.GenerateFeed looks the plugin up BY THAT
+                        STRING. SupportedVersions must contain NopVersion.CurrentVersion
+                        ("3.90"); both facts are asserted rather than assumed by
+                        Nop.Web.SmokeTests.PluginViewRenderTests.
+      logo.jpg          shown by the admin plugin list.
+      Notes.txt         3.90 declared it Content with no CopyToOutputDirectory, i.e. not deployed.
+      Content\**        the static asset tree - see "WHAT IS DIFFERENT (2)". A recursive glob
+                        rather than 3.90's single explicit entry so an added asset cannot be
+                        silently left undeployed; it currently matches exactly styles.css.
+  -->
+  <ItemGroup>
+    <None Remove="Description.txt" />
+    <None Remove="logo.jpg" />
+    <None Remove="Notes.txt" />
+    <None Remove="Content\**" />
+    <Content Include="Description.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="logo.jpg" CopyToOutputDirectory="Always" />
+    <Content Include="Notes.txt" CopyToOutputDirectory="Never" />
+    <Content Include="Content\**" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
 </Project>

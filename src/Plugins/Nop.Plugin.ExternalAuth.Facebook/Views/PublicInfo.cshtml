@@ -1,11 +1,40 @@
-﻿@using Nop.Web.Framework.UI
+@*
+    Task 11.1. Two edits.
+
+    (1) HttpContext.Current.Request.QueryString["ReturnUrl"] -> Context.Request.Query["ReturnUrl"].
+        System.Web's static HttpContext.Current has no ASP.NET Core counterpart; RazorPageBase
+        exposes the ambient HttpContext as `Context`, which is the substitution tasks 7.3 and 8.4
+        made across all 518 views. The StringValues -> string conversion is subtle; see the
+        comment on the local below.
+
+    (2) The static asset reference is UNCHANGED, and that is the point of runtime deferral
+        10.x-1: ~/Plugins/ExternalAuth.Facebook/Content/facebookstyles.css 404'd until task 11.1
+        widened NopStaticFileProvider's allow-list, because task 7.4 replaced System.Web's
+        serve-the-application-root static handler with an allow-list that had no Plugins/ entry.
+        This stylesheet is the ONLY source of the login button's size, background image and
+        colour - a.facebook-btn has no text - so a 404 here renders a zero-size empty anchor.
+        Invisible control, no error anywhere. Asserted over real HTTP by
+        Nop.Web.SmokeTests.PluginStaticAssetTests.
+
+    Layout = "" is 3.90's and is honoured by ASP.NET Core: this is a fragment rendered into the
+    storefront login page through the Html.Action bridge (IExternalAuthenticationMethod's
+    action/controller/RouteValueDictionary triple, deferral 7.3-1). The @using Nop.Web.Framework.UI
+    that 3.90 declared here is now in Views/_ViewImports.cshtml along with the rest of the deleted
+    web.config's <namespaces>, so it is dropped rather than duplicated.
+*@
 @{
     Layout = "";
 
-    Html.AddCssFileParts("~/Plugins/ExternalAuth.Facebook/Content/facebookstyles.css");    
+    Html.AddCssFileParts("~/Plugins/ExternalAuth.Facebook/Content/facebookstyles.css");
+
+    //Assigned to a `string` local ON PURPOSE. Request.Query[...] is StringValues; its IMPLICIT
+    //STRING CONVERSION yields null for an absent key, whereas StringValues.ToString() yields
+    //string.Empty. Only the first reproduces NameValueCollection's indexer, and the difference is
+    //observable: RouteUrl omits a null route value but emits "?ReturnUrl=" for an empty one.
+    string returnUrl = Context.Request.Query["ReturnUrl"];
 }
 <div class="facebook-login-block">
     <div class="buttons">
-        <a href="@Url.RouteUrl("Plugin.ExternalAuth.Facebook.Login", new { ReturnUrl = HttpContext.Current.Request.QueryString["ReturnUrl"] })" class="facebook-btn"></a>
+        <a href="@Url.RouteUrl("Plugin.ExternalAuth.Facebook.Login", new { ReturnUrl = returnUrl })" class="facebook-btn"></a>
     </div>
 </div>

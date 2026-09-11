@@ -58,9 +58,22 @@ Paths inside the container are rooted at `/workspace`, which maps to `/home/artr
 
 `src/Tests/Nop.Web.SmokeTests` boots the real `Nop.Web` host in-process through
 `WebApplicationFactory<Nop.Web.Program>`. **It is deliberately NOT part of any clean-compile gate** —
-task 7.7 is non-gating and some of its tests need a database. (Counts as of tasks 10.1-10.3, which
-added `PluginViewRenderTests` plus one test in `HostAndContainerTests`: **178 tests**, of which 5 need
-an installed store *with the three plugins installed* and 47 need an installed store.)
+task 7.7 is non-gating and some of its tests need a database.
+
+**Counts as of tasks 12.1–12.5** (which added `PaymentPluginTests` +
+`PaymentCustomValuesRoundTripTests` + `HarnessCanaryTestsPayments`, and which ran alongside group 11):
+**222 tests**, of which **164 pass / 0 fail / 58 skip** without a database. Task 12's own contribution
+is **+18**: 16 pass with no database, 2 need an installed store.
+
+**As of tasks 12.1–12.5 this project also builds the five Payments plugins**
+(`Payments.CheckMoneyOrder`, `.Manual`, `.PayPalDirect`, `.PayPalStandard`, `.PurchaseOrder`) as
+build-order-only `ProjectReference`s, on the same terms as group 10's three: each plugin's
+`OutputPath` is 3.90's `..\..\Presentation\Nop.Web\Plugins\<ShortName>\`, which IS the content root's
+`Plugins` directory `PluginManager` scans. **`Payments.PayPalDirect` additionally deploys a private
+third-party assembly, `PayPal.dll`** — its own `NopPluginDeployPayPalSdk` target does that, because
+`$(CopyLocalLockFileAssemblies)` is `false` for a class library and the recipe alone does not
+(runtime-deferrals.md §87.2). Expect one `NU1701` warning from that project: the PayPal package is
+deprecated and net451-only, deliberately pinned, and the warning is left visible.
 
 **As of tasks 10.1-10.3 this project also builds the three migrated plugins**
 (`Nop.Plugin.DiscountRules.CustomerRoles`, `Nop.Plugin.DiscountRules.HasOneProduct`,
@@ -79,8 +92,8 @@ and `Nop.Plugin.SmokeProbe.dll` must **not** reach the output directory at all o
 would load it directly and bypass `PluginManager`'s shadow copy (deferral 8.2-1). The practical
 consequence: `dotnet test` on this project now fails if `Nop.Admin` fails to compile.
 
-Without a database (**126 pass / 0 fail / 52 skip** as of task 10.x — the storefront, admin-render
-and plugin-render fixtures skip):
+Without a database (**164 pass / 0 fail / 58 skip** as of task 12.x — the storefront, admin-render
+and the database-gated halves of the plugin fixtures skip):
 
 ```bash
 docker run --rm -u "$(id -u):$(id -g)" -e DOTNET_CLI_HOME=/tmp -e HOME=/tmp \
@@ -175,6 +188,13 @@ trusted. (Task 7.7 shipped three; the deferral 7.3-4 / 7.7-1 fix added a fourth 
 sixth for the admin static-asset assertions; task 8.8 added a seventh for the `/__smoke/adminarea`
 probe and an eighth for admin-authenticated page fetches; tasks 10.1-10.3 added a ninth for the
 `/__smoke/plugins` probe and a tenth for the `getView:` view-engine lookups that probe performs.)
+
+**As of tasks 12.1–12.5 the count is THIRTEEN, and all thirteen must report Failed.** The three
+additions live in `HarnessCanaryTestsPayments` — named so the same `~HarnessCanaryTests` filter
+picks them up — and guard the `/__smoke/payments` exact-line matching, that probe's `getView:`
+lookups, and that the `CustomValues` session round-trip really serializes rather than passing a live
+CLR object through (without which both halves of the deferral 7.3-2 fixture would pass for the wrong
+reason).
 
 
 ## Running the Nop.Admin imaging tests (task 8.6)

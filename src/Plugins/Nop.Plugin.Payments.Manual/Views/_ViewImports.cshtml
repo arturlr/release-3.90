@@ -1,0 +1,25 @@
+@*
+    Task 12.2 — the ASP.NET Core replacement for this plugin's deleted web.config
+    <system.web.webPages.razor><pages> element (Requirement 4.4). See the annotated copy in
+    Nop.Plugin.DiscountRules.CustomerRoles/Views/_ViewImports.cshtml (task 10.1) for the full
+    reasoning: the @inherits directive replaces pageBaseType (it is what makes T(...) and an
+    unqualified @model resolve), and the @using list is the translated <namespaces> set
+    (System.Web.Mvc.Ajax has no counterpart and is dropped).
+
+    It must live inside the tree covered by the project file's Content/Link glob, because
+    Razor matches imports by the LINKED path.
+*@
+@inherits Nop.Web.Framework.ViewEngines.Razor.WebViewPage<TModel>
+
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Routing
+
+@using Nop.Core.Infrastructure
+@using Nop.Web.Framework
+@using Nop.Web.Framework.UI
+@using Nop.Plugin.Payments.Manual.Models
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

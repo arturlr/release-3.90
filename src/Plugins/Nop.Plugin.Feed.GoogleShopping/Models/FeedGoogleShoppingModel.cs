@@ -1,10 +1,19 @@
 ﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Plugin.Feed.GoogleShopping.Models
 {
+    /// <remarks>
+    /// Task 11.2. One substitution: <c>using System.Web.Mvc;</c> →
+    /// <c>using Microsoft.AspNetCore.Mvc.Rendering;</c>, which is where
+    /// <see cref="SelectListItem"/> lives in ASP.NET Core (§30). Nothing else changes —
+    /// <c>BaseNopModel</c> and <c>[NopResourceDisplayName]</c> were ported in place by task 6.2
+    /// with their names intact, and the three <c>IList&lt;SelectListItem&gt;</c> properties are
+    /// populated by the controller and consumed by <c>Html.NopDropDownListFor</c>, both of which
+    /// bind the same type.
+    /// </remarks>
     public class FeedGoogleShoppingModel
     {
         public FeedGoogleShoppingModel()

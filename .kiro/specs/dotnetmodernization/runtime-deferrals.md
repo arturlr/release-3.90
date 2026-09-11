@@ -9021,3 +9021,975 @@ tree is not part of the exposed surface.
 | **8.2-2 / 8.5-1** | nothing enforces the two-step publish | 18.x. Note plugins add a third element: their `OutputPath` writes into `Nop.Web`'s **source** tree, which a `dotnet publish` of `Nop.Web` does not consult |
 | **8.8-2** | `Nop.Plugin.SmokeProbe`, `Nop.Web.SmokeTests` and `Nop.Admin.Tests` are not in `NopCommerce.sln` | 18.1. **The three real plugins ARE in the solution already** (as legacy entries pointing at the same paths), so 18.1's job for them is unchanged |
 | **8.8-1** · **8.8-3** · **8.8-4** · **7.7-2** · **7.7-3** · **7.4-1** · **35** · **18/7.18** | unchanged | as previously recorded |
+
+
+---
+
+# The five Payments plugins (tasks 12.1–12.5)
+
+Tasks 12.1–12.5 migrated `Nop.Plugin.Payments.CheckMoneyOrder`, `.Manual`, `.PayPalDirect`,
+`.PayPalStandard` and `.PurchaseOrder` — 30 `.cs` files and 10 views between them. The group-10
+recipe applied unchanged to the project files. What did **not** come free is everything specific to
+a *payment* plugin: the `IPaymentMethod` contract's `Html.Action` triple, `Request.Form` on a GET,
+a deprecated .NET-Framework-only SDK, and the session JSON bridge's fidelity limit.
+
+| Measurement | Value |
+|---|---|
+| the five plugins | **0 errors** each. Warnings of their own: **0** for CheckMoneyOrder, Manual and PurchaseOrder; **2 `SYSLIB0014`** for PayPalStandard (`WebRequest.Create`, deliberately not rewritten — deferral 12.4-1); **1 `NU1701`** for PayPalDirect (the net451 PayPal SDK, deliberately — deferral 12.3-3; MSBuild reports it twice) |
+| upstream re-gate, `--no-incremental` | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 · `Nop.Admin` **0**/15 — every baseline exact, **no warning added** |
+| group 10's three plugins, rebuilt | **0 errors**; 10/10/11 warnings, i.e. the 10 upstream plus EcbExchange's own 1 — exactly its recorded shape |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| `Nop.Admin.Tests` | **53 passed / 0 failed / 0 skipped** — unchanged |
+| `Nop.Web.SmokeTests`, no database | **164 passed / 0 failed / 58 skipped** (222 total; the count moved during the task as group 11 landed tests). Task 12 contributes **+18**: 16 pass, 2 skip (they need a store). The rest of the delta from group 10's recorded 126/0/52 is group 11's, running concurrently |
+| `HarnessCanaryTests` (the documented `~HarnessCanaryTests` filter) | **13 failed / 0 passed** (was 10; three added, in `HarnessCanaryTestsPayments`) |
+| residual `System.Web*` scan | **0 real hits across 53 files**; the naive grep reports **53** lines, every one of them migration commentary. Canary-proven in both `.cs` and `.cshtml`, both directions (§87.9) |
+| deployment shape per plugin | `Description.txt`, `logo.jpg`, `<plugin>.dll`, `.pdb`, `.deps.json` — **no other `Nop.*.dll`**, no `.cshtml`, no `.config`. Plus, for `Payments.PayPalDirect` only, **`PayPal.dll`** |
+
+**THREE DEFECTS WERE FOUND BY EXECUTION, and all three would have failed at runtime with nothing
+visible at compile time.** §87.1 is a 500 on the checkout page of any store using three of these
+five methods. §87.2 is a payment plugin that installs cleanly and then throws
+`FileNotFoundException` on its first PayPal call — twice over, for two independent reasons. §87.3 is
+a silent, permanent corruption of a stored order field.
+
+## 87. Tasks 12.1–12.5 — what was decided, and what it cost to find out
+
+### 87.1 DEFECT — `Request.Form` on a GET throws, and it is the checkout page
+
+3.90's `PaymentInfo` child action repopulates the form after a failed validation round-trip by
+reading `this.Request.Form` **unconditionally**. `System.Web` returned an empty
+`NameValueCollection` for a request with no form body, so the read was harmless. ASP.NET Core's
+`HttpRequest.Form` getter **throws `InvalidOperationException`** ("Incorrect Content-Type") when
+`HasFormContentType` is false.
+
+**Three of the five plugins do this:** `Payments.Manual` (5 reads), `Payments.PayPalDirect`
+(5 reads), `Payments.PurchaseOrder` (1 read). `Payments.CheckMoneyOrder` and
+`Payments.PayPalStandard` do not, which is why the defect is per-plugin rather than in the base
+class.
+
+**It is not an edge case.** `PaymentInfo` is invoked as a **child action** from
+`Views/Checkout/PaymentInfo.cshtml`, through `IPaymentMethod.GetPaymentInfoRoute` and the
+`Html.Action` bridge, on the **same `HttpContext` as the parent request** — and
+`GET /checkout/paymentinfo` has no form body. So the unguarded read throws inside view rendering on
+the **first arrival at the payment step**: HTTP 500 on the checkout page, every time, for any store
+whose customers pick one of those three methods.
+
+The fix is the `HasFormContentType` guard, which is not invented here — it is the pattern this
+migration already established for exactly this API change at eight sites
+(`FormValueRequiredAttribute`, `ParameterBasedOnFormName`, `ParameterBasedOnFormNameAndValue`,
+`CaptchaValidatorAttribute`, `HoneypotValidatorAttribute`, `BaseAdminController`,
+`ReturnRequestController`, `ShoppingCartController`). It reproduces 3.90's observable behaviour
+exactly: no form ⇒ nothing to repopulate ⇒ empty controls and no preselected option.
+
+Asserted over HTTP by
+`PaymentPluginTests.Deferral_7_3_2_the_PurchaseOrder_PaymentInfo_view_survives_a_GET_with_no_form_body`
+(Group B, needs a store).
+
+### 87.2 DEFECT ×2 — the PayPal SDK, and why "it compiles" proved nothing
+
+`Payments.PayPalDirect` is the only plugin in the solution that deliberately deploys a private
+third-party assembly: the PayPal REST SDK, the single `<Private>True</Private>` in all 20 legacy
+project files.
+
+**First, the package question, answered rather than assumed.** The `PayPal` package is
+**deprecated** on nuget.org ("legacy and no longer maintained") and **no release of it publishes a
+netstandard or net(core) asset** — 1.8.0, the final 1.9.1 and everything between ship
+`lib/net40` + `lib/net45` + `lib/net451` only. PayPal's REST API v1 .NET SDK was discontinued; the
+v2 SDK is a different product with a different API surface. There is nothing to advance to and
+nothing to substitute. **Decision: pin 1.8.0 — 3.90's version — as a version-less
+`PackageReference` under central package management, consume the `lib/net451` asset, and leave the
+`NU1701` warning visible.** That follows both of this migration's precedents: pinning an old
+package with a recorded reason (EPPlus 4.5.3.3, FluentValidation 7.6.105, NUnit 3.14.0,
+iTextSharp.LGPLv2.Core, SixLabors.ImageSharp 2.1.13) and leaving an honest warning rather than
+suppressing it (the four remaining `SYSLIB0014` sites). Rewriting ~1000 lines of payment, recurring
+payment, capture, refund, void and webhook logic against raw HTTP is a rewrite of a money path with
+no test coverage available — exactly what the faithfulness rule forbids.
+
+**Second, "does a net451 assembly referenced from net10.0 actually RUN?"** A net451 reference
+compiles happily and can still fail at the first call, so `PayPal.dll`'s metadata was read with
+`System.Reflection.Metadata` and its **IL scanned** for members belonging to assemblies that do not
+exist on .NET. Two were found, and neither is on a cold path:
+
+| Missing assembly | Members used | Reached from |
+|---|---|---|
+| `System.Web` | `HttpUtility.UrlEncode`, `HttpUtility.ParseQueryString` | `PayPal.Util.SDKUtil.FormatURIPath` — i.e. **every SDK resource GET**: `Sale.Get`, `Authorization.Get`, `Capture.Get`, `Agreement.Get`, `Webhook.Get`. Also `Tokeninfo.CreateFromRefreshToken`, `UserinfoParameters.SetAccessToken`, `PayPalRelationalObject.GetTokenFromApprovalUrl` |
+| `System.Configuration` | `ConfigurationManager.GetSection`, `.AppSettings`, and the `ConfigurationSection` / `ConfigurationElement` / `ConfigurationElementCollection` / `NameValueConfiguration*` base types | `PayPal.Api.ConfigManager..ctor`, `PayPal.Log.LogConfiguration.GetConfiguration`, and the three `SDKConfigHandler` / `AccountCollection` / `Account` types that derive from them |
+
+Both were then **exercised on net10.0** (throwaway console probe, deleted; `git status` clean):
+
+* **`System.Web` resolves.** The net10.0 shared framework ships a type-forwarding facade whose
+  `System.Web.HttpUtility` lives in `System.Web.HttpUtility.dll`. `SDKUtil.FormatURIPath` returned
+  the correct path. Nothing to do.
+* **`System.Configuration` also resolves as a facade, and its targets did not exist.** The forwards
+  land in the **out-of-band `System.Configuration.ConfigurationManager` package**. Without it,
+  `new OAuthTokenCredential(config)` — the *first* thing `PaypalHelper.GetApiContext` does — threw
+  `FileNotFoundException: Could not load file or assembly
+  'System.Configuration.ConfigurationManager'`. With it, every probe assertion passed.
+
+So the plugin would have compiled, deployed, been discovered, reported compatible, appeared in the
+admin plugin list, installed — and then failed on its first PayPal call. The host already carries
+the package (9.0.11), so the fix is a declaration rather than a new dependency; see deferral
+**12.3-2** for the fragility that remains.
+
+**Third, and separately: the recipe does not deploy `PayPal.dll` at all.** Task 10.1's template
+states that `NopPluginDoNotDeployHostAssemblies`' `"Nop."` scoping is what lets this plugin's
+private SDK deploy. That statement is **true and not sufficient**, and it had never been exercised,
+because no group-10 plugin has a package runtime asset. Measured: with the recipe alone the
+deployment directory held `Description.txt`, `logo.jpg`, the plugin dll, its pdb and its deps.json —
+and **no `PayPal.dll`**. Removing the filter target entirely did not change that (it only made
+`Nop.Data.dll` leak, reproducing §83.3), so the filter is innocent.
+
+The cause is an SDK default with nothing to do with the filter: **`$(CopyLocalLockFileAssemblies)`
+is `false` for a class library.** Only an application copies its packages' runtime assets to its
+output; a library copies only `ProjectReference` outputs, on the assumption that whoever consumes it
+resolves the packages. A nopCommerce plugin breaks that assumption completely — it is deployed as a
+bare directory that `PluginManager` shadow-copies, nothing consumes it as a library, and its
+`deps.json` is never read (`PluginManager` loads by *path* into the default `AssemblyLoadContext`,
+which resolves dependencies from the **host's** trusted-platform list). A dependency the host does
+not have must sit physically next to the plugin or it does not exist.
+
+Turning `CopyLocalLockFileAssemblies` on was rejected: `@(RuntimeCopyLocalItems)` holds **50** items
+here — Autofac, Newtonsoft.Json, EF Core, ImageSharp, EPPlus, the Azure and IdentityModel stacks —
+every one of which the host already carries and each of which `PluginManager.PerformFileDeploy`
+would shadow-copy and load as the process's copy. That is §83.3's failure mode multiplied. The
+`NopPluginDeployPayPalSdk` target copies exactly the assets of the one package that must travel with
+the plugin, selected by `NuGetPackageId` so the central version pin stays the single source of
+truth, and it carries an `<Error>` guard so a future resolution change **fails the build** instead
+of quietly shipping a plugin that installs and then throws.
+
+Two earlier shapes of that fix were tried and measured to fail, which is why it is a plain `Copy`:
+contributing to `@(ReferenceCopyLocalPaths)` from `AfterTargets="ResolveReferences"` or
+`BeforeTargets="_CopyFilesMarkedCopyLocal"` (the item was verified present — a diagnostic `Message`
+showed the list going 0 → 1 — and the file was still not copied), and target-level `Inputs`/`Outputs`
+batching on `@(RuntimeCopyLocalItems)` (which silently batched the whole target per item). **That
+"0" is itself worth recording: it shows `NopPluginDoNotDeployHostAssemblies` empties
+`ReferenceCopyLocalPaths` completely rather than only its `Nop.*` entries** — harmless given that
+nothing else may be deployed, but not what its name suggests. Deferral **12.x-3**.
+
+### 87.2a DEFERRAL 7.3-2 — RESOLVED for these five, and re-scoped with evidence
+
+The question routed here was: *does any of these five plugins round-trip a non-string
+`CustomValues` entry through the session?*
+
+**Answer, from a repository-wide search rather than an assumption: exactly one plugin writes to
+`CustomValues` at all** — `Payments.PurchaseOrder`, one entry, the purchase-order number. The other
+four never touch it. (`Payments.Manual` and `Payments.PayPalDirect` populate the *typed* credit-card
+properties of `ProcessPaymentRequest`, which are `string`/`int` and unaffected.)
+
+**And it would have been a non-string, which is the finding.** 3.90 wrote
+`CustomValues.Add(resource, form["PurchaseOrderNumber"])` where `form` was a
+`NameValueCollection`-derived `FormCollection`, so the value was a `string`. On ASP.NET Core the
+indexer returns **`StringValues`**, and boxing a `StringValues` into the
+`Dictionary<string, object>` preserves it. `StringValues` implements `IEnumerable<string>`, and
+`System.Text.Json` uses the **runtime** type for an `object`-declared value, so it writes a JSON
+**array**. On the way back it is a `JsonElement` of kind `Array`, and
+`PaymentExtensions.SerializeCustomValues` persists custom values with `value.ToString()` — so
+`Order.CustomValuesXml` would have recorded the literal text `["PO-1234"]` instead of `PO-1234`.
+That string is what the customer's order-details page, `_OrderReviewData.cshtml`, the
+order-confirmation e-mail (`MessageTokenProvider`) and the admin order screen all display. A
+silent, permanent corruption of an order field, on the money path.
+
+**Fix: an explicit `.ToString()` at that one call site.** The value becomes a `string`, JSON writes
+a string, the round-trip yields a `JsonElement` of kind `String`, and `JsonElement.ToString()`
+returns the string *content* (not a quoted form) — so `SerializeCustomValues` writes exactly the
+entered text, byte-identical to 3.90. `TypeNameHandling`-style type-preserving serialization was
+**not** used: task 4.2 refused it as a deserialization-gadget hazard, and here it would be a
+remote-code-execution surface reachable from a session cookie.
+
+One deliberate, visible difference: `StringValues.ToString()` returns `string.Empty` for a missing
+key where `System.Web`'s indexer returned `null`. It is the safer of the two and the stored value is
+identical either way, because `DictionarySerializer.WriteXml` writes a null value as an empty
+element that `ReadXml` reads back as `""`.
+
+**Verified by execution, with the counterfactual measured in the same fixture.**
+`PaymentCustomValuesRoundTripTests` drives the real `Nop.Web/Extensions/SessionExtensions.cs` helper
+and the real `SerializeCustomValues`/`DeserializeCustomValues` over a real `ISession`:
+
+| Test | What it pins |
+|---|---|
+| `…a_string_CustomValue_survives_the_session_and_persists_verbatim` | the fixed shape: `JsonElement`/`String`, `ToString()` == the input, and `<value>PO-1234</value>` in the persisted XML |
+| `…the_unfixed_StringValues_shape_CORRUPTS_the_stored_order_value` | the counterfactual: `JsonElement`/`Array`, and `["PO-1234"]` in the persisted XML. It asserts the corruption, so removing the `.ToString()` cannot pass silently |
+| `…a_non_string_CustomValue_still_round_trips_by_ToString_for_primitives` | scope: an `int` also loses its CLR type but `JsonElement.ToString()` yields the raw number text, which is what a boxed `int` would have written anyway. It is **composite and collection-shaped** values that are unsafe |
+| `…the_helper_fails_soft_rather_than_throwing` | `SessionExtensions`' recorded contract — an unreadable payload yields `default(T)`, i.e. payment entry restarts, which is what a 3.90 session expiry did |
+
+**Status: RESOLVED for tasks 12.1–12.5, RE-SCOPED for what remains.** The mechanism still cannot
+recover the CLR type of an `object` value, and that is not fixable without the gadget hazard. What
+changed is that it is no longer a *pending* question: no in-tree plugin is affected, the one that
+could have been is fixed, and the residual exposure is precisely **third-party payment plugins that
+store a non-primitive in `CustomValues`**. Recorded as **12.x-1** with that scope, at Low severity,
+because a third-party plugin author's own `ToString()` is what `SerializeCustomValues` was always
+going to call.
+
+### 87.3 The `IPaymentMethod` contract — verified, plus a correction to the task brief
+
+The task brief asked to verify `PaymentInfoActionName` / `PaymentInfoControllerName` /
+`ButtonPaymentMethodActionNames`. **Those members do not exist in 3.90 and are not what these
+plugins implement** — they are nopCommerce 4.x names. 3.90's `IPaymentMethod` (and the migrated one,
+unchanged in shape by task 4.1) exposes the **out-parameter triple**:
+
+```csharp
+void GetConfigurationRoute(out string actionName, out string controllerName, out RouteValueDictionary routeValues);
+void GetPaymentInfoRoute (out string actionName, out string controllerName, out RouteValueDictionary routeValues);
+```
+
+There is no `ButtonPaymentMethodActionNames` anywhere in the repository (checked). The *substance*
+of the brief is right and was verified: this triple is one of deferral 7.3-1's five
+dynamically-named `Html.Action` call sites, and it is the reason task 7.3 could not replace the
+bridge with view components. `Nop.Web/Factories/CheckoutModelFactory.cs:438` and
+`ShoppingCartModelFactory.cs:878` read it; the admin side reads `GetConfigurationRoute` from
+`PaymentController.cs:151`.
+
+The only edit needed was `System.Web.Routing.RouteValueDictionary` →
+`Microsoft.AspNetCore.Routing.RouteValueDictionary`. **The `routeValues` contents are 3.90's,
+unchanged, including a value that no longer does anything:**
+
+* `{"Namespaces", "Nop.Plugin.Payments.X.Controllers"}` was consumed by MVC 5's
+  `DefaultControllerFactory` to disambiguate same-named controllers across assemblies. ASP.NET Core
+  has no such mechanism and an unknown route value is ignored. It is left in place because these
+  values travel through a **public plugin contract** into the bridge, a third-party plugin may read
+  them, and removing them would be a silent contract change with no upside.
+* `{"area", null}` **does** still matter, and in the same direction as in 3.90: it says "not in an
+  area". Task 8.8 made the bridge area-aware (§77.1), so an explicit null keeps the admin-side
+  `Html.Action` from resolving against the Admin area — which is where
+  `PaymentController.ConfigureMethod` renders it from.
+
+`PaymentPluginTests.Deferral_7_3_1_the_IPaymentMethod_route_triple_resolves_to_this_plugins_own_controller`
+asserts, for all five, that the triple names the expected controller/action, that `area` is `<null>`,
+and that resolving it against the real `IActionDescriptorCollectionProvider` yields exactly **one**
+controller type — the plugin's own. `…a_payment_methods_PaymentInfo_view_RENDERS_through_the_Html_Action_bridge`
+(Group B) then fetches it over HTTP and checks the view's own markup came back **and that there is
+no `<html>`**, i.e. `Layout = ""` was honoured and no `_ViewStart` leaked in (§83.1).
+
+### 87.4 `WebRequest` in `Payments.PayPalStandard` — declined, consistently, and the reason matters more here
+
+`PayPalStandardPaymentProcessor` POSTs to PayPal's PDT and IPN endpoints with `HttpWebRequest`
+(2 sites). **Kept, and the two `SYSLIB0014` warnings left visible** — the fifth time this migration
+has faced the question and the fifth time it has declined, after `OfficialFeedManager` (2.4),
+`KeepAliveTask` (4.2), the admin news feed (8.7-1) and `EcbExchange` (10.3-1). The recorded reasons
+are unchanged: the timeout semantics differ, `GetResponse()` throws on 4xx/5xx where
+`HttpClient.Send` does not, and a correct port needs a static shared `HttpClient` with its own proxy
+and DNS-refresh behaviour rather than a per-call instance.
+
+**Consistency matters more here than anywhere else in the migration.** `VerifyIpn` is the control
+that decides whether an inbound IPN is *genuine* — it echoes the raw notification back to PayPal and
+tests the reply for `VERIFIED` — and `GetPdtDetails` is what confirms a payment. A behavioural
+change in either, for instance a 4xx that stops throwing and instead returns a body that fails the
+string test in a *different* way, is a change to a payment-authenticity check. `HttpWebRequest` is
+still fully supported on .NET (implemented over `HttpClient` internally), so keeping it preserves
+3.90's behaviour exactly. Deferral **12.4-1**.
+
+### 87.5 The other `System.Web` substitutions in `Payments.PayPalStandard`
+
+| Was | Now | Note |
+|---|---|---|
+| `HttpContextBase _httpContext` (ctor-injected) | `IHttpContextAccessor` | design §5; the swap task 4.2 made in `CompareProductsService`, `RecentlyViewedProductsService`, `UserAgentHelper` and `WorkflowMessageService`, and the reason task 6.4 stopped registering `HttpContextBase` at all |
+| `HttpContext.Current.Request.UserAgent` (2 sites) | the `User-Agent` request header via that accessor | `HttpRequest.UserAgent` does not exist in ASP.NET Core — identical to `UserAgentHelper`. Made null-tolerant: 3.90 dereferenced an ambient `HttpContext.Current` that was `null` off a request thread, and `HttpWebRequest.UserAgent = null` simply sends no header. PayPal answers 403 without *some* UA, which is why 3.90 set it — so a null degrades exactly as an absent inbound UA header would have, not worse |
+| `HttpUtility.UrlEncode` / `UrlDecode` (21 sites) | `System.Net.WebUtility` | task 2.4's and 4.2's swap. Same character set, both render a space as `+`; the one difference is hex digit **case** (`%2f` vs `%2F`), which RFC 3986 declares equivalent |
+| `_httpContext.Response.Redirect(url)` | `HttpResponse.Redirect(url)` | 302 in both. `System.Web`'s one-argument overload also **ended** the response by throwing `ThreadAbortException`, which has no ASP.NET Core counterpart. It does not matter here, and that was checked rather than hoped: `IWebHelper.IsRequestBeingRedirected` is what `CheckoutController` tests **immediately** after `PostProcessPayment` returns, so the caller returns without writing anything further — the same net effect. Nothing runs in between |
+| `Request.BinaryRead(Request.ContentLength)` (`IPNHandler`) | `Request.Body`, read to completion, `async` | see §87.6 |
+
+### 87.6 Two actions became `async`, and it was required rather than stylistic
+
+`PayPalStandardPaymentProcessor`'s IPN endpoint and `PaymentPayPalDirectController`'s webhook
+endpoint both read the raw request body. **Kestrel sets `AllowSynchronousIO = false` by default
+(since .NET Core 3.0) and this host does not override it**, so a synchronous read of `Request.Body`
+throws `InvalidOperationException`. Both actions are reached **only** by their plugin route, so
+there is no in-process caller to break and ASP.NET Core invokes an async action transparently.
+
+For `PaymentPayPalDirectController.WebhookEventsHandler` the consequence of getting this wrong is
+worse than a 500: the throw would have happened *inside* its `catch (PayPalException)`, so it would
+not have been caught, and PayPal treats a non-2xx as "not delivered" and **redelivers the event
+indefinitely**.
+
+Two related decisions, recorded because both look like candidates for "modernising" and neither is:
+
+* **`Encoding.ASCII` is kept** in the IPN read. The decoded string is fed straight into `VerifyIpn`,
+  which POSTs it back to PayPal as `cmd=_notify-validate&…` and requires a **byte-for-byte echo** of
+  the original notification for the check to succeed. Changing the decoding changes what is echoed
+  and could make a genuine IPN fail validation.
+* **`return new StatusCodeResult(200)` even on failure** is preserved in the webhook handler. 3.90
+  answers 200 when validation fails *and* when an exception is thrown; that is not a bug, it is how
+  a webhook consumer tells PayPal "delivered, stop retrying".
+
+**Reading to completion is also strictly more correct than what it replaces.** 3.90's single
+`BinaryRead(n)` trusted a client-declared length and one read call — the same latent truncation
+shape task 4.2 fixed in `Nop.Services`' `Media.Extensions` and task 7.3 in the two upload actions.
+For a well-formed request the resulting string is identical.
+
+### 87.7 `Request.Headers` → `NameValueCollection`, and why it is not cosmetic
+
+`PaymentPayPalDirectController.WebhookEventsHandler` passes `Request.Headers` to
+`WebhookEvent.ValidateReceivedEvent(APIContext, NameValueCollection, string, string)` — the PayPal
+SDK's **signature check**. Its second parameter really is a `NameValueCollection` (verified by
+reflection against the real PayPal 1.8.0 assembly on net10.0, not read off documentation), and
+`System.Web`'s `HttpRequestBase.Headers` *was* one. ASP.NET Core's `IHeaderDictionary` is not, and
+there is no conversion.
+
+The copy must therefore be complete and faithful: the SDK reads `PAYPAL-TRANSMISSION-ID`,
+`-TIME`, `-SIG`, `PAYPAL-CERT-URL` and `PAYPAL-AUTH-ALGO` from it. `StringValues.ToString()` joins
+multiple values with `,`, which is exactly the representation `System.Web`'s
+`NameValueCollection`-based `Headers` exposed, and `NameValueCollection`'s indexer is
+case-insensitive by default just as `IHeaderDictionary`'s is — so the SDK's lookups behave
+identically. It is kept as a named private method rather than inlined, because it is part of a
+signature-verification path and deserves to be reasoned about on its own.
+
+### 87.8 `Request.IsLocal` — the second site in the solution, and it stayed in the plugin
+
+`Payments.PayPalDirect/Views/Configure.cshtml` reads `Request.IsLocal` to decide whether to offer
+the "create webhook" button: PayPal cannot deliver a webhook to a machine it cannot reach, so on a
+developer machine the button is hidden and the id is entered by hand. `HttpRequestBase.IsLocal` has
+**no ASP.NET Core equivalent**.
+
+`PaypalHelper.IsLocalRequest(HttpContext)` applies the same two tests `System.Web` applied — the
+remote address is a loopback address, or the remote address equals the local address, with a null
+remote address treated as local because `System.Web` treated an in-process request that way — and is
+**deliberately identical** to the private helper task 6.2 wrote for
+`Nop.Web.Framework.Seo.WwwRequirementAttribute`, the other `Request.IsLocal` site.
+
+**It stayed in the plugin rather than being promoted.** The framework copy is `private`, and
+promoting it would mean adding public surface to a **gated project that another migration group is
+editing concurrently**, for one caller. Ten duplicated lines is the smaller cost. The duplication is
+stated so a later task can consolidate the two deliberately — deferral **12.3-1**.
+
+### 87.9 Other substitutions, and the residual scan
+
+All reusing decisions §30, §55 and §83.9 already recorded — nothing re-derived:
+
+| Substitution | Sites | Note |
+|---|---|---|
+| `System.Web.Mvc` → `Microsoft.AspNetCore.Mvc` | all 5 | `+ Microsoft.AspNetCore.Mvc.Rendering` for `SelectList`/`SelectListItem`, which live in a different namespace from the rest of MVC |
+| `FormCollection` → `IFormCollection` | 12 | 10 on the `BasePaymentController` overrides, plus `PDTHandler` and `CancelOrder`'s action parameters. A **public signature change task 6.2 made on the base class**, not a choice here. Both action parameters bind safely on a GET: `FormCollectionModelBinder` checks `HasFormContentType` and supplies an empty collection |
+| the indexer yields `StringValues` | 8 comparisons/parses | §55.5's change. Assignments compile untouched via the implicit conversion; every place the value is **compared or parsed** is spelled with an explicit `.ToString()`, because `string.Equals(string, StringComparison)` would otherwise bind through that conversion and compare a comma-joined multi-value field |
+| `[ChildActionOnly]` deleted | 15 | deferral **7.3-4** — no counterpart. These actions **must** stay invocable: `IPaymentMethod`'s triple is how the host reaches them. `Configure` keeps `[AdminAuthorize]`; `PaymentInfo` renders settings-driven or empty form markup |
+| `[AllowHtml]` deleted | 14 | deferral **7.3-3**'s recorded SECURITY-RELEVANT RELAXATION. See §87.10 |
+| `[ValidateInput(false)]` deleted | 3 | same deferral, and unusual: 3.90 marked `PDTHandler`, `IPNHandler` and `RoundingWarning` **exempt** because PayPal's callbacks carry arbitrary text that request validation would have rejected. Their exposure is unchanged, not widened |
+| `Json(x, JsonRequestBehavior.AllowGet)` → `Json(x)` | 2 | no JSON-hijacking guard, so no opt-out from one. MVC 5's default was `DenyGet` and both sites opted out, so the ported behaviour is what 3.90 asked for |
+| `new HttpStatusCodeResult(HttpStatusCode.OK)` → `new StatusCodeResult(200)` | 3 | same wire behaviour: a bare status line, no body |
+| `RouteCollection`/`MapRoute` → `IEndpointRouteBuilder`/`MapControllerRoute` | 4 routes, 2 providers | §17.4a's mechanical edit; `string[] namespaces` dropped. All four patterns fully literal, so no `AmbiguousMatchException` is possible — checked. `Priority` stays 0 |
+
+**THE FOUR ROUTE PATTERNS ARE EXTERNAL CONTRACTS, not internal wiring** — worth stating because
+nothing in the code would stop a rename. `Plugins/PaymentPayPalStandard/{PDTHandler,IPNHandler,CancelOrder}`
+are configured **at PayPal** and composed by hand in `GenerationRedirectionUrl` from
+`_webHelper.GetStoreLocation()`; `Plugins/PaymentPayPalDirect/Webhook` is POSTed to PayPal's webhook
+API by `CreateWebHook` and is also typed in by hand from the `Instructions` resource. A changed
+pattern silently sends a paying customer to a 404, or stops recurring payments from ever being
+marked paid.
+
+**The residual `System.Web` scan: 0 real hits across 53 files.** A naive grep reports **53** lines,
+every one of them this migration's own commentary naming the type it replaced. The scanner blanks
+`//`, `/* */`, `@* *@` and `<!-- -->` per file type and is string/verbatim-string aware, and it was
+**proven able to fail in both languages and both directions**: an added *comment* naming
+`System.Web.Mvc` in a `.cs` file was **not** reported; an added
+`private System.Web.HttpUtility _canary;` **was**; an added `@* … System.Web.Mvc … *@` in a
+`.cshtml` was **not**; an added `@System.Web.HttpUtility.UrlEncode("x")` in the same file **was**.
+All four canaries were removed and the scan re-run at 0. Tokens also covered
+`HttpContext.Current`, `HttpContextBase`, `HttpRequestBase`, `HttpResponseBase`,
+`HttpPostedFileBase`, `MvcHtmlString`, `System.Configuration`, `System.Runtime.Caching`,
+`JsonRequestBehavior`, `ChildActionOnly`, `AllowHtml`, `ValidateInput`, `HttpStatusCodeResult`,
+`FormCollection` (negative-lookbehind so `IFormCollection` is not a false positive) and
+`RouteCollection`.
+
+### 87.10 Faithfulness — the security-relevant changes, stated rather than glossed
+
+**`[AllowHtml]` ×14 and `[ValidateInput(false)]` ×3 deleted.** Both existed only to opt *out* of
+ASP.NET request validation, which **does not exist in ASP.NET Core**, so there is nothing to opt out
+of and no way to restore it. Deferral 7.3-3, recorded at 99 Nop.Web sites and 395 admin ones.
+
+Because these handle money and card data, the direction is worth being exact about: **every one of
+the 17 sites was ALREADY exempt in 3.90.** Their exposure is unchanged, not widened. What changes in
+general is that *previously-screened* properties are no longer screened — and none of these was
+screened.
+
+What actually protects them is unchanged, and was checked rather than assumed:
+
+* **`Payments.Manual` and `Payments.PayPalDirect`'s card fields** (`CardNumber`, `CardCode`,
+  `ExpireMonth`, `ExpireYear`, `CardholderName`, `CreditCardType`) — `PaymentInfoValidator` still
+  enforces `IsCreditCard()` on the number and `^[0-9]{3,4}$` on the CVV through
+  `ValidatePaymentForm`, and no value is rendered with `Html.Raw`.
+* **`Payments.PurchaseOrder`'s `PurchaseOrderNumber`** — it reaches
+  `Order.CustomValuesXml` and is displayed by `Views/Order/Details.cshtml`,
+  `_OrderReviewData.cshtml` and the admin `_OrderDetails.Info.cshtml`. All three render it as
+  `@item.Value`, i.e. Razor HTML-encodes it, and the e-mail token path calls
+  `WebUtility.HtmlEncode` explicitly. **No `Html.Raw` anywhere on that path.**
+* **`Payments.CheckMoneyOrder`'s `DescriptionText`** *is* rendered with `@Html.Raw`, and that is
+  3.90's design: it is an administrator-authored rich-text setting behind `[AdminAuthorize]` whose
+  documented purpose is to hold HTML. It was `[AllowHtml]` in 3.90 for exactly that reason.
+
+Nothing was loosened here to make anything compile.
+
+## 88. Deferrals RESOLVED by tasks 12.1–12.5
+
+| # | Item | How |
+|---|------|-----|
+| **7.3-2** | session-stored `ProcessPaymentRequest.CustomValues` round-trips as `JsonElement` | ✅ **RESOLVED for the five in-tree payment plugins, and RE-SCOPED** (§87.2a). Exactly one plugin writes `CustomValues`; it would have written a `StringValues` and corrupted the stored order value to `["PO-1234"]`; the explicit `.ToString()` fixes it, and the counterfactual is measured in the same fixture so the fix cannot be removed silently. The residual exposure — third-party plugins storing a non-primitive — is carried forward as **12.x-1**, Low |
+| **1.2** (Razor half, extended) | — | already closed at 10.x; **extended from 2 view-bearing plugins to 7**. All five here contribute `AssemblyPart` **and** a compiled-Razor part; proven able to fail by removing `AddRazorSupportForMvc` from one plugin (3 tests red, nothing else) |
+| **7.3-1** (payment third) | the `Html.Action` bridge had never been exercised with a real payment plugin | ✅ **VERIFIED** (§87.3). The `IPaymentMethod` triple resolves to exactly one controller type per plugin against the real `IActionDescriptorCollectionProvider`, and with a store the `PaymentInfo` view **renders over HTTP** with `Layout = ""` honoured |
+
+## 89. NEW deferrals opened by tasks 12.1–12.5
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| **12.x-2** | **five PRE-EXISTING synchronous `Request.Body` reads in `Nop.Web`/`Nop.Admin` will throw** under Kestrel's default `AllowSynchronousIO = false` | post-migration | **Medium — throws at runtime** |
+| **12.3-2** | `System.Configuration.ConfigurationManager` reaches the host only TRANSITIVELY, and `Payments.PayPalDirect` cannot work without it | 18.x | **Medium** |
+| 12.3-3 | `Payments.PayPalDirect` consumes a deprecated net451-only PayPal SDK (`NU1701`) | post-migration | Low (recorded decision) |
+| 12.4-1 | `PayPalStandardPaymentProcessor` uses `WebRequest.Create`/`HttpWebRequest` (2 × `SYSLIB0014`) | post-migration | Low (recorded decision) |
+| 12.3-1 | `IsLocalRequest` is duplicated in `PaypalHelper` and `WwwRequirementAttribute` | 18.x | Low |
+| 12.x-1 | `CustomValues` still cannot recover the CLR type of a non-primitive — third-party plugins only | post-migration | Low |
+| 12.x-3 | `NopPluginDoNotDeployHostAssemblies` empties `ReferenceCopyLocalPaths` entirely, not just its `Nop.*` entries | 18.x | Low (harmless today) |
+| 12.x-4 | `NopPluginDeployPayPalSdk` is a per-plugin target that only one plugin needs | 18.x | Low |
+
+### 12.x-2 Five pre-existing synchronous `Request.Body` reads will throw — found, not introduced
+
+Deciding how `IPNHandler` and `WebhookEventsHandler` should read the request body surfaced this.
+Kestrel sets `AllowSynchronousIO = false` by default and `Nop.Web/Program.cs` does not override it
+(checked — there is no `ConfigureKestrel` call and no `Kestrel` section in `appsettings.json`), so a
+synchronous read of `Request.Body` throws `InvalidOperationException("Synchronous operations are
+disallowed…")`.
+
+Five sites do exactly that, all of them ported by tasks 7.3 and 8.x and all of them
+`stream.CopyTo(ms)` on `Request.Body`:
+
+| File | Line | Path |
+|---|---|---|
+| `Nop.Web/Controllers/ReturnRequestController.cs` | ~242 | the non-`IFormFile` upload branch (Webkit/Mozilla direct-body POST) |
+| `Nop.Web/Controllers/ShoppingCartController.cs` | ~1137 | ditto |
+| `Nop.Web/Controllers/ShoppingCartController.cs` | ~1238 | ditto |
+| `Nop.Web/Administration/Controllers/DownloadController.cs` | ~85 | ditto |
+| `Nop.Web/Administration/Controllers/PictureController.cs` | ~46 | ditto |
+
+Each is in the `else` branch taken when `Request.Form.Files.Count == 0`, i.e. it is not the common
+browser path, which is presumably why no earlier task's testing reached it. **Not fixed here**: they
+are in two gated projects, one of which another group is editing concurrently, and the fix is not
+purely local — each action would have to become `async`, which changes five public action
+signatures. Remedy: make each action `async Task<ActionResult>` and use `CopyToAsync`, or set
+`AllowSynchronousIO = true` in `Program.cs` (cheaper, and a documented anti-pattern). The two
+actions this task owns take the first option.
+
+### 12.3-2 The PayPal SDK's `System.Configuration` implementation arrives by accident
+
+`Payments.PayPalDirect` cannot make a single PayPal call without
+`System.Configuration.ConfigurationManager` being loadable (§87.2). The host has it — **9.0.11,
+resolved transitively** through `Microsoft.Data.SqlClient 6.1.6` → `Azure.Identity` → it, confirmed
+in `Nop.Web.deps.json`. Nothing declares it for the payment plugin's benefit, so **a change to the
+data provider's dependency graph would silently break a payment method.**
+
+What was done: the plugin declares
+`<PackageReference Include="System.Configuration.ConfigurationManager" ExcludeAssets="runtime" />`
+so the dependency is visible and centrally pinned, and `src/Directory.Packages.props` pins it at
+**exactly 9.0.11 — the version already resolved** — because `CentralPackageTransitivePinningEnabled`
+is `true` and any other value would lift it inside the gated `Nop.Web`/`Nop.Admin` outputs. Verified:
+after adding the pin, `Nop.Web.deps.json` and `Nop.Admin.deps.json` still say 9.0.11 and both
+projects re-gate at 0/15.
+
+`ExcludeAssets="runtime"` rather than deploying a copy: `PluginManager.PerformFileDeploy`
+shadow-copies and loads **every** dll it finds in a plugin folder, so a private copy would become
+the process's `System.Configuration.ConfigurationManager` — §83.3's failure mode.
+
+**What protects it now is a test, not a comment.**
+`PaymentPluginTests.Task_12_3_the_PayPal_SDKs_dotnet_framework_facades_resolve_inside_the_host`
+asserts the four forwarded types resolve *and* which assembly they resolve from, and
+`…the_PayPal_SDK_is_loaded_and_its_System_Web_dependent_path_executes` actually invokes
+`SDKUtil.FormatURIPath` inside the running host. Remedy for 18.x: declare the package explicitly in
+`Nop.Web` so it is a first-class dependency of the host rather than a side effect.
+
+## 90. Deferrals explicitly NOT closed by 12.1–12.5, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **8.2-3** (10 sites) | plugin views naming `~/Administration/Views/Shared/…` | **none of the five payment plugins has such a site** — checked against §51's register and by search. 11.2, 13.1, 14.4 and 15.1 still own all 10 |
+| **10.x-1** | plugin static assets are not served | **owned by group 11, running concurrently, and none of these five ships a `Content/` or `Scripts/` tree** — verified by directory listing, so there was nothing here to depend on the fix. `Nop.Web/Infrastructure/NopStaticFileProvider.cs` was not touched by this task |
+| **7.3-3** | request validation is gone | accepted, as before. §87.10 records the 17 new sites and shows all 17 were already exempt |
+| **7.3-4** | former child actions are URL-reachable | accepted, as before. §87.9 records 15 new sites, and these ones **must** stay reachable — the `IPaymentMethod` contract is how the host invokes them |
+| **8.2-2 / 8.5-1** | nothing enforces the two-step publish | 18.x. `Payments.PayPalDirect` adds a wrinkle: its deployment now includes a third-party dll that only its own build produces |
+| **8.8-2** | test projects and `Nop.Plugin.SmokeProbe` are absent from `NopCommerce.sln` | 18.1. The five payment plugins ARE in the solution already, as legacy entries pointing at the same paths |
+| **8.8-1** · **8.8-3** · **8.8-4** · **7.7-2** · **7.7-3** · **7.4-1** · **7.5-1** · **10.x-2** · **10.x-3** · **10.x-4** · **4.10** · **4.11** · **9/4.9** · **11.27** · **35** · **18/7.18** | unchanged | as previously recorded |
+
+
+
+---
+
+# The ExternalAuth and Feed plugins (tasks 11.1–11.2)
+
+Tasks 11.1 and 11.2 migrated `Nop.Plugin.ExternalAuth.Facebook` and
+`Nop.Plugin.Feed.GoogleShopping` — 22 `.cs` files and 3 views between them. They were done
+together because they are the group the plan singled out as the first plugins that ship **static
+assets** (deferral 10.x-1) and the first with a **plugin-owned `DbContext`** (deferral 4.10), and
+because the third defect below turned out to be shared by both.
+
+| Measurement | Value |
+|---|---|
+| the two plugins | **0 errors, 0 warnings of their own** each (10 upstream warnings each, the same set as group 10's two DiscountRules plugins) |
+| upstream re-gate, `--no-incremental` after `rm -rf obj bin` | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 · `Nop.Admin` **0**/15 — every baseline exact, **no warning added**, including to the two gated projects this task had to change (`Nop.Data`, `Nop.Web.Framework`) |
+| group 10's three plugins, rebuilt | **0** errors, 10/10/11 warnings — their recorded baselines |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| `Nop.Admin.Tests` | **53 passed / 0 failed** — unchanged |
+| `Nop.Web.SmokeTests`, no database | **164 passed / 0 failed / 58 skipped**. **+26 tests from this group**: 14 added to `PluginViewRenderTests` (16 → 30) and 12 in the new `PluginStaticAssetTests`. The remainder of the delta from group 10's 126 is group 12's, which ran concurrently |
+| `HarnessCanaryTests` | **13 failed / 0 passed** (was 10; 3 added by concurrent group 12) |
+| residual scan across the 37 files this task touched | **0 real hits** for `System.Web`, `HttpContext.Current`, `HttpContextBase`, `HttpPostedFileBase`, `MvcHtmlString`, `System.Configuration`, `System.Runtime.Caching`, `HttpRuntime`, `DotNetOpenAuth`, `JsonRequestBehavior`, `RouteCollection`, `System.Data.Entity`, `@helper`, `Database.SetInitializer`. Comment/string-blanking scanner, **proven able to fail** with a `using System.Web.Mvc;` canary in a `.cs` and an `@helper … @HttpContext.Current` canary in a `.cshtml` |
+| deployment shape per plugin | `Description.txt`, `logo.jpg`, `Content/**`, `<plugin>.dll`, `.pdb`, `.deps.json` — and **no other `Nop.*.dll`**, no `.cshtml`, no `.config`, no loose `taxonomy.txt` |
+
+**THREE DEFECTS WERE FOUND, all silent, and one of them was neither predicted nor confined to this
+group.** §92.1 is the important one: the `Html.Action` bridge made **every plugin settings form a
+no-op**, and it affects ten of the remaining plugin sub-tasks. §92.4 is a pair of 3.90 bugs in
+`Feed.GoogleShopping`'s feed-file path that made the feature unusable on Linux in both directions.
+Two behavioural changes are recorded prominently: the hand-ported OAuth 2 flow (§91.1) and the fact
+that it deliberately still sends **no CSRF `state`** (deferral 11.1-2).
+
+## 91. Task 11.1 — the one plugin with a dead third-party dependency
+
+### 91.1 DotNetOpenAuth is gone, the OAuth 2 flow is ported in place, and one 3.90 defect had to be fixed for it to work at all
+
+**What was deleted.** The legacy project referenced six DotNetOpenAuth 4.3.4 assemblies —
+`DotNetOpenAuth.AspNet`, `.Core`, `.OAuth`, `.OAuth.Consumer`, `.OpenId`,
+`.OpenId.RelyingParty`. There is no net10.0 build of any of them, no successor package, and the
+project is unmaintained. They were the only real third-party dependency in any of the 20 plugins
+apart from `Payments.PayPalDirect`'s PayPal SDK.
+
+**CORRECTION TO THE TASK BRIEF.** It said to port to
+`Microsoft.AspNetCore.Authentication.Facebook`, "in the shared framework". **It is not in the
+shared framework** — measured against the net10.0 targeting pack
+(`packs/Microsoft.AspNetCore.App.Ref/*/ref/net10.0/`), which ships
+`Microsoft.AspNetCore.Authentication.OAuth` but **no per-provider handler**; Facebook, Google,
+Twitter and MicrosoftAccount are separate NuGet packages. So adopting it would have been
+"substituting a package", which the brief explicitly preferred to avoid.
+
+**Three further reasons it was rejected**, each checked in this solution's own source:
+
+1. It is a **startup-configured middleware handler**
+   (`AddAuthentication().AddFacebook(o => …)`). This plugin's credentials are per-store `ISettings`
+   rows read from the database at request time, through `ISettingService` with a store scope, and
+   the plugin can be installed or uninstalled without a restart. Bridging those needs an
+   `IOptionsMonitor`/`PostConfigure` scheme **and** an edit to `Nop.Web`'s `Program.cs` — a host
+   change driven by one plugin.
+2. It **replaces rather than implements** this migration's plugin contract.
+   `IExternalAuthenticationMethod` + `IExternalProviderAuthorizer` + `AuthorizeState` are 3.90's
+   and are what task 6.2 deliberately kept (it changed only the `RouteValueDictionary` namespace on
+   them). The handler model is what nopCommerce **4.x** moved to, together with a rewritten
+   contract; adopting half of it would leave `DependencyRegistrar`,
+   `IOAuthProviderFacebookAuthorizer` and `OAuthAuthenticationParameters` dead while the storefront
+   button still routes through `ExternalAuthFacebookController.Login`.
+3. Its callback convention is `/signin-facebook`. 3.90's is
+   `{store}plugins/externalauthFacebook/logincallback/`, built by hand in
+   `FacebookProviderAuthorizer.GenerateLocalCallbackUri` and sent to Facebook as `redirect_uri` —
+   i.e. **that exact string is a Valid OAuth Redirect URI in every existing deployment's Facebook
+   app**. Changing it silently breaks every upgraded store until an administrator edits the app.
+
+**How much was actually delegated — less than the reference list suggests.** 3.90 already
+hand-built the authorization URL (`GenerateServiceLoginUrl` carries 3.90's own comment *"code
+copied from DotNetOpenAuth.AspNet.Clients.FacebookClient file"*, along with copies of its
+`AppendQueryArgs`/`CreateQueryString`/`EscapeUriDataStringRfc3986` helpers) and already called the
+Graph API directly in `RequestEmailFromFacebook`. The only genuinely delegated step was
+`FacebookClient.VerifyAuthentication`: **exchange `code` for a token, then GET `/me`**. That is
+now `VerifyCallback` + `RequestAccessToken` + `RequestUserData`, reproducing DotNetOpenAuth's
+observable contract — on success `ExtraData` carries the provider's user fields plus an
+`accesstoken` entry, and `ProviderUserId` is the `id` field.
+
+**A 3.90 DEFECT WAS FIXED, BECAUSE IT IS LOAD-BEARING: the token response is JSON.**
+DotNetOpenAuth 4.3's `OAuth2Client.QueryAccessToken` parsed the token endpoint's response as
+**form-urlencoded** (`access_token=…&expires=…`), which is what Facebook's Graph API returned up to
+v2.2. **From v2.3 (2015) Facebook returns JSON** and has done ever since, so 3.90's code as written
+cannot obtain a token from any currently reachable Facebook endpoint — it reads an empty token and
+fails the login with "Cannot obtain access token". Reproducing that faithfully would have meant
+porting a plugin that cannot work. `RequestAccessToken` therefore parses **JSON first and falls
+back to form-urlencoded**, so both shapes are accepted and the fix cannot itself regress an old
+endpoint.
+
+**Two 3.90 behaviours deliberately preserved, one of them odd.**
+
+- `VerifyAuthentication` assigns `OAuthToken = ExtraData["accesstoken"]` but
+  `OAuthAccessToken = authResult.ProviderUserId` — the **user id**, not the access token. Almost
+  certainly an upstream copy-paste slip, but it is not load-bearing (nopCommerce stores both
+  columns on `ExternalAuthenticationRecord` and neither is used to call Facebook again), and
+  "fixing" it would silently change what an existing store has persisted for every linked account.
+- The Graph API removed the `username` field in v2.0, so `ParseClaims`'s first branch never fires
+  against a live endpoint and the email always comes from `RequestEmailFromFacebook`. Both branches
+  are kept exactly as 3.90 had them.
+
+**One place the port is deliberately MORE informative than DotNetOpenAuth.** Facebook reports a
+declined dialog by redirecting back with `error`/`error_description` and no `code`. DotNetOpenAuth
+ignored those and reported its generic failure, so a user who pressed Cancel saw "Unknown error".
+`VerifyCallback` surfaces the description when Facebook sends one — strictly more information in a
+branch that was already a failure, and the only departure from its observable behaviour.
+
+**API substitutions.** `HttpContextBase` (injected, and passed to `VerifyAuthentication` so
+DotNetOpenAuth could read the query string) → the constructor parameter **removed**, the two
+query-string reads going through `IWebHelper.QueryString<string>` (task 2.4 re-based that on
+`IHttpContextAccessor`); `System.Web.Mvc.RedirectResult` →
+`Microsoft.AspNetCore.Mvc.RedirectResult`; `WebRequest.Create(...).GetResponse()` → a **static**
+`HttpClient` (`WebRequest` is `SYSLIB0014` on net10.0 and this file was being rewritten anyway, so
+unlike `ExchangeRate.EcbExchange`/deferral 10.3-1 there was nothing to preserve by keeping it);
+`Newtonsoft.Json` `JObject.Parse` → `System.Text.Json`, which is in the shared framework and leaves
+this plugin with **no `PackageReference` at all**; `Uri.HexEscape` (`SYSLIB0013`) → an invariant
+`%XX` format producing the identical string for the five ASCII characters concerned.
+
+### 91.2 Everything else in 11.1, and the parts that needed no edit
+
+`[ChildActionOnly]` → `[NopChildActionOnly]` on `Configure` (both overloads) and `PublicInfo` —
+**the first PLUGIN use of task 8.3's marker** (deferral 7.3-4); the 48 storefront and 32 admin
+sites were done at 7.3/8.3. `TryUpdateModel(viewModel)` →
+`TryUpdateModelAsync(viewModel).GetAwaiter().GetResult()` (no synchronous overload exists; the call
+is pointless in both versions — `viewModel` is a local nothing reads — but removing it would be a
+behavioural change to `ModelState`, so its shape is preserved).
+`HttpContext.Request.IsAuthenticated` → `User.Identity != null && User.Identity.IsAuthenticated`.
+`System.Web.Routing` → `Microsoft.AspNetCore.Routing` on the plugin class.
+`HttpContext.Current.Request.QueryString["ReturnUrl"]` → `Context.Request.Query["ReturnUrl"]`
+**assigned to a `string` local on purpose**: `StringValues`' *implicit string conversion* yields
+`null` for an absent key whereas `.ToString()` yields `string.Empty`, and only the first reproduces
+`NameValueCollection`'s indexer — the difference is observable, because `RouteUrl` omits a null
+route value but emits `?ReturnUrl=` for an empty one.
+
+Needed **no** edit: `ActionResult`, `[HttpPost]`, `[NonAction]` (which exists in ASP.NET Core and
+is kept), `Content(...)`, `RedirectToRoute`, `Url.LogOn(returnUrl)` (an `IUrlHelper` extension
+after task 6.3), `this.GetActiveStoreScopeConfiguration(...)`, both
+`View("~/Plugins/ExternalAuth.Facebook/Views/….cshtml", …)` call sites, `DependencyRegistrar`,
+`Provider`, `OAuthAuthenticationParameters`, `IOAuthProviderFacebookAuthorizer`,
+`FacebookExternalAuthSettings` and both models.
+
+The route provider is the mechanical §17.4a port. **Both route names are load-bearing**:
+`Plugin.ExternalAuth.Facebook.Login` is what `Views/PublicInfo.cshtml` resolves the login button's
+`href` by, and `LoginCallback`'s *pattern* is the `redirect_uri` sent to Facebook.
+
+## 92. The three defects
+
+### 92.1 ⚠️ NEW DEFERRAL 11.x-1 — MEDIUM-HIGH, SILENT: every plugin settings form was a no-op
+
+**This is the one to read.** It is in the gated `Nop.Web.Framework`, it was not predicted by any
+task, and it affects **ten** of the remaining plugin sub-tasks.
+
+**How a plugin's configuration page actually works.** The admin's own actions —
+`Plugin/ConfigureMiscPlugin`, `ExternalAuthentication/ConfigureMethod`,
+`Payment/ConfigureMethod`, `Shipping/…`, `Tax/…`, `Widget/…` — are plain GET actions whose views do
+
+```cshtml
+@Html.Action(Model.ConfigurationActionName, Model.ConfigurationControllerName, Model.ConfigurationRouteValues)
+```
+
+i.e. the `Html.Action` bridge, driven by the action/controller/`RouteValueDictionary` triple the
+plugin contract exposes (deferral 7.3-1). The plugin's own form is `@using (Html.BeginForm())`
+with no arguments, which renders `action=""` — so **submitting it POSTs to the ADMIN url**. The
+admin action runs again and renders the child action again, this time inside a POST request. In
+MVC 5 child-action invocation went through `ControllerActionInvoker` against the ambient request,
+so `ActionMethodSelector` chose the `[HttpPost] Configure(TModel)` overload and the model binder
+filled it from the form. **That is the only path by which a plugin's settings were ever saved.**
+
+**What the bridge did instead.** `FindAction` matched on action + controller **name** and broke the
+tie by *fewest parameters* — which always selects the parameterless GET overload — and
+`BindParameter` returned the declared default (i.e. `null`) for any **complex** parameter. So the
+POST re-rendered the form with the old values and discarded the administrator's input: no
+exception, no notification, no log entry.
+
+The bridge's own class remarks asserted *"every nopCommerce child action takes only scalars, enums
+and nullable scalars (verified across all 41)"*. That was **true of nopCommerce's own child
+actions and false of plugin ones**, and it is why four earlier tasks did not notice: group 10's
+three plugins have no `Configure` POST at all (`DiscountRules.*` save through separate named
+routes, `EcbExchange` has no view).
+
+**`Feed.GoogleShopping` is the sharpest case in the solution, and there the failure could have
+been a WRONG ACTION rather than a no-op.** It has **three** actions named `Configure`:
+
+| action | attributes | parameters |
+|---|---|---|
+| `Configure()` | — | 0 |
+| `Configure(FeedGoogleShoppingModel)` | `[HttpPost]` `[FormValueRequired("save")]` | 1 |
+| `GenerateFeed(FeedGoogleShoppingModel)` | `[HttpPost, ActionName("Configure")]` `[FormValueRequired("generate")]` | 1 |
+
+The last two are distinguished **only by which submit button was pressed**, and both take one
+parameter — so a fewest-parameters tie-break between them is arbitrary. "Save" could have generated
+the feed and "Generate feed" could have saved.
+
+**The fix, in `Nop.Web.Framework/ChildActionExtensions.cs`.** Three changes, all narrow:
+
+1. **`ApplyActionConstraints`** reproduces MVC 5's `ActionMethodSelector.RunSelectionFilters`:
+   partition the candidates into those carrying at least one selector attribute whose every
+   attribute accepts the current request and those carrying none; if the first partition is
+   non-empty it wins outright, otherwise the second is used. Constraints are evaluated against the
+   **ambient** request, which is what a child action saw in MVC 5.
+   `FormValueRequiredAttribute` is an `ActionMethodSelectorAttribute` and hence an
+   `IActionConstraint`, so evaluating constraints *generally* — rather than special-casing the HTTP
+   method — is what makes the GoogleShopping page correct.
+2. **`PopulateValueProviderFactories`** copies `MvcOptions.ValueProviderFactories` onto the
+   hand-built `ControllerContext`. `new ControllerContext(ActionContext)` initialises the list
+   **empty**; in the real pipeline `ControllerActionInvokerCache` copies them. Without this,
+   `TryUpdateModelAsync` and `TryValidateModel` inside a child action bind nothing **and report
+   success**.
+3. **`BindComplexParameter`** binds a complex parameter through the controller's own
+   `TryUpdateModelAsync(object, Type, "")`, i.e. the application's real binder chain, with
+   validation, so `ModelState.IsValid` means what the action expects.
+
+**It is a PREFERENCE WITH A FALLBACK, like the area rule above it.** If constraint filtering would
+leave nothing, the original candidate set is returned unchanged — so this can only ever narrow an
+ambiguity, never turn a working call site into "could not find an action". A lone `[HttpPost]`-only
+child action invoked from a GET page still resolves, where MVC 5 would have thrown.
+
+**Effect on the ~170 in-tree call sites: none.** No nopCommerce child action has an overload, a
+selector attribute or a complex parameter, so every one of them is a single candidate and returns
+before the new code does anything.
+
+**Pinned, and each half proven able to fail.** `PluginViewRenderTests` gained four tests driving
+the bridge's **real `FindAction`** (not the private helper — a helper can be present and correct
+while its call site is missing, which is §77.5's vacuity trap) against the real
+`ControllerActionDescriptor` set and the real request, plus one Group-B test that POSTs the
+Facebook settings form to the admin URL and reads the value back out of `ISettingService`:
+
+| revert | result |
+|---|---|
+| the `ApplyActionConstraints` call in `FindAction` | **2 fail** (`…a_POST_selects_the_HttpPost_overload…`, `…the_generate_button_selects_GenerateFeed…`), nothing else |
+| the two `PopulateValueProviderFactories` calls in `CreateController` | **1 fail** (`…a_POST_selects_the_HttpPost_overload…`) |
+| the complex-parameter branch in `BindParameter` | **1 fail** (same) |
+
+with `AdminUiRenderTests`, `HostAndContainerTests` and `PluginDiscoveryTests` green throughout, so
+there is no collateral effect on the 170 in-tree call sites.
+
+**⚠️ `Nop.Web.Framework` IS A GATED, SHARED PROJECT AND GROUP 12 WAS RUNNING CONCURRENTLY.** The
+file changed is `ChildActionExtensions.cs`; its recorded 6.6 baseline (0 errors / 10 warnings) is
+unchanged.
+
+### 92.2 Deferral 10.x-1 RESOLVED — plugin static assets are served, for all three affected plugins
+
+3.90 served the whole application root through `System.Web`'s static handler, and the only thing it
+**refused** under `~/Plugins` was `*.dll` (a `DenyAccessToPluginDLLs` `HttpForbiddenHandler` in
+`Web.config`). Task 7.4 inverted that default into an allow-list and `Plugins/` was not in it, so
+every `~/Plugins/<ShortName>/Content/*.css` returned 404 with nothing reported.
+
+**The remedy is a THIRD-level rule**, `Plugins/<ShortName>/{Content,Scripts}/**` — segments 1 and 3
+fixed — by the same mechanism and for the same reason task 8.5 nested `Administration/`. Here the
+exposure is worse, because a plugin folder is not a curated asset tree but a **deployment**
+directory an administrator adds to at runtime by unpacking a zip, and `PluginManager` does not
+clean it on uninstall. It holds the plugin's `.dll`, `.pdb`, `.deps.json` (new in this migration,
+deferral 10.x-3, and **the one deployed file whose extension `DeniedExtensions` does not cover**),
+`Description.txt`, and whatever else a third-party package contained. Requiring segment 3 refuses
+all of that **structurally** rather than leaning on a deny-list over a directory this application
+does not control. `Plugins/bin` — `PluginManager`'s shadow-copy directory — was additionally added
+to `DeniedSubpaths`, which is evaluated before every allow rule.
+
+**Honest note on that entry, in the spirit of §77.5:** `Plugins/bin/x.txt` has three path segments
+and so is *already* refused by the third-level rule; removing the `DeniedSubpaths` entry makes no
+test fail. It is defence in depth against a future widening, not the thing that currently closes
+the path, and it is recorded that way rather than claimed as load-bearing.
+
+**Why it matters most for `ExternalAuth.Facebook`, and this is asserted rather than asserted-in-a-comment.**
+`Views/PublicInfo.cshtml` renders a single `<a class="facebook-btn"></a>` with **no text and no
+inline style**; `facebookstyles.css` supplies its width, height and background image. A 404 on the
+stylesheet therefore produces a **zero-size invisible** control, not an ugly one — the storefront
+login page silently loses the button.
+`PluginStaticAssetTests.Task_11_1_the_Facebook_button_css_really_is_load_bearing` asserts that
+property **of the stylesheet itself**, so a future edit moving the sizing inline makes the claim
+fail loudly instead of leaving stale prose behind.
+
+**`Scripts/` is in the rule, so task 15.3 has nothing left to do here.** Neither 11.x plugin ships
+a `Scripts/` tree; `Widgets.NivoSlider` does. That half is pinned **with a planted file** by
+`Task_11_1_the_Scripts_half_of_the_rule_works_for_15_3`, so 15.3 inherits a proven rule instead of
+discovering it at render time.
+
+**New fixture: `src/Tests/Nop.Web.SmokeTests/PluginStaticAssetTests.cs`, 12 tests, all
+unconditional (no database).** Modelled on `AdminStaticAssetTests`, including its rule that a
+refusal must be asserted against a file that **really exists** — four files are planted in
+`OneTimeSetUp` and removed in `OneTimeTearDown` (`Plugins/bin/*.txt`, a `.txt` directly inside a
+plugin folder, a `Scripts/*.js`, and a `.config` inside an allowed `Content` tree) so each 404 is a
+decision rather than a trivially-true absence. Reverting the allow rule fails **7 of the 12** — the
+three "must serve" cases, both cache tests, the case-exactness test and the `Scripts` test — and
+leaves the five refusal tests green, which is the correct shape.
+
+### 92.3 Deferral 4.10 RESOLVED for the first of four plugin contexts, and the helper is SHARED
+
+`NopObjectContext.CreateDatabaseScript()` now returns EF Core's
+`Database.GenerateCreateScript()`, whose output separates statements with `GO` — a **client**
+directive, not T-SQL. `Nop.Data`'s `CreateTablesIfNotExist` split on it; a plugin's own context
+does not pass through that initializer, which is what deferral 4.10 records for four plugin
+contexts.
+
+**The split now lives in exactly one place:**
+`Nop.Data.DbContextExtensions.SplitSqlIntoBatches(string)`, exposed as
+`ExecuteSqlScript(this DbContext, string)`. `GoogleProductObjectContext.Install()` calls
+`this.ExecuteSqlScript(CreateDatabaseScript())`, and **`CreateTablesIfNotExist` was refactored onto
+the same method** rather than keeping its private copy, so the two cannot drift. Tasks **13.1, 14.4
+and 15.1** call the same extension; the entries in `tasks.md` now name it.
+
+**A REFINEMENT OF THE DEFERRAL'S WORDING, measured.** 4.10 says the script is "`GO`-batched", which
+suggests multiple batches. For this one-table model EF Core emits **one statement followed by a
+trailing `GO`** — 1 GO line, 1 batch out. The deferral is still real and still fatal: 3.90's
+`Database.ExecuteSqlCommand(script)` would have sent `CREATE TABLE …; GO` as a single command and
+got `Incorrect syntax near 'GO'`. The tests therefore assert *"the raw script carries a bare `GO`
+that SQL Server would reject"* and *"no batch handed to `ExecuteSqlRaw` still carries one"*, rather
+than a batch count that is an artefact of this plugin's model size.
+
+**The whole of 4.10 is asserted WITHOUT a database.** `GenerateCreateScript()` is a *model*
+operation — it needs a provider selected but never opens a connection — so the probe constructs the
+plugin context with a throwaway connection string and measures the real script. Three tests in
+`PluginViewRenderTests`; reverting the `GO` recognition in `SplitSqlIntoBatches` fails **2** of them
+and nothing else.
+
+The context type is reached **reflectively**, through the assembly `PluginManager` already
+shadow-copied and loaded, because the plugin references in `Nop.Web.SmokeTests.csproj` are
+build-order only — a compiling reference would put the plugin in the test project's output
+directory, where `WebAppTypeFinder` would load it as an ordinary base-directory assembly and bypass
+the plugin path under test.
+
+**The EF6 → EF Core port of the context**, which 13.1/14.4/15.1 copy:
+
+- `System.Data.Entity.DbContext` → `Microsoft.EntityFrameworkCore.DbContext`. The
+  `(string nameOrConnectionString)` constructor is **preserved and load-bearing**:
+  `Nop.Web.Framework`'s `RegisterPluginDataContext` constructs the type with
+  `Activator.CreateInstance(typeof(T), new object[] { connectionString })`, so removing or renaming
+  it fails at **runtime** with `MissingMethodException` and no compile error anywhere. Asserted.
+- `OnModelCreating(DbModelBuilder)` → `OnModelCreating(ModelBuilder)`, and
+  `modelBuilder.Configurations.Add(new GoogleProductRecordMap())` →
+  `ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly())`. **The assembly argument
+  matters in a way it does not in `NopObjectContext`:** widening it to `Nop.Data`'s assembly would
+  add all ~105 nopCommerce entities to the plugin's model, and `Install()` would then generate a
+  create script for the **entire nopCommerce schema** — executed against a live store by an
+  administrator pressing "Install" on a feed plugin. Asserted:
+  `pluginContext.entityTypeCount=1`.
+- The map: `public GoogleProductRecordMap()` →
+  `public override void Configure(EntityTypeBuilder<GoogleProductRecord> builder)`, `this.` →
+  `builder.`, and `base.Configure(builder)` at the end so `PostInitialize` still runs.
+  `ToTable("GoogleProduct")` is load-bearing beyond the model: `Uninstall()` resolves the name back
+  through `GetTableName<GoogleProductRecord>()` and **DROPs** it, so an EF Core naming-convention
+  default here would drop the wrong table. Asserted.
+- `IDbSet<T>` → `DbSet<T>`; `ObjectContext.Detach` → `Entry(entity).State = EntityState.Detached`;
+  `this.Configuration.ProxyCreationEnabled`/`AutoDetectChangesEnabled` → `ChangeTracker.*` with the
+  same compromise `NopObjectContext` documents (deferral 4.7). Neither property is read or written
+  anywhere in this plugin; they exist because `IDbContext` declares them.
+- `ExecuteStoredProcedureList`, `SqlQuery` and `ExecuteSqlCommand` **still throw
+  `NotImplementedException`**, exactly as in 3.90. Not an oversight to tidy up: 3.90 declared the
+  raw-SQL surface unsupported for this context, and implementing it would be inventing behaviour.
+- **Lazy-loading proxies are deliberately NOT enabled**, unlike `NopObjectContext`:
+  `GoogleProductRecord` has ten scalar properties and no navigation at all.
+- **`Data/EfStartUpTask.cs` DELETED.** Its only statement was
+  `Database.SetInitializer<GoogleProductObjectContext>(null)`, and EF Core has **no initializer
+  pipeline** — there is no counterpart to port. The file's entire purpose is gone.
+
+Independently: the emitted DDL follows **EF Core's** conventions, so the `GoogleProduct` table is
+not byte-identical to 3.90's. The table name and key are pinned by the map, and the columns are all
+plain scalars with no explicit facets, so the practical difference is column order and `nvarchar`
+length defaults.
+
+### 92.4 Two 3.90 defects in the generated-feed path, and the feature could not have worked in either direction
+
+3.90 built the feed file path in **two** places with the same expression —
+`GoogleShoppingService.GenerateStaticFile` (the WRITE) and
+`FeedGoogleShoppingController.Configure` (the `File.Exists` PROBE and the URL shown to the
+administrator):
+
+```csharp
+Path.Combine(HttpRuntime.AppDomainAppPath, "content\\files\\exportimport",
+             store.Id + "-" + _googleShoppingSettings.StaticFileName)
+```
+
+1. `System.Web.HttpRuntime.AppDomainAppPath` does not exist on net10.0. Replaced by
+   `CommonHelper.MapPath("~/…")`, which task 2.4 re-based on `CommonHelper.BaseDirectory` — pointed
+   at the host's content root by `UseNopHostingEnvironment` (deferral 1.5).
+2. **`"content\\files\\exportimport"` is a SINGLE DIRECTORY NAME on Linux.** `Path.Combine` does not
+   translate `\`, so the write would have targeted a directory literally called
+   `content\files\exportimport` — `DirectoryNotFoundException` on every "Generate feed" — and the
+   `File.Exists` probe would have returned false forever, so **the administrator would never see a
+   feed URL even after a successful generation**. The **casing** is wrong too: the directory on disk
+   is `Content/files/ExportImport`. This is the same defect and the same fix task 7.7 applied to
+   `PdfService.PrintOrderToPdf` and task 8.x to `Nop.Admin`'s `CommonController`.
+
+**AND THE URL HAD THE SAME CASING BUG, which the physical fix alone does not cure.** The controller
+emitted `{store}content/files/exportimport/{id}-{name}.xml`. `NopStaticFileProvider` decides
+ALLOW/DENY **case-insensitively** — its own comment keeps `~/Content/files/ExportImport` served
+because "narrowing it here would break that feed URL" — but the lookup is performed by
+`PhysicalFileProvider`, which **is** case-sensitive on Linux. So the URL would have been allowed
+and then 404'd. This is deferral 7.7-4's property biting a third time.
+
+**Both halves now come from one place**, `GoogleShoppingFeedFile.RelativeDirectory`, used for the
+physical path *and* the URL — the only arrangement in which they cannot drift apart again. That
+is a deliberate de-duplication of a 3.90 expression that appeared twice; duplicating a bug in two
+places is worse than naming it once.
+`PluginStaticAssetTests.Task_11_2_the_generated_feed_directory_is_still_served_and_case_correct`
+plants a file named the way the plugin names one, asserts the correct-cased URL serves **and** that
+the all-lower-case spelling 3.90 emitted does not.
+
+## 93. Task 11.2's Razor work — `@helper`, and deferral 8.2-3
+
+**`Feed.GoogleShopping/Views/Configure.cshtml` is one of only TWO `.cshtml` files in the solution
+that still used `@helper`** (`RZ1002`; the other is `Widgets.NivoSlider/Views/PublicInfo.cshtml`,
+task 15.3). `Nop.Web`'s four were converted at 7.3 and `Nop.Admin`'s 78 at 8.4.
+
+Both of this file's helpers are invoked **as an argument** —
+`@Html.RenderBootstrapTabContent("tab-general", @TabGeneral(), true)`, and
+`HtmlExtensions.RenderBootstrapTabContent` declares that parameter as `HelperResult` — so 7.3's
+`void`-method technique does not compose. Task 8.4's seam is used verbatim:
+
+```cshtml
+@Html.RenderBootstrapTabContent("tab-general", Capture(TabGeneral), true)
+@functions { async Task TabGeneral() { …markup… } }
+```
+
+`WebViewPage.Capture(Func<Task>)` wraps the method in a `HelperResult` that
+`PushWriter`/`PopWriter`-redirects the page output into the consuming helper's writer, so the
+emitted HTML is byte-identical to 3.90's and **neither helper body needed an edit**. `async Task`
+rather than `void` is required, not stylistic: the bodies contain constructs the generator lowers
+into `await`s (8.4 measured 34 `MVC1006` + 74 `CS4033` across the admin views). `@functions` blocks
+are class members, so they stay at the bottom of the file as the helpers did and no reordering was
+needed — which is why 8.4 rejected templated Razor delegates.
+
+The Group-B test `Task_11_2_the_GoogleShopping_Configure_view_RENDERS_over_HTTP` asserts markup
+from **inside both** helper bodies, because an empty `HelperResult` would still produce a 200.
+
+**Deferral 8.2-3 — 1 site, 9 remain.** `Views/Configure.cshtml:279`'s
+`~/Administration/Views/Shared/_GridPagerMessages.cshtml` became
+`~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml`, and `Html.Partial` became
+`await Html.PartialAsync` (`MVC1000`). It stays an explicit `~/`-rooted path: it is a
+**cross-assembly** reference into `Nop.Admin.dll`, which resolves because compiled Razor
+identifiers are global across application parts — verified by execution at 10.2. The probe reports
+that the **pre-8.2 path resolves to nothing** (`getView:~/Administration/Views/Shared/…=False`),
+which is the DB-free evidence the rewrite was necessary; the render itself is Group B and skips
+without a database. **Remaining: 13.1 ×3, 14.4 ×4, 15.1 ×2.**
+
+**Other 11.2 substitutions.** `System.Web.HttpUtility.HtmlDecode`/`HtmlEncode` →
+`System.Net.WebUtility` (task 4.2's substitution across `Nop.Services`);
+`System.Web.Routing` → `Microsoft.AspNetCore.Routing`; `System.Web.Mvc` →
+`Microsoft.AspNetCore.Mvc` (+ `.Rendering` for `SelectListItem`); `[ChildActionOnly]` →
+`[NopChildActionOnly]` on the three `Configure`-named actions **only**.
+`GoogleProductList`/`GoogleProductUpdate` are deliberately **not** marked: they are called by URL
+from the Kendo grid through `Url.Action`, and were never `[ChildActionOnly]` in 3.90 either — the
+marker follows 3.90's own attribute placement rather than a guess. Asserted from both sides
+(`Task_11_1_the_Facebook_Configure_view_RENDERS_over_HTTP` requires a 404 on the direct URL;
+`Task_11_2_the_two_Kendo_grid_endpoints_are_reachable_by_URL` requires *not* a 404).
+
+`Files/taxonomy.txt` stays an `EmbeddedResource`, and that is load-bearing:
+`GoogleService.GetTaxonomyList()` reads it by **manifest name**
+(`Nop.Plugin.Feed.GoogleShopping.Files.taxonomy.txt`), which the SDK derives from `RootNamespace`
+plus the path. Losing the item gives a null stream, a silently **empty** "Default Google category"
+dropdown, and `NopException("Default Google category is not set")` on every feed generation. The
+probe reads the resource out of the loaded assembly and reports its 6216 categories, DB-free.
+
+`Description.txt`'s `SystemName` is **`PromotionFeed.Froogle`**, not `Feed.GoogleShopping` — the
+plugin was renamed upstream and its system name was not, and
+`FeedGoogleShoppingController.GenerateFeed` resolves the plugin **by that literal**. Asserted, so
+"tidying" it breaks a test rather than the Generate button plus every installed store's
+`InstalledPlugins.txt` entry.
+
+## 94. Deferrals RESOLVED / OPENED by tasks 11.1–11.2
+
+| # | Item | How |
+|---|------|-----|
+| **10.x-1** | plugin static assets (`Content/`, `Scripts/`) are not served | ✅ **RESOLVED for all three affected plugins including 15.3** (§92.2). Third-level `Plugins/*/{Content,Scripts}/**` rule + `Plugins/bin` denied. 12 tests over real HTTP; reverting the rule fails exactly 7 |
+| **4.10** (11.2's quarter) | `GO`-batched `CreateDatabaseScript()` in a plugin context | ✅ **RESOLVED** (§92.3). `Nop.Data.DbContextExtensions.SplitSqlIntoBatches` / `ExecuteSqlScript`; `CreateTablesIfNotExist` refactored onto the same method. **13.1, 14.4 and 15.1 still owe theirs** and now have the helper named in `tasks.md` |
+| **8.2-3** (1 of the remaining 10 sites) | `Feed.GoogleShopping/Views/Configure.cshtml:279` | ✅ **RESOLVED** (§93). **9 sites remain**: 13.1 ×3, 14.4 ×4, 15.1 ×2 |
+
+### NEW deferrals opened by tasks 11.1–11.2
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| **11.x-1** | ~~the `Html.Action` bridge ignored `[HttpPost]`/`[FormValueRequired]` and passed `null` for a complex parameter, so **every plugin settings form silently discarded input**~~ | — | ✅ **FIXED IN THIS TASK** (§92.1). Recorded as a deferral id because it is a defect the register must carry, and because groups 12–15 inherit the fix and must not revert it |
+| **11.1-1** | `FacebookProviderAuthorizer`'s OAuth 2 flow is hand-ported and **has never been exercised against Facebook** — no live credentials exist in this environment. The `code`→token exchange, the `/me` call and the JSON/form-urlencoded fallback are asserted only by reading | post-migration | **Medium** |
+| **11.1-2** | **the OAuth callback carries no CSRF `state` parameter.** 3.90 has none either — DotNetOpenAuth's `state`/`__sid__` handling lived in the `Microsoft.AspNet.WebPages.OAuth` layer this plugin never used, and 3.90's hand-built authorization URL sends no `state` — so this is faithful, not a regression. It is nonetheless a **login-CSRF weakness**: an attacker can cause a victim's browser to complete a flow binding an account. Not added here because it changes a flow that cannot be tested end to end without live credentials (11.1-1), and a half-tested `state` check is worse than a recorded absence | post-migration | **Medium — security** |
+| **11.1-3** | `OAuthAccessToken` is assigned the Facebook **user id**, not the access token — 3.90's code, preserved deliberately (§91.1) | post-migration | Low |
+| **11.2-1** | the EF Core create script's DDL is not byte-identical to 3.90's (column order, `nvarchar` defaults). The table name and key are pinned; nothing reads the column order | post-migration | Low |
+| **11.x-2** | `PluginStaticAssetTests` plants four files under `src/Presentation/Nop.Web/Plugins/` and deletes them in teardown. That directory is gitignored, and a crashed run leaves them visible to the next run's own premise guards rather than silently | — | Low (deliberate) |
+
+## 95. Deferrals explicitly NOT closed by 11.1–11.2, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **8.2-3** (the other 9 sites) | plugin views naming `~/Administration/Views/Shared/…` | they are in unmigrated plugins; 13.1, 14.4 and 15.1 own them and have to touch those views anyway. §51's register is still the authority |
+| **4.10** (the other 3 contexts) | `GO`-batched script in `Pickup.PickupInStore`, `Shipping.FixedOrByWeight`, `Tax.FixedOrByCountryStateZip` | the plugins are unmigrated. The **shared helper now exists**, so each is a one-line call — named explicitly in each `tasks.md` entry |
+| **7.3-3** | request validation is gone; every property behaves as `[AllowHtml]` | accepted, as before. Neither plugin had an `[AllowHtml]` or `[ValidateInput]` to remove, so this task added no new sites |
+| **7.3-4** | former child actions are URL-reachable | ✅ handled per-action here via `[NopChildActionOnly]` — the first plugin use of 8.3's marker. The deferral itself stays open only in the sense that each remaining plugin must place the marker following 3.90's own attribute placement |
+| **10.3-1** | `EcbExchangeRateProvider` uses `WebRequest.Create` | unchanged; that plugin was not touched. Note 11.1 did **not** inherit it — `FacebookProviderAuthorizer` was being rewritten anyway, so it uses `HttpClient` |
+| **8.2-2 / 8.5-1** | nothing enforces the two-step publish | 18.x. Plugin static assets add a fourth element: `Plugins/<ShortName>/Content/**` is now web-reachable and lives in `Nop.Web`'s **source** tree, which a `dotnet publish` of `Nop.Web` does not consult |
+| **8.8-2** | test projects and `Nop.Plugin.SmokeProbe` are absent from `NopCommerce.sln` | 18.1. Both 11.x plugins ARE in the solution already, as legacy entries pointing at the same paths |
+| **8.8-1** · **8.8-3** · **8.8-4** · **7.7-2** · **7.7-3** · **7.4-1** · **7.5-1** · **10.x-2** · **10.x-3** · **10.x-4** · **4.11** · **9/4.9** · **11.27** · **35** · **18/7.18** | unchanged | as previously recorded |

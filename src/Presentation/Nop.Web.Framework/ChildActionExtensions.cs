@@ -6,9 +6,13 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Encodings.Web;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ActionConstraints;
+using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -18,6 +22,7 @@ using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Nop.Core;
 
 namespace Nop.Web.Framework
@@ -80,11 +85,22 @@ namespace Nop.Web.Framework
     /// <item><b>The response is never touched.</b> Output is captured into a
     /// <see cref="StringWriter"/>, so unlike a re-entrant pipeline invocation this cannot
     /// corrupt the parent response's status code, headers or body.</item>
-    /// <item><b>Model binding is route-values-only</b> — no query string, no form, no body. That
-    /// is exactly what a child action received in MVC 5 from an explicit <c>routeValues</c>
-    /// argument, and every nopCommerce child action takes only scalars, enums and nullable
-    /// scalars (verified across all 41).</item>
+    /// <item><b>Model binding is route-values-only for SCALAR parameters</b> — no query string, no
+    /// form, no body. That is exactly what a child action received in MVC 5 from an explicit
+    /// <c>routeValues</c> argument, and every nopCommerce child action takes only scalars, enums
+    /// and nullable scalars (verified across all 41). <b>TASK 11.1 CORRECTION:</b> that is not
+    /// true of PLUGIN child actions — a plugin's <c>Configure</c> page has an
+    /// <c>[HttpPost] Configure(TSettingsModel)</c> overload — so a COMPLEX parameter is
+    /// model-bound from the ambient request instead. See <c>BindComplexParameter</c>.</item>
     /// </list>
+    /// </para>
+    /// <para>
+    /// <b>ACTION SELECTION — TASK 11.1. A SECOND REAL DEFECT, SILENT, AND IT MADE EVERY PLUGIN
+    /// SETTINGS FORM A NO-OP.</b> The bridge matched on action + controller name and broke ties by
+    /// fewest parameters, ignoring <c>[HttpPost]</c> and <c>[FormValueRequired]</c> — so a POST of
+    /// a plugin's admin configuration form re-ran the parameterless GET overload and discarded the
+    /// administrator's input without any error. See <c>ApplyActionConstraints</c> for the full
+    /// account, the MVC 5 algorithm it restores, and why it is a preference with a fallback.
     /// </para>
     /// <para>
     /// <b>Sync-over-async.</b> Rendering a Razor view is asynchronous
@@ -243,7 +259,7 @@ namespace Nop.Web.Framework
         {
             var services = viewContext.HttpContext.RequestServices;
 
-            var descriptor = FindAction(services, actionName, controllerName, areaName);
+            var descriptor = FindAction(viewContext.HttpContext, actionName, controllerName, areaName);
             if (descriptor == null)
                 throw new NopException(string.Format(
                     "Html.Action could not find an action '{0}' on controller '{1}' in area '{2}'. In ASP.NET Core an action is only discoverable if its controller is part of an application part.",
@@ -277,7 +293,6 @@ namespace Nop.Web.Framework
 
             var controller = CreateController(services, descriptor, actionContext);
             var result = ExecuteAction(controller, descriptor, childRouteValues);
-
             return RenderResult(services, actionContext, controller, descriptor, result);
         }
 
@@ -312,9 +327,10 @@ namespace Nop.Web.Framework
         /// rather than lucky — do not remove it on the grounds that nothing goes red.
         /// </para>
         /// </remarks>
-        private static ControllerActionDescriptor FindAction(IServiceProvider services, string actionName,
+        private static ControllerActionDescriptor FindAction(HttpContext httpContext, string actionName,
             string controllerName, string areaName)
         {
+            var services = httpContext.RequestServices;
             var provider = services.GetRequiredService<IActionDescriptorCollectionProvider>();
 
             var candidates = provider.ActionDescriptors.Items
@@ -329,6 +345,9 @@ namespace Nop.Web.Framework
             if (inArea.Count > 0)
                 candidates = inArea;
 
+            //TASK 11.1 - MVC 5's action-method selection, restored. See ApplyActionConstraints.
+            candidates = ApplyActionConstraints(httpContext, candidates);
+
             if (candidates.Count <= 1)
                 return candidates.FirstOrDefault();
 
@@ -336,6 +355,153 @@ namespace Nop.Web.Framework
             //nopCommerce child actions have no overloads, so this only ever breaks ties
             //introduced by [HttpGet]/[HttpPost] pairs on the same name.
             return candidates.OrderBy(x => x.Parameters.Count).First();
+        }
+
+        /// <summary>
+        /// Narrow the candidate set the way MVC 5's <c>ActionMethodSelector</c> did: an action
+        /// whose selector attributes all accept the current request beats an action that declares
+        /// none.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>TASK 11.1 — A REAL DEFECT, SILENT, FOUND BY THE FIRST PLUGIN WHOSE
+        /// <c>Configure</c> PAGE SAVES SETTINGS. Runtime deferral 11.x-1.</b>
+        /// </para>
+        /// <para>
+        /// A plugin's admin configuration page is rendered <b>through this bridge</b>: the admin's
+        /// own <c>Plugin/ConfigureMiscPlugin</c>, <c>ExternalAuthentication/ConfigureMethod</c>,
+        /// <c>Payment/ConfigureMethod</c> etc. are plain GET actions whose views do
+        /// <c>@Html.Action(Model.ConfigurationActionName, Model.ConfigurationControllerName,
+        /// Model.ConfigurationRouteValues)</c>. The plugin's form is
+        /// <c>@using (Html.BeginForm())</c> with no arguments, i.e. <c>action=""</c>, so
+        /// <b>submitting it POSTs to the ADMIN url</b>; the admin action runs again and renders
+        /// the child action again — this time inside a POST request. In MVC 5 child-action
+        /// invocation went through <c>ControllerActionInvoker</c> against the ambient request, so
+        /// <c>ActionMethodSelector</c> chose the <c>[HttpPost] Configure(TModel model)</c>
+        /// overload and the model binder filled it from the form. <b>That is the ONLY path by
+        /// which a plugin's settings were ever saved in 3.90.</b>
+        /// </para>
+        /// <para>
+        /// Before this method existed, <see cref="FindAction"/> matched on name alone and broke
+        /// the resulting tie by <i>fewest parameters</i>, which always selects the parameterless
+        /// GET overload. So the POST re-rendered the form with the OLD values and <b>silently
+        /// discarded the administrator's input</b> — no exception, no notification, no log entry.
+        /// Every plugin with a settings form is affected: 11.1, 11.2, all five of 12.x, 13.1,
+        /// 14.4, 15.1, 15.2, 15.3.
+        /// </para>
+        /// <para>
+        /// <b>It is not only about the verb.</b> <c>Feed.GoogleShopping</c> has <b>two</b>
+        /// <c>[HttpPost]</c> actions named <c>Configure</c> — <c>Configure(model)</c> marked
+        /// <c>[FormValueRequired("save")]</c> and <c>GenerateFeed</c> marked
+        /// <c>[ActionName("Configure")] [FormValueRequired("generate")]</c> — distinguished ONLY
+        /// by which submit button was pressed. Both have one parameter, so a
+        /// fewest-parameters tie-break between them is arbitrary: "Save" could have generated the
+        /// feed and "Generate feed" could have saved. <c>FormValueRequiredAttribute</c> is an
+        /// <see cref="Microsoft.AspNetCore.Mvc.ActionMethodSelectorAttribute"/>, hence an
+        /// <see cref="IActionConstraint"/>, so evaluating constraints generally — rather than
+        /// special-casing the HTTP method — is what makes that page correct.
+        /// </para>
+        /// <para>
+        /// <b>MVC 5's algorithm, reproduced.</b> <c>ActionMethodSelector.RunSelectionFilters</c>
+        /// partitioned the candidates into those carrying at least one selector attribute whose
+        /// every attribute accepted the request, and those carrying none; if the first partition
+        /// was non-empty it won outright, otherwise the second was used. That is what the two
+        /// passes below do. Constraints are evaluated against the <b>ambient</b> request, which is
+        /// what a child action saw in MVC 5.
+        /// </para>
+        /// <para>
+        /// <b>A PREFERENCE WITH A FALLBACK, deliberately — like the area rule above.</b> If
+        /// filtering would leave nothing the original set is returned unchanged, so this can only
+        /// ever narrow an ambiguity, never turn a working call site into
+        /// "could not find an action". In particular a lone <c>[HttpPost]</c>-only child action
+        /// invoked from a GET page still resolves, where MVC 5 would have thrown.
+        /// </para>
+        /// <para>
+        /// <b>Effect on the 170 in-tree call sites: none.</b> None of nopCommerce's own 41 child
+        /// actions has an overload or a selector attribute — verified by inspection at 7.3 and
+        /// re-checked here — so every one of them is a single candidate and returns from the
+        /// first branch below. This changes behaviour only where MVC 5's selection was doing work
+        /// this bridge was not.
+        /// </para>
+        /// </remarks>
+        private static List<ControllerActionDescriptor> ApplyActionConstraints(HttpContext httpContext,
+            List<ControllerActionDescriptor> candidates)
+        {
+            if (candidates.Count <= 1)
+                return candidates;
+
+            //ActionConstraintContext wants the whole candidate set so a constraint can reason
+            //about its peers (none of nopCommerce's does, but HttpMethodActionConstraint's
+            //contract allows it).
+            var all = candidates
+                .Select(x => new ActionSelectorCandidate(x, ConstraintsOf(x)))
+                .ToList();
+
+            var routeContext = new RouteContext(httpContext);
+
+            var withSelectors = new List<ControllerActionDescriptor>();
+            var withoutSelectors = new List<ControllerActionDescriptor>();
+
+            foreach (var candidate in all)
+            {
+                var descriptor = (ControllerActionDescriptor)candidate.Action;
+
+                if (candidate.Constraints == null || candidate.Constraints.Count == 0)
+                {
+                    withoutSelectors.Add(descriptor);
+                    continue;
+                }
+
+                var accepted = true;
+                foreach (var constraint in candidate.Constraints)
+                {
+                    var context = new ActionConstraintContext
+                    {
+                        Candidates = all,
+                        CurrentCandidate = candidate,
+                        RouteContext = routeContext
+                    };
+
+                    if (constraint.Accept(context))
+                        continue;
+
+                    accepted = false;
+                    break;
+                }
+
+                if (accepted)
+                    withSelectors.Add(descriptor);
+            }
+
+            if (withSelectors.Count > 0)
+                return withSelectors;
+
+            if (withoutSelectors.Count > 0)
+                return withoutSelectors;
+
+            //nothing accepted: keep the pre-11.1 behaviour rather than failing the render
+            return candidates;
+        }
+
+        /// <summary>
+        /// The evaluable <see cref="IActionConstraint"/>s on an action descriptor.
+        /// </summary>
+        /// <remarks>
+        /// <c>ActionDescriptor.ActionConstraints</c> holds <see cref="IActionConstraintMetadata"/>,
+        /// which is a marker: an entry is either an <see cref="IActionConstraint"/> (evaluable
+        /// directly — <c>HttpMethodActionConstraint</c>, <c>ActionMethodSelectorAttribute</c> and
+        /// therefore <c>FormValueRequiredAttribute</c>) or an <c>IActionConstraintFactory</c>
+        /// (needs the service provider). Only the former shape occurs in this solution, and a
+        /// factory entry is skipped rather than guessed at — skipping is the safe direction,
+        /// because it can only make this method less selective and the fallbacks above absorb
+        /// that.
+        /// </remarks>
+        private static IReadOnlyList<IActionConstraint> ConstraintsOf(ActionDescriptor descriptor)
+        {
+            if (descriptor.ActionConstraints == null || descriptor.ActionConstraints.Count == 0)
+                return new IActionConstraint[0];
+
+            return descriptor.ActionConstraints.OfType<IActionConstraint>().ToList();
         }
 
         private static string AreaOf(ControllerActionDescriptor descriptor)
@@ -364,6 +530,7 @@ namespace Nop.Web.Framework
             if (asController != null)
             {
                 asController.ControllerContext = new ControllerContext(actionContext);
+                PopulateValueProviderFactories(services, asController.ControllerContext);
                 asController.ViewData = new ViewDataDictionary(
                     services.GetRequiredService<IModelMetadataProvider>(), actionContext.ModelState);
                 asController.TempData = services.GetRequiredService<ITempDataDictionaryFactory>()
@@ -374,10 +541,45 @@ namespace Nop.Web.Framework
             {
                 var asBase = controller as ControllerBase;
                 if (asBase != null)
+                {
                     asBase.ControllerContext = new ControllerContext(actionContext);
+                    PopulateValueProviderFactories(services, asBase.ControllerContext);
+                }
             }
 
             return controller;
+        }
+
+        /// <summary>
+        /// Give the hand-built <see cref="ControllerContext"/> the application's configured value
+        /// provider factories.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>TASK 11.1.</b> <c>new ControllerContext(ActionContext)</c> initialises
+        /// <c>ValueProviderFactories</c> to an <b>empty</b> list; in the real pipeline
+        /// <c>ControllerActionInvokerCache</c> copies them from <c>MvcOptions</c>. Everything that
+        /// binds from the request through the controller reads that list —
+        /// <c>ControllerBase.TryUpdateModelAsync</c>, <c>TryValidateModel</c>, and
+        /// <see cref="BindComplexParameter"/> below. Without it they all bind nothing and report
+        /// success, which is the failure mode described on <see cref="ApplyActionConstraints"/>.
+        /// </para>
+        /// <para>
+        /// The list is copied rather than aliased so an action cannot mutate the application's
+        /// options. This is a capability restoration only: nothing in the pre-11.1 bridge read the
+        /// list, so no existing behaviour changes.
+        /// </para>
+        /// </remarks>
+        private static void PopulateValueProviderFactories(IServiceProvider services,
+            ControllerContext controllerContext)
+        {
+            var options = services.GetService<IOptions<MvcOptions>>();
+            if (options == null || options.Value == null)
+                return;
+
+            controllerContext.ValueProviderFactories.Clear();
+            foreach (var factory in options.Value.ValueProviderFactories)
+                controllerContext.ValueProviderFactories.Add(factory);
         }
 
         private static IActionResult ExecuteAction(object controller, ControllerActionDescriptor descriptor,
@@ -386,7 +588,7 @@ namespace Nop.Web.Framework
             var parameters = descriptor.MethodInfo.GetParameters();
             var args = new object[parameters.Length];
             for (var i = 0; i < parameters.Length; i++)
-                args[i] = BindParameter(parameters[i], routeValues);
+                args[i] = BindParameter(parameters[i], routeValues, controller as ControllerBase);
 
             var returned = descriptor.MethodInfo.Invoke(controller, args);
 
@@ -407,18 +609,37 @@ namespace Nop.Web.Framework
         /// declared default and then to <c>default(T)</c>.
         /// </summary>
         /// <remarks>
-        /// Deliberately narrow: scalars, strings, enums and their nullable forms. Every
-        /// nopCommerce child action parameter is one of those. A complex type gets the
-        /// parameter default rather than a half-bound instance, which fails visibly rather than
-        /// silently producing wrong output.
+        /// <para>
+        /// Scalars, strings, enums and their nullable forms are converted from the supplied route
+        /// values, which is exactly what a child action received in MVC 5 from an explicit
+        /// <c>routeValues</c> argument, and covers every one of nopCommerce's own 41 child actions.
+        /// </para>
+        /// <para>
+        /// <b>TASK 11.1 — a COMPLEX parameter is now bound from the request</b> by
+        /// <see cref="BindComplexParameter"/> rather than being handed <c>null</c>. See the
+        /// remarks on <see cref="ApplyActionConstraints"/>: plugin <c>Configure</c> pages take a
+        /// settings model as a child-action parameter, so <c>null</c> meant "the administrator's
+        /// input is discarded". No in-tree child action has a complex parameter, so nothing
+        /// nopCommerce ships changes behaviour.
+        /// </para>
         /// </remarks>
-        private static object BindParameter(ParameterInfo parameter, RouteValueDictionary routeValues)
+        private static object BindParameter(ParameterInfo parameter, RouteValueDictionary routeValues,
+            ControllerBase controller)
         {
             object raw;
-            if (!routeValues.TryGetValue(parameter.Name, out raw) || raw == null)
-                return parameter.HasDefaultValue ? parameter.DefaultValue : DefaultOf(parameter.ParameterType);
+            var supplied = routeValues.TryGetValue(parameter.Name, out raw) && raw != null;
 
             var target = Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType;
+
+            //TASK 11.1 - a complex parameter is model-bound from the ambient request. Checked
+            //BEFORE the "not supplied" test: a route value for a complex parameter could only be
+            //an already-constructed instance, handled by the IsInstanceOfType branch below.
+            if (!supplied && IsComplexParameter(target))
+                return BindComplexParameter(parameter, controller);
+
+            if (!supplied)
+                return parameter.HasDefaultValue ? parameter.DefaultValue : DefaultOf(parameter.ParameterType);
+
             if (target.IsInstanceOfType(raw))
                 return raw;
 
@@ -455,6 +676,80 @@ namespace Nop.Web.Framework
         private static object DefaultOf(Type type)
         {
             return type.IsValueType ? Activator.CreateInstance(type) : null;
+        }
+
+        /// <summary>
+        /// Whether a parameter type is a model to be bound property-by-property rather than a
+        /// single value converted from a route value.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately conservative — everything that <see cref="BindParameter"/> can convert
+        /// itself, plus anything with a <see cref="TypeConverter"/> that accepts a string
+        /// (<c>Guid</c>, <c>TimeSpan</c>, <c>Uri</c>, …), is NOT complex. Only a class or struct
+        /// with a public parameterless constructor qualifies, because
+        /// <see cref="BindComplexParameter"/> has to instantiate it.
+        /// </remarks>
+        private static bool IsComplexParameter(Type type)
+        {
+            if (type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal)
+                || type == typeof(DateTime) || type == typeof(DateTimeOffset) || type == typeof(TimeSpan)
+                || type == typeof(Guid) || type == typeof(Uri) || type == typeof(byte[]))
+                return false;
+
+            if (typeof(IFormFile).IsAssignableFrom(type) || typeof(CancellationToken) == type)
+                return false;
+
+            //a type a string converts to is a value, not a model (e.g. a custom id struct)
+            var converter = TypeDescriptor.GetConverter(type);
+            if (converter != null && converter.CanConvertFrom(typeof(string)))
+                return false;
+
+            return type.GetConstructor(Type.EmptyTypes) != null;
+        }
+
+        /// <summary>
+        /// Model-bind a complex child-action parameter from the ambient request, the way MVC 5's
+        /// child-action invoker did.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>TASK 11.1 — runtime deferral 11.x-1.</b> Uses the controller's own
+        /// <c>TryUpdateModelAsync(object, Type, string prefix)</c>, i.e. the application's real
+        /// configured binder chain over the value provider factories
+        /// <see cref="PopulateValueProviderFactories"/> installed — form, route and query, in
+        /// <c>MvcOptions</c> order. Validation runs, so <c>ModelState.IsValid</c> means what the
+        /// action expects it to (both plugin <c>Configure</c> POSTs test it).
+        /// </para>
+        /// <para>
+        /// An empty prefix reproduces MVC 5, where a child action's model parameter bound from the
+        /// unprefixed form fields the plugin's own <c>Html.NopEditorFor</c> emitted.
+        /// </para>
+        /// <para>
+        /// <b>Fails to the pre-11.1 behaviour, never louder.</b> If the controller is not a
+        /// <see cref="ControllerBase"/>, has no accessible parameterless constructor, or binding
+        /// throws, the parameter's declared default (or <c>null</c>) is used — exactly what it got
+        /// before. Binding is awaited synchronously, which is the same trade-off as the render
+        /// call in <see cref="RenderResult"/>: ASP.NET Core installs no
+        /// <c>SynchronizationContext</c>, so it cannot deadlock.
+        /// </para>
+        /// </remarks>
+        private static object BindComplexParameter(ParameterInfo parameter, ControllerBase controller)
+        {
+            if (controller == null || controller.ControllerContext == null)
+                return parameter.HasDefaultValue ? parameter.DefaultValue : DefaultOf(parameter.ParameterType);
+
+            try
+            {
+                var model = Activator.CreateInstance(parameter.ParameterType);
+                controller.TryUpdateModelAsync(model, parameter.ParameterType, string.Empty)
+                    .GetAwaiter().GetResult();
+                return model;
+            }
+            catch
+            {
+                //an unbindable model behaves as "not supplied", as in BindParameter
+                return parameter.HasDefaultValue ? parameter.DefaultValue : DefaultOf(parameter.ParameterType);
+            }
         }
 
         private static IHtmlContent RenderResult(IServiceProvider services, ActionContext actionContext,

@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Domain.Stores;
 using Nop.Core.Plugins;
@@ -23,6 +23,45 @@ using Nop.Web.Framework.Security;
 
 namespace Nop.Plugin.Feed.GoogleShopping.Controllers
 {
+    /// <remarks>
+    /// Task 11.2 substitutions — all of them decisions tasks 7.3 (§30), 8.3 (§55) and 10.x already
+    /// made and recorded:
+    /// <list type="bullet">
+    /// <item><c>using System.Web.Mvc;</c> → <c>using Microsoft.AspNetCore.Mvc;</c> plus
+    /// <c>Microsoft.AspNetCore.Mvc.Rendering</c> for <see cref="SelectListItem"/>.</item>
+    /// <item><c>using System.Web;</c> DELETED — see <see cref="Configure()"/>, where
+    /// <c>HttpRuntime.AppDomainAppPath</c> is replaced.</item>
+    /// <item><c>[ChildActionOnly]</c> → <c>[NopChildActionOnly]</c> on all three
+    /// <c>Configure</c>-named actions (deferral 7.3-4, resolved at 8.3). Without it
+    /// <c>GET /FeedGoogleShopping/Configure</c> would serve the bare admin settings panel over
+    /// the <c>Default</c> route. <b>The two grid actions are deliberately NOT marked</b>:
+    /// <c>GoogleProductList</c> and <c>GoogleProductUpdate</c> are called by URL from the Kendo
+    /// grid in <c>Views/Configure.cshtml</c> (through <c>Url.Action</c>), so suppressing their
+    /// endpoints would 404 the grid. They were never <c>[ChildActionOnly]</c> in 3.90 either — the
+    /// marker follows 3.90's own attribute placement rather than a guess.</item>
+    /// <item><c>Json(gridModel)</c> — unchanged; this file never used
+    /// <c>JsonRequestBehavior.AllowGet</c>.</item>
+    /// <item><c>View("~/Plugins/Feed.GoogleShopping/Views/Configure.cshtml", model)</c> — call
+    /// site UNCHANGED, thanks to the project file's <c>Content</c>/<c>Link</c> block.</item>
+    /// </list>
+    /// Needed no edit: <c>[AdminAuthorize]</c>, <c>[AdminAntiForgery]</c>,
+    /// <c>[FormValueRequired]</c>, <c>[HttpPost, ActionName("Configure")]</c>,
+    /// <c>ErrorForKendoGridJson</c>, <c>DataSourceRequest</c>/<c>DataSourceResult</c>,
+    /// <c>NullJsonResult</c>, <c>SuccessNotification</c>/<c>ErrorNotification</c> — every one
+    /// ported in place by tasks 6.2/6.3 with its signature intact.
+    /// <para>
+    /// <b>THE THREE <c>Configure</c> ACTIONS ARE WHY TASK 11.1 HAD TO FIX THE
+    /// <c>Html.Action</c> BRIDGE (runtime deferral 11.x-1), AND THIS PLUGIN IS THE SHARPEST
+    /// CASE IN THE SOLUTION.</b> Two of them are <c>[HttpPost]</c> with the SAME action name and
+    /// the SAME single parameter, distinguished only by <c>[FormValueRequired("save")]</c> versus
+    /// <c>[FormValueRequired("generate")]</c> — i.e. by which submit button was pressed. The
+    /// pre-11.1 bridge ignored <c>[HttpPost]</c> and <c>[FormValueRequired]</c> entirely and broke
+    /// the tie by "fewest parameters", so pressing either button re-ran the parameterless GET and
+    /// nothing happened at all; had the tie fallen the other way, "Save" could have generated the
+    /// feed. The bridge now evaluates <c>IActionConstraint</c>s the way MVC 5's
+    /// <c>ActionMethodSelector</c> did.
+    /// </para>
+    /// </remarks>
     [AdminAuthorize]
     public class FeedGoogleShoppingController : BasePluginController
     {
@@ -63,7 +102,7 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
             this._permissionService = permissionService;
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public ActionResult Configure()
         {
             var model = new FeedGoogleShoppingModel();
@@ -87,14 +126,20 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
                 model.AvailableGoogleCategories.Add(new SelectListItem { Text = gc, Value = gc });
 
             //file paths
+            //TASK 11.2: the probe and the URL both go through GoogleShoppingFeedFile, which is
+            //where the two silent 3.90 defects are documented - HttpRuntime.AppDomainAppPath has
+            //no net10.0 counterpart, and "content\\files\\exportimport" is one directory name with
+            //the wrong casing on a case-sensitive filesystem, so File.Exists returned false
+            //forever and the administrator never saw a feed URL. The probe and the WRITE in
+            //GoogleShoppingService.GenerateStaticFile now share one expression by construction.
             foreach (var store in _storeService.GetAllStores())
             {
-                var localFilePath = System.IO.Path.Combine(HttpRuntime.AppDomainAppPath, "content\\files\\exportimport", store.Id + "-" + _googleShoppingSettings.StaticFileName);
+                var localFilePath = GoogleShoppingFeedFile.PhysicalPath(store.Id, _googleShoppingSettings.StaticFileName);
                 if (System.IO.File.Exists(localFilePath))
                     model.GeneratedFiles.Add(new FeedGoogleShoppingModel.GeneratedFileModel
                     {
                         StoreName = store.Name,
-                        FileUrl = string.Format("{0}content/files/exportimport/{1}-{2}", _webHelper.GetStoreLocation(false), store.Id, _googleShoppingSettings.StaticFileName)
+                        FileUrl = GoogleShoppingFeedFile.Url(_webHelper, store.Id, _googleShoppingSettings.StaticFileName)
                     });
             }
 
@@ -102,7 +147,7 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
         }
 
         [HttpPost]
-        [ChildActionOnly]
+        [NopChildActionOnly]
         [FormValueRequired("save")]
         public ActionResult Configure(FeedGoogleShoppingModel model)
         {
@@ -128,7 +173,7 @@ namespace Nop.Plugin.Feed.GoogleShopping.Controllers
         }
 
         [HttpPost, ActionName("Configure")]
-        [ChildActionOnly]
+        [NopChildActionOnly]
         [FormValueRequired("generate")]
         public ActionResult GenerateFeed(FeedGoogleShoppingModel model)
         {
