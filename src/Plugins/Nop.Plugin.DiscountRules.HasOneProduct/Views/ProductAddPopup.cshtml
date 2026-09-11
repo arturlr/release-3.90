@@ -1,5 +1,28 @@
 ﻿@{
-    Layout = "~/Administration/Views/Shared/_AdminPopupLayout.cshtml";
+    @*
+        TASK 10.2 — DEFERRAL 8.2-3, one of the two sites in this file.
+        Task 8.2 moved the admin view tree from Administration/Views/ to
+        Administration/Areas/Admin/Views/ (deferral 8.1-4), so the pre-8.2 path
+        "~/Administration/Views/Shared/_AdminPopupLayout.cshtml" matches nothing.
+
+        IT MUST STAY AN EXPLICIT ~/-ROOTED PATH, not a bare layout name. This names a view
+        COMPILED INTO Nop.Admin.dll: it reaches this plugin only because the host contributes
+        every discovered assembly as an application part (task 8.2's
+        NopApplicationPartExtensions), which puts Nop.Admin's compiled identifiers into the same
+        view-compiler dictionary as this plugin's. A bare name would go through the view
+        location formats instead, and this plugin's controller is NOT in the Admin area — its
+        route is Plugins/DiscountRulesHasOneProduct/ProductAddPopup — so the Admin area formats
+        that would find _AdminPopupLayout.cshtml are never even consulted.
+
+        VERIFIED BY EXECUTION, not by the string looking right:
+        Nop.Web.SmokeTests.PluginViewRenderTests renders this popup over HTTP and asserts the
+        admin popup layout's own markup is present in the response, and asserts the identifier
+        resolves through Nop.Admin's CompiledRazorAssemblyPart.
+
+        runtime-deferrals.md §51/8.2-3 lists the remaining 10 sites, for tasks 11.2, 13.1, 14.4
+        and 15.1.
+    *@
+    Layout = "~/Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml";
 }
 @model Nop.Plugin.DiscountRules.HasOneProduct.Models.RequirementModel.AddProductModel
 @using Nop.Core.Infrastructure;
@@ -123,7 +146,12 @@
                                     },
                                     pageable: {
                                         refresh: true,
-                                        @Html.Partial("~/Administration/Views/Shared/_GridPagerMessages.cshtml")
+                                        @*task 10.2: deferral 8.2-3, second site in this file —
+                                          ~/Administration/Views/Shared/ -> ~/Areas/Admin/Views/Shared/;
+                                          and Html.Partial -> await Html.PartialAsync, the MVC1000
+                                          substitution tasks 7.3/8.4 applied at 260 sites. The
+                                          `await` is legal here because Razor page bodies are async.*@
+                                        @await Html.PartialAsync("~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml")
                                     },
                                     editable: {
                                         confirmation: "@T("Admin.Common.DeleteConfirmation")",

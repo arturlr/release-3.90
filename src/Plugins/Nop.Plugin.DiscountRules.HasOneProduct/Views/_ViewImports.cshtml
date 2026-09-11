@@ -1,0 +1,65 @@
+@*
+    Task 10.2 — the ASP.NET Core replacement for this plugin's web.config
+    <system.web.webPages.razor><pages> element (Requirement 4.4).
+
+    Identical in shape to task 10.1's (see
+    src/Plugins/Nop.Plugin.DiscountRules.CustomerRoles/Views/_ViewImports.cshtml for the full
+    reasoning); only the plugin's own Models namespace differs. Every plugin that ships a
+    .cshtml needs one, because all 20 ship a byte-identical web.config declaring two things:
+
+      pageBaseType="Nop.Web.Framework.ViewEngines.Razor.WebViewPage"
+          -> the @inherits directive below. It is what makes T("Some.Resource") resolve — the
+             localizer lives on that base class — and what makes the @model type resolve
+             without a fully-qualified name. Deleting the web.config without adding this file
+             produces one CS0246 per @model plus one CS0103 per T(...) call, the same cluster
+             tasks 7.3 and 8.4 measured for Nop.Web and Nop.Admin.
+
+      <namespaces> = System.Web.Mvc, System.Web.Mvc.Ajax, System.Web.Mvc.Html,
+                     System.Web.Routing
+          -> the @using directives below, translated exactly as tasks 7.3 / 8.4 translated
+             the same four entries:
+               System.Web.Mvc      -> Microsoft.AspNetCore.Mvc
+               System.Web.Mvc.Html -> Microsoft.AspNetCore.Mvc.Rendering (IHtmlHelper
+                                      extensions), which is ALSO where SelectListItem lives
+               System.Web.Routing  -> Microsoft.AspNetCore.Routing
+               System.Web.Mvc.Ajax -> NO counterpart. The Ajax.* helpers do not exist in
+                                      ASP.NET Core; verified zero "Ajax." occurrences across
+                                      all 38 plugin .cshtml files. Dropped.
+
+    WHY IT SITS AT Views/ AND NOT AT THE PROJECT ROOT. Razor discovers _ViewImports.cshtml by
+    walking UP from the view's own directory — the trap task 7.5 measured as deferral 7.5-1.
+    This plugin has exactly one view tree, Views/, so one file at its root reaches both views.
+    It must be inside the tree covered by the project file's Content/Link glob
+    (Views\**\*.cshtml), because imports are matched by the LINKED path: with the glob applied
+    this file compiles as /Plugins/DiscountRules.HasOneProduct/Views/_ViewImports.cshtml and
+    the view as /Plugins/DiscountRules.HasOneProduct/Views/Configure.cshtml, i.e. same
+    directory. MEASURED on a probe (a base type declared only here was observed on the
+    compiled view type), not assumed — if the two were linked inconsistently the imports would
+    silently not apply and the failure would look like a missing model type.
+*@
+@inherits Nop.Web.Framework.ViewEngines.Razor.WebViewPage<TModel>
+
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Routing
+
+@*
+    Nop.Web.Framework carries HtmlExtensions (Html.NopLabelFor / NopDropDownListFor /
+    FieldIdFor), ViewCompatibilityExtensions (JavaScriptHelper.Encode, Html.NewViewData,
+    TemplateInfo.GetFullHtmlFieldId) and ChildActionExtensions (the @Html.Action bridge,
+    promoted here by task 8.3). One import covers all of them — which is why no plugin view
+    call site needed a new @using for those.
+*@
+@using Nop.Core.Infrastructure
+@using Nop.Web.Framework
+@using Nop.Web.Framework.UI
+@using Nop.Plugin.DiscountRules.HasOneProduct.Models
+
+@*
+    Tag helpers. 3.90 had none (they do not exist in MVC 5). Added for the same reason task
+    7.3 added them to Nop.Web: the framework's form/validation tag helpers are the supported
+    route to an anti-forgery token, and Html.BeginForm uses the same infrastructure.
+*@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

@@ -32,7 +32,12 @@
                     }
                 },
                 error:function (xhr, ajaxOptions, thrownError){
-                    alert('@Html.Raw(HttpUtility.JavaScriptStringEncode(T("Admin.Promotions.Discounts.Requirements.FailedToSave").Text))');
+                    @*task 10.2: HttpUtility.JavaScriptStringEncode -> JavaScriptHelper.Encode
+                      (Nop.Web.Framework, imported by Views/_ViewImports.cshtml). HttpUtility exists
+                      on net10.0 but referencing it would put a System.Web* assembly back into a
+                      migrated project, which the residual-System.Web scan checks for. Same
+                      substitution as runtime-deferrals.md sections 30 and 59.4.*@
+                    alert('@Html.Raw(JavaScriptHelper.Encode(T("Admin.Promotions.Discounts.Requirements.FailedToSave").Text))');
                 }
             });
         });

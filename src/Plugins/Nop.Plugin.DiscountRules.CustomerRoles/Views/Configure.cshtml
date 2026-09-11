@@ -32,7 +32,13 @@
                     }
                 },
                 error:function (xhr, ajaxOptions, thrownError){
-                    alert('@Html.Raw(HttpUtility.JavaScriptStringEncode(T("Admin.Promotions.Discounts.Requirements.FailedToSave").Text))');
+                    @*task 10.1: HttpUtility.JavaScriptStringEncode -> JavaScriptHelper.Encode.
+                      HttpUtility does exist on net10.0 but using it would put a System.Web*
+                      assembly reference back into a migrated project, which the gate scans for.
+                      JavaScriptEncoder escapes more aggressively (non-ASCII, & < > ' " as \uXXXX);
+                      the escaped forms are equivalent JavaScript. Same substitution as
+                      runtime-deferrals.md sections 30 (9 sites) and 59.4 (19 sites).*@
+                    alert('@Html.Raw(JavaScriptHelper.Encode(T("Admin.Promotions.Discounts.Requirements.FailedToSave").Text))');
                 }
             });
         });

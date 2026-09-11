@@ -58,9 +58,18 @@ Paths inside the container are rooted at `/workspace`, which maps to `/home/artr
 
 `src/Tests/Nop.Web.SmokeTests` boots the real `Nop.Web` host in-process through
 `WebApplicationFactory<Nop.Web.Program>`. **It is deliberately NOT part of any clean-compile gate** —
-task 7.7 is non-gating and 13 of its 161 tests need a database. (Counts as of task 8.8, which added
-the `AdminUiRenderTests` and `PluginDiscoveryTests` fixtures plus the admin cases on the existing
-`Deferral_7_3_4_*` invariants.)
+task 7.7 is non-gating and some of its tests need a database. (Counts as of tasks 10.1-10.3, which
+added `PluginViewRenderTests` plus one test in `HostAndContainerTests`: **178 tests**, of which 5 need
+an installed store *with the three plugins installed* and 47 need an installed store.)
+
+**As of tasks 10.1-10.3 this project also builds the three migrated plugins**
+(`Nop.Plugin.DiscountRules.CustomerRoles`, `Nop.Plugin.DiscountRules.HasOneProduct`,
+`Nop.Plugin.ExchangeRate.EcbExchange`) as build-order-only `ProjectReference`s. They need **no copy
+target**, unlike `Nop.Admin` and `Nop.Plugin.SmokeProbe`: each plugin's `OutputPath` is 3.90's
+`..\..\Presentation\Nop.Web\Plugins\<ShortName>\`, which IS the content root's `Plugins`
+directory `PluginManager` scans, so building them puts them exactly where production puts them.
+Consequence: from task 10.x on, **every fixture in this suite boots a host with three real plugins
+present** (deliberate - it keeps the discovery path continuously exercised). They are gitignored.
 
 **As of task 8.8 this project also builds `Nop.Admin` and `Nop.Plugin.SmokeProbe`.** Both are
 **build-order-only** `ProjectReference`s (`ReferenceOutputAssembly="false"`), for reasons documented
@@ -70,7 +79,8 @@ and `Nop.Plugin.SmokeProbe.dll` must **not** reach the output directory at all o
 would load it directly and bypass `PluginManager`'s shadow copy (deferral 8.2-1). The practical
 consequence: `dotnet test` on this project now fails if `Nop.Admin` fails to compile.
 
-Without a database (74 pass, 87 skip — the storefront and admin-render fixtures plus the canaries):
+Without a database (**126 pass / 0 fail / 52 skip** as of task 10.x — the storefront, admin-render
+and plugin-render fixtures skip):
 
 ```bash
 docker run --rm -u "$(id -u):$(id -g)" -e DOTNET_CLI_HOME=/tmp -e HOME=/tmp \
@@ -82,7 +92,7 @@ docker run --rm -u "$(id -u):$(id -g)" -e DOTNET_CLI_HOME=/tmp -e HOME=/tmp \
 Tests that need an installed store `Assert.Ignore` with `"NOT EXERCISED: no database is
 installed …"`, so the run is green and the gap is visible rather than silently passed.
 
-### With a database (full storefront AND admin coverage — 148 pass / 0 fail / 13 skip)
+### With a database (full storefront, admin AND plugin coverage — **164 pass / 0 fail / 14 skip** as of task 10.x)
 
 ```bash
 docker network create nopnet
@@ -107,8 +117,18 @@ the skip condition is deliberately **"not authorised"** and not **"the page did 
 broken admin page is reported as a **failure**, because an earlier version keyed off
 `GET /Admin/ == 200` and silently skipped the whole fixture when a revert experiment broke rendering.
 
+**The installer installs every discovered plugin** (`InstallController` line ~409, unless listed in
+`PluginsIgnoredDuringInstallation`), so after installing, `App_Data/InstalledPlugins.txt` holds the
+three group-10 plugins and `PluginViewRenderTests`' Group B can run. That matters because
+`RoutePublisher` skips an **uninstalled** plugin's `IRouteProvider` - 3.90's behaviour - so without
+installation a plugin has no live endpoint and the five Group B tests `Assert.Ignore` with an
+explicit message naming the missing step.
+
 Finally run `dotnet test` as above but add `--network nopnet` to the `docker run`, so the test
 container can reach `nopsql`.
+
+To return to the recorded no-database baseline afterwards: delete `App_Data/Settings.txt` **and**
+`App_Data/InstalledPlugins.txt`, then `docker rm -f nopsql` and `docker network rm nopnet`.
 
 Two artifacts are left under `src/Presentation/Nop.Web/App_Data/` and are **gitignored**:
 `Settings.txt` (the connection string the installer wrote) and `browscap.crawlersonly.xml`
@@ -128,6 +148,10 @@ assembly and a generated `Description.txt` — **before** the host starts, becau
 `PluginManager.Initialize()` runs once from `Program.Main`. `src/Presentation/Nop.Web/Plugins/*` is
 already gitignored, so nothing there can be committed by accident.
 
+`PluginViewRenderTests` plants **nothing** - the three real plugins it measures are deployed by their
+own build to `Plugins/<ShortName>/`, which is the production location, so there is nothing to arrange
+or clean up. It reads everything through a new `/__smoke/plugins` probe.
+
 All of them are removed in `OneTimeTearDown`. A crashed run leaves an obviously-named file that shows
 up in `git status` (or, for the plugin, under the gitignored `Plugins/`) rather than silently; the
 shadow copy at `Plugins/bin/Nop.Plugin.SmokeProbe.dll` may survive because the assembly is loaded
@@ -145,11 +169,12 @@ dotnet test src/Tests/Nop.Web.SmokeTests/Nop.Web.SmokeTests.csproj \
   --filter "FullyQualifiedName~HarnessCanaryTests"
 ```
 
-**All eight must report Failed.** If any passes, the corresponding group of real assertions cannot be
+**All ten must report Failed.** If any passes, the corresponding group of real assertions cannot be
 trusted. (Task 7.7 shipped three; the deferral 7.3-4 / 7.7-1 fix added a fourth for the
 `/__smoke/action` probe; task 8.2 added a fifth for the view-location expander; task 8.5 added a
 sixth for the admin static-asset assertions; task 8.8 added a seventh for the `/__smoke/adminarea`
-probe and an eighth for admin-authenticated page fetches.)
+probe and an eighth for admin-authenticated page fetches; tasks 10.1-10.3 added a ninth for the
+`/__smoke/plugins` probe and a tenth for the `getView:` view-engine lookups that probe performs.)
 
 
 ## Running the Nop.Admin imaging tests (task 8.6)

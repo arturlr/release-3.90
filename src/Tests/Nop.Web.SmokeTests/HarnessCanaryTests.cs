@@ -182,6 +182,35 @@ namespace Nop.Web.SmokeTests
         }
 
         [Test]
+        public void CANARY_plugin_probe_assertions_can_fail()
+        {
+            //Guards the /__smoke/plugins report, which is what every Group A assertion in
+            //PluginViewRenderTests (tasks 10.1-10.3) reads - plugin discovery, application parts,
+            //compiled Razor identifiers, _ViewStart isolation, endpoints and URL generation. Those
+            //assertions are exact-line matches on `key=value` lines, so the failure mode that
+            //would make them vacuous is a line that never appears. There is no such plugin, so
+            //asserting it was discovered must be reported as a failure.
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "plugins").Result;
+            StringAssert.Contains("plugin:Nop.Plugin.ThereIsNoSuchPlugin.discovered=True", body,
+                "CANARY: this assertion is meant to fail.");
+        }
+
+        [Test]
+        public void CANARY_plugin_view_engine_assertions_can_fail()
+        {
+            //Guards the `getView:` half specifically - the assertions that the real
+            //IRazorViewEngine resolves each plugin view path and the two cross-assembly
+            //~/Areas/Admin/Views/Shared/ paths (deferral 8.2-3). It travels the same code path: the
+            //probe accepts an extra path to look up, and this one cannot exist in any assembly, so
+            //asserting that it resolves must be reported as a failure. Without this canary a change
+            //that made GetView report Success unconditionally would leave those assertions green.
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix +
+                "plugins?getView=~/Plugins/NoSuchPlugin/Views/NoSuchView.cshtml").Result;
+            StringAssert.Contains("getView:~/Plugins/NoSuchPlugin/Views/NoSuchView.cshtml=True", body,
+                "CANARY: this assertion is meant to fail.");
+        }
+
+        [Test]
         public void CANARY_authenticated_admin_page_assertions_can_fail()
         {
             //Guards AdminUiRenderTests, whose assertions are HTML substring matches against pages

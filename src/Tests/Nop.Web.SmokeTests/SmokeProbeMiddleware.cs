@@ -122,6 +122,9 @@ namespace Nop.Web.SmokeTests
                     case "adminarea":
                         WriteAdminAreaProbe(context, sb);
                         break;
+                    case "plugins":
+                        WritePluginsProbe(context, sb);
+                        break;
                     default:
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
                         sb.AppendLine("unknown probe: " + probe);
@@ -521,6 +524,384 @@ namespace Nop.Web.SmokeTests
             sb.AppendLine("adminHomeIndexReachable=" + (homeIndex != null));
             if (homeIndex != null)
                 sb.AppendLine("adminHomeIndexType=" + homeIndex.ControllerTypeInfo.FullName);
+        }
+
+        /// <summary>
+        /// Task 10.1–10.3 — the first three migrated plugins, reported from inside a live request.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Task 8.8's <c>PluginDiscoveryTests</c> proved the plugin <b>load</b> path with
+        /// <c>Nop.Plugin.SmokeProbe</c>, which has no controller, no route and no view. This probe
+        /// covers the three things a real plugin adds, and it is deliberately shaped as a text
+        /// report for the same reason <c>WriteAdminAreaProbe</c> is: the interesting facts
+        /// (application parts, compiled Razor identifiers, view-engine lookups, endpoint metadata)
+        /// are only reachable from inside the running host.
+        /// </para>
+        /// <para>
+        /// <b>What each section is evidence for.</b>
+        /// (1) discovery and compatibility — <c>Description.txt</c>'s
+        /// <c>SupportedVersions</c> really does satisfy <c>PluginManager</c>, asserted rather than
+        /// eyeballed. (2) application parts — deferral <b>1.2</b>: a view-bearing plugin must
+        /// contribute a <c>CompiledRazorAssemblyPart</c> as well as an <c>AssemblyPart</c>; the
+        /// probe plugin could only ever show the latter. (3) compiled identifiers — the view
+        /// resolution decision: the <c>Content</c>/<c>Link</c> metadata puts them back at 3.90's
+        /// <c>/Plugins/&lt;ShortName&gt;/Views/…</c>. (4) view-engine lookups — the identifiers are
+        /// not merely present, the real <c>IRazorViewEngine</c> finds them at exactly the strings
+        /// the ported controllers pass, including the two CROSS-ASSEMBLY paths into
+        /// <c>Nop.Admin.dll</c> that deferral <b>8.2-3</b> is about. (5) <c>_ViewStart</c>
+        /// isolation, with its counterfactual measured in the same breath. (6) endpoints — the
+        /// ported <c>IRouteProvider</c>s registered 3.90's names and patterns, once each.
+        /// </para>
+        /// </remarks>
+        private static void WritePluginsProbe(HttpContext context, StringBuilder sb)
+        {
+            var shortNames = new[]
+            {
+                "DiscountRules.CustomerRoles",
+                "DiscountRules.HasOneProduct",
+                "ExchangeRate.EcbExchange"
+            };
+            var assemblyNames = shortNames.Select(n => "Nop.Plugin." + n).ToArray();
+
+            //--- (1) discovery, compatibility and load context --------------------------------
+            var descriptors = Nop.Core.Plugins.PluginManager.ReferencedPlugins;
+            sb.AppendLine("referencedPluginsIsNull=" + (descriptors == null));
+            var incompatible = Nop.Core.Plugins.PluginManager.IncompatiblePlugins;
+            sb.AppendLine("incompatibleCount=" + (incompatible == null ? -1 : incompatible.Count()));
+            if (incompatible != null)
+                foreach (var name in incompatible)
+                    sb.AppendLine("incompatible=" + name);
+            sb.AppendLine("nopVersion=" + NopVersion.CurrentVersion);
+
+            if (descriptors != null)
+            {
+                foreach (var assemblyName in assemblyNames)
+                {
+                    var d = descriptors.FirstOrDefault(x => x.ReferencedAssembly != null &&
+                        x.ReferencedAssembly.GetName().Name == assemblyName);
+                    sb.AppendLine("plugin:" + assemblyName + ".discovered=" + (d != null));
+                    if (d == null)
+                        continue;
+
+                    sb.AppendLine("plugin:" + assemblyName + ".systemName=" + d.SystemName);
+                    sb.AppendLine("plugin:" + assemblyName + ".supportedVersions=" +
+                        string.Join("|", d.SupportedVersions));
+                    sb.AppendLine("plugin:" + assemblyName + ".supportsCurrentVersion=" +
+                        d.SupportedVersions.Contains(NopVersion.CurrentVersion,
+                            StringComparer.InvariantCultureIgnoreCase));
+                    sb.AppendLine("plugin:" + assemblyName + ".pluginType=" +
+                        (d.PluginType == null ? "<null>" : d.PluginType.FullName));
+                    sb.AppendLine("plugin:" + assemblyName + ".assignableToIPlugin=" +
+                        (d.PluginType != null &&
+                         typeof(Nop.Core.Plugins.IPlugin).IsAssignableFrom(d.PluginType)));
+                    sb.AppendLine("plugin:" + assemblyName + ".loadContextIsDefault=" +
+                        ReferenceEquals(
+                            System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(d.ReferencedAssembly),
+                            System.Runtime.Loader.AssemblyLoadContext.Default));
+                    sb.AppendLine("plugin:" + assemblyName + ".assemblyVersion=" +
+                        d.ReferencedAssembly.GetName().Version);
+                    sb.AppendLine("plugin:" + assemblyName + ".loadedFrom=" +
+                        d.ReferencedAssembly.Location);
+
+                    //deployment shape - the directory PluginManager actually scanned
+                    if (d.OriginalAssemblyFile != null && d.OriginalAssemblyFile.Directory != null)
+                    {
+                        var dir = d.OriginalAssemblyFile.Directory;
+                        sb.AppendLine("plugin:" + assemblyName + ".deployDir=" + dir.Name);
+                        sb.AppendLine("plugin:" + assemblyName + ".deployDirParent=" +
+                            (dir.Parent == null ? "<null>" : dir.Parent.Name));
+                        //Private="false" + NopPluginDoNotDeployHostAssemblies: no OTHER Nop.* dll
+                        //may sit next to a plugin, or PluginManager shadow-copies and loads it as
+                        //the process's copy of that assembly.
+                        var strayNopDlls = dir.GetFiles("Nop.*.dll", System.IO.SearchOption.AllDirectories)
+                            .Where(f => !string.Equals(f.Name, assemblyName + ".dll",
+                                StringComparison.OrdinalIgnoreCase))
+                            .Select(f => f.Name)
+                            .ToList();
+                        sb.AppendLine("plugin:" + assemblyName + ".strayNopDlls=" +
+                            (strayNopDlls.Count == 0 ? "<none>" : string.Join("|", strayNopDlls)));
+                        //3.90 deployed the .cshtml files because System.Web compiled them at
+                        //runtime; they are inside the dll now and a deployed copy is dead weight.
+                        sb.AppendLine("plugin:" + assemblyName + ".deployedCshtmlCount=" +
+                            dir.GetFiles("*.cshtml", System.IO.SearchOption.AllDirectories).Length);
+                        sb.AppendLine("plugin:" + assemblyName + ".deployedConfigCount=" +
+                            dir.GetFiles("*.config", System.IO.SearchOption.AllDirectories).Length);
+                        sb.AppendLine("plugin:" + assemblyName + ".descriptionTxtDeployed=" +
+                            System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "Description.txt")));
+                        sb.AppendLine("plugin:" + assemblyName + ".logoDeployed=" +
+                            System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "logo.jpg")));
+                    }
+                }
+            }
+
+            //--- (2) MVC application parts ----------------------------------------------------
+            var partManager = context.RequestServices.GetRequiredService<ApplicationPartManager>();
+            foreach (var assemblyName in assemblyNames)
+                foreach (var part in partManager.ApplicationParts.Where(p => p.Name == assemblyName))
+                    sb.AppendLine("part:" + assemblyName + "=" + part.GetType().Name);
+
+            //--- (3) compiled Razor identifiers ------------------------------------------------
+            var views = new ViewsFeature();
+            partManager.PopulateFeature(views);
+            var allViewPaths = views.ViewDescriptors
+                .Select(v => v.RelativePath ?? string.Empty)
+                .ToList();
+            foreach (var shortName in shortNames)
+            {
+                var prefix = "/Plugins/" + shortName + "/";
+                var owned = allViewPaths
+                    .Where(p => p.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                sb.AppendLine("identifiers:" + shortName + ".count=" + owned.Count);
+                foreach (var p in owned)
+                    sb.AppendLine("identifier=" + p);
+            }
+            //the counterfactual: had the views been left to compile at their project-relative
+            //path they would be under /Views/, in the host's own identifier namespace
+            sb.AppendLine("pluginViewsUnderHostViewsPath=" + allViewPaths.Count(p =>
+                p.StartsWith("/Views/DiscountRules", StringComparison.OrdinalIgnoreCase) ||
+                p.Equals("/Views/Configure.cshtml", StringComparison.OrdinalIgnoreCase) ||
+                p.Equals("/Views/ProductAddPopup.cshtml", StringComparison.OrdinalIgnoreCase)));
+
+            //--- (4) the real view engine finds them, at the exact strings the controllers pass --
+            var viewEngine = context.RequestServices
+                .GetRequiredService<Microsoft.AspNetCore.Mvc.Razor.IRazorViewEngine>();
+            foreach (var path in new[]
+            {
+                //ported controllers, verbatim
+                "~/Plugins/DiscountRules.CustomerRoles/Views/Configure.cshtml",
+                "~/Plugins/DiscountRules.HasOneProduct/Views/Configure.cshtml",
+                "~/Plugins/DiscountRules.HasOneProduct/Views/ProductAddPopup.cshtml",
+                //deferral 8.2-3: cross-assembly, compiled into Nop.Admin.dll
+                "~/Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml",
+                "~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml",
+                //the pre-8.2 paths the plugin views used to name - these MUST NOT resolve, or
+                //the 8.2-3 rewrite would have been unnecessary and the assertion vacuous
+                "~/Administration/Views/Shared/_AdminPopupLayout.cshtml",
+                "~/Administration/Views/Shared/_GridPagerMessages.cshtml"
+            })
+            {
+                var result = viewEngine.GetView(null, path, false);
+                sb.AppendLine("getView:" + path + "=" + result.Success);
+            }
+            //An extra caller-supplied lookup, so HarnessCanaryTests can travel this exact code path
+            //with a path that cannot exist and prove the getView assertions are able to fail.
+            var extraPath = context.Request.Query["getView"].ToString();
+            if (!string.IsNullOrEmpty(extraPath))
+                sb.AppendLine("getView:" + extraPath + "=" +
+                    viewEngine.GetView(null, extraPath, false).Success);
+
+            //--- (5) _ViewStart isolation, and the counterfactual -----------------------------
+            //RazorViewEngine resolves _ViewStart at RUNTIME by walking the identifier's ancestor
+            //directories through the SAME compiler dictionary every application part shares. In
+            //3.90 no _ViewStart applied to a plugin view, because they lived at ~/Plugins/... .
+            //Had they been compiled under /Views/, Nop.Web's own Views/_ViewStart.cshtml
+            //(Layout = "~/Views/Shared/_ColumnsOne.cshtml") WOULD have applied to every one of
+            //them - and Pickup.PickupInStore's Configure.cshtml sets no Layout at all.
+            foreach (var identifier in new[]
+            {
+                "/Plugins/DiscountRules.CustomerRoles/Views/Configure.cshtml",
+                "/Views/DiscountRulesCustomerRoles/Configure.cshtml"
+            })
+            {
+                var hits = ViewStartAncestorsOf(identifier)
+                    .Where(p => allViewPaths.Any(v => string.Equals(v, p, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+                sb.AppendLine("viewStartsApplyingTo:" + identifier + "=" +
+                    (hits.Count == 0 ? "<none>" : string.Join("|", hits)));
+            }
+
+            //--- (6) endpoints ----------------------------------------------------------------
+            //TWO measurements, because they answer different questions.
+            //
+            //(6a) THE LIVE EndpointDataSource. Note that a plugin's routes are registered only
+            //when the plugin is INSTALLED: RoutePublisher.RegisterRoutes skips any provider whose
+            //assembly belongs to a descriptor with Installed == false, which is 3.90's behaviour
+            //verbatim. So in install mode the correct, faithful result is ZERO plugin endpoints,
+            //and the probe reports `installed` alongside so the zero is explained rather than
+            //looking like a defect.
+            //
+            //(6b) THE PORTED PROVIDER ITSELF, driven directly against a scratch
+            //IEndpointRouteBuilder over the real service provider. This is what proves the
+            //IRouteProvider port - patterns, route names and controller/action targets - without
+            //needing an installed store.
+            if (descriptors != null)
+                foreach (var assemblyName in assemblyNames)
+                {
+                    var d = descriptors.FirstOrDefault(x => x.ReferencedAssembly != null &&
+                        x.ReferencedAssembly.GetName().Name == assemblyName);
+                    sb.AppendLine("plugin:" + assemblyName + ".installed=" +
+                        (d != null && d.Installed));
+                }
+
+            var endpointSource = context.RequestServices.GetRequiredService<EndpointDataSource>();
+            var liveEndpoints = endpointSource.Endpoints.OfType<RouteEndpoint>().ToList();
+            var providerEndpoints = RegisterPluginRoutesIntoScratchBuilder(context, assemblyNames, sb);
+
+            foreach (var expected in new[]
+            {
+                "Plugins/DiscountRulesCustomerRoles/Configure",
+                "Plugins/DiscountRulesHasOneProduct/Configure",
+                "Plugins/DiscountRulesHasOneProduct/ProductAddPopup",
+                "Plugins/DiscountRulesHasOneProduct/ProductAddPopupList",
+                "Plugins/DiscountRulesHasOneProduct/LoadProductFriendlyNames"
+            })
+            {
+                sb.AppendLine("liveEndpoint:" + expected + ".count=" + liveEndpoints
+                    .Count(e => string.Equals(e.RoutePattern.RawText, expected,
+                               StringComparison.OrdinalIgnoreCase) &&
+                           e.Metadata.GetMetadata<ControllerActionDescriptor>() != null));
+                sb.AppendLine("liveEndpoint:" + expected + ".actions=" + string.Join("|",
+                    liveEndpoints
+                        .Where(e => string.Equals(e.RoutePattern.RawText, expected,
+                            StringComparison.OrdinalIgnoreCase))
+                        .Select(e => e.Metadata.GetMetadata<ControllerActionDescriptor>())
+                        .Where(d => d != null)
+                        .Select(d => d.ControllerTypeInfo.FullName + "." + d.ActionName)
+                        .Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .DefaultIfEmpty("<none>")));
+
+                var matching = providerEndpoints
+                    .Where(e => string.Equals(e.RoutePattern.RawText, expected,
+                        StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                //MVC materialises ONE endpoint per matching action descriptor for a conventional
+                //route, plus one "inert" endpoint carrying no descriptor that exists purely for
+                //link generation - so the raw count is not the interesting number. What matters is
+                //WHICH actions the pattern reaches. Configure is two actions (the GET and the
+                //[HttpPost] overload) sharing one name, so the distinct set has one entry.
+                var actions = matching
+                    .Select(e => e.Metadata.GetMetadata<ControllerActionDescriptor>())
+                    .Where(d => d != null)
+                    .Select(d => d.ControllerTypeInfo.FullName + "." + d.ActionName)
+                    .Distinct()
+                    .OrderBy(x => x, StringComparer.Ordinal)
+                    .ToList();
+                sb.AppendLine("endpoint:" + expected + ".actions=" +
+                    (actions.Count == 0 ? "<none>" : string.Join("|", actions)));
+
+                var named = matching
+                    .Select(e =>
+                    {
+                        var endpointName = e.Metadata.GetMetadata<IEndpointNameMetadata>();
+                        if (endpointName != null && endpointName.EndpointName != null)
+                            return endpointName.EndpointName;
+                        var routeNameMetadata = e.Metadata.GetMetadata<IRouteNameMetadata>();
+                        return routeNameMetadata == null ? null : routeNameMetadata.RouteName;
+                    })
+                    .Where(n => n != null)
+                    .Distinct()
+                    .ToList();
+                sb.AppendLine("endpoint:" + expected + ".routeNames=" +
+                    (named.Count == 0 ? "<none>" : string.Join("|", named)));
+            }
+
+            //URL generation by ROUTE NAME - three of HasOneProduct's four routes exist only so the
+            //views can call Url.RouteUrl(name), so a renamed route breaks at runtime, silently.
+            //This needs the LIVE endpoints, i.e. an installed plugin.
+            var linkGenerator = context.RequestServices.GetRequiredService<LinkGenerator>();
+            foreach (var routeName in new[]
+            {
+                "Plugin.DiscountRules.CustomerRoles.Configure",
+                "Plugin.DiscountRules.HasOneProduct.Configure",
+                "Plugin.DiscountRules.HasOneProduct.ProductAddPopup",
+                "Plugin.DiscountRules.HasOneProduct.ProductAddPopupList",
+                "Plugin.DiscountRules.HasOneProduct.LoadProductFriendlyNames"
+            })
+            {
+                var url = linkGenerator.GetPathByName(context, routeName, null);
+                sb.AppendLine("routeUrl:" + routeName + "=" + (url ?? "<null>"));
+            }
+        }
+
+        /// <summary>
+        /// Instantiates each plugin's own <c>IRouteProvider</c> and drives it against a scratch
+        /// <see cref="IEndpointRouteBuilder"/> built over the real service provider, returning the
+        /// endpoints it produced.
+        /// </summary>
+        /// <remarks>
+        /// This exists so the <c>IRouteProvider</c> port can be asserted <b>without an installed
+        /// store</b>. <c>RoutePublisher</c> deliberately skips providers belonging to uninstalled
+        /// plugins (3.90's behaviour), so the live <c>EndpointDataSource</c> carries no plugin route
+        /// in install mode — which is correct, and would leave the port itself unexercised. Driving
+        /// the provider directly measures the thing task 10.x changed: the pattern, the route name,
+        /// the defaults, and that the endpoint resolves to the plugin's controller action.
+        /// The scratch builder is discarded; nothing is added to the running application.
+        /// </remarks>
+        private static List<RouteEndpoint> RegisterPluginRoutesIntoScratchBuilder(
+            HttpContext context, IEnumerable<string> assemblyNames, StringBuilder sb)
+        {
+            var result = new List<RouteEndpoint>();
+            var providerInterface = typeof(Nop.Web.Framework.Mvc.Routes.IRouteProvider);
+
+            foreach (var assemblyName in assemblyNames)
+            {
+                var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == assemblyName);
+                if (assembly == null)
+                    continue;
+
+                var providerTypes = assembly.GetTypes()
+                    .Where(t => t.IsClass && !t.IsAbstract && providerInterface.IsAssignableFrom(t))
+                    .ToList();
+                sb.AppendLine("routeProviders:" + assemblyName + ".count=" + providerTypes.Count);
+
+                foreach (var providerType in providerTypes)
+                {
+                    var provider = (Nop.Web.Framework.Mvc.Routes.IRouteProvider)
+                        Activator.CreateInstance(providerType);
+                    sb.AppendLine("routeProviders:" + assemblyName + ".priority=" + provider.Priority);
+
+                    var scratch = new ScratchEndpointRouteBuilder(context.RequestServices);
+                    provider.RegisterRoutes(scratch);
+                    foreach (var dataSource in scratch.DataSources)
+                        result.AddRange(dataSource.Endpoints.OfType<RouteEndpoint>());
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// A throwaway <see cref="IEndpointRouteBuilder"/> over the host's real service provider.
+        /// </summary>
+        private class ScratchEndpointRouteBuilder : IEndpointRouteBuilder
+        {
+            public ScratchEndpointRouteBuilder(IServiceProvider serviceProvider)
+            {
+                ServiceProvider = serviceProvider;
+            }
+
+            public IServiceProvider ServiceProvider { get; }
+            public ICollection<EndpointDataSource> DataSources { get; } = new List<EndpointDataSource>();
+            public IApplicationBuilder CreateApplicationBuilder()
+            {
+                return new ApplicationBuilder(ServiceProvider);
+            }
+        }
+
+        /// <summary>
+        /// The <c>_ViewStart.cshtml</c> paths ASP.NET Core would consider for a view identifier,
+        /// from the view's own directory upwards to the application root — the same walk
+        /// <c>RazorViewEngine.GetViewStartPages</c> performs.
+        /// </summary>
+        private static IEnumerable<string> ViewStartAncestorsOf(string viewIdentifier)
+        {
+            var dir = viewIdentifier;
+            while (true)
+            {
+                var slash = dir.LastIndexOf('/');
+                if (slash < 0)
+                    yield break;
+                dir = dir.Substring(0, slash);
+                yield return dir + "/_ViewStart.cshtml";
+                if (dir.Length == 0)
+                    yield break;
+            }
         }
 
         /// <summary>

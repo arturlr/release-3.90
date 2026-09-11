@@ -515,8 +515,86 @@ namespace Nop.Web.SmokeTests
                 "storefront Shared fallback must follow the controller-specific one");
             Assert.AreEqual("/FRAMEWORK/DEFAULT/{0}.cshtml", locations.Last(),
                 "the framework's own locations must remain the final fallback");
-            Assert.IsFalse(locations.Any(l => l.StartsWith("/Areas/", StringComparison.Ordinal)),
-                "a non-area lookup must not search area locations: " + string.Join(" | ", locations));
+
+            //TASK 10.x CORRECTED THIS ASSERTION. It used to read
+            //    Assert.IsFalse(locations.Any(l => l.StartsWith("/Areas/")),
+            //        "a non-area lookup must not search area locations");
+            //which encoded an invariant 3.90 did NOT hold: 3.90's non-area ViewLocationFormats
+            //ended with ~/Administration/Views/{1}/{0}.cshtml and
+            //~/Administration/Views/Shared/{0}.cshtml, i.e. a non-area lookup DID reach the admin
+            //view tree. Task 8.2 dropped that pair as unmatchable and this assertion then locked
+            //the loss in. Task 10.x measured the consequence - a 500 on the first plugin popup,
+            //because Nop.Admin's _AdminPopupLayout.cshtml renders the "Notifications" partial by
+            //BARE NAME and a plugin controller has no area - and restored the pair, repointed at
+            //the compiled identifiers. See ThemeableViewLocationExpander and
+            //runtime-deferrals.md section 83.
+            //
+            //The invariant that IS 3.90's, and is what this now asserts:
+            //  * no PARAMETERISED area format ("/Areas/{2}/...") in a non-area lookup - those are
+            //    the ones that would be nonsense with an empty area name;
+            //  * the only area-rooted entries are the two literal /Areas/Admin/Views/ ones;
+            //  * and they come AFTER every storefront location, so nothing the storefront could
+            //    already resolve resolves differently.
+            Assert.IsFalse(locations.Any(l => l.Contains("{2}")),
+                "a non-area lookup must not search a parameterised area location: " +
+                string.Join(" | ", locations));
+
+            var areaRooted = locations.Where(l => l.StartsWith("/Areas/", StringComparison.Ordinal)).ToList();
+            CollectionAssert.AreEqual(
+                new[] { "/Areas/Admin/Views/{1}/{0}.cshtml", "/Areas/Admin/Views/Shared/{0}.cshtml" },
+                areaRooted,
+                "the only area-rooted non-area locations must be 3.90's restored admin pair, in " +
+                "3.90's order (controller-specific first): " + string.Join(" | ", locations));
+            Assert.Greater(locations.IndexOf("/Areas/Admin/Views/{1}/{0}.cshtml"),
+                locations.IndexOf("/Views/Shared/{0}.cshtml"),
+                "the admin pair must come after every storefront location, as it did in 3.90 - " +
+                "otherwise an admin Shared view could shadow a storefront one.");
+        }
+
+        [Test]
+        public void Task_10_x_the_non_area_formats_reach_the_admin_shared_views()
+        {
+            //*** A REGRESSION TASK 8.2 INTRODUCED AND TASK 10.x FOUND BY EXECUTION. ***
+            //3.90's non-area ViewLocationFormats ended with the admin view tree, so a controller
+            //OUTSIDE the Admin area could resolve an admin view by bare name. That is not a
+            //curiosity: nopCommerce plugin admin controllers are not in the Admin area (3.90 routes
+            //them at Plugins/<Name>/<Action>), and Nop.Admin's _AdminPopupLayout.cshtml - the
+            //layout six plugins' popup views use - renders @Html.PartialAsync("Notifications") by
+            //BARE NAME. With the pair missing, the lookup searched only storefront locations and
+            //GET /Plugins/DiscountRulesHasOneProduct/ProductAddPopup answered 500.
+            //
+            //Task 8.2 removed the pair because the /Administration/ PATHS could never match a
+            //compiled identifier, which was true - but the ROLE was live and nothing exercised it
+            //until the first plugin. Restored, repointed at /Areas/Admin/Views/.
+            //
+            //This asserts the formats; the end-to-end consequence is asserted by
+            //PluginViewRenderTests.Deferral_8_2_3_the_HasOneProduct_ProductAddPopup_RENDERS_inside_the_admin_popup_layout,
+            //which needs an installed store. Both must exist: this one always runs, that one proves
+            //the formats are sufficient and not merely present.
+            var locations = ExpandLocations(null);
+
+            CollectionAssert.Contains(locations, "/Areas/Admin/Views/Shared/{0}.cshtml",
+                "a non-area lookup can no longer reach Areas/Admin/Views/Shared/, so every plugin " +
+                "admin popup 500s on the \"Notifications\" partial. See " +
+                "ThemeableViewLocationExpander and runtime-deferrals.md section 83.");
+            CollectionAssert.Contains(locations, "/Areas/Admin/Views/{1}/{0}.cshtml",
+                "a non-area lookup can no longer reach a controller-specific admin view.");
+
+            //3.90's order for this pair is controller-specific FIRST - the opposite of the
+            //Shared-first quirk that applies inside the Admin area (section 16.1), and preserved
+            //deliberately rather than harmonised.
+            Assert.Less(locations.IndexOf("/Areas/Admin/Views/{1}/{0}.cshtml"),
+                locations.IndexOf("/Areas/Admin/Views/Shared/{0}.cshtml"),
+                "3.90's non-area ViewLocationFormats listed the controller-specific admin path " +
+                "BEFORE the Shared one. Note this is the reverse of the Admin AREA ordering quirk.");
+
+            //and an Admin-area lookup is unaffected: the Shared-first quirk still wins there.
+            //Note the area formats keep the {2} placeholder - the framework substitutes the area
+            //name after expansion - whereas the two entries above are literal, because they exist
+            //precisely for lookups that have NO area to substitute.
+            var adminArea = ExpandLocations("Admin");
+            Assert.AreEqual("/Areas/{2}/Views/Shared/{0}.cshtml", adminArea.First(),
+                "the Admin area's Shared-first quirk must be unchanged by the non-area restoration.");
         }
 
         [Test]

@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Discounts;
@@ -20,6 +21,34 @@ using Nop.Web.Framework.Security;
 
 namespace Nop.Plugin.DiscountRules.HasOneProduct.Controllers
 {
+    /// <remarks>
+    /// Task 10.2 substitutions — every one of them a decision tasks 7.3 (§30) and 8.3 (§55)
+    /// already made and recorded:
+    /// <list type="bullet">
+    /// <item><c>using System.Web.Mvc;</c> → <c>using Microsoft.AspNetCore.Mvc;</c> plus
+    /// <c>Microsoft.AspNetCore.Mvc.Rendering</c> for <see cref="SelectListItem"/>.</item>
+    /// <item><c>Json(x, JsonRequestBehavior.AllowGet)</c> → <c>Json(x)</c>.
+    /// <c>JsonRequestBehavior</c> does not exist in ASP.NET Core (§55.5).</item>
+    /// <item><b><c>[ValidateInput(false)]</c> DELETED</b> from <c>LoadProductFriendlyNames</c>.
+    /// It opted the action out of ASP.NET request validation, which does not exist in ASP.NET
+    /// Core at all (deferral 7.3-3), so there is nothing to opt out of. Same relaxation as the
+    /// <c>[AllowHtml]</c> on <c>AddProductModel.SearchProductName</c>; see the note there. The
+    /// action takes a comma-separated list of product ids and quantity ranges, which contains
+    /// no markup, so the practical exposure is nil — but it is a relaxation and it is
+    /// recorded.</item>
+    /// <item><c>View("~/Plugins/DiscountRules.HasOneProduct/Views/….cshtml", model)</c> —
+    /// <b>both call sites UNCHANGED.</b> The project file's <c>Content</c>/<c>Link</c> block
+    /// makes the compiled Razor identifiers equal these paths.</item>
+    /// </list>
+    /// Needed no edit: <c>ActionResult</c>, <c>[HttpPost]</c>, <c>Content(...)</c>,
+    /// <c>ViewBag</c>, <c>ViewData.TemplateInfo.HtmlFieldPrefix</c>,
+    /// <c>ErrorForKendoGridJson</c> (ported in place on <c>BaseController</c>),
+    /// <c>DataSourceRequest</c>/<c>DataSourceResult</c>, and
+    /// <c>ProductType.SimpleProduct.ToSelectList(false)</c> — <c>Nop.Services</c>' helper now
+    /// returns <c>Microsoft.AspNetCore.Mvc.Rendering.SelectList</c>, which still enumerates as
+    /// <c>IEnumerable&lt;SelectListItem&gt;</c>, so <c>.ToList()</c> and the
+    /// <c>Insert(0, new SelectListItem …)</c> below bind unchanged (§9b).
+    /// </remarks>
     [AdminAuthorize]
     public class DiscountRulesHasOneProductController : BasePluginController
     {
@@ -118,7 +147,8 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct.Controllers
 
                 _settingService.SetSetting(string.Format("DiscountRequirement.RestrictedProductIds-{0}", discountRequirement.Id), productIds);
             }
-            return Json(new { Result = true, NewRequirementId = discountRequirement.Id }, JsonRequestBehavior.AllowGet);
+            //task 10.2: JsonRequestBehavior.AllowGet dropped
+            return Json(new { Result = true, NewRequirementId = discountRequirement.Id });
         }
 
         public ActionResult ProductAddPopup(string btnId, string productIdsInput)
@@ -198,8 +228,8 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct.Controllers
             return Json(gridModel);
         }
 
+        //task 10.2: [ValidateInput(false)] deleted - see the remarks on this class
         [HttpPost]
-        [ValidateInput(false)]
         [AdminAntiForgery]
         public ActionResult LoadProductFriendlyNames(string productIds)
         {

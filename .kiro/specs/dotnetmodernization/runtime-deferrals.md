@@ -50,6 +50,14 @@ see §24 for the resolving line of code and §19.1 for the runtime verification.
 
 ### 1.2 Plugin assemblies invisible to the Razor compiler
 
+> ✅ **RESOLVED — `AssemblyPart` half at task 8.8, compiled-Razor-views half at tasks 10.1–10.3
+> (§83.2, §84).** A loaded plugin becomes an MVC application part contributed through
+> `ApplicationPartFactory`, so a view-bearing plugin yields **both** an `AssemblyPart` and a
+> `CompiledRazorAssemblyPart`; the views are found by the real `IRazorViewEngine` at 3.90's
+> `~/Plugins/<ShortName>/Views/…` paths and were **rendered over HTTP** against an installed store.
+> Proven able to fail by removing `AddRazorSupportForMvc` from a plugin project (exactly three
+> coupled tests go red). Everything below is the original analysis.
+
 - **What changed:** `System.Web.Compilation.BuildManager.AddReferencedAssembly` was removed from
   `PluginManager.PerformFileDeploy`.
 - **Why:** it existed so the System.Web build manager could compile views against dynamically
@@ -1834,7 +1842,7 @@ The replacement is `Themes/ThemeableViewLocationExpander.cs`, ~180 lines includi
 |---|---|
 | Per-theme public-store views: `~/Themes/{theme}/Views/{controller}/{view}.cshtml` then `~/Themes/{theme}/Views/Shared/{view}.cshtml`, before the non-themed defaults | Emitted first in the expanded location list, in that order |
 | Non-themed fallbacks `~/Views/{controller}/…`, `~/Views/Shared/…` | Next in the list |
-| Admin views resolvable from `~/Administration/Views/…` for **non-area** lookups | Last two entries of the non-area list, same order as 3.90's `ViewLocationFormats` — **REMOVED BY TASK 8.2**, see the note below |
+| Admin views resolvable from `~/Administration/Views/…` for **non-area** lookups | Last two entries of the non-area list, same order as 3.90's `ViewLocationFormats` — **REMOVED BY TASK 8.2**, then **RESTORED AND REPOINTED AT `/Areas/Admin/Views/…` BY TASKS 10.1–10.3** after the removal was measured to 500 every plugin admin popup (§83.4). This row is PRESERVED again |
 | Per-theme **area** views `~/Areas/{area}/Themes/{theme}/Views/…` before `~/Areas/{area}/Views/…` | Area list, same order |
 | The "little hack to get nop's admin area to be in /Administration/ instead of /Nop/Admin/ or Areas/Admin/", applied **only** when the area name equals `admin` (case-insensitive) | Two entries prepended to the area list for that area only — **REPOINTED BY TASK 8.2 at `/Areas/{2}/Views/…`**, see the note below |
 | 3.90's exact ordering quirk inside that hack | 3.90 did two `Insert(0, …)` calls, so `…/Views/Shared/{0}.cshtml` ends up **before** `…/Views/{1}/{0}.cshtml`. Preserved **verbatim** rather than "corrected", so admin view resolution behaves as it did. Flagged here because it is surprising: a same-named Shared view shadows the controller-specific one. **Still preserved after task 8.2, and it is now the ONLY reason the admin-only prepended pair exists** — see below |
@@ -5542,6 +5550,17 @@ depended on does not work on .NET, and would have taken the storefront down at s
     `ThemeableViewLocationFormats`. They could never match anything (that is deferral 8.1-4) and
     keeping them would have been two wasted probes per lookup plus a false signal that admin view
     resolution was handled;
+    > ⚠️ **AMENDMENT — TASKS 10.1–10.3: THE SECOND HALF OF THAT SENTENCE WAS WRONG, AND THE
+    > REMOVAL WAS A REGRESSION.** The *paths* were dead; the *role* was live. 3.90's non-area
+    > `ViewLocationFormats` ended with those two entries so that a controller **outside** the
+    > Admin area could resolve an admin view — and nopCommerce plugin admin controllers are not in
+    > the Admin area. `Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml` line 69 renders
+    > `@await Html.PartialAsync("Notifications")` by **bare name**, so with the pair gone every
+    > plugin admin popup answered **HTTP 500** with
+    > `InvalidOperationException: The partial view 'Notifications' was not found`. Nothing could
+    > show it at 8.2 because no non-area controller rendered an admin view until the first plugin.
+    > The pair is restored in 3.90's order and position, repointed at `/Areas/Admin/Views/…`, and
+    > pinned by `Task_10_x_the_non_area_formats_reach_the_admin_shared_views`. See §83.4.
   - `AdminAreaPrefixLocationFormats` was renamed `AdminAreaSharedFirstLocationFormats` and
     repointed at `/Areas/{2}/Views/Shared/{0}.cshtml` then `/Areas/{2}/Views/{1}/{0}.cshtml`.
 
@@ -5862,7 +5881,7 @@ create first is now **`Areas/Admin/Views/_ViewImports.cshtml`**, from
 |---|------|---------------|----------|
 | 8.2-1 | ~~`PluginManager.PerformFileDeploy` loads shadow-copied plugin assemblies by **name**, which cannot work on .NET~~ | — | ✅ **RESOLVED by 8.8** (§77.3) — `AssemblyLoadContext.Default.LoadFromAssemblyPath`, verified with a real planted plugin and proven able to fail (reverting it throws `FileNotFoundException` out of host startup) |
 | 8.2-2 | `dotnet publish` of `Nop.Web` does not include `Nop.Admin.dll` | 18.x | Medium — **NARROWED by 8.5** (§64.3): its remedy ("publish both into one directory") did not work before and now does; what remains is that nothing enforces the two step. Re-recorded as deferral **8.5-1** |
-| 8.2-3 | 12 plugin view sites still reference the old `~/Administration/Views/Shared/…` paths | 11.1–11.2, 13.1, 14.4, 15.1 | Medium |
+| 8.2-3 | 12 plugin view sites still reference the old `~/Administration/Views/Shared/…` paths | 11.1–11.2, 13.1, 14.4, 15.1 | Medium — **2 of 12 RESOLVED by task 10.2** (§83.5, both sites in `DiscountRules.HasOneProduct/Views/ProductAddPopup.cshtml`, cross-assembly resolution verified by rendering it over HTTP). **10 remain**, for 11.2, 13.1, 14.4, 15.1 |
 
 ### 8.2-1 Plugin assemblies cannot be loaded by name either — the same defect, wider blast radius — ✅ **RESOLVED by task 8.8, see §77.3**
 
@@ -5921,7 +5940,7 @@ full list is recorded:
 
 | File | Line(s) | Reference |
 |---|---|---|
-| `Nop.Plugin.DiscountRules.HasOneProduct/Views/ProductAddPopup.cshtml` | 2, 126 | `_AdminPopupLayout.cshtml`, `_GridPagerMessages.cshtml` |
+| ~~`Nop.Plugin.DiscountRules.HasOneProduct/Views/ProductAddPopup.cshtml`~~ | ~~2, 126~~ | ✅ **FIXED by task 10.2** — both sites |
 | `Nop.Plugin.Feed.GoogleShopping/Views/Configure.cshtml` | 279 | `_GridPagerMessages.cshtml` |
 | `Nop.Plugin.Pickup.PickupInStore/Views/Configure.cshtml` | 57 | `_GridPagerMessages.cshtml` |
 | `Nop.Plugin.Pickup.PickupInStore/Views/Create.cshtml` | 2 | `_AdminPopupLayout.cshtml` |
@@ -8499,3 +8518,506 @@ on a controller as an action. The storefront has the same shape.
    `IPaymentMethod` and `IExternalAuthenticationMethod` (deferral 7.3-1). Those contracts still
    expose action/controller/`RouteValueDictionary` triples, and they are the reason the bridge cannot
    be replaced by view components.
+
+
+
+---
+
+# The first three plugins — the recipe groups 11–15 apply mechanically (tasks 10.1–10.3)
+
+Tasks 10.1–10.3 migrated `Nop.Plugin.DiscountRules.CustomerRoles`,
+`Nop.Plugin.DiscountRules.HasOneProduct` and `Nop.Plugin.ExchangeRate.EcbExchange` — 12 `.cs`
+files and 3 views between them — deliberately together, because the deliverable is not three
+plugins but a **pattern**: a project-file shape, an answer to plugin view resolution, and a route-
+provider port that the remaining **17** plugins can copy without re-deriving anything.
+
+| Measurement | Value |
+|---|---|
+| the three plugins | **0 errors** each. Warnings: 0 of their own for the two DiscountRules plugins; **1** for EcbExchange (`SYSLIB0014`, pre-existing 3.90 `WebRequest.Create`, deliberately not rewritten — deferral 10.3-1) |
+| upstream re-gate, `--no-incremental` after `rm -rf obj bin` | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 · `Nop.Admin` **0**/15 — every baseline exact, **no warning added**, including to the gated `Nop.Web.Framework` this task had to change |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| `Nop.Admin.Tests` | **53 passed / 0 failed** — unchanged |
+| `Nop.Web.SmokeTests`, no database | **126 passed / 0 failed / 52 skipped** (was 114/0/47 — **+17 tests**: 16 in the new `PluginViewRenderTests`, 1 in `HostAndContainerTests`) |
+| `Nop.Web.SmokeTests`, **installed store + installed plugins** | **164 passed / 0 failed / 14 skipped** — includes the three plugin views **rendered over HTTP** |
+| `HarnessCanaryTests` | **10 failed / 0 passed** (was 8; two added) |
+| residual `System.Web*` in everything this task touched | **0 real hits** across 43 files, comment-blanking scan with a canary proven in both `.cs` and `.cshtml` (§83.8) |
+| deployment shape per plugin | `Description.txt`, `logo.jpg`, `<plugin>.dll`, `.pdb`, `.deps.json` — and **no other `Nop.*.dll`**, no `.cshtml`, no `.config` |
+
+**Two defects were found by execution, one of them a regression an earlier task introduced.**
+§83.4 is the important one: task 8.2 removed two view-location formats as unmatchable, which was
+true of the paths and false of the role, and every plugin admin popup answered **HTTP 500** until
+this task restored them. §83.3 is a transitive `Nop.Data.dll` leaking into the plugin deployment
+folder, which `PluginManager` would have loaded as the process's `Nop.Data`.
+
+## 83. Task 10.1–10.3 — what was decided, and what it cost to find out
+
+### 83.1 THE VIEW-RESOLUTION DECISION — the third instance of deferral 8.1-4's problem
+
+**The problem.** In 3.90 a plugin's views were **loose `.cshtml` files** copied to
+`Nop.Web\Plugins\<ShortName>\Views\` and compiled at runtime by `System.Web`'s `BuildManager`, so a
+plugin controller could say
+
+```csharp
+return View("~/Plugins/DiscountRules.CustomerRoles/Views/Configure.cshtml", model);
+```
+
+— an explicit path to a physical file. On .NET 10 there is no runtime view compilation: the Razor
+SDK compiles views into the assembly and the string is matched against the **compiled identifier**,
+which the source generator derives from the file's path relative to **its own project root**. So
+`Views\Configure.cshtml` compiles as `/Views/Configure.cshtml` and 3.90's path matches nothing.
+There are **50 such paths across the 20 plugins** (`grep`), always of the shape
+`~/Plugins/<ShortName>/Views/<View>.cshtml`, in controllers (`View(...)`) and in views
+(`Html.Partial(...)`).
+
+**The decision: set the identifier, not the call site.** One `ItemGroup` per plugin:
+
+```xml
+<Content Update="Views\**\*.cshtml"
+         Link="Plugins\DiscountRules.CustomerRoles\%(RecursiveDir)%(Filename)%(Extension)"
+         CopyToOutputDirectory="Never" />
+```
+
+`AssignRazorGenerateTargetPaths` (`Sdk.Razor.CurrentVersion.targets:718`) runs the MSBuild
+`AssignTargetPath` task with `RootFolder=$(MSBuildProjectDirectory)`, and `AssignTargetPath`'s
+documented contract is that `%(Link)`, when present, **is** the target path. **Measured on a
+throwaway probe** (a `Microsoft.NET.Sdk.Razor` library, deleted afterwards) and then **measured
+again on the real assemblies** by `Nop.Web.SmokeTests.PluginViewRenderTests`, which reads the
+identifiers off the live `ApplicationPartManager` and additionally renders the views over HTTP:
+
+```
+IDENTIFIER: /Plugins/DiscountRules.CustomerRoles/Views/Configure.cshtml     kind=mvc.1.0.view
+IDENTIFIER: /Plugins/DiscountRules.CustomerRoles/Views/_ViewImports.cshtml  kind=mvc.1.0.view
+```
+
+Byte-identical to 3.90's path. **Not one of the 50 call sites had to be edited.**
+
+Three measured details that will bite whoever copies it:
+
+- **`%(RecursiveDir)` already contains `Views/`.** For an `Update` on items the SDK's own glob
+  created, `%(RecursiveDir)` is the existing item's metadata — the path from the project root — so
+  `Link="Plugins\X\Views\%(RecursiveDir)…"` produces `/Plugins/X/Views/Views/Configure.cshtml`
+  (measured). The `Views\` segment must not be repeated.
+- **`_ViewImports.cshtml` must be linked with the same prefix.** Razor resolves imports from the
+  **linked** directory, so an inconsistently-linked imports file silently does not apply — and the
+  failure looks like a missing model type, not like a path problem. Verified positively on the probe
+  by declaring a base type only in `_ViewImports.cshtml` and observing it on the compiled view type.
+- **`Link` also relocates the output copy**, so with `CopyToOutputDirectory` left on the files land
+  at `Plugins\<ShortName>\Plugins\<ShortName>\Views\` (measured). `Never` is correct anyway: 3.90
+  had to deploy the `.cshtml` files because `System.Web` compiled them at runtime, and a deployed
+  copy is now dead weight in a directory whose contents are scanned.
+
+**Why not relocate the views, which is what task 8.2 did for the admin tree (§50.1, option 3).**
+The equivalent move here is `Views\<ControllerName>\`, which the expander's existing
+`/Views/{1}/{0}.cshtml` format resolves, with the controllers switched from an explicit path to a
+bare view name. Rejected for a reason specific to plugins and found by reading, not guessed:
+
+- **`_ViewStart` LEAKAGE.** `Nop.Web` ships `/Views/_ViewStart.cshtml` with
+  `Layout = "~/Views/Shared/_ColumnsOne.cshtml"`. `_ViewStart` is resolved **at runtime** by walking
+  a view identifier's ancestor directories through the **shared** compiled-view dictionary every
+  application part contributes to — so a plugin view compiled at `/Views/<Controller>/X.cshtml`
+  **would pick up the storefront's `_ViewStart`**. In 3.90 nothing of the sort happened, because
+  the views sat at `~/Plugins/…`, whose ancestors have no `_ViewStart`. Most plugin views assign
+  `Layout` themselves and would survive, but **`Pickup.PickupInStore/Views/Configure.cshtml`
+  assigns no `Layout` at all** (task 13.1), so it would silently render an admin configuration
+  panel wrapped in the public store's one-column layout. Both halves are asserted —
+  `Task_10_x_no_ViewStart_applies_to_a_plugin_view_and_the_alternative_would_have_leaked` measures
+  the counterfactual in the same report, so the first half cannot pass for an incidental reason.
+- **IDENTIFIER COLLISION.** `/Views/_ViewImports.cshtml` and `/Views/_ViewStart.cshtml` already
+  exist in `Nop.Web.dll`. A plugin needs its own `_ViewImports.cshtml`; under `/Views/` it would
+  claim an identifier another assembly already claims.
+- **COST.** 50 call-site edits and 38 file moves, versus one `ItemGroup` per project.
+
+**And why the objection §50.1 raised against "option 1" does not apply.** For the admin views,
+prefixing the identifiers was rejected as depending on "`_RazorGenerateRelativePath`-style Razor SDK
+item metadata that is effectively an implementation detail", **and there was a better alternative**
+— a real area, which ASP.NET Core's own conventions serve. Neither holds here: `%(Link)` is
+first-class, documented MSBuild `Content` metadata (the same metadata that decides where a content
+file lands in the output directory), and there is **no location-format shape that yields
+`/Plugins/<ShortName>/Views/`**, nor can a plugin be moved into an area without changing its routes
+and its `Html.Action` area preference (§77.1). The two decisions are consistent: each case took the
+mechanism the framework already had for it.
+
+### 83.2 THE SILENT PROPERTY — `AddRazorSupportForMvc`, and deferral 1.2's second half
+
+`Sdk="Microsoft.NET.Sdk.Razor"` compiles the views. **`<AddRazorSupportForMvc>true</AddRazorSupportForMvc>`
+is what makes them reachable, and without it the failure is silent.** Measured on the probe:
+
+| | identifiers emitted | `[ProvideApplicationPartFactory]` |
+|---|---|---|
+| with `AddRazorSupportForMvc=true` | ✅ 4/4 | ✅ present |
+| without it | ✅ 4/4 | ❌ **absent** (plus one `RAZORSDK1004` warning) |
+
+With no factory attribute, `ApplicationPartFactory.GetApplicationPartFactory(assembly)` returns the
+**default** factory, which yields only an `AssemblyPart` — the plugin's controllers are routable and
+**every one of its views is unresolvable**. That is exactly the failure mode task 8.2 avoided by
+using `ApplicationPartFactory` rather than `new AssemblyPart(assembly)` in
+`NopApplicationPartExtensions`, arriving by a different door.
+
+**DEFERRAL 1.2 — the compiled-Razor-views half — RESOLVED.** Task 8.8 could only assert the
+`AssemblyPart` half, because `Nop.Plugin.SmokeProbe` ships no `.cshtml`. Both view-bearing plugins
+now contribute **`AssemblyPart` *and* `CompiledRazorAssemblyPart`**, asserted by
+`Deferral_1_2_a_view_bearing_plugin_contributes_a_CompiledRazorAssemblyPart` — which also asserts
+that the **viewless** plugin contributes only the `AssemblyPart`, so the part type is a
+discriminating signal and not something every assembly satisfies. **Proven able to fail:** removing
+`AddRazorSupportForMvc` from one plugin turns exactly three tests red (§83.7).
+
+`<StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>` is also set. The Razor SDK's static-web-
+assets pipeline is for a Razor class library's `wwwroot/`; nopCommerce plugins have none, and leaving
+it on emits a stray `<AssemblyName>.staticwebassets.endpoints.json` into the plugin's **deployment**
+directory (measured). Turning it off changes neither the identifiers nor the factory attribute
+(measured).
+
+`Microsoft.NET.Sdk.Web` would also work — it is what `Nop.Admin` uses — but it defaults
+`OutputType` to `Exe` (§50.5) and drags in publish/`web.config`-transform machinery a plugin has no
+use for. `EcbExchange`, the **only** one of the 20 plugins with no `.cshtml` (verified: 38 view
+files across the other 19), uses plain `Microsoft.NET.Sdk`, as `Nop.Plugin.SmokeProbe` does.
+
+### 83.3 DEFECT — a transitive `Nop.Data.dll` leaked into the plugin folder
+
+The legacy `<ProjectReference>` items each carried `<Private>False</Private>`. The SDK spelling is
+`Private="false"`. With only that in place, a build deployed **`Nop.Data.dll` and `Nop.Data.pdb`**
+(132 KB) into `Plugins\DiscountRules.CustomerRoles\` — observed. `Private` metadata applies to the
+reference it is written on; `Nop.Data` is not referenced here directly, it arrives in the transitive
+`ProjectReference` closure through `Nop.Services` and `Nop.Web.Framework`, and the closure item
+carries the default `Private=true`. `ExcludeAssets="runtime"` on the three direct references was
+tried and does **not** suppress it (measured).
+
+**Why one stray file matters.** `PluginManager.Initialize` does
+
+```csharp
+descriptionFile.Directory.GetFiles("*.dll", SearchOption.AllDirectories)
+    .Where(x => IsPackagePluginFolder(x.Directory))
+```
+
+and then `PerformFileDeploy()`s every dll other than the main one, guarded only by `IsAlreadyLoaded`
+— which compares **bare file names** against `AppDomain.CurrentDomain.GetAssemblies()`.
+`Initialize()` runs from `Program.Main` via `UseNopHostingEnvironment`, *before* anything has touched
+a `Nop.Data` type, so at that moment `Nop.Data` is not loaded, `IsAlreadyLoaded` returns false, and
+the plugin's stale copy is shadow-copied and loaded into the default context **as the process's
+`Nop.Data`**. It is the same class of hazard as `src/Tests/Nop.Plugin.SmokeProbe`'s note about a
+local `Nop.Core` copy (§77.3), reached without anyone writing a reference.
+
+**Fix, in every plugin project:**
+
+```xml
+<Target Name="NopPluginDoNotDeployHostAssemblies" AfterTargets="ResolveReferences">
+  <ItemGroup>
+    <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)"
+        Condition="$([System.String]::Copy('%(Filename)').StartsWith('Nop.'))" />
+  </ItemGroup>
+</Target>
+```
+
+It states the invariant — *a plugin deploys its own assembly and nothing of nopCommerce's* — so it
+holds whatever the closure turns out to be, instead of requiring the author of plugin 14 to notice a
+fourth project reference they never wrote. It filters on the `Nop.` prefix and therefore leaves
+third-party assets alone, which matters for exactly one plugin: **`Payments.PayPalDirect` is the only
+`<Private>True</Private>` in all 20 legacy project files** (the PayPal 1.8.0 SDK, task 12.3).
+Asserted at runtime by `Task_10_x_a_plugin_deploys_no_other_Nop_assembly_and_no_dead_files`, which
+reads the directory `PluginManager` actually scanned.
+
+**A second silent trap in the same file, also measured.** Under `Microsoft.NET.Sdk.Razor`
+`EnableDefaultContentItems` is `true` but the default `Content` glob covers only `.cshtml`/`.razor`;
+`.txt` and `.jpg` arrive as `<None>`. So `<Content Update="Description.txt" …>` updates **nothing**,
+the plugin deploys without its `Description.txt`, and `PluginManager` cannot see it at all. The
+recipe is `<None Remove="…" />` followed by `<Content Include="…" CopyToOutputDirectory="…" />`,
+which also keeps each file in exactly one item type so it is not copied twice.
+
+**`OutputPath` is load-bearing and needs a second property.**
+`..\..\Presentation\Nop.Web\Plugins\<ShortName>\` is 3.90's, for both configurations. With
+`AppendTargetFrameworkToOutputPath` left at its default the SDK appends the TFM and the plugin
+deploys to `Plugins\<ShortName>\net10.0\`, whose parent is `<ShortName>` and not `Plugins`, so
+`PluginManager.IsPackagePluginFolder` rejects it and the plugin is **invisible**. Asserted as
+`plugin:<asm>.deployDirParent=Plugins`.
+
+Keeping 3.90's `OutputPath` has a bonus the tests use: the plugin lands in the smoke suite's content
+root at the production location, so `Nop.Web.SmokeTests` needs no copy target for them (unlike
+`Nop.Admin` and `Nop.Plugin.SmokeProbe`) — only a build-order `ProjectReference` with
+`ReferenceOutputAssembly="false"`, which keeps the assembly out of the test output directory so
+`WebAppTypeFinder` cannot load it directly and bypass the plugin path.
+
+### 83.4 REGRESSION — task 8.2 broke non-area admin view lookups, and every plugin popup 500'd
+
+**This is the defect worth reading.** `Deferral_8_2_3_the_HasOneProduct_ProductAddPopup_RENDERS_inside_the_admin_popup_layout`
+failed against an installed store with **HTTP 500**. The exception, from the store's own `Log`
+table:
+
+```
+System.InvalidOperationException: The partial view 'Notifications' was not found.
+The following locations were searched:
+  /Themes/DefaultClean/Views/DiscountRulesHasOneProduct/Notifications.cshtml
+  /Themes/DefaultClean/Views/Shared/Notifications.cshtml
+  /Views/DiscountRulesHasOneProduct/Notifications.cshtml
+  /Views/Shared/Notifications.cshtml
+  …
+```
+
+`Nop.Admin`'s `Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml` line 69 renders
+`@await Html.PartialAsync("Notifications")` **by bare name**, so the lookup goes through the view
+location formats with the *current request's* controller and area. nopCommerce plugin admin
+controllers are **not** in the Admin area — 3.90 routes them at `Plugins/<Name>/<Action>` with no
+area — so the area formats were never consulted and `Areas/Admin/Views/Shared/Notifications.cshtml`
+was unreachable.
+
+**Root cause: §16.1's table row that task 8.2 deleted.** 3.90's non-area `ViewLocationFormats` ended
+with
+
+```
+~/Administration/Views/{1}/{0}.cshtml
+~/Administration/Views/Shared/{0}.cshtml
+```
+
+i.e. *"admin views resolvable from `~/Administration/Views/…` for **non-area** lookups"*. Task 8.2
+removed the pair, correctly observing that those paths could never match a compiled identifier
+(deferral 8.1-4) — but treating them as therefore pointless. **The paths were dead; the role was
+live.** Nothing could show it, because nothing outside the Admin area rendered an admin view until
+the first plugin. §50.1 says the two entries "could never match anything … and keeping them would
+have been two wasted probes per lookup plus a false signal that admin view resolution was handled";
+the first clause is true, the second is the error.
+
+**Fix (in the gated `Nop.Web.Framework`, re-gated at 0 errors / 10 warnings — no warning added).**
+The pair is restored to `ThemeableViewLocationFormats` in 3.90's order (**controller-specific
+first**, which is the reverse of the Shared-first quirk that applies *inside* the Admin area) and
+3.90's position (**last**, after every storefront location), repointed at the compiled identifiers:
+
+```csharp
+"/Areas/Admin/Views/{1}/{0}.cshtml",
+"/Areas/Admin/Views/Shared/{0}.cshtml"
+```
+
+**Position is a safety property as well as a fidelity one:** any name the storefront could already
+resolve still resolves first, so no storefront lookup changes. The entries are literal rather than
+`{2}`-parameterised precisely because they serve lookups that have no area to substitute. They are
+deliberately not themed, as in 3.90.
+
+**An existing assertion had to be corrected, and it is worth flagging.**
+`Task_8_2_the_storefront_view_locations_are_unchanged` read
+
+```csharp
+Assert.IsFalse(locations.Any(l => l.StartsWith("/Areas/")),
+    "a non-area lookup must not search area locations");
+```
+
+which encoded an invariant **3.90 did not hold** and then locked the loss in — the same shape of
+problem §78 records for `Task_8_2_…_KNOWN_GAP` (a test asserting the bug). It now asserts what is
+actually 3.90's: no `{2}`-parameterised area format in a non-area lookup; the only area-rooted
+entries are the two literal admin ones; and they come after every storefront location. A second
+test, `Task_10_x_the_non_area_formats_reach_the_admin_shared_views`, pins the pair and its order
+directly and always runs.
+
+**Scope of the fix.** It is not specific to these plugins: six of the 20 ship a popup view using
+`_AdminPopupLayout.cshtml`, and any bare-name admin view lookup from any non-area controller was
+affected. Groups 11–15 inherit the fix and need do nothing.
+
+### 83.5 DEFERRAL 8.2-3 — 2 of the 12 sites RESOLVED, and the cross-assembly question answered
+
+`Nop.Plugin.DiscountRules.HasOneProduct/Views/ProductAddPopup.cshtml` held **both** kinds of stale
+reference (§51's register, lines 2 and 126):
+
+| Was | Now |
+|---|---|
+| `Layout = "~/Administration/Views/Shared/_AdminPopupLayout.cshtml"` | `Layout = "~/Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml"` |
+| `@Html.Partial("~/Administration/Views/Shared/_GridPagerMessages.cshtml")` | `@await Html.PartialAsync("~/Areas/Admin/Views/Shared/_GridPagerMessages.cshtml")` |
+
+**10 sites in 10 files remain**, unchanged in §51's register, for tasks **11.2** (`Feed.GoogleShopping`),
+**13.1** (`Pickup.PickupInStore` ×3), **14.4** (`Shipping.FixedOrByWeight` ×4) and **15.1**
+(`Tax.FixedOrByCountryStateZip` ×2).
+
+**The deeper question 8.2-3 raised — does a plugin view naming a view compiled into a *different*
+assembly actually resolve? — is answered by execution, twice over.** Statically:
+`getView:~/Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml=True` off the real
+`IRazorViewEngine`, **and** `getView:~/Administration/Views/Shared/_AdminPopupLayout.cshtml=False`,
+so the assertion also demonstrates that the rewrite was necessary rather than cosmetic.
+Dynamically: the popup renders over HTTP with the layout's document markup and the partial's
+`messages:` block both present. It resolves **only** because task 8.2's
+`NopApplicationPartExtensions` contributes every discovered assembly as an application part, which
+puts `Nop.Admin`'s compiled identifiers into the same view-compiler dictionary as the plugin's —
+and it must stay an explicit `~/`-rooted path, because a bare name would go through the location
+formats and (before §83.4) find nothing.
+
+### 83.6 The route-provider port, and a finding about when a plugin has routes at all
+
+`IRouteProvider` is `void RegisterRoutes(IEndpointRouteBuilder)`. Five routes across two plugins,
+all §17.4a's mechanical edit: `MapRoute` → `MapControllerRoute`, and the `string[] namespaces`
+argument dropped (no ASP.NET Core counterpart — discovery is application-part based). Route names,
+URL patterns, defaults and `Priority` are 3.90's, unchanged.
+
+- **`Priority` stays 0.** Task 8.2 used `int.MaxValue` for `Nop.Admin` because the admin route had
+  to be tried first; a plugin has no such requirement and 0 is what every 3.90 plugin provider
+  returned. All five patterns are fully literal, so none can tie on precedence and §17.4a gotcha 3's
+  `AmbiguousMatchException` cannot arise — checked, not assumed.
+- **`UrlParameter.Optional` does not appear** in either provider: `discountId` and
+  `discountRequirementId` travel in the query string (see `GetConfigurationUrl`).
+- **The route names are load-bearing.** Three of `HasOneProduct`'s four exist *only* so its views
+  can call `Url.RouteUrl(name)`. Asserted both as endpoint metadata and, with an installed store,
+  through `LinkGenerator` **and** in the rendered HTML.
+
+**FINDING, asserted so it is not later mistaken for a defect: a plugin's routes exist only when the
+plugin is INSTALLED.** `RoutePublisher.RegisterRoutes` carries 3.90's filter verbatim —
+`if (plugin != null && !plugin.Installed) continue;` — and installation state comes from
+`App_Data/InstalledPlugins.txt`. In install mode all three plugins are discovered and **none** of
+their routes is in the live `EndpointDataSource`, which is correct. That would have left the port
+itself unexercised without a database, so the probe additionally drives each provider against a
+**scratch `IEndpointRouteBuilder`** over the real service provider and reports the endpoints it
+produces — patterns, route names and the controller/action each reaches. Both directions are
+asserted: `Task_10_x_an_uninstalled_plugins_routes_are_deliberately_absent` (always runs) and
+`Task_10_x_an_installed_plugins_routes_reach_the_live_endpoint_set` (needs an installed store).
+
+Note the endpoint **count** per pattern is not 1: MVC materialises one endpoint per matching action
+descriptor plus one "inert" endpoint carrying no descriptor for link generation, so
+`Configure` — the GET and the `[HttpPost]` overload — yields three. The assertions are on the
+distinct **action set**, which is the fact that matters and does not encode an MVC implementation
+detail.
+
+### 83.7 Verification — what was executed, and every assertion shown able to fail
+
+`src/Tests/Nop.Web.SmokeTests` was extended rather than a second harness invented, as task 8.8's
+machinery was built for exactly this: a new `/__smoke/plugins` probe reports from inside a live
+request (real `ApplicationPartManager`, real `IRazorViewEngine`, real `EndpointDataSource`, real
+`LinkGenerator`), and `PluginViewRenderTests` asserts against it with **exact-line** matches.
+
+**Group A — 11 tests, no database, always run.** Discovery and version compatibility (asserted from
+live `PluginManager` state, not by reading the files — `SupportedVersions: 3.90` really does satisfy
+`NopVersion.CurrentVersion`, and `IncompatiblePlugins` is empty); default load context and
+`IPlugin` assignability, extending 8.8's assertions from the probe plugin to real ones; both
+application part types; the compiled identifiers; the view-engine lookups including the two
+cross-assembly ones and the two pre-8.2 negatives; `_ViewStart` isolation with its counterfactual;
+the route providers; the uninstalled-route filter; the deployment shape; and `AssemblyVersion`
+`1.0.0.0`, because `GenerateAssemblyInfo=false` means a deleted `Properties/AssemblyInfo.cs` silently
+drops it to `0.0.0.0` (tasks 7.5 and 8.1 measured that).
+
+**Group B — 5 tests, installed store + authenticated administrator + installed plugins.** The
+end-to-end proof:
+
+| Test | What rendered |
+|---|---|
+| `Task_10_1_the_CustomerRoles_Configure_view_RENDERS_over_HTTP` | 200; the view's own markup; `<select>` from `Html.NopDropDownListFor`; `DiscountRulesCustomerRoles0_CustomerRoleId`, i.e. `ViewData.TemplateInfo.HtmlFieldPrefix` reaching the emitted id through task 6.3's `GetFullHtmlFieldId` replacement; and **no `<html>`**, i.e. `Layout = ""` honoured and no `_ViewStart` applied |
+| `Task_10_2_the_HasOneProduct_Configure_view_RENDERS_over_HTTP` | 200; the view's markup; **both** `Url.RouteUrl(name)` results present in the HTML |
+| `Deferral_8_2_3_…_ProductAddPopup_RENDERS_inside_the_admin_popup_layout` | 200; `Nop.Admin`'s popup **layout** ran; `Nop.Admin`'s `_GridPagerMessages` **partial** ran; the plugin's own body rendered |
+| `Task_10_x_URL_generation_by_route_name_still_works` | `LinkGenerator.GetPathByName` for all four named routes |
+| `Task_10_x_an_installed_plugins_routes_reach_the_live_endpoint_set` | the five patterns reach their actions in the live endpoint set |
+
+The store was installed by POSTing the real installer form against a throwaway SQL Server container
+(build-environment.md's recipe); the installer installs every discovered plugin, so
+`InstalledPlugins.txt` came out holding all three. **The container and network were removed and
+`App_Data/Settings.txt` and `App_Data/InstalledPlugins.txt` deleted afterwards**, so the recorded
+no-database baseline is the state the repository is left in.
+
+**Proof the new assertions can fail — three independent ways.**
+
+1. **Two permanent canaries.** `CANARY_plugin_probe_assertions_can_fail` (guards the report
+   mechanism every Group A assertion reads) and `CANARY_plugin_view_engine_assertions_can_fail`
+   (guards the `getView:` half specifically — the probe accepts an extra caller-supplied path so the
+   canary travels the same code path with one that cannot exist). `HarnessCanaryTests` now reports
+   **10 failed / 0 passed**.
+2. **Three revert experiments, each reverted afterwards and the suite re-run green.**
+
+   | Reverted | Result |
+   |---|---|
+   | `Link` metadata removed from one plugin's `Content` item | **2 failed** — `…compiled_view_identifiers_are_3_90s_Plugins_paths`, `…the_real_view_engine_finds_every_path_the_controllers_pass`. Nothing else |
+   | `AddRazorSupportForMvc` removed from one plugin | **3 failed** — the two above plus `Deferral_1_2_a_view_bearing_plugin_contributes_a_CompiledRazorAssemblyPart`. Nothing else |
+   | the restored non-area admin formats removed again (with a database) | **3 failed** — `Task_10_x_the_non_area_formats_reach_the_admin_shared_views`, `Task_8_2_the_storefront_view_locations_are_unchanged`, and the **HTTP 500** on `…ProductAddPopup_RENDERS_inside_the_admin_popup_layout`. Nothing else |
+3. **The §83.4 defect was found by a test that failed on real code**, not by inspection — which is
+   the strongest evidence any of these assertions is load-bearing.
+
+### 83.8 The residual-`System.Web` scan, and proof it works
+
+A naive `grep -r "System.Web"` over the three plugins reports **34** hits; **all of them are prose**
+— the migration's own commentary naming the type it replaced. With comments blanked first
+(`//`, `/* */`, `@* *@`, `<!-- -->`, per file type) the count is **0 real hits across 43 files**,
+covering the three plugins, the changed `Nop.Web.Framework/Themes` file and the smoke-test project.
+
+**Proven with a planted canary, in both languages, both ways:** an added *comment* naming
+`System.Web.Mvc` is **not** reported; an added `private System.Web.HttpUtility _x;` in a `.cs` file
+**is**; an added `@* comment naming System.Web.Mvc *@` in a `.cshtml` is **not**; an added
+`@System.Web.HttpUtility.UrlEncode("x")` in the same file **is**. Both canaries were removed and the
+scan re-run at 0.
+
+### 83.9 Faithfulness — what changed behaviourally, and why
+
+- **`[AllowHtml]` ×1 and `[ValidateInput(false)]` ×1 deleted** (`HasOneProduct`'s
+  `AddProductModel.SearchProductName` and `LoadProductFriendlyNames`). Both existed only to opt out
+  of ASP.NET request validation, which **does not exist in ASP.NET Core** (deferral 7.3-3): there is
+  nothing to opt out of, so every property now behaves as if it carried `[AllowHtml]`. The same
+  relaxation tasks 7.3 and 8.3 recorded at 99 and 395 sites. Practical exposure here is nil — the
+  action takes a comma-separated list of product ids and quantity ranges — but it is a relaxation and
+  it is recorded, not glossed.
+- **`Json(x, JsonRequestBehavior.AllowGet)` → `Json(x)`, 2 sites.** `JsonRequestBehavior` does not
+  exist; there is no JSON-hijacking guard and therefore no opt-out from one. Note the direction:
+  MVC 5's default was `DenyGet` and both call sites explicitly opted out, so the ported behaviour is
+  what 3.90 asked for.
+- **`HttpUtility.JavaScriptStringEncode` → `JavaScriptHelper.Encode`, 2 sites.** `HttpUtility` does
+  exist on net10.0 but using it would put a `System.Web*` assembly reference back into a migrated
+  project. `JavaScriptEncoder` escapes more aggressively; the escaped forms are equivalent
+  JavaScript (§30, §59.4).
+- **`System.Web.Mvc.SelectListItem` → `Microsoft.AspNetCore.Mvc.Rendering.SelectListItem`**, and
+  `Nop.Services`' `ToSelectList` already returns the ASP.NET Core `SelectList`, which still
+  enumerates as `IEnumerable<SelectListItem>` (§9b) — so `.ToList()` and `Insert(0, new SelectListItem …)`
+  needed no edit.
+- **`Html.Partial` → `await Html.PartialAsync`, 1 site** (the `MVC1000` substitution tasks 7.3/8.4
+  applied at 260 sites).
+- **The `.cshtml` files are no longer deployed** with the plugin. Intentional: they are compiled into
+  the assembly, 3.90 deployed them only because `System.Web` compiled them at runtime, and a loose
+  copy in a scanned directory is dead weight. `Description.txt` and `logo.jpg` still are, because
+  they are read at runtime.
+- **A `<plugin>.deps.json` is now deployed** where 3.90 had none. `PluginManager` only looks at
+  `*.dll` and `Description.txt`, so it is inert. Recorded as deferral 10.x-3 rather than suppressed,
+  because suppressing it is a `GenerateDependencyFile` change whose consequences for a
+  plugin loaded by path have not been measured.
+- **No `@helper`, no `MvcHtmlString`, no `new ViewDataDictionary()`, no `TagBuilder.ToString()`
+  concatenation and no `@attribute` loop variable in these three plugins** — checked, so tasks
+  8.4's harder substitutions simply did not arise here. Groups 11–15 should not assume that.
+
+## 84. Deferrals RESOLVED by tasks 10.1–10.3
+
+| # | Item | How |
+|---|------|-----|
+| **1.2** (compiled-Razor-views half) | a plugin's compiled views were never contributed as an application part | ✅ **RESOLVED** (§83.2). Both view-bearing plugins contribute `AssemblyPart` **and** `CompiledRazorAssemblyPart`; the views are found by the real `IRazorViewEngine` and **rendered over HTTP**. Proven able to fail by removing `AddRazorSupportForMvc` (3 tests red, nothing else). The `AssemblyPart` half was closed at 8.8; deferral 1.2 is now closed in full |
+| **8.2-3** (2 of 12 sites) | plugin views naming the pre-8.2 admin view paths | ✅ **RESOLVED for `DiscountRules.HasOneProduct`** (§83.5) — both sites, and the cross-assembly resolution verified by execution rather than assumed. **10 sites remain** for 11.2, 13.1, 14.4, 15.1 |
+| **8.1-4** (non-area half) | — | ✅ **RE-OPENED AND RESOLVED IN THE SAME TASK** (§83.4). 8.2's fix was correct for area lookups and left non-area lookups unable to reach the admin views at all, which broke every plugin admin popup. The pair is restored, repointed and pinned by two tests |
+
+## 85. NEW deferrals opened by tasks 10.1–10.3
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 10.x-1 | **plugin static assets (`Content/`, `Scripts/`) are not served** — `NopStaticFileProvider`'s allow-list is `{ "Content", "Scripts" }` at the content root plus the nested `Administration/{Content,Scripts}`; **`Plugins/` is not in it** | **11.1**, 11.2, **15.3** | **Medium — fails silently** |
+| 10.x-2 | every fixture in `Nop.Web.SmokeTests` now boots a host with three real plugins present | — | Low (deliberate) |
+| 10.x-3 | a `<plugin>.deps.json` is deployed into each plugin folder, where 3.90 had none | 18.x | Low |
+| 10.3-1 | `EcbExchangeRateProvider` uses `WebRequest.Create`/`HttpWebRequest` (`SYSLIB0014`) | post-migration | Low |
+| 10.x-4 | `NopPluginDoNotDeployHostAssemblies` and the `Content`/`Link` block are duplicated per plugin | 18.x | Low |
+
+### 10.x-1 Plugin static assets are not served — the next silent failure in this area
+
+Three plugins ship a static asset tree and reference it by URL from their views or their plugin
+class:
+
+| Plugin | Tree | Referenced as |
+|---|---|---|
+| `Nop.Plugin.ExternalAuth.Facebook` | `Content/` | `~/Plugins/ExternalAuth.Facebook/Content/facebookstyles.css` (`Views/PublicInfo.cshtml:5`) |
+| `Nop.Plugin.Feed.GoogleShopping` | `Content/` | `~/Plugins/Feed.GoogleShopping/Content/styles.css` (`Views/Configure.cshtml:4`) |
+| `Nop.Plugin.Widgets.NivoSlider` | `Content/`, `Scripts/` | `~/Plugins/Widgets.NivoSlider/Scripts/jquery.nivo.slider.js`, `.../Content/nivoslider/nivo-slider.css`, `.../themes/custom/custom.css` (`Views/PublicInfo.cshtml:5-7`), and `~/Plugins/Widgets.NivoSlider/Content/nivoslider/sample-images/` (`NivoSliderPlugin.cs:77`) |
+
+`Nop.Web/Infrastructure/NopStaticFileProvider` serves an **allow-list** over the content root:
+`AllowedRoots = { "Content", "Scripts" }`, plus the second-level `Administration/{Content,Scripts}`
+pair task 8.5 added (§63). `Plugins/` appears nowhere in it, so every one of those URLs will **404**
+— and a missing stylesheet or script is precisely the kind of failure that does not raise anything.
+None of the three plugins migrated here ships a static tree, so this is not fixable at 10.x without
+inventing a requirement.
+
+**Recommended remedy for 11.1 (the first affected plugin):** add a second-level allow-list entry for
+`Plugins/*/Content` and `Plugins/*/Scripts` by the same mechanism 8.5 used for `Administration/`, and
+for the same reason it was nested rather than a bare root — the plugin directories also hold
+`Description.txt`, `.dll`, `.pdb` and `.deps.json`, none of which may be downloadable. The extension
+deny-list already refuses `.cshtml`, `.config` and `.dll`, but relying on it alone would be the wrong
+shape of defence. Note the plugin `.cshtml` files are no longer deployed at all (§83.9), so the view
+tree is not part of the exposed surface.
+
+## 86. Deferrals explicitly NOT closed by 10.1–10.3, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **8.2-3** (the other 10 sites) | plugin views naming `~/Administration/Views/Shared/…` | they are in unmigrated plugins; 11.2, 13.1, 14.4, 15.1 own them and have to touch those views anyway. §51's register is still the authority |
+| **7.3-3** | ASP.NET request validation is gone; every property behaves as `[AllowHtml]` | accepted, as before. §83.9 records the 2 new sites |
+| **8.2-2 / 8.5-1** | nothing enforces the two-step publish | 18.x. Note plugins add a third element: their `OutputPath` writes into `Nop.Web`'s **source** tree, which a `dotnet publish` of `Nop.Web` does not consult |
+| **8.8-2** | `Nop.Plugin.SmokeProbe`, `Nop.Web.SmokeTests` and `Nop.Admin.Tests` are not in `NopCommerce.sln` | 18.1. **The three real plugins ARE in the solution already** (as legacy entries pointing at the same paths), so 18.1's job for them is unchanged |
+| **8.8-1** · **8.8-3** · **8.8-4** · **7.7-2** · **7.7-3** · **7.4-1** · **35** · **18/7.18** | unchanged | as previously recorded |

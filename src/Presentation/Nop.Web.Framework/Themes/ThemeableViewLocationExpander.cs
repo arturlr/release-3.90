@@ -74,19 +74,50 @@ namespace Nop.Web.Framework.Themes
 
             //default
             "/Views/{1}/{0}.cshtml",
-            "/Views/Shared/{0}.cshtml"
+            "/Views/Shared/{0}.cshtml",
 
-            //NOTE (task 8.2, runtime deferral 8.1-4): 3.90 also listed
-            //    "/Administration/Views/{1}/{0}.cshtml"
-            //    "/Administration/Views/Shared/{0}.cshtml"
-            //here, because the admin views were PHYSICAL FILES under the Nop.Web application
-            //root. Under ASP.NET Core they are COMPILED INTO Nop.Admin.dll and looked up by
-            //their compiled identifier, which the Razor source generator derives from the path
-            //relative to NOP.ADMIN's own project root - so those two formats could never match
-            //anything and are removed. Task 8.2 relocated the tree to
-            //Administration/Areas/Admin/Views/, i.e. the identifiers are now
-            ///Areas/Admin/Views/..., which AdminAreaSharedFirstLocationFormats below (and the
-            //ordinary area formats) do match. See runtime-deferrals.md section 50.
+            //=================================================================================
+            //TASK 10.x - RESTORED, REPOINTED. THIS PAIR IS 3.90's LAST TWO NON-AREA ENTRIES
+            //AND REMOVING THEM WAS A REAL, MEASURED REGRESSION. DO NOT DELETE THEM AGAIN.
+            //=================================================================================
+            //3.90's ViewLocationFormats ended with
+            //    "~/Administration/Views/{1}/{0}.cshtml"
+            //    "~/Administration/Views/Shared/{0}.cshtml"
+            //i.e. the admin views were reachable from a NON-AREA lookup, in that order.
+            //
+            //Task 8.2 REMOVED the pair, correctly observing that the /Administration/ paths could
+            //never match a compiled identifier (deferral 8.1-4) - but treating them as therefore
+            //pointless. They were not: the PATHS were dead, the ROLE was live. Task 8.2 could not
+            //see it because nothing outside the Admin area rendered an admin view, and the first
+            //thing that does is a plugin - nopCommerce plugin admin controllers are NOT in the
+            //Admin area (3.90 routes them at Plugins/<Name>/<Action>, no area).
+            //
+            //MEASURED, on an installed store, with the first migrated plugin (task 10.2):
+            //Nop.Admin's Areas/Admin/Views/Shared/_AdminPopupLayout.cshtml - the layout every
+            //admin popup uses, including six plugins' - line 69 renders
+            //    @await Html.PartialAsync("Notifications")
+            //by BARE NAME, so it goes through these location formats with the CURRENT request's
+            //controller and area. For a plugin controller the area is empty, so the area formats
+            //are never consulted, and the lookup failed:
+            //    InvalidOperationException: The partial view 'Notifications' was not found. The
+            //    following locations were searched: /Themes/DefaultClean/Views/
+            //    DiscountRulesHasOneProduct/Notifications.cshtml, /Themes/DefaultClean/Views/
+            //    Shared/Notifications.cshtml, /Views/DiscountRulesHasOneProduct/..., ...
+            //-> HTTP 500 on GET /Plugins/DiscountRulesHasOneProduct/ProductAddPopup.
+            //
+            //The pair is restored in 3.90's order and 3.90's POSITION (last, after every
+            //storefront location), and repointed at the compiled identifiers - the same edit task
+            //8.2 made to the area array. Position matters for safety as much as fidelity: any name
+            //the storefront could already resolve still resolves first, so no storefront lookup
+            //changes. It is deliberately NOT themed, exactly as in 3.90.
+            //
+            //Guarded by Nop.Web.SmokeTests:
+            //  Task_8_2_the_expander_emits_no_Administration_location_deferral_8_1_4 (the paths)
+            //  Task_10_x_the_non_area_formats_reach_the_admin_shared_views (this pair)
+            //  Deferral_8_2_3_the_HasOneProduct_ProductAddPopup_RENDERS_inside_the_admin_popup_layout
+            //See runtime-deferrals.md section 83.
+            "/Areas/Admin/Views/{1}/{0}.cshtml",
+            "/Areas/Admin/Views/Shared/{0}.cshtml"
         };
 
         //3.90 equivalents: AreaViewLocationFormats / AreaPartialViewLocationFormats /

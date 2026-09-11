@@ -1,92 +1,98 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{6DF00C56-EC49-4AB8-8B29-404E3694026C}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Nop.Plugin.ExchangeRate.EcbExchange</RootNamespace>
-    <AssemblyName>Nop.Plugin.ExchangeRate.EcbExchange</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\ExchangeRate.EcbExchange\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\ExchangeRate.EcbExchange\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="EcbExchangeRateProvider.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj">
-      <Project>{6BDA8332-939F-45B7-A25E-7A797260AE59}</Project>
-      <Name>Nop.Core</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj">
-      <Project>{210541AD-F659-47DA-8763-16F36C5CD2F4}</Project>
-      <Name>Nop.Services</Name>
-      <Private>False</Private>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Description.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="logo.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Notes.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-    <None Include="packages.config" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets'))" />
-  </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Nop.Plugin.ExchangeRate.EcbExchange - task 10.3.
+
+    ===================================================================================
+    THE VIEWLESS VARIANT OF THE PLUGIN RECIPE. The full recipe and its reasoning live in
+    src/Plugins/Nop.Plugin.DiscountRules.CustomerRoles/Nop.Plugin.DiscountRules.CustomerRoles.csproj
+    (task 10.1).
+    ===================================================================================
+    This plugin ships NO .cshtml, no controller and no IRouteProvider - it is one class
+    implementing IExchangeRateProvider, configured from the admin currency settings page rather
+    than from a page of its own. So two of the four load-bearing decisions do not apply and the
+    SDK is different:
+
+      * Sdk="Microsoft.NET.Sdk", NOT Microsoft.NET.Sdk.Razor, and no AddRazorSupportForMvc.
+        There is nothing to compile as Razor and nothing to contribute as a Razor application
+        part. Same choice as src/Tests/Nop.Plugin.SmokeProbe (task 8.8).
+        FOR GROUPS 11-15: the SDK depends on whether the plugin has views. Of the 20 plugins,
+        this is the ONLY one with none (verified: `find . -name "*.cshtml"` over
+        src/Plugins/ returns 38 files across the other 19 projects). Every other plugin needs
+        Microsoft.NET.Sdk.Razor + AddRazorSupportForMvc=true.
+      * No Content/Link block, and no Views/_ViewImports.cshtml - and note that this plugin
+        never had a web.config either, precisely because it has no views. There was nothing to
+        transcribe.
+
+    The other two DO apply, unchanged and for the same reasons:
+
+      * OutputPath = ..\..\Presentation\Nop.Web\Plugins\ExchangeRate.EcbExchange\ with
+        AppendTargetFrameworkToOutputPath=false. PluginManager scans ~/Plugins for
+        Description.txt and IsPackagePluginFolder requires the containing folder's PARENT to be
+        named "Plugins", so an appended net10.0 segment makes the plugin invisible.
+      * Private="false" on both ProjectReferences PLUS the
+        NopPluginDoNotDeployHostAssemblies target: a Nop.*.dll deployed next to a plugin gets
+        shadow-copied and loaded by PluginManager as the process's copy of that assembly.
+
+    No FrameworkReference: nothing here binds an ASP.NET Core type. Nop.Core and Nop.Services
+    declare Microsoft.AspNetCore.App themselves and it flows transitively for compilation, so
+    restating it would add nothing.
+
+    DROPPED in the classic -> SDK conversion, the same list as 10.1 minus the Razor pieces:
+    the MSBuild 2003 scaffolding and ProjectGuid {6DF00C56-EC49-4AB8-8B29-404E3694026C}; the
+    Debug/Release PropertyGroup pair; the explicit <Compile> list of 2 files; the
+    Microsoft.CSharp.targets import, the BeforeBuild/AfterBuild stubs, the
+    Microsoft.Bcl.Build.targets import and its EnsureNuGetPackageBuildImports guard; every
+    <Reference> (BCL entries subsumed by net10.0, System.Web with no counterpart, and the
+    packages\ HintPath entries for the MVC 5 / WebPages / Bcl.Async / Net.Http packages);
+    app.config (a <runtime>/<assemblyBinding> block of .NET Framework binding redirects, which
+    do not exist on .NET) and packages.config (central package management is in force).
+
+    KEPT: Properties/AssemblyInfo.cs - src/Directory.Build.props sets
+    GenerateAssemblyInfo=false, so deleting it would drop AssemblyVersion to 0.0.0.0.
+
+    ONE WARNING IS EXPECTED AND IS DELIBERATELY NOT FIXED. EcbExchangeRateProvider.cs uses
+    WebRequest.Create/HttpWebRequest, which is SYSLIB0014-obsolete on net10.0 ("use HttpClient
+    instead"). The code still works; rewriting it against HttpClient would be a behavioural
+    rewrite of the plugin's only method, which is outside a port. This is exactly how the same
+    API was treated in Nop.Core (OfficialFeedManager), Nop.Services (KeepAliveTask) and
+    Nop.Admin (task 8.3 recorded its two sites as "pre-existing 3.90 code newly unmasked").
+    Recorded as deferral 10.3-1.
   -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputPath>..\..\Presentation\Nop.Web\Plugins\ExchangeRate.EcbExchange\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" Private="false" />
+    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj" Private="false" />
+  </ItemGroup>
+
+  <!-- see 10.1: the Private metadata alone leaks the transitive Nop.Data.dll -->
+  <Target Name="NopPluginDoNotDeployHostAssemblies" AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths
+          Remove="@(ReferenceCopyLocalPaths)"
+          Condition="$([System.String]::Copy('%(Filename)').StartsWith('Nop.'))" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Include, not Update. Under the plain Microsoft.NET.Sdk there are no default Content items at
+    all, so .txt/.jpg arrive as <None>; the <None Remove> keeps each file in one item type.
+    Description.txt must be deployed or PluginManager cannot see the plugin, and its
+    SupportedVersions list must contain NopVersion.CurrentVersion ("3.90").
+  -->
+  <ItemGroup>
+    <None Remove="Description.txt" />
+    <None Remove="logo.jpg" />
+    <None Remove="Notes.txt" />
+    <Content Include="Description.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="logo.jpg" CopyToOutputDirectory="Always" />
+    <Content Include="Notes.txt" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
 </Project>

@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core.Domain.Discounts;
 using Nop.Plugin.DiscountRules.CustomerRoles.Models;
 using Nop.Services.Configuration;
@@ -12,6 +13,30 @@ using Nop.Web.Framework.Security;
 
 namespace Nop.Plugin.DiscountRules.CustomerRoles.Controllers
 {
+    /// <remarks>
+    /// Task 10.1 substitutions, all of them reusing decisions tasks 7.3 (§30) and 8.3 (§55)
+    /// already recorded — nothing here was re-derived:
+    /// <list type="bullet">
+    /// <item><c>using System.Web.Mvc;</c> → <c>using Microsoft.AspNetCore.Mvc;</c> plus
+    /// <c>Microsoft.AspNetCore.Mvc.Rendering</c> for <see cref="SelectListItem"/>, which is in
+    /// a different namespace from the rest of MVC.</item>
+    /// <item><c>Json(x, JsonRequestBehavior.AllowGet)</c> → <c>Json(x)</c>.
+    /// <c>JsonRequestBehavior</c> does not exist in ASP.NET Core: there is no JSON-hijacking
+    /// guard and therefore no opt-out from it. Note that this is the direction that RELAXES —
+    /// MVC 5's default was <c>DenyGet</c> and this call site explicitly opted out of it, so
+    /// the ported behaviour is what 3.90 asked for (§55.5 made the identical change at 32
+    /// admin sites).</item>
+    /// <item><c>View("~/Plugins/DiscountRules.CustomerRoles/Views/Configure.cshtml", model)</c>
+    /// is <b>UNCHANGED</b>. That is the point of the <c>Content</c>/<c>Link</c> block in the
+    /// project file: the compiled Razor identifier is made to be exactly this path, so no
+    /// call site had to move. See the long note in
+    /// <c>Nop.Plugin.DiscountRules.CustomerRoles.csproj</c>.</item>
+    /// </list>
+    /// <c>ActionResult</c>, <c>[HttpPost]</c>, <c>Content(...)</c>, <c>ViewData.TemplateInfo</c>
+    /// and <c>ViewData.TemplateInfo.HtmlFieldPrefix</c> all exist in ASP.NET Core with the same
+    /// shapes and needed no edit. <c>[AdminAuthorize]</c> and <c>[AdminAntiForgery]</c> were
+    /// ported in place by tasks 6.4/7.3 and keep their names.
+    /// </remarks>
     [AdminAuthorize]
     public class DiscountRulesCustomerRolesController : BasePluginController
     {
@@ -97,7 +122,8 @@ namespace Nop.Plugin.DiscountRules.CustomerRoles.Controllers
 
                 _settingService.SetSetting(string.Format("DiscountRequirement.MustBeAssignedToCustomerRole-{0}", discountRequirement.Id), customerRoleId);
             }
-            return Json(new { Result = true, NewRequirementId = discountRequirement.Id }, JsonRequestBehavior.AllowGet);
+            //task 10.1: JsonRequestBehavior.AllowGet dropped - see the remarks on this class
+            return Json(new { Result = true, NewRequirementId = discountRequirement.Id });
         }
     }
 }

@@ -121,6 +121,39 @@
                       ReferenceOutputAssembly="false"
                       ExcludeAssets="all"
                       PrivateAssets="all" />
+
+    <!--
+      TASK 10.1-10.3 - the first three REAL migrated plugins. Build-order only, same three
+      attributes and the same reason as Nop.Plugin.SmokeProbe above: if their assemblies reached
+      this project's output directory, WebAppTypeFinder would load them as ordinary
+      base-directory assemblies and they would become application parts WITHOUT going through
+      PluginManager's Description.txt parse and shadow copy - i.e. the plugin path would be
+      bypassed and PluginViewRenderTests would pass for the wrong reason.
+
+      THEY NEED NO COPY TARGET, unlike Nop.Admin and Nop.Plugin.SmokeProbe. Each plugin's
+      OutputPath is 3.90's ..\..\Presentation\Nop.Web\Plugins\<ShortName>\, which IS the content
+      root's Plugins directory that PluginManager scans - so building them puts them exactly
+      where production puts them, and there is nothing to arrange. src/Presentation/Nop.Web/
+      Plugins/* is gitignored.
+
+      CONSEQUENCE, stated plainly: from this task on, every fixture in this suite boots a host
+      with three real plugins present, because they are deployed rather than planted-and-removed.
+      That is deliberate - it keeps the whole discovery path continuously exercised, as
+      Nop.Plugin.SmokeProbe does - and no existing assertion counts plugins or plugin routes
+      (checked). PluginDiscoveryTests still plants and removes its own probe plugin.
+    -->
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.DiscountRules.CustomerRoles\Nop.Plugin.DiscountRules.CustomerRoles.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.DiscountRules.HasOneProduct\Nop.Plugin.DiscountRules.HasOneProduct.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.ExchangeRate.EcbExchange\Nop.Plugin.ExchangeRate.EcbExchange.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
   </ItemGroup>
 
   <!--

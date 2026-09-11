@@ -1,166 +1,336 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{D28CAD64-4C88-48CB-8AA4-10B7D050BE56}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Nop.Plugin.DiscountRules.CustomerRoles</RootNamespace>
-    <AssemblyName>Nop.Plugin.DiscountRules.CustomerRoles</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\DiscountRules.CustomerRoles\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\DiscountRules.CustomerRoles\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions.Desktop, Version=1.0.168.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.Desktop.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <Private>False</Private>
-      <HintPath>..\..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Net" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Net.Http.Extensions, Version=2.2.29.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Extensions.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Net.Http.Primitives, Version=4.2.29.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Primitives.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Net.Http.WebRequest" />
-    <Reference Include="System.Web" />
-    <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.Helpers.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.Mvc, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Mvc.5.2.3\lib\net45\System.Web.Mvc.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.Razor.3.2.3\lib\net45\System.Web.Razor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages.Deployment, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Deployment.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Web.WebPages.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Controllers\DiscountRulesCustomerRolesController.cs" />
-    <Compile Include="CustomerRoleDiscountRequirementRule.cs" />
-    <Compile Include="Models\RequirementModel.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RouteProvider.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj">
-      <Project>{6BDA8332-939F-45B7-A25E-7A797260AE59}</Project>
-      <Name>Nop.Core</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj">
-      <Project>{210541AD-F659-47DA-8763-16F36C5CD2F4}</Project>
-      <Name>Nop.Services</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj">
-      <Project>{75FD4163-333C-4DD5-854D-2EF294E45D94}</Project>
-      <Name>Nop.Web.Framework</Name>
-      <Private>False</Private>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Views\Configure.cshtml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Description.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="logo.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Notes.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-    <None Include="packages.config" />
-    <Content Include="web.config">
-      <SubType>Designer</SubType>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets'))" />
-  </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+    Nop.Plugin.DiscountRules.CustomerRoles - task 10.1, the FIRST migrated nopCommerce plugin
+    (Requirements 5.5, 1.1-1.5, 2.4, 4.2, 5.1, 5.3, 3.1).
+
+    ===================================================================================
+    THIS FILE IS THE TEMPLATE FOR THE OTHER 19 PLUGINS. READ IT BEFORE WRITING ONE.
+    ===================================================================================
+    Groups 11-15 migrate 17 more plugins. Four decisions below are load-bearing and each
+    one fails SILENTLY if it is copied wrongly - no compiler error, no startup error, just
+    a view that does not render or a plugin that is discovered and then ignored. They are:
+
+      (1) Sdk="Microsoft.NET.Sdk.Razor" + AddRazorSupportForMvc=true
+      (2) the Content/Link block that puts the compiled Razor identifiers back at
+          /Plugins/<ShortName>/Views/...
+      (3) Private="false" on every ProjectReference
+      (4) OutputPath + AppendTargetFrameworkToOutputPath=false
+
+    ===================================================================================
+    (1) WHY Microsoft.NET.Sdk.Razor, AND WHY AddRazorSupportForMvc IS NOT OPTIONAL
+    ===================================================================================
+    This project contains .cshtml files. On .NET there is no runtime view compilation:
+    views are compiled into the assembly by the Razor SDK and reach MVC through an
+    ApplicationPart. Two properties make that happen and both were MEASURED, not assumed
+    (throwaway probe, deleted afterwards - see runtime-deferrals.md section 83):
+
+      Sdk="Microsoft.NET.Sdk.Razor"   compiles the .cshtml files. Microsoft.NET.Sdk.Web
+                                      would also work (that is what Nop.Admin uses) but it
+                                      defaults OutputType to Exe - Nop.Admin needs an
+                                      explicit <OutputType>Library</OutputType> to avoid
+                                      CS5001 - and it drags in publish/web.config-transform
+                                      machinery a plugin has no use for. The Razor SDK is
+                                      the precise fit: a Razor class library.
+
+      AddRazorSupportForMvc=true      WITHOUT IT THE VIEWS STILL COMPILE, BUT THE ASSEMBLY
+                                      DOES NOT CARRY [ProvideApplicationPartFactory]. The
+                                      probe measured exactly this: identifiers present,
+                                      ProvideApplicationPartFactoryAttribute ABSENT, and one
+                                      RAZORSDK1004 warning that is easy to overlook. With no
+                                      factory attribute,
+                                      ApplicationPartFactory.GetApplicationPartFactory()
+                                      returns the DEFAULT factory, which yields only an
+                                      AssemblyPart - so the plugin's controllers are routable
+                                      and EVERY VIEW IS UNRESOLVABLE. That is precisely
+                                      runtime deferral 1.2's failure mode, and precisely why
+                                      task 8.2 used ApplicationPartFactory rather than
+                                      `new AssemblyPart(assembly)` in
+                                      NopApplicationPartExtensions. Do not drop it.
+
+    StaticWebAssetsEnabled=false: the Razor SDK's static-web-assets pipeline is for wwwroot/
+    in a Razor class library. nopCommerce plugins have no wwwroot - Widgets.NivoSlider and
+    ExternalAuth.Facebook ship Content/ and Scripts/ folders that are referenced by ordinary
+    ~/Plugins/<ShortName>/... URLs and served as plain static files. Leaving the pipeline on
+    emits a stray <AssemblyName>.staticwebassets.endpoints.json into the plugin's DEPLOYMENT
+    directory (measured), which PluginManager does not read but which is noise in a folder
+    whose contents are scanned. Turning it off changes nothing else - the probe confirmed the
+    identifiers and the part factory attribute survive.
+
+    ===================================================================================
+    (2) THE VIEW-RESOLUTION DECISION - the third instance of deferral 8.1-4's problem
+    ===================================================================================
+    In 3.90 a plugin's views were LOOSE .cshtml FILES copied into
+    Nop.Web\Plugins\<ShortName>\Views\ and compiled at runtime by System.Web's BuildManager,
+    so a plugin controller could say
+
+        return View("~/Plugins/DiscountRules.CustomerRoles/Views/Configure.cshtml", model);
+
+    - an explicit path to a physical file. On .NET 10 that string is matched against the
+    COMPILED IDENTIFIER, which the Razor source generator derives from the file's path
+    relative to THIS project's root: Views\Configure.cshtml would compile as
+    /Views/Configure.cshtml, and the 3.90 path would match nothing.
+
+    THE FIX, and it is one ItemGroup: the Content item's Link metadata sets the identifier.
+    AssignRazorGenerateTargetPaths (Sdk.Razor.CurrentVersion.targets:718) runs the MSBuild
+    AssignTargetPath task with RootFolder=$(MSBuildProjectDirectory), and AssignTargetPath's
+    documented contract is that %(Link), when present, IS the target path. So
+
+        <Content Update="Views\**\*.cshtml"
+                 Link="Plugins\DiscountRules.CustomerRoles\%(RecursiveDir)%(Filename)%(Extension)" />
+
+    yields /Plugins/DiscountRules.CustomerRoles/Views/Configure.cshtml - byte-identical to
+    3.90's path. MEASURED on a probe and then MEASURED AGAIN on the real assembly by
+    Nop.Web.SmokeTests.PluginViewRenderTests, which also renders the view over HTTP.
+
+    Note %(RecursiveDir) already contains the leading "Views/". For an Update on items that
+    the SDK's own glob created, %(RecursiveDir) is the existing item's metadata, i.e. the path
+    from the project root - so the Link value must NOT repeat "Views\". (Measured: writing
+    Link="Plugins\X\Views\%(RecursiveDir)..." produces /Plugins/X/Views/Views/....)
+
+    WHY THIS AND NOT THE TWO ALTERNATIVES. Task 8.2 faced the same problem for the admin
+    views and chose to RELOCATE them into a real area so ASP.NET Core's own area location
+    formats would match (runtime-deferrals.md section 50.1, user-approved). The equivalent
+    move here would be to relocate each plugin's views to Views\<ControllerName>\ and switch
+    the controllers from an explicit path to a bare view name, which the expander's existing
+    "/Views/{1}/{0}.cshtml" format resolves. It was rejected for a reason that is specific to
+    plugins and was found by reading, not guessed:
+
+      * _ViewStart LEAKAGE. Nop.Web ships /Views/_ViewStart.cshtml with
+        Layout = "~/Views/Shared/_ColumnsOne.cshtml". _ViewStart is resolved AT RUNTIME by
+        walking the identifier's ancestors through the SAME compiler dictionary that all
+        application parts share - so a plugin view compiled at /Views/<Controller>/X.cshtml
+        WOULD PICK UP NOP.WEB'S STOREFRONT _ViewStart. In 3.90 nothing of the sort happened,
+        because the views sat at ~/Plugins/... whose ancestors are ~/Plugins/<ShortName>/,
+        ~/Plugins/ and ~/ - none of which has a _ViewStart. Most plugin views happen to
+        assign Layout themselves and would survive, but Pickup.PickupInStore's
+        Views/Configure.cshtml assigns NO Layout at all (task 13.1), so it would silently
+        render an admin configuration panel wrapped in the public store's one-column layout.
+      * IDENTIFIER COLLISION. /Views/_ViewImports.cshtml and /Views/_ViewStart.cshtml already
+        exist in Nop.Web.dll. A plugin needs its own _ViewImports.cshtml (see below); under
+        /Views/ it would claim an identifier another assembly already claims.
+      * COST. It also means editing all 50 explicit ~/Plugins/... paths across the 20 plugins
+        and moving 38 view files. The Link recipe leaves every one of them untouched.
+
+    The third option - the one 8.2 called "option 1" and rejected for the admin views - was
+    to prefix the compiled identifiers. That is what this is; the objection there was that it
+    depended on "_RazorGenerateRelativePath-style Razor SDK item metadata that is effectively
+    an implementation detail", and there was a better alternative available (a real area,
+    which ASP.NET Core's own conventions serve). Neither holds here: %(Link) is first-class,
+    documented MSBuild Content metadata - the same metadata that decides where a Content file
+    lands in the output directory - and there is NO location-format shape that produces
+    /Plugins/<ShortName>/Views/, nor can a plugin be moved into an area without changing its
+    routes and its Html.Action area preference (runtime-deferrals.md section 77.1).
+
+    CopyToOutputDirectory="Never" on the views. In 3.90 the .cshtml files HAD to be deployed
+    because System.Web compiled them at runtime; now they are inside the dll and a deployed
+    copy is dead weight. It is also the only thing Link would place at a WRONG path: Link
+    drives the output-copy location too, so with the copy left on the files would land at
+    Plugins\<ShortName>\Plugins\<ShortName>\Views\ (measured). Deliberate, recorded
+    deployment-shape change; Description.txt and logo.jpg are still deployed because they ARE
+    read at runtime.
+
+    ===================================================================================
+    (3) Private="false" ON EVERY ProjectReference - NOT COSMETIC
+    ===================================================================================
+    The legacy <ProjectReference> items each carried <Private>False</Private>. The SDK
+    spelling is Private="false" (equivalently ExcludeAssets="runtime"), and it means: do not
+    copy Nop.Core.dll / Nop.Services.dll / Nop.Web.Framework.dll next to the plugin.
+
+    PluginManager.Initialize does
+        descriptionFile.Directory.GetFiles("*.dll", SearchOption.AllDirectories)
+            .Where(x => IsPackagePluginFolder(x.Directory))
+    and then PerformFileDeploy()s every dll it finds that is not the main plugin file. A local
+    Nop.Core.dll would therefore be shadow-copied and loaded, giving the process a SECOND
+    Nop.Core - at which point `typeof(IPlugin).IsAssignableFrom(t)` is false for this plugin's
+    own type and the plugin is discovered, loaded and then SILENTLY IGNORED. That is the same
+    property src/Tests/Nop.Plugin.SmokeProbe was built to pin (task 8.8, deferral 8.2-1), and
+    it is why the plugin must resolve nopCommerce types from the host's already-loaded copies.
+
+    ===================================================================================
+    (4) OutputPath IS LOAD-BEARING
+    ===================================================================================
+    ..\..\Presentation\Nop.Web\Plugins\<ShortName>\ is 3.90's, unchanged, for both
+    configurations (3.90 used the same path in Debug and Release). It is what makes the plugin
+    discoverable at all: PluginManager scans ~/Plugins for Description.txt and
+    IsPackagePluginFolder requires the containing folder's PARENT to be named "Plugins".
+
+    AppendTargetFrameworkToOutputPath=false is required with it. Left at its default the SDK
+    would append the TFM and deploy to Plugins\<ShortName>\net10.0\, whose parent is
+    <ShortName>, not Plugins - so IsPackagePluginFolder returns false and the plugin is
+    invisible. Silent, again.
+
+    src/Presentation/Nop.Web/Plugins/* is gitignored, so nothing here is committed.
+
+    ===================================================================================
+    DROPPED IN THE CLASSIC -> SDK CONVERSION (Requirements 1.4, 1.5)
+    ===================================================================================
+      * ToolsVersion / DefaultTargets / xmlns; ProjectGuid
+        {D28CAD64-4C88-48CB-8AA4-10B7D050BE56}, ProductVersion, SchemaVersion, FileAlignment,
+        AppDesignerFolder, OutputType (Library is the default), TargetFrameworkProfile,
+        NuGetPackageImportStamp, TargetFrameworkVersion v4.5.1, Prefer32Bit, ErrorReport,
+        WarningLevel, DefineConstants, DebugType/DebugSymbols/Optimize - the SDK supplies
+        equivalent Debug/Release defaults.
+      * The explicit <Compile Include="..."/> list of 5 files - replaced by implicit globbing.
+      * Import of $(MSBuildToolsPath)\Microsoft.CSharp.targets, the commented
+        BeforeBuild/AfterBuild stubs, the Microsoft.Bcl.Build.targets import and its
+        EnsureNuGetPackageBuildImports guard target (tasks 7.5 / 8.7: net45-era BCL polyfills
+        and the MSBuild targets package that enforced them, all subsumed by net10.0).
+      * Every <Reference> with a HintPath into ..\..\packages\ - Microsoft.AspNet.Mvc 5.2.3,
+        Microsoft.AspNet.Razor 3.2.3, Microsoft.AspNet.WebPages 3.2.3 (System.Web.Mvc /
+        .Razor / .WebPages / .WebPages.Deployment / .WebPages.Razor / System.Web.Helpers) ARE
+        the System.Web MVC 5 stack: no net10.0 build, no successor package, superseded
+        wholesale by the Microsoft.AspNetCore.App FrameworkReference. Microsoft.Bcl.Async
+        (Microsoft.Threading.Tasks*), Microsoft.Net.Http (System.Net.Http.Extensions /
+        .Primitives) and Microsoft.Web.Infrastructure are net40/net45 polyfills with no
+        remaining purpose.
+      * BCL <Reference>s (System, System.Core, System.Data, System.Data.DataSetExtensions,
+        System.Xml, System.Xml.Linq, Microsoft.CSharp, System.Net, System.Net.Http,
+        System.Net.Http.WebRequest) - subsumed by the net10.0 shared framework.
+        <Reference Include="System.Web" /> has no net10.0 counterpart at all.
+      * app.config - DELETED. A <runtime>/<assemblyBinding> block of .NET Framework binding
+        redirects, i.e. an artifact of packages.config. Binding redirects do not exist on
+        .NET, and leaving the file would risk the SDK emitting
+        Nop.Plugin.DiscountRules.CustomerRoles.dll.config into the plugin's deployment folder.
+      * packages.config - DELETED (Requirement 1.3): central package management is in force
+        via src/Directory.Packages.props.
+      * web.config - DELETED. It is the per-plugin Razor configuration file: a
+        <configSections> group naming System.Web.WebPages.Razor, a <system.web><pages>
+        element naming MVC 5 Web Forms view types, and a <system.web.webPages.razor><pages>
+        element declaring pageBaseType="Nop.Web.Framework.ViewEngines.Razor.WebViewPage" plus
+        four System.Web <namespaces>. Nothing on .NET 10 can read any of it. Its ONE piece of
+        load-bearing content - the base type and the namespaces - is transcribed to
+        Views/_ViewImports.cshtml, exactly as task 7.3 did for Nop.Web's Views/Web.config and
+        task 8.4 for Nop.Admin's (Requirement 4.4). NOTE FOR GROUPS 11-15: every plugin with
+        views ships an identical web.config, and every one of them needs the corresponding
+        Views/_ViewImports.cshtml. Deleting the web.config without adding it produces ~1
+        CS0246 per @model plus one CS0103 per T(...) call.
+
+    KEPT: Properties/AssemblyInfo.cs. src/Directory.Build.props sets
+    GenerateAssemblyInfo=false solution-wide (task 2.3) so the hand-kept files stay
+    authoritative; deleting this one would drop AssemblyVersion to 0.0.0.0 (measured by tasks
+    7.5 and 8.1). Notes.txt is kept as plain Content, as in 3.90.
+
+    TargetFramework, Nullable, ImplicitUsings, GenerateAssemblyInfo and the shared assembly
+    metadata come from src/Directory.Build.props; net10.0 is restated here so the target
+    framework is verifiable from this file (Requirement 1.2).
   -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+    <OutputPath>..\..\Presentation\Nop.Web\Plugins\DiscountRules.CustomerRoles\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!--
+    The ASP.NET Core shared framework. The controller binds Microsoft.AspNetCore.Mvc
+    (Controller, ActionResult, HttpPost, JsonResult), the model binds
+    Microsoft.AspNetCore.Mvc.Rendering (SelectListItem) and the route provider binds
+    Microsoft.AspNetCore.Routing / .Builder (IEndpointRouteBuilder, MapControllerRoute) -
+    all inside Microsoft.AspNetCore.App. Same decision as Nop.Core / Nop.Services /
+    Nop.Web.Framework: a FrameworkReference, not individual Microsoft.AspNetCore.* packages,
+    which would duplicate shared-framework assemblies.
+
+    NOTE: Microsoft.NET.Sdk.Razor with AddRazorSupportForMvc does NOT add this implicitly
+    (unlike Microsoft.NET.Sdk.Web, where restating it fails with NETSDK1086). It is required
+    here.
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!--
+    No <PackageReference> items: this plugin has no third-party dependency of its own. Autofac,
+    FluentValidation, Newtonsoft.Json et al. arrive transitively through the project references
+    below, and nothing here is copied to the output anyway (Private="false").
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" Private="false" />
+    <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj" Private="false" />
+    <ProjectReference Include="..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj" Private="false" />
+  </ItemGroup>
+
+  <!--
+    ===================================================================================
+    (3b) Private="false" IS NOT SUFFICIENT ON ITS OWN. MEASURED.
+    ===================================================================================
+    With only the metadata above, a build of this plugin deployed **Nop.Data.dll and
+    Nop.Data.pdb** into Plugins\DiscountRules.CustomerRoles\ - observed, 132 KB. Private
+    metadata applies to the reference it is written on; Nop.Data is not referenced here
+    directly, it arrives in the TRANSITIVE ProjectReference closure through Nop.Services and
+    Nop.Web.Framework, and the closure item carries the default Private=true.
+    ExcludeAssets="runtime" on the three direct references was tried and does NOT suppress it
+    (measured: Nop.Data.dll still deployed).
+
+    That single leaked file is the failure mode (3) exists to prevent, arriving by a side door.
+    PluginManager.Initialize PerformFileDeploy()s every *.dll it finds in the plugin folder
+    other than the main one, guarded only by IsAlreadyLoaded - which compares BARE FILE NAMES
+    against AppDomain.CurrentDomain.GetAssemblies(). Initialize() runs from Program.Main via
+    UseNopHostingEnvironment, i.e. before anything has touched a Nop.Data type, so at that
+    moment Nop.Data is NOT yet loaded, IsAlreadyLoaded returns false, and the plugin's stale
+    copy is shadow-copied and loaded into the default context AS the process's Nop.Data.
+
+    This target states the invariant directly - "a plugin deploys its own assembly and nothing
+    of nopCommerce's" - so it holds whatever the transitive closure turns out to be, instead of
+    requiring the author of the next plugin to notice a fourth project reference they never
+    wrote. Asserted at runtime too, by
+    Nop.Web.SmokeTests.PluginViewRenderTests.Task_10_x_a_plugin_deploys_no_other_Nop_assembly.
+
+    IT DOES NOT TOUCH THIRD-PARTY ASSETS. Nothing else leaked (verified: no Autofac,
+    Newtonsoft.Json, FluentValidation, EF Core or ImageSharp in the deployment folder), and
+    exactly one plugin in the solution deliberately deploys a private third-party dll -
+    Payments.PayPalDirect's PayPal 1.8.0 SDK, the only <Private>True</Private> in all 20 legacy
+    project files (task 12.3). This filter is on the "Nop." prefix precisely so that case keeps
+    working.
+
+    NOTE FOR TASK 18.x: this target is identical in all 20 plugins and would be a candidate for
+    a src/Plugins/Directory.Build.props. It is repeated per project here because a shared props
+    file under src/Plugins/ would shadow src/Directory.Build.props (Directory.Build.props
+    resolution stops at the first file found) and would also start applying to the two legacy
+    plugin projects that still import Microsoft.Common.props.
+  -->
+  <Target Name="NopPluginDoNotDeployHostAssemblies" AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths
+          Remove="@(ReferenceCopyLocalPaths)"
+          Condition="$([System.String]::Copy('%(Filename)').StartsWith('Nop.'))" />
+    </ItemGroup>
+  </Target>
+
+  <!-- (2) above. The identifiers this produces are asserted by Nop.Web.SmokeTests. -->
+  <ItemGroup>
+    <Content Update="Views\**\*.cshtml"
+             Link="Plugins\DiscountRules.CustomerRoles\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+  <!--
+    Runtime-read content, deployed exactly as in 3.90.
+      Description.txt  PluginManager.Initialize parses it, and its SupportedVersions list must
+                       contain NopVersion.CurrentVersion ("3.90") or the plugin is recorded in
+                       IncompatiblePlugins and skipped. Asserted, not assumed, by
+                       Nop.Web.SmokeTests.PluginViewRenderTests.
+      logo.jpg         shown by the admin plugin list; CopyToOutputDirectory="Always" as in 3.90.
+      Notes.txt        3.90 declared it Content with no CopyToOutputDirectory, i.e. not deployed.
+
+    Include, NOT Update - AND the <None Remove> first. Measured: under
+    Microsoft.NET.Sdk.Razor, EnableDefaultContentItems is true but the default Content glob
+    covers only .cshtml/.razor; .txt and .jpg arrive as <None>. So a bare
+    `<Content Update="Description.txt" .../>` updates NOTHING and the plugin deploys WITHOUT
+    its Description.txt, at which point PluginManager cannot see it at all. The <None Remove>
+    keeps each file in exactly one item type so it is not copied twice.
+    GROUPS 11-15: this is the second silent trap in this file.
+  -->
+  <ItemGroup>
+    <None Remove="Description.txt" />
+    <None Remove="logo.jpg" />
+    <None Remove="Notes.txt" />
+    <Content Include="Description.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="logo.jpg" CopyToOutputDirectory="Always" />
+    <Content Include="Notes.txt" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
 </Project>

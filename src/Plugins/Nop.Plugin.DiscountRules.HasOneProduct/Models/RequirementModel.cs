@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -27,8 +27,14 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct.Models
                 AvailableProductTypes = new List<SelectListItem>();
             }
 
+            //TASK 10.2: [AllowHtml] DELETED - and it is a SECURITY-RELEVANT RELAXATION, recorded
+            //rather than glossed over. System.Web.Mvc.AllowHtmlAttribute existed only to opt a
+            //property out of ASP.NET request validation, which does not exist in ASP.NET Core
+            //(deferral 7.3-3): there is no framework-level "potentially dangerous input" check to
+            //opt out OF, so every property now behaves as if it carried [AllowHtml]. Tasks 7.3
+            //and 8.3 made exactly this deletion at 99 and 395 sites respectively; this is the
+            //same change, once. Nothing is added to compensate - the mechanism has no counterpart.
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductName")]
-            [AllowHtml]
             public string SearchProductName { get; set; }
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchCategory")]
             public int SearchCategoryId { get; set; }
@@ -41,6 +47,7 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct.Models
             [NopResourceDisplayName("Admin.Catalog.Products.List.SearchProductType")]
             public int SearchProductTypeId { get; set; }
 
+            //task 10.2: System.Web.Mvc.SelectListItem -> Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
             public IList<SelectListItem> AvailableCategories { get; set; }
             public IList<SelectListItem> AvailableManufacturers { get; set; }
             public IList<SelectListItem> AvailableStores { get; set; }

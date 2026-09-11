@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework;
 
 namespace Nop.Plugin.DiscountRules.CustomerRoles.Models
@@ -18,6 +18,10 @@ namespace Nop.Plugin.DiscountRules.CustomerRoles.Models
 
         public int RequirementId { get; set; }
 
+        //task 10.1: System.Web.Mvc.SelectListItem -> Microsoft.AspNetCore.Mvc.Rendering.SelectListItem.
+        //Namespace change only - Text/Value/Selected are unchanged, and Nop.Services'
+        //ToSelectList/SelectionIsNotPossible helpers already moved to the same type
+        //(runtime-deferrals.md sections 9b and 30).
         public IList<SelectListItem> AvailableCustomerRoles { get; set; }
     }
 }
