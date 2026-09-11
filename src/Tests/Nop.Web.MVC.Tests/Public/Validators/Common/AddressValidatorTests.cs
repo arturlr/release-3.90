@@ -3,8 +3,8 @@ using Nop.Core.Domain.Common;
 using Nop.Services.Directory;
 using Nop.Web.Models.Common;
 using Nop.Web.Validators.Common;
+using NSubstitute;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Web.MVC.Tests.Public.Validators.Common
 {
@@ -16,7 +16,8 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Common
         [SetUp]
         public new void Setup()
         {
-            _stateProvinceService = MockRepository.GenerateMock<IStateProvinceService>();
+            //Task 17.1: RhinoMocks -> NSubstitute (GenerateMock<T>() -> Substitute.For<T>()).
+            _stateProvinceService = Substitute.For<IStateProvinceService>();
         }
 
         [Test]

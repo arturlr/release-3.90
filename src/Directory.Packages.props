@@ -349,6 +349,37 @@
   </ItemGroup>
 
   <!-- ==========================================================
+       Mocking  (added for Nop.Web.MVC.Tests, task 17.1 — replaces RhinoMocks 3.6.1)
+
+       NSubstitute 6.2.0 — the replacement for the abandoned RhinoMocks 3.6.1, which is
+       .NET-Framework-only (last release 2012) and has no net10.0 build. This is the
+       USER-APPROVED choice (Moq was rejected over its SponsorLink telemetry; dropping the
+       project was rejected because 17.1 is required and the plan's coverage is all 5 test
+       projects). It is consistent with how every other dead dependency in this migration was
+       replaced rather than dropped (ImageResizer → ImageSharp, EF6 → EF Core).
+
+       Verified on nuget.org (api.nuget.org flat-container nuspec for 6.2.0):
+         * LICENSE: BSD-3-Clause. NOTE — the 17.1 brief said "verify … is MIT"; it is NOT MIT.
+           BSD-3-Clause is a permissive OSI license with the same practical terms for a
+           test-only, non-redistributed dependency, so the substitution stands; the license
+           fact is corrected here rather than treated as a blocker.
+         * TFMs: ships .NETStandard2.0 (consumed normally by net10.0) and net8.0. Latest
+           stable, listed, not prerelease.
+         * netstandard2.0 dependencies: Castle.Core [5.1.1,) and
+           System.Threading.Tasks.Extensions [4.5.4,). Castle.Core is ALREADY in the graph at
+           5.2.1 via Microsoft.EntityFrameworkCore.Proxies (runtime-deferrals.md §4.7), and
+           NuGet unifies to the higher 5.2.1 — no new conflict. System.Threading.Tasks.Extensions
+           is part of the net10.0 shared framework.
+
+       Only Nop.Web.MVC.Tests references it today. The other two projects flagged by task 4.5 as
+       real Rhino users (Nop.Core.Tests, Nop.Services.Tests) are the `*`-optional 2.6/4.4 tasks,
+       which are skipped; if they are ever migrated they can reuse this same pin.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="NSubstitute" Version="6.2.0" />
+  </ItemGroup>
+
+  <!-- ==========================================================
        ASP.NET Core integration testing  (added for the Nop.Web smoke check, task 7.7)
 
        Microsoft.AspNetCore.Mvc.Testing supplies WebApplicationFactory<TEntryPoint> +

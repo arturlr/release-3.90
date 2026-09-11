@@ -2,8 +2,8 @@
 using Nop.Web.Infrastructure.Installation;
 using Nop.Web.Models.Install;
 using Nop.Web.Validators.Install;
+using NSubstitute;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Web.MVC.Tests.Public.Validators.Install
 {
@@ -17,8 +17,10 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Install
         public new void Setup()
         {
             //set up localziation service used by almost all validators
-            _ilService = MockRepository.GenerateMock<IInstallationLocalizationService>();
-            _ilService.Expect(l => l.GetResource("")).Return("Invalid").IgnoreArguments();
+            //Task 17.1: RhinoMocks -> NSubstitute. .Expect(...).Return("Invalid").IgnoreArguments()
+            //-> GetResource(Arg.Any<string>()).Returns("Invalid").
+            _ilService = Substitute.For<IInstallationLocalizationService>();
+            _ilService.GetResource(Arg.Any<string>()).Returns("Invalid");
 
             _validator = new InstallValidator(_ilService);
         }

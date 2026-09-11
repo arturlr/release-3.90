@@ -3,8 +3,8 @@ using Nop.Core.Domain.Customers;
 using Nop.Services.Directory;
 using Nop.Web.Models.Customer;
 using Nop.Web.Validators.Customer;
+using NSubstitute;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Web.MVC.Tests.Public.Validators.Customer
 {
@@ -16,7 +16,8 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         [Test]
         public void Should_have_error_when_email_is_null_or_empty()
         {
-            _stateProvinceService = MockRepository.GenerateMock<IStateProvinceService>();
+            //Task 17.1: RhinoMocks -> NSubstitute (GenerateMock<T>() -> Substitute.For<T>()).
+            _stateProvinceService = Substitute.For<IStateProvinceService>();
 
             var validator = new CustomerInfoValidator(_localizationService, _stateProvinceService, new CustomerSettings());
 

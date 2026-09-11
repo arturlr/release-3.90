@@ -972,7 +972,16 @@ namespace Nop.Admin.Infrastructure.Mapper
                     .ForMember(dest => dest.DefaultPictureZoomEnabled_OverrideForStore, mo => mo.Ignore());
                 cfg.CreateMap<MediaSettingsModel, MediaSettings>()
                     .ForMember(dest => dest.ImageSquarePictureSize, mo => mo.Ignore())
-                    .ForMember(dest => dest.AutoCompleteSearchThumbPictureSize, mo => mo.Ignore());
+                    .ForMember(dest => dest.AutoCompleteSearchThumbPictureSize, mo => mo.Ignore())
+                    //Task 17.1: AzureCacheControlHeader exists on MediaSettings but not on
+                    //MediaSettingsModel (the admin UI does not expose it). Modern AutoMapper's
+                    //AssertConfigurationIsValid() flags it as an unmapped destination member
+                    //(AutoMapper 5.2.0 -> 16.x became stricter; task 4.x). Ignoring it makes the
+                    //declared intent explicit and matches the two Ignore() calls above; the runtime
+                    //result is unchanged (Map leaves the existing settings value untouched, which is
+                    //the desired behaviour for a field with no editor). Surfaced by
+                    //Nop.Web.MVC.Tests AutoMapperConfigurationTest.
+                    .ForMember(dest => dest.AzureCacheControlHeader, mo => mo.Ignore());
                 cfg.CreateMap<CustomerSettings, CustomerUserSettingsModel.CustomerSettingsModel>()
                     .ForMember(dest => dest.CustomProperties, mo => mo.Ignore());
                 cfg.CreateMap<CustomerUserSettingsModel.CustomerSettingsModel, CustomerSettings>()

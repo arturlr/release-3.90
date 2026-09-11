@@ -3,8 +3,8 @@ using Nop.Core.Domain.Customers;
 using Nop.Services.Directory;
 using Nop.Web.Models.Customer;
 using Nop.Web.Validators.Customer;
+using NSubstitute;
 using NUnit.Framework;
-using Rhino.Mocks;
 
 namespace Nop.Web.MVC.Tests.Public.Validators.Customer
 {
@@ -19,7 +19,8 @@ namespace Nop.Web.MVC.Tests.Public.Validators.Customer
         public new void Setup()
         {
             _customerSettings = new CustomerSettings();
-            _stateProvinceService = MockRepository.GenerateMock<IStateProvinceService>();
+            //Task 17.1: RhinoMocks -> NSubstitute (GenerateMock<T>() -> Substitute.For<T>()).
+            _stateProvinceService = Substitute.For<IStateProvinceService>();
             _validator = new RegisterValidator(_localizationService, _stateProvinceService, _customerSettings);
         }
         

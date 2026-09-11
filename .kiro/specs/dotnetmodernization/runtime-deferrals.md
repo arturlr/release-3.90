@@ -10310,3 +10310,213 @@ canary-proven `System.Web` scan). **Recommendation for the group-16 checkpoint:*
 all remaining plugins (Shipping.* ×6, plus whatever 13/15 leave) to `SmokeProbeMiddleware`'s
 `shortNames` and the csproj references in one pass, so the `/__smoke/plugins` probe exercises them
 without the mid-flight three-way race.
+
+
+
+---
+
+# Nop.Web.MVC.Tests — SDK-style net10.0 migration (task 17.1)
+
+`src/Tests/Nop.Web.MVC.Tests` is the last of the five test projects and the last leaf task before
+the solution-file group (18). Unlike the plugin/library gates, "compiles" is not the bar here — a
+test project's point is that its tests execute and pass. **Result: 0 errors / 5 warnings, and the
+suite RUNS: 143 tests, 143 passed / 0 failed / 0 skipped**, containerized
+(`mcr.microsoft.com/dotnet/sdk:10.0`). The 5 warnings are the pre-existing CS0618 FluentValidation
+`Custom(...)` notices from the referenced Nop.Web/Nop.Admin (design §9 pin) — none added by this task.
+
+## 17.1 — decisions and findings
+
+### 17.1-A  RhinoMocks 3.6.1 → NSubstitute 6.2.0 (USER-APPROVED)
+
+- **What:** RhinoMocks 3.6.1 is .NET-Framework-only, unmaintained, and has no net10.0 build. The
+  user approved **NSubstitute** (Moq rejected over its SponsorLink telemetry; dropping the project
+  rejected because 17.1 is required and the plan's coverage is all 5 test projects). Consistent with
+  every other dead-dependency replacement in this migration (ImageResizer → ImageSharp, EF6 → EF Core,
+  DotNetOpenAuth ported in place).
+- **Pin:** `<PackageVersion Include="NSubstitute" Version="6.2.0" />` added to `src/Directory.Packages.props`
+  (new "Mocking" ItemGroup), plus a version-less `<PackageReference Include="NSubstitute" />` in the
+  test csproj.
+- **LICENSE CORRECTION.** The 17.1 brief said "verify … is MIT." **NSubstitute is NOT MIT — it is
+  BSD-3-Clause** (verified against the api.nuget.org flat-container nuspec for 6.2.0:
+  `<license type="expression">BSD-3-Clause</license>`, and cross-checked against the nuget.org
+  registration `licenseExpression`). BSD-3-Clause is a permissive OSI license with the same practical
+  terms as MIT for a test-only, non-redistributed dependency, so the substitution stands; the license
+  fact is corrected here rather than treated as a blocker.
+- **TFMs / graph (verified on nuget.org):** 6.2.0 ships `.NETStandard2.0` (consumed by net10.0) and
+  `net8.0`; latest stable, listed. Its netstandard2.0 dependencies are `Castle.Core [5.1.1,)` and
+  `System.Threading.Tasks.Extensions [4.5.4,)`. **Castle.Core is already in the graph at 5.2.1 via
+  `Microsoft.EntityFrameworkCore.Proxies` (§4.7)** — NuGet unified to 5.2.1 (confirmed in the test
+  project's `deps.json`: `Castle.Core/5.2.1`, `NSubstitute/6.2.0`), no new conflict.
+  `System.Threading.Tasks.Extensions` is part of the net10.0 shared framework.
+
+**The six Rhino call sites and their faithful rewrites** (verified by execution, not just compile):
+
+| File | RhinoMocks | NSubstitute |
+|------|-----------|-------------|
+| `Public/Validators/BaseValidatorTests.cs` | `MockRepository.GenerateMock<ILocalizationService>()` + `.Expect(l => l.GetResource("")).Return("Invalid").IgnoreArguments()` | `Substitute.For<ILocalizationService>()` + `.GetResource(Arg.Any<string>()).Returns("Invalid")` |
+| `Public/Validators/Install/InstallValidatorTests.cs` | same pattern on `IInstallationLocalizationService` | same |
+| `Public/Validators/Common/AddressValidatorTests.cs` | `GenerateMock<IStateProvinceService>()` | `Substitute.For<IStateProvinceService>()` |
+| `Public/Validators/Customer/CustomerInfoValidatorTests.cs` | same | same |
+| `Public/Validators/Customer/RegisterValidatorTests.cs` | same | same |
+| `Framework/Controllers/AdminAuthorizeAttributeTests.cs` | `GeneratePartialMock<AdminAuthorizeAttribute>()` + `.Expect(x => x.HasAdminAccess()).Return(result)` | `Substitute.ForPartsOf<AdminAuthorizeAttribute>()` + `.Configure().HasAdminAccess().Returns(result)` |
+
+**`IgnoreArguments()` → `Arg.Any<string>()`.** RhinoMocks' `.Expect(l => l.GetResource("")).…IgnoreArguments()`
+arranged "for any argument". In NSubstitute that collapses into the argument matcher itself —
+`GetResource(Arg.Any<string>()).Returns("Invalid")` — which is exact, not approximate.
+
+**NSubstitute idiom note (where it differs from Rhino).** `Substitute.For<T>()` on a class does not
+call the base, but `GeneratePartialMock` explicitly did — so the partial mock maps to
+`Substitute.ForPartsOf<T>()`, which **does call real code by default**. To keep the real
+`HasAdminAccess()` (which resolves `IPermissionService` from `EngineContext.Current` and would throw
+in a unit test) from running during arrangement, `.Configure()` (namespace `NSubstitute.Extensions`,
+NSubstitute ≥4.0) is called before `.Returns(result)`. This is the documented safe idiom; Rhino's
+`.Expect(...).Return(...)` on a partial did not have this "real code during arrangement" hazard, so
+this is the one place the port is not a mechanical 1:1 — recorded here per the faithfulness rule.
+
+### 17.1-B  AdminAuthorizeAttributeTests — MVC 5 → ASP.NET Core, no stale type asserted
+
+The 3.90 test built an `AuthorizationContext` from a `ReflectedControllerDescriptor` +
+`ControllerContext` + `FakeHttpContext` and asserted `HttpUnauthorizedResult`. The ported
+`AdminAuthorizeAttribute` (Nop.Web.Framework, task 6.2) is an ASP.NET Core
+`Microsoft.AspNetCore.Mvc.Filters.IAuthorizationFilter` whose `OnAuthorization(AuthorizationFilterContext)`
+sets `filterContext.Result = new ChallengeResult()` on denial (6.2 replaced `HttpUnauthorizedResult`
+with `ChallengeResult`). The rewrite builds an `AuthorizationFilterContext` from an `ActionContext`
+over a `DefaultHttpContext` and a `ControllerActionDescriptor` with `MethodInfo`/`ControllerTypeInfo`
+populated — which is exactly what the ported filter's `IsAdminPageRequested` reflects over — and
+asserts `Is.InstanceOf<ChallengeResult>()` (the CURRENT contract) on denial and `Is.Null` on grant.
+The MVC-5-only `FakeHttpContext`/`RouteData("~/")` plumbing was dropped because the ported filter
+reads neither the HttpContext nor the route data. All four original test intents are preserved.
+
+**Proven able to fail (substitute really drives the path).** Flipping the denial assertion to
+`Is.Null` turned the three permission tests red with `But was: <Microsoft.AspNetCore.Mvc.ChallengeResult>`,
+confirming (a) the partial substitute's `HasAdminAccess()` returns the arranged `false` (not the real
+engine-resolving method, which would have thrown), and (b) `OnAuthorization` genuinely produces the
+`ChallengeResult`. The canary was reverted; suite back to 143/143.
+
+### 17.1-C  ROUTING TESTS — DROPPED; coverage already in Nop.Web.SmokeTests
+
+`Public/Infrastructure/RoutesTests.cs`, `RoutesTestsBase.cs` and `RouteTestingExtensions.cs` were
+**deleted**. They tested MVC-5 URL→route resolution through `System.Web.Routing.RouteTable` /
+`RouteCollection.GetRouteData` / `HttpContextBase` / `System.Web.Mvc` `ShouldMapTo<TController>`. The
+ported Nop.Web `RouteProvider.RegisterRoutes` now takes `IEndpointRouteBuilder` (task 7.3) and slug
+routing goes through `SlugRouteTransformer` — there is **no `RouteTable` to populate and no
+`RouteCollection` overload to call**, so a line-by-line port is not possible.
+
+- **What was KEPT/MOVED, not lost:** `src/Tests/Nop.Web.SmokeTests` (tasks 7.7 / 8.8) already asserts
+  REAL endpoint routing against the running host — it inspects the live `EndpointDataSource` /
+  `RouteEndpoint.RoutePattern.RawText` and uses the real `LinkGenerator`, covering the storefront
+  `RouteProvider` (`Widget/WidgetsByZone` and the generic `{SeName}` routes), the Admin area route
+  (`Admin/{controller=Home}/{action=Index}/{id?}` → `Nop.Admin.Controllers.HomeController`), and each
+  plugin's `IRouteProvider` patterns. That is the modern equivalent of what `RoutesTests` asserted in
+  MVC-5 terms, so it is **referenced, not duplicated** (the migration's non-duplication rule).
+- **What was genuinely DROPPED:** the specific 3.90 assertions that a given `~/relative/url` string
+  resolves to a named controller action with bound parameters *via `RouteTable`* — the mechanism no
+  longer exists. Endpoint routing is exercised at the host level (SmokeTests) rather than by
+  reconstructing a URL→RouteData match in-memory. Net effect: no unique coverage is lost; the
+  assertion *mechanism* changed from in-memory `RouteCollection.GetRouteData` to live
+  `EndpointDataSource` inspection, which is strictly closer to production behaviour.
+
+### 17.1-D  Harness gap (NOT a stale expectation, NOT a defect in the code under test)
+
+A first, un-harnessed run produced **114 failures**, every one the same Autofac
+`DependencyResolutionException` originating at `Nop.Web.Framework.NopResourceDisplayName.DisplayName`,
+which reaches through the **static** `EngineContext.Current` to resolve `IWorkContext` +
+`ILocalizationService`. FluentValidation invokes that display-name attribute during validation, so
+every validator test that runs a full validation tripped it. Under MVC-5/3.90 these fixtures ran in a
+process where `EngineContext.Current` was a live engine; in a bare net10.0 test run it lazily
+initialises a real `NopEngine` whose container is unusable without a host. **This is a harness gap,
+not a stale test and not a defect in the validators or in the Rhino→NSubstitute port** — the
+assertions are correct and unchanged.
+
+- **Fix:** a new assembly-level `[SetUpFixture]` `TestEngineSetup.cs` installs (via
+  `EngineContext.Replace`) a minimal fake `IEngine` that resolves only the two services
+  `NopResourceDisplayName` needs — `IWorkContext.WorkingLanguage` → `Language { Id = 1 }`,
+  `ILocalizationService.GetResource(...)` → the key echoed back (the same "not found" fallback
+  `NopResourceDisplayName` passes as its default) — and `null` for everything else. It restores the
+  previous engine in `[OneTimeTearDown]`.
+- **`EventsTests` static-state coupling (found by the fix).** `EventsTests` PASSED in run 1 but the
+  fake engine then broke it: `SubscriptionService.GetSubscriptions<T>()` resolves consumers through
+  the **static** `EngineContext.Current.ResolveAll<IConsumer<T>>()`, not through the local `NopEngine`
+  the fixture builds. The fake's `ResolveAll` returns nothing, so `DateTimeConsumer` was never
+  delivered the event (`Can_publish_event` went red by exactly the publish delta). Fix: `EventsTests`
+  now `EngineContext.Replace(_engine)` in its `[OneTimeSetUp]` (making the current engine its own real
+  assembly-scanning engine, which is also the honest arrangement) and restores the previous one in
+  `[OneTimeTearDown]`. The fake's fallback is `null` (not throw) specifically so `EfStartUpTask` —
+  which the real engine's `Initialize` runs and which reads the static `EngineContext` for
+  `DataSettings` — early-returns exactly as it did before this harness, matching 3.90 behaviour.
+
+### 17.1-E  ONE REAL DEFECT FIXED — Nop.Admin AutoMapper (cross-task, flagged)
+
+`AutoMapperConfigurationTest.Configuration_is_valid` failed with
+`Unmapped properties: AzureCacheControlHeader` on `MediaSettingsModel -> MediaSettings`. This is a
+genuine defect the ported test correctly caught: `MediaSettings.AzureCacheControlHeader` exists (Azure
+blob cache header) but `MediaSettingsModel` has no such property (the admin UI does not expose it), and
+**modern AutoMapper's `AssertConfigurationIsValid()` is stricter** than the 5.2.0 the project shipped
+with (AutoMapper was advanced to 16.x in task 4.x), so it now rejects the unmapped destination member.
+
+- **Fix (one line, in `src/Presentation/Nop.Web/Administration/Infrastructure/Mapper/AdminMapperConfiguration.cs`):**
+  `.ForMember(dest => dest.AzureCacheControlHeader, mo => mo.Ignore())` on the
+  `MediaSettingsModel → MediaSettings` map, matching the two `.Ignore()` calls already on that map
+  (`ImageSquarePictureSize`, `AutoCompleteSearchThumbPictureSize`). Runtime behaviour is unchanged —
+  `Map(model, settings)` already left the existing `settings.AzureCacheControlHeader` untouched (no
+  source member), which is the desired behaviour for a field with no editor; the change only makes
+  that intent explicit so strict validation passes.
+- **Scope note / FLAG for owners:** `AdminMapperConfiguration.cs` is production code owned by task 8.x,
+  not by 17.1 (whose scope is the test project). It was fixed here rather than deferred because it is a
+  trivial, safe, pattern-consistent one-liner that the ported test exists to catch, and the migration
+  rule forbids deleting a failing test to go green. The `Validators/` files the 17.1 brief said not to
+  touch were **not** touched. Nop.Admin re-gated at 0 errors / 15 warnings (its 8.8 baseline — no
+  warning added), and Nop.Web.SmokeTests (which loads Nop.Admin) still passes 184/0/58.
+
+### 17.1-F  Project-file conversion specifics
+
+- SDK-style `Microsoft.NET.Sdk` at `net10.0`; `IsPackable=false`. Test-SDK trio (`Microsoft.NET.Test.Sdk`,
+  `NUnit` 3.14.0, `NUnit3TestAdapter`) + `NSubstitute`, all version-less under central package
+  management, matching Nop.Tests / Nop.Admin.Tests / Nop.Web.SmokeTests.
+- **`Properties/AssemblyInfo.cs` KEPT** (`GenerateAssemblyInfo=false` solution-wide) — carries
+  `AssemblyVersion 3.9.0.0`; removing it would drop it to 0.0.0.0, as measured on Nop.Web at 7.5/8.1.
+- Deleted: `packages.config`, `App.config` (only a `NopConfig` configSection stub + net45 binding
+  redirects for assemblies no longer in the graph), the explicit `<Compile>` list, all MVC-5/System.Web
+  `<Reference>`s, the Microsoft.Bcl(.Build/.Async)/Microsoft.Net.Http/Microsoft.Web.Infrastructure refs
+  and the `Microsoft.Bcl.Build.targets` import + `EnsureNuGetPackageBuildImports` target, and the three
+  `Readme.txt` content items.
+- **`WebActivator` dropped** — a `System.Web` (`PreApplicationStartMethod`) package with no ASP.NET
+  Core counterpart. Verified unused (no `[assembly: PreApplicationStartMethod]`, no `WebActivator(Ex)`
+  attribute, no `using WebActivator*` anywhere in the project).
+- `ProjectReference`s point at the migrated projects: `Nop.Core`, `Nop.Data`, `Nop.Services`,
+  `Nop.Web.Framework`, `Nop.Admin` (nested `Administration/Nop.Admin.csproj` — makes MSBuild build it
+  first, acceptable at 0 errors), `Nop.Web`, `Nop.Tests`. `AutoMapper`/`FluentValidation` flow
+  transitively (no direct declaration).
+
+### 17.1-G  System.Web / Rhino.Mocks residue — proven absent
+
+- **Source:** 0 banned hits across all `.cs` files, scanned with a comment/string-blanking scanner
+  (line/block comments, `"..."`, `@"..."` and char literals blanked so explanatory prose cannot
+  produce a false positive). Tokens: `using System.Web`, `System.Web.`, `Rhino.Mocks`,
+  `MockRepository`, `HttpContextBase`, `MvcHtmlString`, `RouteTable`, `StopRoutingHandler`. **Scanner
+  proven able to fail** by planting `using System.Web.Mvc;` + `using Rhino.Mocks;` in `Person.cs` (3
+  hits caught), then reverted (`git status` clean, byte-identical).
+- **Emitted assembly:** `Nop.Web.MVC.Tests.dll` contains no `System.Web`, `Rhino.Mocks`, `RhinoMocks`,
+  `WebActivator` or `Castle.Core` reference; `NSubstitute` and `nunit.framework` present as expected.
+  Output directory carries `NSubstitute.dll` + `Castle.Core.dll` (5.2.1) and no `System.Web*` /
+  `Rhino.Mocks` / `WebActivator` assemblies.
+
+### 17.1-H  No regressions — re-gated
+
+Built one at a time (per-project `obj`/`bin` removed; no bulk `rm -rf` race): **Nop.Core 0/3 ·
+Nop.Data 0/3 · Nop.Services 0/10 · Nop.Web.Framework 0/10 · Nop.Web 0/15 · Nop.Admin 0/15** — every
+one matching its recorded gate baseline. Other test projects re-run green: **Nop.Tests 4 passed ·
+Nop.Admin.Tests 53 passed · Nop.Web.SmokeTests 184 passed / 0 failed / 58 skipped (no DB)**. Two
+plugins spot-checked at 0 errors (`Payments.PayPalStandard`, `Widgets.NivoSlider`) to confirm the
+additive `Directory.Packages.props` change did not disturb plugin builds.
+
+### 17.1-I  Solution membership — flag for task 18.1
+
+`Nop.Web.MVC.Tests` is **not** added to `NopCommerce.sln` by this task (18.1 owns the solution file).
+When 18.1 adds it, it **SHOULD be a non-gating test project**, consistent with the other new test
+projects: deferrals 7.7-2 (`Nop.Web.SmokeTests`) and 8.4-1/8.6-1 (`Nop.Admin.Tests`) kept the new test
+projects out of the clean-compile gate, and 18.1's own note already says the SmokeTests project must
+not be gated. `Nop.Web.MVC.Tests` runs fully green **without a database** (unlike SmokeTests, none of
+its 143 tests need SQL Server), so `dotnet test` on it stays green in CI regardless — but its
+completion criterion in the plan is still Clean_Compile (Req 3.3), so it should be listed as a project
+to compile in 18.2's full-solution build, not as a separate gate.
