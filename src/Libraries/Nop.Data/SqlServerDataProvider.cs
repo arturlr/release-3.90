@@ -6,6 +6,7 @@ using System.Text;
 using Microsoft.Data.SqlClient;
 using Nop.Core;
 using Nop.Core.Data;
+using Nop.Core.Infrastructure;
 using Nop.Data.Initializers;
 
 namespace Nop.Data
@@ -37,9 +38,8 @@ namespace Nop.Data
         /// </summary>
         /// <remarks>
         /// This replaces EF6's global <c>Database.SetInitializer</c> registration. Nothing in EF
-        /// Core consults it; the installation/startup path must call
-        /// <c>DatabaseInitializer.InitializeDatabase(context)</c> itself. Tracked in the
-        /// runtime-deferrals register.
+        /// Core consults it, so <see cref="InitDatabase"/> invokes it explicitly (task 7.7 —
+        /// see the remarks there for why doing it at host startup instead does not work).
         /// </remarks>
         public static INopDatabaseInitializer<NopObjectContext> DatabaseInitializer { get; private set; }
 
@@ -117,12 +117,101 @@ namespace Nop.Data
         }
 
         /// <summary>
-        /// Initialize database
+        /// Initialize database — configures the schema initializer and <b>runs</b> it.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Runtime deferral 4.8, re-opened and closed properly by task 7.7.</b> This method is
+        /// called from exactly one place: <c>InstallController.Index(InstallModel)</c>, immediately
+        /// after the installer writes <c>App_Data/Settings.txt</c> and immediately before
+        /// <c>IInstallationService.InstallData(...)</c>. It is therefore <i>the</i> point at which
+        /// a fresh database must acquire its schema.
+        /// </para>
+        /// <para>
+        /// Under EF6 that happened implicitly: <c>SetDatabaseInitializer()</c> called
+        /// <c>Database.SetInitializer(initializer)</c>, a process-wide <b>lazily fired</b> hook, and
+        /// EF6 ran the initializer the first time any <c>NopObjectContext</c> was used — which was
+        /// moments later, inside <c>InstallData</c>. EF Core deleted the initializer concept, so
+        /// <c>SetDatabaseInitializer()</c> now only <i>publishes</i> the object on
+        /// <see cref="DatabaseInitializer"/>, and until this task <b>nothing called it on the
+        /// installation path</b>.
+        /// </para>
+        /// <para>
+        /// Task 7.2 added <c>Nop.Web/Program.InitializeDatabaseSchema()</c> and deferral 4.8 was
+        /// recorded as resolved on that basis. It is not: that method opens with
+        /// <c>if (!DataSettingsHelper.DatabaseIsInstalled()) return;</c> and runs once during host
+        /// startup, so for the only case the deferral is about — installing onto an empty database —
+        /// it early-returns, because the store does not become "installed" until the installer runs
+        /// later in the process's life. On subsequent starts the store IS installed and the
+        /// initializer short-circuits on its own table probe. The call was dead in both directions.
+        /// </para>
+        /// <para>
+        /// <b>Measured, which is how this was found.</b> Task 7.7 stood up SQL Server 2022 in a
+        /// container and POSTed the real installer form. Before this change the installer returned
+        /// its own "Setup failed" view carrying:
+        /// <c>Entity: Store State: Added … Invalid object name 'Store'.</c> — the exact symptom
+        /// deferral 4.8 predicts, i.e. <b>nopCommerce could not be installed at all</b>. After this
+        /// change the same POST installs successfully.
+        /// </para>
+        /// <para>
+        /// The initializer is idempotent and cheap on an already-provisioned database: it probes
+        /// <c>INFORMATION_SCHEMA.TABLES</c> for <c>Customer</c>/<c>Discount</c>/<c>Order</c>/
+        /// <c>Product</c>/<c>ShoppingCartItem</c> and returns immediately when any exists, so
+        /// calling it here cannot disturb an upgrade or a re-run.
+        /// </para>
+        /// <para>
+        /// Exceptions are deliberately <b>not</b> swallowed. <c>InstallController</c> wraps this
+        /// call in its own <c>try/catch</c>, which resets the data-settings file and surfaces the
+        /// message through <c>SetupFailed</c> in the validation summary — the same treatment every
+        /// other installation failure gets.
+        /// </para>
+        /// </remarks>
         public virtual void InitDatabase()
         {
             InitConnectionFactory();
             SetDatabaseInitializer();
+            CreateDatabaseSchema();
+        }
+
+        /// <summary>
+        /// Runs the published <see cref="DatabaseInitializer"/> against a freshly resolved
+        /// <see cref="NopObjectContext"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>protected virtual</c> so a deployment that prefers EF Core migrations
+        /// (<c>Database.Migrate()</c>) can substitute its own strategy, which is the alternative
+        /// deferral 4.8 offered.
+        /// </para>
+        /// <para>
+        /// The context is resolved through <see cref="EngineContext"/> rather than injected because
+        /// <see cref="IDataProvider"/> (owned by Nop.Core) declares a parameterless
+        /// <c>InitDatabase()</c> and <c>SqlServerDataProvider</c> is constructed by
+        /// <c>EfDataProviderManager</c> with no arguments — changing either would be a breaking
+        /// signature change across Nop.Core, Nop.Web.Framework and every plugin data provider, for
+        /// no behavioural gain. <c>CommonHelper.MapPath</c> is already used a few lines above, so
+        /// this class is not newly coupled to a static seam.
+        /// </para>
+        /// <para>
+        /// A resolve is used rather than <c>new NopObjectContext(connectionString)</c> so the
+        /// connection string comes from the same place every other consumer gets it. Note the
+        /// registration that matters here is Nop.Web.Framework's <b>uninstalled</b> branch,
+        /// <c>builder.Register&lt;IDbContext&gt;(c =&gt; new NopObjectContext(dataSettingsManager.LoadSettings().DataConnectionString))</c>,
+        /// which re-reads <c>Settings.txt</c> on every resolve — so the context picks up the
+        /// connection string the installer wrote seconds earlier.
+        /// </para>
+        /// </remarks>
+        protected virtual void CreateDatabaseSchema()
+        {
+            var initializer = DatabaseInitializer;
+            if (initializer == null)
+                return;
+
+            var context = EngineContext.Current.Resolve<IDbContext>() as NopObjectContext;
+            if (context == null)
+                return;
+
+            initializer.InitializeDatabase(context);
         }
 
         /// <summary>

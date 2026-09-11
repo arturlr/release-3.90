@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -363,10 +363,22 @@ namespace Nop.Services.Media
         /// Delete picture thumbs
         /// </summary>
         /// <param name="picture">Picture</param>
+        /// <remarks>
+        /// TASK 7.7 - CASE CORRECTED. The three <c>MapPath</c> literals in this class asked for
+        /// <c>~/content/images/...</c>; the directories on disk are <c>Content/Images</c> and
+        /// <c>Content/Images/Thumbs</c>. Under System.Web on NTFS the lookup was
+        /// case-insensitive and this worked; on the cross-platform <c>net10.0</c> target that
+        /// design section 7 deliberately chose, it does not - <c>Directory.GetFiles</c> throws
+        /// <c>DirectoryNotFoundException</c> and <c>File.WriteAllBytes</c> cannot create the
+        /// file, so the ENTIRE file-system picture store (every product image save, every
+        /// generated thumbnail, every picture delete) failed on Linux. Same defect class as
+        /// task 7.4's <c>Web.config</c> -> <c>web.config</c> rename and as the install view's
+        /// <c>~/Content/Install/</c> links, also corrected by task 7.7.
+        /// </remarks>
         protected virtual void DeletePictureThumbs(Picture picture)
         {
             string filter = string.Format("{0}*.*", picture.Id.ToString("0000000"));
-            var thumbDirectoryPath = CommonHelper.MapPath("~/content/images/thumbs");
+            var thumbDirectoryPath = CommonHelper.MapPath("~/Content/Images/Thumbs");
             string[] currentFiles = System.IO.Directory.GetFiles(thumbDirectoryPath, filter, SearchOption.AllDirectories);
             foreach (string currentFileName in currentFiles)
             {
@@ -382,7 +394,7 @@ namespace Nop.Services.Media
         /// <returns>Local picture thumb path</returns>
         protected virtual string GetThumbLocalPath(string thumbFileName)
         {
-            var thumbsDirectoryPath = CommonHelper.MapPath("~/content/images/thumbs");
+            var thumbsDirectoryPath = CommonHelper.MapPath("~/Content/Images/Thumbs");
             if (_mediaSettings.MultipleThumbDirectories)
             {
                 //get the first two letters of the file name
@@ -436,7 +448,7 @@ namespace Nop.Services.Media
         /// <returns>Local picture path</returns>
         protected virtual string GetPictureLocalPath(string fileName)
         {
-            return Path.Combine(CommonHelper.MapPath("~/content/images/"), fileName);
+            return Path.Combine(CommonHelper.MapPath("~/Content/Images/"), fileName);
         }
 
         /// <summary>

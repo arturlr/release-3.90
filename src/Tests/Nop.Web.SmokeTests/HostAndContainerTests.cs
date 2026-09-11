@@ -1,0 +1,519 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.Razor;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using NUnit.Framework;
+using Nop.Core;
+using Nop.Core.Caching;
+using Nop.Core.Configuration;
+using Nop.Core.Data;
+using Nop.Core.Domain.Catalog;
+using Nop.Core.Infrastructure;
+using Nop.Core.Infrastructure.DependencyManagement;
+using Nop.Core.Plugins;
+using Nop.Data;
+using Nop.Services.Catalog;
+using Nop.Services.Configuration;
+using Nop.Services.Customers;
+using Nop.Services.Directory;
+using Nop.Services.Helpers;
+using Nop.Services.Localization;
+using Nop.Services.Logging;
+using Nop.Services.Media;
+using Nop.Services.Orders;
+using Nop.Services.Security;
+using Nop.Services.Seo;
+using Nop.Services.Tax;
+using Nop.Web.Framework;
+using Nop.Web.Framework.Infrastructure;
+using Nop.Web.Framework.Mvc;
+using Nop.Web.Framework.Themes;
+using Nop.Web.Framework.UI;
+using Nop.Web.Infrastructure;
+
+namespace Nop.Web.SmokeTests
+{
+    /// <summary>
+    /// Task 7.7, group A — the host, the Autofac container, the pre-container static seams and
+    /// configuration binding. None of these needs a database.
+    /// </summary>
+    /// <remarks>
+    /// Every assertion here is <b>verified by execution of the real host</b>, not by inspection.
+    /// The fixture-level <see cref="OneTimeSetUp"/> is itself the first assertion: if
+    /// <c>Program.Main</c> throws, or the Autofac container fails to build, or a startup task
+    /// fails, no test in this fixture can run.
+    /// </remarks>
+    [TestFixture]
+    public class HostAndContainerTests
+    {
+        private NopWebApplicationFactory _factory;
+        private HttpClient _client;
+
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
+        {
+            _factory = new NopWebApplicationFactory();
+            //Forces the host to be built and Program.Main to run to app.Run().
+            _client = _factory.CreateClient();
+        }
+
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
+        {
+            if (_client != null)
+                _client.Dispose();
+            if (_factory != null)
+                _factory.Dispose();
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Requirement 4.1 / 4.6 — the host starts
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        public void Host_starts_and_serves_a_request()
+        {
+            //Reaching this line at all means Program.Main ran through app.Run(). Prove the server
+            //is live rather than merely constructed.
+            var response = _client.GetAsync(SmokeProbeMiddleware.Prefix + "ok").Result;
+            Assert.AreEqual(System.Net.HttpStatusCode.OK, response.StatusCode);
+            StringAssert.Contains("probe=ok", response.Content.ReadAsStringAsync().Result);
+        }
+
+        [Test]
+        public void Content_root_is_the_real_Nop_Web_directory()
+        {
+            var env = _factory.Services.GetRequiredService<IWebHostEnvironment>();
+            Assert.AreEqual(
+                Path.GetFullPath(NopWebApplicationFactory.ResolveNopWebContentRoot()),
+                Path.GetFullPath(env.ContentRootPath),
+                "A wrong content root would make most of this suite pass vacuously - see NopWebApplicationFactory.");
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Runtime deferral 1.5 — CommonHelper.MapPath must resolve against the content root,
+        // not bin/. Verified by execution: the value is read back from the running host.
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        public void Deferral_1_5_CommonHelper_BaseDirectory_is_the_content_root()
+        {
+            var contentRoot = Path.GetFullPath(NopWebApplicationFactory.ResolveNopWebContentRoot());
+
+            Assert.IsTrue(NopHostingExtensions.ContentRootConfigured,
+                "UseNopHostingEnvironment did not run - deferral 1.5 is NOT closed.");
+            Assert.AreEqual(contentRoot, Path.GetFullPath(CommonHelper.BaseDirectory));
+
+            var mapped = Path.GetFullPath(CommonHelper.MapPath("~/App_Data/"));
+            Assert.IsTrue(mapped.StartsWith(contentRoot, StringComparison.Ordinal),
+                "MapPath(\"~/App_Data/\") resolved to " + mapped + ", outside the content root.");
+            Assert.IsTrue(Directory.Exists(mapped), "App_Data does not exist at " + mapped);
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Requirement 4.5 / runtime deferral 1.3 and 3 — ONE Autofac container
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        public void Deferral_3_engine_and_host_share_exactly_one_Autofac_container()
+        {
+            var engine = EngineContext.Current;
+            Assert.IsInstanceOf<NopHostedEngine>(engine,
+                "Program.cs must publish NopHostedEngine, not the base NopEngine, or two containers exist.");
+
+            var hostRoot = _factory.Services.GetAutofacRoot();
+            Assert.IsNotNull(engine.ContainerManager, "NopHostedEngine's build callback did not fire.");
+            Assert.AreSame(hostRoot, engine.ContainerManager.Container,
+                "The engine's container is NOT the host's container - every SingleInstance registration " +
+                "would exist twice and EngineContext.Resolve would resolve from the wrong graph.");
+        }
+
+        [Test]
+        public void Deferral_1_3_CurrentScopeProvider_is_assigned()
+        {
+            Assert.IsNotNull(ContainerManager.CurrentScopeProvider,
+                "DependencyRegistrar's RegisterBuildCallback did not assign CurrentScopeProvider; " +
+                "ContainerManager.Scope() would open a fresh scope per call.");
+
+            //Outside a request there is no HttpContext, so the provider must return null rather
+            //than throw - that is the documented contract and the fallback path tests rely on.
+            Assert.IsNull(ContainerManager.CurrentScopeProvider(),
+                "Outside a request the scope provider should yield null.");
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Requirement 4.5 — core services resolve through the nopCommerce container
+        // -----------------------------------------------------------------------------------
+
+        /// <summary>
+        /// Services whose whole construction graph is free of <c>IDataProvider</c> and of
+        /// database-backed settings, i.e. the set that must resolve whether or not a store is
+        /// installed.
+        /// </summary>
+        private static readonly Type[] DatabaseFreeServices =
+        {
+            typeof(IWebHelper),          //IHttpContextAccessor - the task 2.4 seam
+            typeof(IUserAgentHelper),    //NopConfig + IHttpContextAccessor
+            typeof(ICacheManager),       //IMemoryCache - the System.Runtime.Caching replacement
+            typeof(IDbContext),          //EF Core NopObjectContext
+            typeof(IRepository<Product>),//EfRepository over it
+            typeof(NopConfig),
+            typeof(ITypeFinder)
+        };
+
+        /// <summary>
+        /// Services that reach <c>IDataProvider</c> or a database-backed <c>ISettings</c>, so they
+        /// can only be constructed once a store is installed.
+        /// </summary>
+        private static readonly Type[] DatabaseBackedServices =
+        {
+            typeof(IWorkContext), typeof(IStoreContext), typeof(ISettingService),
+            typeof(ILocalizationService), typeof(IPermissionService), typeof(IProductService),
+            typeof(ICustomerService), typeof(ICategoryService), typeof(IPictureService),
+            typeof(ILogger), typeof(ICurrencyService), typeof(ITaxService),
+            typeof(IShoppingCartService), typeof(IUrlRecordService),
+            typeof(IPageHeadBuilder), typeof(IThemeContext), typeof(IThemeProvider)
+        };
+
+        [Test]
+        public void Core_services_resolve_from_the_nopCommerce_container()
+        {
+            //Chosen so that every constructor seam the migration changed is exercised:
+            //IHttpContextAccessor (WebHelper, UserAgentHelper), IMemoryCache (MemoryCacheManager),
+            //EF Core (IDbContext, EfRepository<T>) and the bound configuration.
+            var mandatory = Resolve(DatabaseFreeServices);
+            Assert.IsEmpty(mandatory, "Services that failed to resolve WITHOUT a database:" +
+                Environment.NewLine + string.Join(Environment.NewLine, mandatory));
+
+            var dbBacked = Resolve(DatabaseBackedServices);
+            if (DataSettingsHelper.DatabaseIsInstalled())
+            {
+                Assert.IsEmpty(dbBacked, "Services that failed to resolve WITH a database installed:" +
+                    Environment.NewLine + string.Join(Environment.NewLine, dbBacked));
+            }
+            else
+            {
+                //NOT a defect, and NOT hidden: see the dedicated test below.
+                TestContext.WriteLine("No database installed; " + dbBacked.Count + " of " +
+                    DatabaseBackedServices.Length + " database-backed services could not be constructed:");
+                foreach (var f in dbBacked)
+                    TestContext.WriteLine("  " + f);
+                Assert.Ignore("Database-backed service resolution requires an installed store. " +
+                    DatabaseFreeServices.Length + " database-free services resolved successfully.");
+            }
+        }
+
+        [Test]
+        public void Uninstalled_store_fails_service_resolution_loudly_not_silently()
+        {
+            //Recorded because it is the single biggest constraint on what task 7.7 could verify,
+            //and because a reader could otherwise mistake it for breakage. With no
+            //App_Data/Settings.txt, EfDataProviderManager has no provider name and SettingsSource
+            //has no database to read, so ANY Nop.Services graph throws
+            //Autofac.Core.DependencyResolutionException on IDataProvider or on an ISettings
+            //parameter. This is 3.90 parity - in install mode 3.90 could not construct these
+            //either - and it is a LOUD failure, which is the desired direction.
+            if (DataSettingsHelper.DatabaseIsInstalled())
+                Assert.Ignore("A database is installed, so this state cannot be observed.");
+
+            var containerManager = EngineContext.Current.ContainerManager;
+            using (var scope = containerManager.Container.BeginLifetimeScope())
+            {
+                var ex = Assert.Throws<Autofac.Core.DependencyResolutionException>(
+                    () => containerManager.Resolve<ILogger>(scope: scope));
+                TestContext.WriteLine(ex.Message.Split('\n')[0]);
+                StringAssert.Contains("IDataProvider", ex.Message);
+            }
+        }
+
+        private static List<string> Resolve(IEnumerable<Type> types)
+        {
+            var failures = new List<string>();
+            var containerManager = EngineContext.Current.ContainerManager;
+            using (var scope = containerManager.Container.BeginLifetimeScope())
+            {
+                foreach (var t in types)
+                {
+                    try
+                    {
+                        var instance = containerManager.Resolve(t, scope);
+                        if (instance == null)
+                            failures.Add(t.Name + " -> null");
+                    }
+                    catch (Exception ex)
+                    {
+                        failures.Add(t.Name + " -> " + ex.GetType().Name + ": " + ex.Message.Split('\n')[0]);
+                    }
+                }
+            }
+            return failures;
+        }
+
+        [Test]
+        public void Deferral_1_6_IHostApplicationLifetime_resolves_from_the_nop_container()
+        {
+            //WebHelper.RestartAppDomain resolves this through EngineContext and throws
+            //NopException when it is absent, so every restart path (plugin install/uninstall,
+            //settings that require a restart) depends on it.
+            var lifetime = EngineContext.Current.Resolve<IHostApplicationLifetime>();
+            Assert.IsNotNull(lifetime);
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Runtime deferral 1.1 — plugin discovery must actually run
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        public void Deferral_1_1_plugin_discovery_ran()
+        {
+            Assert.IsNotNull(PluginManager.ReferencedPlugins,
+                "PluginManager.Initialize() never ran - ReferencedPlugins is null and the whole " +
+                "plugin subsystem is dead (deferral 1.1).");
+
+            var found = PluginManager.ReferencedPlugins.ToList();
+            TestContext.WriteLine("PluginManager.ReferencedPlugins count = " + found.Count);
+            foreach (var p in found)
+                TestContext.WriteLine("  plugin: " + p.SystemName + " (" + p.PluginFileName + ")");
+
+            //A count of zero is the CORRECT answer at this point in the migration: no plugin
+            //project has been converted yet (groups 10-15), so ~/Plugins contains no
+            //Description.txt for PluginManager to find. What matters is that the scan RAN, which
+            //the non-null assertion above proves, and that it created its directories.
+            var pluginsDir = CommonHelper.MapPath("~/Plugins");
+            var pluginsBinDir = CommonHelper.MapPath("~/Plugins/bin");
+            Assert.IsTrue(Directory.Exists(pluginsDir),
+                "PluginManager.Initialize() should have created " + pluginsDir);
+            Assert.IsTrue(Directory.Exists(pluginsBinDir),
+                "PluginManager.Initialize() should have created " + pluginsBinDir);
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Requirement 1.4 / runtime deferral 4 and 7.2-4 — appsettings.json really binds
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        public void Requirement_1_4_NopConfig_binds_from_appsettings_and_reaches_the_Autofac_singleton()
+        {
+            //Not "the file parses" - the actual values, read off the singleton instance that
+            //RedisConnectionWrapper, AzurePictureService and UserAgentHelper are injected with.
+            var config = EngineContext.Current.Resolve<NopConfig>();
+            Assert.IsNotNull(config);
+
+            Assert.AreEqual("~/App_Data/browscap.xml", config.UserAgentStringsPath,
+                "NopConfig did not bind - deferral 7.20 (IsSearchEngine always false) would still be open.");
+            Assert.AreEqual("~/App_Data/browscap.crawlersonly.xml", config.CrawlerOnlyUserAgentStringsPath);
+            Assert.AreEqual("localhost", config.RedisCachingConnectionString);
+            Assert.IsFalse(config.RedisCachingEnabled);
+            Assert.IsTrue(config.SupportPreviousNopcommerceVersions,
+                "appsettings.json sets this to true; a false here means the section did not bind.");
+            Assert.IsFalse(config.MultipleInstancesEnabled);
+            Assert.IsFalse(config.RunOnAzureWebApps);
+            Assert.IsFalse(config.IgnoreStartupTasks);
+            Assert.AreEqual(string.Empty, config.AzureBlobStorageConnectionString);
+            Assert.IsFalse(config.DisableSampleDataDuringInstallation);
+            Assert.IsFalse(config.UseFastInstallationService);
+
+            //The Autofac singleton and a freshly bound instance must agree. (GetNopConfig()
+            //deliberately returns a NEW object each call, so this is value equality, not
+            //reference equality - the point is that the container was handed the BOUND config and
+            //not an all-default one.)
+            var rebound = NopConfigurationManager.GetNopConfig();
+            Assert.AreEqual(rebound.UserAgentStringsPath, config.UserAgentStringsPath);
+            Assert.AreEqual(rebound.RedisCachingConnectionString, config.RedisCachingConnectionString);
+            Assert.AreEqual(rebound.SupportPreviousNopcommerceVersions, config.SupportPreviousNopcommerceVersions);
+        }
+
+        [Test]
+        public void Requirement_1_4_legacy_appSettings_behave_exactly_as_in_3_90()
+        {
+            //The one live key is authored; the three load-balancer keys were COMMENTED OUT in
+            //3.90's Web.config and must stay unset, or the port silently changes behaviour.
+            Assert.AreEqual("false",
+                NopConfigurationManager.GetAppSetting("ClearPluginsShadowDirectoryOnStartup"));
+            Assert.IsNull(NopConfigurationManager.GetAppSetting("Use_HTTP_CLUSTER_HTTPS"));
+            Assert.IsNull(NopConfigurationManager.GetAppSetting("Use_HTTP_X_FORWARDED_PROTO"));
+            Assert.IsNull(NopConfigurationManager.GetAppSetting("ForwardedHTTPheader"));
+            //Dropped System.Web/OWIN artifacts must not have been carried over.
+            Assert.IsNull(NopConfigurationManager.GetAppSetting("webpages:Enabled"));
+            Assert.IsNull(NopConfigurationManager.GetAppSetting("owin:AutomaticAppStartup"));
+        }
+
+        [Test]
+        public void Deferral_7_13_forms_authentication_values_bind_and_reach_the_cookie_handler()
+        {
+            var authConfig = _factory.Services.GetRequiredService<IOptions<NopAuthenticationConfig>>().Value;
+            Assert.AreEqual("NOPCOMMERCE.AUTH", authConfig.CookieName);
+            Assert.AreEqual("/login", authConfig.LoginPath);
+            Assert.AreEqual(43200, authConfig.TimeoutMinutes);
+            Assert.AreEqual("/", authConfig.CookiePath);
+            Assert.IsTrue(authConfig.SlidingExpiration);
+            Assert.IsFalse(authConfig.RequireSsl, "3.90 shipped requireSSL=\"false\"; see deferral 7.13.");
+
+            //The binding is only useful if the handler actually received it - deferral 7.13's
+            //specific warning was a silent fall back to a 30-MINUTE default.
+            var cookieOptions = _factory.Services
+                .GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
+                .Get(CookieAuthenticationDefaults.AuthenticationScheme);
+            Assert.AreEqual("NOPCOMMERCE.AUTH", cookieOptions.Cookie.Name);
+            Assert.AreEqual(TimeSpan.FromMinutes(43200), cookieOptions.ExpireTimeSpan);
+            Assert.IsTrue(cookieOptions.SlidingExpiration);
+            Assert.AreEqual("/login", cookieOptions.LoginPath.Value);
+            Assert.AreEqual(Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest,
+                cookieOptions.Cookie.SecurePolicy);
+        }
+
+        [Test]
+        public void Deferral_16_EU_VAT_endpoint_is_configuration_and_defaults_to_https()
+        {
+            var url = NopConfigurationManager.Configuration["Tax:EuropaCheckVatServiceUrl"];
+            Assert.IsNotNull(url, "Tax:EuropaCheckVatServiceUrl is not configured (deferral 16).");
+            Assert.IsTrue(url.StartsWith("https://", StringComparison.Ordinal),
+                "Task 7.4 deliberately moved this endpoint from http to https; got " + url);
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Requirement 4.3 / 4.4 — the MVC option graph the migration hand-wired
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        public void Deferral_11_20_FluentValidation_provider_is_registered_SECURITY()
+        {
+            //Without this, ModelState.IsValid returns TRUE for input nopCommerce's validators
+            //would reject, across login, registration, change-password, checkout and every admin
+            //form. InstallModeTests proves it actually rejects; this proves the wiring.
+            var mvc = _factory.Services.GetRequiredService<IOptions<MvcOptions>>().Value;
+            Assert.IsTrue(mvc.ModelValidatorProviders.Any(p => p is NopFluentValidationModelValidatorProvider),
+                "NopFluentValidationModelValidatorProvider is absent from MvcOptions.ModelValidatorProviders.");
+        }
+
+        [Test]
+        public void Deferrals_11_21_11_22_metadata_and_model_binder_providers_are_registered()
+        {
+            var mvc = _factory.Services.GetRequiredService<IOptions<MvcOptions>>().Value;
+
+            Assert.IsTrue(mvc.ModelMetadataDetailsProviders.Any(p => p is NopMetadataProvider),
+                "NopMetadataProvider is absent - ModelMetadata.AdditionalValues would stay empty (11.21).");
+
+            Assert.IsInstanceOf<NopModelBinderProvider>(mvc.ModelBinderProviders.FirstOrDefault(),
+                "NopModelBinderProvider must be at index 0 or submitted strings are not trimmed (11.22).");
+
+            //Task 7.2's parity item: the implicit-required suppressor must run AFTER the
+            //framework's DataAnnotationsMetadataProvider or a blank int is rejected where 3.90
+            //accepted it.
+            var names = mvc.ModelMetadataDetailsProviders.Select(p => p.GetType().Name).ToList();
+            var dataAnnotations = names.FindIndex(n => n == "DataAnnotationsMetadataProvider");
+            var suppressor = names.FindIndex(n => n == nameof(SuppressImplicitRequiredValueTypeMetadataProvider));
+            Assert.Greater(dataAnnotations, -1, "DataAnnotationsMetadataProvider not found: " + string.Join(", ", names));
+            Assert.Greater(suppressor, dataAnnotations,
+                "SuppressImplicitRequiredValueTypeMetadataProvider must come after DataAnnotationsMetadataProvider. Order: "
+                + string.Join(", ", names));
+        }
+
+        [Test]
+        public void Deferral_11_23_JsonResult_keeps_PascalCase()
+        {
+            var json = _factory.Services.GetRequiredService<IOptions<JsonOptions>>().Value;
+            Assert.IsNull(json.JsonSerializerOptions.PropertyNamingPolicy,
+                "PropertyNamingPolicy must be null; camelCase would break every Kendo grid read action.");
+        }
+
+        [Test]
+        public void Deferral_14_30_theming_view_location_expander_is_first()
+        {
+            var razor = _factory.Services.GetRequiredService<IOptions<RazorViewEngineOptions>>().Value;
+            Assert.IsNotEmpty(razor.ViewLocationExpanders);
+            Assert.IsInstanceOf<ThemeableViewLocationExpander>(razor.ViewLocationExpanders.First(),
+                "Without the expander at index 0 every theme is ignored, silently (14.30).");
+        }
+
+        [Test]
+        public void Deferrals_11_26_14_31_11_28_framework_services_resolve()
+        {
+            Assert.IsNotNull(_factory.Services.GetService<IAntiforgery>(), "IAntiforgery (11.26)");
+            Assert.IsNotNull(_factory.Services.GetService<IFileVersionProvider>(), "IFileVersionProvider (14.31)");
+            Assert.IsNotNull(_factory.Services.GetService<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
+                "IHttpContextAccessor (7.14)");
+            Assert.IsNotNull(_factory.Services.GetService<ITempDataProvider>(), "ITempDataProvider (11.28)");
+            Assert.IsNotNull(_factory.Services.GetService<Microsoft.AspNetCore.Session.ISessionStore>(),
+                "ISessionStore (7.15)");
+        }
+
+        // -----------------------------------------------------------------------------------
+        // Runtime deferral 1.3 / 3, the half that is only observable inside a request
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        public void Deferral_3_per_request_scope_is_shared_within_one_request()
+        {
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "scope").Result;
+            TestContext.WriteLine(body);
+
+            StringAssert.DoesNotContain("EXCEPTION=", body);
+            StringAssert.Contains("requestServicesIsLifetimeScope=True", body);
+            StringAssert.Contains("currentScopeProviderAssigned=True", body);
+            StringAssert.Contains("providerReturnsNonNull=True", body);
+            StringAssert.Contains("providerScopeStable=True", body);
+            StringAssert.Contains("providerScopeIsRequestServices=True", body);
+            StringAssert.Contains("containerManagerScopeStable=True", body);
+            StringAssert.Contains("perRequestServiceShared=True", body);
+            StringAssert.Contains("sharedWithRequestScope=True", body);
+        }
+
+        // -----------------------------------------------------------------------------------
+        // runtime-deferrals.md §28.1 — the seven SuppressMatchingMetadata routes must still
+        // generate URLs. Task 7.3 verified this against a SYNTHETIC probe app only.
+        // -----------------------------------------------------------------------------------
+
+        [Test]
+        public void Section_28_1_the_seven_name_only_routes_still_generate_URLs()
+        {
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "routeurl").Result;
+            TestContext.WriteLine(body);
+
+            StringAssert.DoesNotContain("EXCEPTION=", body);
+            StringAssert.Contains("route:Product=/smoke-product-slug", body);
+            StringAssert.Contains("route:Category=/smoke-category-slug", body);
+            StringAssert.Contains("route:Manufacturer=/smoke-manufacturer-slug", body);
+            StringAssert.Contains("route:Vendor=/smoke-vendor-slug", body);
+            StringAssert.Contains("route:NewsItem=/smoke-news-slug", body);
+            StringAssert.Contains("route:BlogPost=/smoke-blog-slug", body);
+            StringAssert.Contains("route:Topic=/smoke-topic-slug", body);
+            //A literal route must still be generable too.
+            StringAssert.Contains("route:ShoppingCart=/cart", body);
+        }
+
+        [Test]
+        public void Section_28_1_the_seven_name_only_routes_carry_SuppressMatchingMetadata()
+        {
+            //The other half: they must be OUT of inbound matching, or endpoint routing raises
+            //AmbiguousMatchException against {generic_se_name}. Task 7.3 corrected an upstream
+            //instruction here - the recommended .WithOrder(1000) provably CREATES the ambiguity -
+            //so this asserts the mechanism actually chosen, read off the live endpoint table.
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "endpoints?q={SeName}").Result;
+            TestContext.WriteLine(body);
+
+            var lines = body.Split('\n')
+                            .Where(l => l.StartsWith("endpoint ") && l.Contains("{SeName}"))
+                            .ToList();
+            Assert.IsNotEmpty(lines, "No {SeName} endpoints found - check the probe.");
+            var unsuppressed = lines.Where(l => l.Contains("suppressMatching=False")).ToList();
+            Assert.IsEmpty(unsuppressed,
+                "These single-segment {SeName} endpoints are still matchable and will collide with " +
+                "{generic_se_name}:" + Environment.NewLine + string.Join(Environment.NewLine, unsuppressed));
+        }
+    }
+}

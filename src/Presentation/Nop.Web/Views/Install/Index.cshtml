@@ -12,19 +12,42 @@
 <!DOCTYPE html>
 <html>
 <head>
+    @*
+        task 7.7 (smoke check): the three asset paths in this file were CASE-CORRECTED against
+        the actual on-disk directory, which is `Content/install` (lowercase "install") with a
+        capital `Content`. This file previously asked for `~/Content/Install/style.css`,
+        `~/Content/Install/style.rtl.css` and `~/content/install/images/install-synchronizing.gif`.
+
+        On Windows - 3.90's only host - all three resolved, because NTFS lookups are
+        case-insensitive. On a case-sensitive filesystem they do not, and the ASP.NET Core
+        static-file middleware serving them through NopStaticFileProvider/PhysicalFileProvider
+        performs an exact-case lookup: the requests 404 (and in install mode the 404 is then
+        re-executed as /page-not-found and redirected to /install by InstallUrlMiddleware, so
+        the symptom is a 302, not an obvious 404). Measured before the fix:
+            GET /Content/Install/style.css  -> 302 /install
+            GET /Content/install/style.css  -> 200
+        i.e. the installation page rendered with NO stylesheet at all on Linux.
+
+        This is the same defect class task 7.4 found and fixed when it renamed `Web.config` to
+        `web.config` (runtime-deferrals.md section 31.2), and it matters because design section 7
+        deliberately keeps the target framework as cross-platform `net10.0`. A repository-wide
+        audit of every `~/Content|Scripts|Themes/...` asset reference in Nop.Web's views and
+        stylesheets (30 references, Administration/ excluded - that is group 8) found these three
+        and no others.
+    *@
     <title>@ILS.GetResource("Title")</title>
     <meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
     @if (ILS.GetCurrentLanguage().IsRightToLeft)
     {
         <link href="@Url.Content("~/Administration/Content/bootstrap/css/bootstrap.rtl.css")" type="text/css" rel="stylesheet" />
         <link href="@Url.Content("~/Administration/Content/adminLTE/AdminLTE-2.3.0.rtl.css")" type="text/css" rel="stylesheet" />
-        <link href="@Url.Content("~/Content/Install/style.rtl.css")" type="text/css" rel="stylesheet" />
+        <link href="@Url.Content("~/Content/install/style.rtl.css")" type="text/css" rel="stylesheet" />
     }
     else
     {
         <link href="@Url.Content("~/Administration/Content/bootstrap/css/bootstrap.min.css")" type="text/css" rel="stylesheet" />
         <link href="@Url.Content("~/Administration/Content/adminLTE/AdminLTE-2.3.0.min.css")" type="text/css" rel="stylesheet" />
-        <link href="@Url.Content("~/Content/Install/style.css")" type="text/css" rel="stylesheet" />
+        <link href="@Url.Content("~/Content/install/style.css")" type="text/css" rel="stylesheet" />
     }
     <script src="@Url.Content("~/Scripts/jquery-1.10.2.min.js")" type="text/javascript"></script>
     <script src="@Url.Content("~/Scripts/jquery.validate.min.js")" type="text/javascript"></script>
@@ -380,7 +403,7 @@
             <div class="curtain-content">
                 <div>
                     <h1 class="throbber-header">Wait...</h1>
-                    <p><img src="@Url.Content("~/content/install/images/install-synchronizing.gif")" alt="" /></p>
+                    <p><img src="@Url.Content("~/Content/install/images/install-synchronizing.gif")" alt="" /></p>
                 </div>
             </div>
         </div>

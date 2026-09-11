@@ -23,17 +23,35 @@ namespace Nop.Data.Mapping.Discounts
                 .WithOne(d => d.Discount)
                 .HasForeignKey(dr => dr.DiscountId);
 
+            //Runtime deferral 4.12, closed by task 7.7 - see the long note in
+            //Mapping/Catalog/ProductMap.cs. 3.90's EF6 column names are (Discount_Id, Category_Id),
+            //(Discount_Id, Manufacturer_Id) and (Discount_Id, Product_Id).
             builder.HasMany(dr => dr.AppliedToCategories)
                 .WithMany(c => c.AppliedDiscounts)
-                .UsingEntity(j => j.ToTable("Discount_AppliedToCategories"));
+                .UsingEntity(j =>
+                {
+                    j.ToTable("Discount_AppliedToCategories");
+                    j.Property<int>("AppliedDiscountsId").HasColumnName("Discount_Id");
+                    j.Property<int>("AppliedToCategoriesId").HasColumnName("Category_Id");
+                });
 
             builder.HasMany(dr => dr.AppliedToManufacturers)
                 .WithMany(c => c.AppliedDiscounts)
-                .UsingEntity(j => j.ToTable("Discount_AppliedToManufacturers"));
-            
+                .UsingEntity(j =>
+                {
+                    j.ToTable("Discount_AppliedToManufacturers");
+                    j.Property<int>("AppliedDiscountsId").HasColumnName("Discount_Id");
+                    j.Property<int>("AppliedToManufacturersId").HasColumnName("Manufacturer_Id");
+                });
+
             builder.HasMany(dr => dr.AppliedToProducts)
                 .WithMany(p => p.AppliedDiscounts)
-                .UsingEntity(j => j.ToTable("Discount_AppliedToProducts"));
+                .UsingEntity(j =>
+                {
+                    j.ToTable("Discount_AppliedToProducts");
+                    j.Property<int>("AppliedDiscountsId").HasColumnName("Discount_Id");
+                    j.Property<int>("AppliedToProductsId").HasColumnName("Product_Id");
+                });
 
             base.Configure(builder);
         }

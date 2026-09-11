@@ -19,13 +19,29 @@ namespace Nop.Data.Mapping.Customers
             //many-to-many (CustomerRole/Address have no inverse navigation back to Customer).
             //EF Core models this as a skip navigation over an implicit join entity named
             //through UsingEntity.
+            //Runtime deferral 4.12, closed by task 7.7 - see the long note in
+            //Mapping/Catalog/ProductMap.cs. EF Core's convention named these columns
+            //(CustomerId, CustomerRolesId) and (CustomerId, AddressesId); 3.90's EF6 schema uses
+            //(Customer_Id, CustomerRole_Id) and (Customer_Id, Address_Id), which
+            //App_Data/Install/SqlServer.StoredProcedures.sql (CustomerLoadAllPaged's Guests
+            //role test) and App_Data/Install/Fast/create_*.sql both join by name.
             builder.HasMany(c => c.CustomerRoles)
                 .WithMany()
-                .UsingEntity(j => j.ToTable("Customer_CustomerRole_Mapping"));
+                .UsingEntity(j =>
+                {
+                    j.ToTable("Customer_CustomerRole_Mapping");
+                    j.Property<int>("CustomerId").HasColumnName("Customer_Id");
+                    j.Property<int>("CustomerRolesId").HasColumnName("CustomerRole_Id");
+                });
 
             builder.HasMany(c => c.Addresses)
                 .WithMany()
-                .UsingEntity(j => j.ToTable("CustomerAddresses"));
+                .UsingEntity(j =>
+                {
+                    j.ToTable("CustomerAddresses");
+                    j.Property<int>("CustomerId").HasColumnName("Customer_Id");
+                    j.Property<int>("AddressesId").HasColumnName("Address_Id");
+                });
 
             //EF6: HasOptional(c => c.BillingAddress) with no With* call - EF6 inferred an
             //optional unidirectional reference with a generated FK column. EF Core requires

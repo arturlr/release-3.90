@@ -6638,7 +6638,10 @@ namespace Nop.Services.Installation
         {
             //pictures
             var pictureService = EngineContext.Current.Resolve<IPictureService>();
-            var sampleImagesPath = CommonHelper.MapPath("~/content/samples/");
+            //task 7.7: case corrected from "~/content/samples/" - the directory on disk is
+            //Content/samples, and installing sample data failed on Linux with
+            //"Could not find a part of the path .../content/samples/category_computers.jpeg".
+            var sampleImagesPath = CommonHelper.MapPath("~/Content/samples/");
 
 
 
@@ -6976,7 +6979,10 @@ namespace Nop.Services.Installation
         protected virtual void InstallManufacturers()
         {
             var pictureService = EngineContext.Current.Resolve<IPictureService>();
-            var sampleImagesPath = CommonHelper.MapPath("~/content/samples/");
+            //task 7.7: case corrected from "~/content/samples/" - the directory on disk is
+            //Content/samples, and installing sample data failed on Linux with
+            //"Could not find a part of the path .../content/samples/category_computers.jpeg".
+            var sampleImagesPath = CommonHelper.MapPath("~/Content/samples/");
 
             var manufacturerTemplateInGridAndLines =
                 _manufacturerTemplateRepository.Table.FirstOrDefault(pt => pt.Name == "Products in Grid or Lines");
@@ -7080,11 +7086,14 @@ namespace Nop.Services.Installation
 
             //pictures
             var pictureService = EngineContext.Current.Resolve<IPictureService>();
-            var sampleImagesPath = CommonHelper.MapPath("~/content/samples/");
+            //task 7.7: case corrected from "~/content/samples/" - the directory on disk is
+            //Content/samples, and installing sample data failed on Linux with
+            //"Could not find a part of the path .../content/samples/category_computers.jpeg".
+            var sampleImagesPath = CommonHelper.MapPath("~/Content/samples/");
 
             //downloads
             var downloadService = EngineContext.Current.Resolve<IDownloadService>();
-            var sampleDownloadsPath = CommonHelper.MapPath("~/content/samples/");
+            var sampleDownloadsPath = CommonHelper.MapPath("~/Content/samples/");
 
             //products
             var allProducts = new List<Product>();

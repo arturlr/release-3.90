@@ -52,3 +52,60 @@ Paths inside the container are rooted at `/workspace`, which maps to `/home/artr
 - When substituting paths, use the `/workspace`-relative form, not host absolute paths:
   - `src/Presentation/Nop.Web/Nop.Web.csproj`
   - `src/Presentation/Nop.Web/Administration/Nop.Admin.csproj` (nested deeper than the other presentation projects)
+
+
+## Running the Nop.Web smoke check (task 7.7)
+
+`src/Tests/Nop.Web.SmokeTests` boots the real `Nop.Web` host in-process through
+`WebApplicationFactory<Nop.Web.Program>`. **It is deliberately NOT part of any clean-compile gate** —
+task 7.7 is non-gating and 13 of its 49 tests need a database.
+
+Without a database (32 pass, 17 skip — install-mode coverage plus the canaries):
+
+```bash
+docker run --rm -u "$(id -u):$(id -g)" -e DOTNET_CLI_HOME=/tmp -e HOME=/tmp \
+  -v /home/artrodri/release-3.90:/workspace -w /workspace \
+  mcr.microsoft.com/dotnet/sdk:10.0 \
+  dotnet test src/Tests/Nop.Web.SmokeTests/Nop.Web.SmokeTests.csproj -c Debug --nologo
+```
+
+Tests that need an installed store `Assert.Ignore` with `"NOT EXERCISED: no database is
+installed …"`, so the run is green and the gap is visible rather than silently passed.
+
+### With a database (36 pass, 13 skip — full storefront coverage)
+
+```bash
+docker network create nopnet
+docker run -d --name nopsql --network nopnet \
+  -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='<password>' -e MSSQL_PID=Developer \
+  mcr.microsoft.com/mssql/server:2022-latest
+```
+
+Then install a store by POSTing the real installer form (this is what surfaced task 7.7's three
+blockers, so it is worth doing rather than seeding the database directly). Run `Nop.Web` inside a
+container **on `nopnet`**, and POST to `/install` with
+`DataProvider=sqlserver`, `SqlConnectionInfo=sqlconnectioninfo_raw`,
+`DatabaseConnectionString=Data Source=nopsql;Initial Catalog=<db>;User ID=sa;Password=<password>;TrustServerCertificate=True`,
+`SqlServerCreateDatabase=true`, `InstallSampleData=true` and admin credentials. Sample data is needed
+for the product-slug test. The installer calls `IWebHelper.RestartAppDomain()` on success, which stops
+the host — that is expected.
+
+Finally run `dotnet test` as above but add `--network nopnet` to the `docker run`, so the test
+container can reach `nopsql`.
+
+Two artifacts are left under `src/Presentation/Nop.Web/App_Data/` and are **gitignored**:
+`Settings.txt` (the connection string the installer wrote) and `browscap.crawlersonly.xml`
+(regenerated on demand). Delete `Settings.txt` to return to install mode.
+
+### Proving the harness can fail
+
+The suite is only evidence if it has been shown to go red. `HarnessCanaryTests` is `[Explicit]` and
+contains one deliberately-false assertion per mechanism the suite relies on:
+
+```bash
+dotnet test src/Tests/Nop.Web.SmokeTests/Nop.Web.SmokeTests.csproj \
+  --filter "FullyQualifiedName~HarnessCanaryTests"
+```
+
+**All three must report Failed.** If any passes, the corresponding group of real assertions cannot be
+trusted.

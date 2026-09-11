@@ -349,6 +349,33 @@
   </ItemGroup>
 
   <!-- ==========================================================
+       ASP.NET Core integration testing  (added for the Nop.Web smoke check, task 7.7)
+
+       Microsoft.AspNetCore.Mvc.Testing supplies WebApplicationFactory<TEntryPoint> +
+       TestServer, i.e. it starts the REAL Nop.Web host - the real Program.Main, the real
+       Autofac container, the real middleware pipeline, the real compiled Razor views -
+       in-process and hands back an HttpClient. That is the only way task 7.7's brief
+       ("verify the host starts ... one controller route responds ... one Razor view
+       renders ... one former-module middleware executes") can be satisfied by execution
+       rather than by inspection.
+
+       10.0.12 is deliberately aligned with the Microsoft.Extensions.* / EF Core /
+       System.ServiceModel.Syndication 10.0.12 pins above. The package must track the
+       Microsoft.AspNetCore.App shared framework it drives; a mismatched patch would
+       resolve a different Microsoft.AspNetCore.TestHost. MIT, published by Microsoft,
+       ships a native lib/net10.0 asset.
+
+       It also brings a targets file that emits a WebApplicationFactoryContentRootAttribute
+       for each referenced web project. Nop.Web's content root is load-bearing
+       (CommonHelper.BaseDirectory, runtime deferral 1.5), so the smoke project does not
+       rely on that attribute - it sets ASPNETCORE_CONTENTROOT explicitly and then
+       ASSERTS the resolved value. See NopWebApplicationFactory.
+       ========================================================== -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
+  </ItemGroup>
+
+  <!-- ==========================================================
        Model validation  (replaces FluentValidation 6.4.0,
        added for Nop.Web.Framework task 6.1)
 

@@ -1,0 +1,95 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Nop.Web.SmokeTests - the ASP.NET Core host smoke check, created by task 7.7
+    (Requirements 4.1, 4.3, 4.4, 4.5, 4.6, 1.4).
+
+    WHY THIS PROJECT EXISTS
+    =======================
+    Task groups 2-7 were validated by COMPILATION ONLY. Apart from the 4 fixtures in
+    src/Tests/Nop.Tests, no ported line of this migration had ever been EXECUTED before
+    this project, and roughly 40 entries in .kiro/specs/dotnetmodernization/runtime-deferrals.md
+    are recorded as RESOLVED on the strength of code inspection or of throwaway probes run
+    against synthetic host applications. This project runs the real thing.
+
+    It boots the REAL Nop.Web host through WebApplicationFactory<Nop.Web.Program>: the real
+    Program.Main, builder.Environment.UseNopHostingEnvironment(...), the real
+    AddNopFramework() service graph, the real Autofac container built by NopHostedEngine, the
+    real middleware pipeline in the real order, and the real compiled Razor views. Requests go
+    through TestServer rather than a socket, so no port is bound and nothing is left running.
+
+    NON-GATING, deliberately. tasks.md marks 7.7 non-gating and the migration's completion
+    criterion remains Clean_Compile (Requirement 3.3). A failure here is a finding to record,
+    not a build break - which is why this project is NOT added to any gate command.
+
+    TARGET FRAMEWORK / SDK
+    ======================
+    Microsoft.NET.Sdk, not Microsoft.NET.Sdk.Web: this is a test assembly, not a web
+    application. The ASP.NET Core surface it needs
+    (Microsoft.AspNetCore.Http, .Mvc, .Builder, .Routing, .TestHost) arrives through the
+    Microsoft.AspNetCore.App FrameworkReference that Microsoft.AspNetCore.Mvc.Testing adds
+    implicitly, so no explicit FrameworkReference is declared here (restating it would fail
+    with NETSDK1086, the same trap Nop.Web.csproj documents).
+
+    TargetFramework, Nullable, ImplicitUsings and GenerateAssemblyInfo come from
+    src/Directory.Build.props; net10.0 is restated so it is verifiable from this file
+    (Requirement 1.2). There is no Properties/AssemblyInfo.cs - this is a new project, not a
+    converted one, so there is no hand-kept file to preserve and nothing is lost by
+    GenerateAssemblyInfo=false.
+
+    PACKAGES
+    ========
+    Versions come from src/Directory.Packages.props (ManagePackageVersionsCentrally=true,
+    CentralPackageVersionOverrideEnabled=false), so every item is intentionally version-less.
+    The test-SDK trio matches the pattern task 4.5 established for src/Tests/Nop.Tests -
+    NUnit is pinned at 3.14.0 there because NUnit 4 removed the classic Assert.AreEqual
+    surface, and this project uses the same pin for consistency even though it is new code.
+
+      Microsoft.AspNetCore.Mvc.Testing  WebApplicationFactory<T> + TestServer. The one new
+                                        central pin task 7.7 added (10.0.12, aligned with the
+                                        other 10.0.12 Microsoft pins).
+      Microsoft.NET.Test.Sdk            VSTest host - on .NET the runner is a package.
+      NUnit / NUnit3TestAdapter         framework + VSTest adapter.
+
+    No mocking package: this project mocks NOTHING on purpose. Every assertion runs against
+    the real host, because a smoke check that substitutes a double for the thing under test
+    proves nothing about it.
+
+    PROJECT REFERENCES
+    ==================
+    Nop.Web is referenced so WebApplicationFactory can find its entry point and so the tests
+    can name Nop.Web types (Program, NopHostedEngine). The four upstream projects arrive
+    transitively; Nop.Core is ALSO declared directly because the tests bind Nop.Core types
+    (CommonHelper, EngineContext, ContainerManager, NopConfig, PluginManager,
+    DataSettingsHelper) independently of Nop.Web, and the migration's own rule is that direct
+    usage means a direct reference.
+
+    NOT referenced: Nop.Admin. Task 7.7's scope boundary is explicit - nothing under
+    Administration/ is touched, that is group 8. One consequence IS asserted here, as a
+    known-gap test: the install page links admin CSS which does not serve (deferral 7.4-2).
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+
+    <!--
+      Suppress the NUnit1032 analyzer only where it fires on the shared WebApplicationFactory
+      field, which is disposed in OneTimeTearDown rather than per-test. Kept narrow and
+      explicit rather than blanket-disabling analyzers.
+    -->
+    <NoWarn>$(NoWarn);NUnit1032</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Presentation\Nop.Web\Nop.Web.csproj" />
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" />
+  </ItemGroup>
+
+</Project>

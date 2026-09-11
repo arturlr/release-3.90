@@ -149,37 +149,56 @@ namespace Nop.Web
         }
 
         /// <summary>
-        /// Runtime deferral 4.8 — creates the nopCommerce schema when the target database is
-        /// empty.
+        /// Runtime deferral 4.8 — safety net that creates the nopCommerce schema when
+        /// <c>App_Data/Settings.txt</c> names a database that has none.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// EF6 registered a <b>global, lazily fired</b> hook via
-        /// <c>Database.SetInitializer(initializer)</c>: the first time any
-        /// <c>NopObjectContext</c> was used, EF6 ran
-        /// <c>CreateTablesIfNotExist.InitializeDatabase(context)</c>. EF Core deleted the
-        /// initializer concept entirely, so <c>SqlServerDataProvider.SetDatabaseInitializer()</c>
-        /// now only <i>publishes</i> the configured initializer on the static
-        /// <c>SqlServerDataProvider.DatabaseInitializer</c> and <b>nothing calls it</b>. Left
-        /// unfixed, installing onto an empty database silently creates no schema and the first
-        /// real query fails with "Invalid object name".
+        /// <b>TASK 7.7 CORRECTION — READ THIS FIRST.</b> This method was recorded as the fix for
+        /// runtime deferral 4.8 ("the schema initializer is never invoked, so a fresh install
+        /// creates no tables"). <b>It is not, and never was.</b> It opens with
+        /// <c>if (!DataSettingsHelper.DatabaseIsInstalled()) return;</c> and runs exactly once, at
+        /// host startup — but the case deferral 4.8 describes is <i>installing onto an empty
+        /// database</i>, and at startup a not-yet-installed store has no data-settings file, so the
+        /// method early-returns. By the time the installer has written <c>Settings.txt</c>, host
+        /// startup is long past. On every later start the store IS installed and the initializer
+        /// short-circuits on its own table probe. The call was inert in both directions.
         /// </para>
         /// <para>
-        /// <b>This must run after <see cref="NopHostedEngine.RunStartupTasks(Nop.Core.Configuration.NopConfig)"/></b>:
-        /// <c>Nop.Data</c>'s <c>EfStartUpTask</c> (Order -1000) is what calls
-        /// <c>SetDatabaseInitializer()</c>, so the property is null until startup tasks have run.
+        /// Task 7.7 measured this by POSTing the real installer form at a real SQL Server: it
+        /// failed with <c>Entity: Store State: Added … Invalid object name 'Store'.</c> — deferral
+        /// 4.8's predicted symptom, verbatim. The real fix is in
+        /// <c>Nop.Data.SqlServerDataProvider.InitDatabase()</c>, which is what the installer calls
+        /// and what EF6's <c>Database.SetInitializer</c> hook used to fire from; see the remarks
+        /// there.
         /// </para>
         /// <para>
-        /// The initializer is idempotent and cheap on an already-installed store: it probes
+        /// This method is <b>kept</b> as a safety net for one residual case the installer cannot
+        /// cover: a hand-written or copied <c>Settings.txt</c> pointing at an empty database. The
+        /// initializer is idempotent and cheap on a provisioned store (it probes
         /// <c>INFORMATION_SCHEMA.TABLES</c> for <c>Customer</c>/<c>Discount</c>/<c>Order</c>/
-        /// <c>Product</c>/<c>ShoppingCartItem</c> and returns immediately when any of them exists.
+        /// <c>Product</c>/<c>ShoppingCartItem</c> and returns immediately when any exists).
         /// </para>
         /// <para>
-        /// <b>NEW behaviour, recorded as deferral 7.2-1:</b> exceptions are deliberately NOT
-        /// swallowed. EF6 deferred the failure to the first query; here an unreachable or
-        /// misconfigured database fails the host at startup. That is the honest outcome — a store
-        /// with no schema cannot serve anything — but it does mean a supervised process will
-        /// restart-loop instead of serving an error page.
+        /// <b>Deferral 7.2-1 RESOLVED here, and the decision is a reversal.</b> Task 7.2 chose
+        /// deliberately not to swallow exceptions, so an unreachable database took the host down at
+        /// startup, and left the accept-or-defer decision to task 7.7. Task 7.7 verified the
+        /// behaviour — a <c>Settings.txt</c> naming a non-existent host produced
+        /// <c>Unhandled exception. Nop.Core.NopException: No database instance</c> and process exit
+        /// code 134 — and chose to make it non-fatal, because the argument for failing fast no
+        /// longer holds:
+        /// <list type="bullet">
+        /// <item>Provisioning is now owned by the installation path, so this call is a net rather
+        /// than the mechanism, and a net must not be more dangerous than what it guards.</item>
+        /// <item>The throw does not distinguish "empty database" from "database briefly
+        /// unreachable". The second is a transient operational condition, and under ANCM, systemd
+        /// or an orchestrator it produces a restart loop with the real cause buried in a crash
+        /// log.</item>
+        /// <item>3.90 served an error page in this situation; it did not fail to boot. A genuinely
+        /// broken database still surfaces loudly on the first request, through
+        /// <see cref="Nop.Web.Infrastructure.NopErrorLoggingMiddleware"/> and the configured error
+        /// page.</item>
+        /// </list>
         /// </para>
         /// </remarks>
         private static void InitializeDatabaseSchema()
@@ -193,16 +212,25 @@ namespace Nop.Web
 
             var containerManager = EngineContext.Current.ContainerManager;
 
-            //an explicit, disposed scope: IDbContext is InstancePerLifetimeScope and there is no
-            //ambient request scope at startup, so ContainerManager.Scope() would open one that
-            //nothing ever disposes.
-            using (var scope = containerManager.Container.BeginLifetimeScope())
+            try
             {
-                var context = containerManager.Resolve<IDbContext>(scope: scope) as NopObjectContext;
-                if (context == null)
-                    return;
+                //an explicit, disposed scope: IDbContext is InstancePerLifetimeScope and there is no
+                //ambient request scope at startup, so ContainerManager.Scope() would open one that
+                //nothing ever disposes.
+                using (var scope = containerManager.Container.BeginLifetimeScope())
+                {
+                    var context = containerManager.Resolve<IDbContext>(scope: scope) as NopObjectContext;
+                    if (context == null)
+                        return;
 
-                initializer.InitializeDatabase(context);
+                    initializer.InitializeDatabase(context);
+                }
+            }
+            catch (Exception)
+            {
+                //deferral 7.2-1, resolved as described above: a database that is unreachable at
+                //startup must not prevent the host from starting. The condition is reported on the
+                //first request instead.
             }
         }
 
@@ -211,20 +239,53 @@ namespace Nop.Web
         /// <c>Start()</c>, guarded by the same "database installed" check.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Kept as-is rather than converted to an <c>IHostedService</c>. <c>TaskManager</c> owns
         /// its own <c>TaskThread</c>/<c>System.Threading.Timer</c> machinery and lives in
         /// <c>Nop.Services</c>, which has passed its clean-compile gate; rebasing it onto the
         /// generic host's background-service model is a behavioural change beyond this task.
         /// Recorded as deferral 7.2-3: nothing calls <c>TaskManager.Instance.Stop()</c> on
         /// shutdown, exactly as in 3.90, where <c>Application_End</c> did not call it either.
+        /// </para>
+        /// <para>
+        /// <b>TASK 7.7 — the try/catch is new, and it is the SECOND half of deferral 7.2-1.</b>
+        /// 7.2-1 attributed "startup now fails fast on an unreachable database" solely to
+        /// <see cref="InitializeDatabaseSchema"/>. Task 7.7 made that call non-fatal and measured
+        /// again: the host still died, now here —
+        /// <c>Program.StartScheduledTasks → TaskManager.Initialize → ScheduleTaskService.GetAllTasks</c>
+        /// → <c>InvalidOperationException</c> (EF Core's transient-failure wrapper), process exit
+        /// code 134. <c>TaskManager.Initialize()</c> reads the <c>ScheduleTask</c> table, so it
+        /// cannot succeed while the database is unreachable.
+        /// </para>
+        /// <para>
+        /// This is <b>not</b> 3.90 parity, which is why it is guarded. In System.Web a throw from
+        /// <c>Application_Start</c> failed the request that triggered it and ASP.NET re-ran
+        /// <c>Application_Start</c> on the next one — the worker process survived and the site
+        /// recovered by itself once the database came back. An exception out of
+        /// <c>Program.Main</c> terminates the process, so under ANCM/systemd/an orchestrator the
+        /// same transient outage becomes a restart loop.
+        /// </para>
+        /// <para>
+        /// The cost of swallowing is bounded and visible: scheduled tasks do not start for the
+        /// lifetime of this process, and an operator must restart it once the database is healthy.
+        /// That is strictly better than not serving at all, and it matches what 3.90 did on the
+        /// first request after a failed <c>Application_Start</c>.
+        /// </para>
         /// </remarks>
         private static void StartScheduledTasks()
         {
             if (!DataSettingsHelper.DatabaseIsInstalled())
                 return;
 
-            TaskManager.Instance.Initialize();
-            TaskManager.Instance.Start();
+            try
+            {
+                TaskManager.Instance.Initialize();
+                TaskManager.Instance.Start();
+            }
+            catch (Exception)
+            {
+                //deferral 7.2-1: an unreachable database must not stop the host from starting.
+            }
         }
 
         /// <summary>

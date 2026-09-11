@@ -201,11 +201,11 @@ database is attached. Everything below was introduced knowingly.
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
 | 7 | ~~Lazy loading is off — all `virtual` navigations return null~~ | — | **RESOLVED** (see 4.7) |
-| 8 | ~~Schema initializer is never invoked — a fresh install creates no tables~~ | — | ✅ **RESOLVED by 7.2** (§24) — `Program.InitializeDatabaseSchema()`; see new deferral 7.2-1 |
+| 8 | ~~Schema initializer is never invoked — a fresh install creates no tables~~ | — | ⚠️ **7.2's fix was INERT — re-opened and genuinely RESOLVED by 7.7** (§42.1). Measured: a real install failed with `Invalid object name 'Store'` |
 | 9 | `NopObjectContext` now needs a real connection string, not a database name | 3.4, ~~6.4~~ | Medium — **6.4 verified clean**, see §17.1 |
 | 10 | `CreateDatabaseScript()` output is `GO`-batched — 4 plugin contexts will fail | 11.2, 13.1, 14.4, 15.1 | Medium |
 | 11 | `ExecuteSqlCommand(doNotEnsureTransaction: false)` now opens a real transaction | ~~4.2~~, 7.7 | Medium — **reviewed at 7.2, no change made** (§24.2); needs a real database |
-| 12 | Many-to-many join **column** names follow EF Core conventions, not 3.90's | 4.2 / schema review | Medium |
+| 12 | ~~Many-to-many join **column** names follow EF Core conventions, not 3.90's~~ | — | ⚠️ **SEVERITY WAS WRONG — this was a BLOCKER, not a parity nicety. RESOLVED by 7.7** (§42.2): the stored procedures join these columns by their 3.90 names, so installation failed with `Invalid column name 'ProductTag_Id'` |
 
 ### 4.7 Lazy loading — ✅ **RESOLVED** (fixed ahead of task 7.2)
 
@@ -402,6 +402,12 @@ with the ephemeral container NuGet cache).
 
 ### 4.8 Schema initializer is never invoked — a fresh install creates no tables
 
+> **⚠️ STATUS CORRECTION BY TASK 7.7.** This was marked RESOLVED by task 7.2 on the strength of
+> `Nop.Web/Program.InitializeDatabaseSchema()`. **That fix could never work**, and task 7.7 proved
+> it by installing against a real SQL Server: the installer failed with the exact symptom predicted
+> below, `Entity: Store State: Added … Invalid object name 'Store'.` The real fix is in
+> `SqlServerDataProvider.InitDatabase()` — see **§42.1**. Nothing else in this entry has changed.
+
 - **What changed:** EF6's `Database.SetInitializer(initializer)` registered a **global, lazily
   fired** hook: the first time any `NopObjectContext` was used, EF6 ran
   `CreateTablesIfNotExist.InitializeDatabase(context)`. EF Core deleted the entire initializer
@@ -480,6 +486,13 @@ with the ephemeral container NuGet cache).
   `Database.SetCommandTimeout`/`GetCommandTimeout`, which is equivalent.
 
 ### 4.12 Many-to-many join *column* names follow EF Core conventions
+
+> **⚠️ SEVERITY CORRECTION BY TASK 7.7 — RESOLVED.** This entry closed with "Not required for the
+> compile gate", which was true and misleading: it **is** required to install. `SqlServer.StoredProcedures.sql`
+> joins `Product_Id`/`ProductTag_Id`/`Customer_Id`/`CustomerRole_Id` **by name**, so creating the
+> stored procedures against an EF Core-generated schema failed with
+> `Invalid column name 'ProductTag_Id'. Invalid column name 'Product_Id'.` and the installation
+> aborted. All eight join tables are now pinned to their 3.90 column names — see **§42.2**.
 
 - **What changed:** EF6's `HasMany(x).WithMany(y).Map(m => m.ToTable("T"))` became EF Core's skip
   navigation `HasMany(x).WithMany(y).UsingEntity(j => j.ToTable("T"))`. The **table** name is
@@ -3013,7 +3026,7 @@ Each row names the line of code that closes it. All are in
 | **1.4** | Configuration source unset | the `UseNopHostingEnvironment(builder.Configuration)` argument. Narrowed at 7.2; **fully closed by 7.4**, which authored `appsettings.json` (§32) |
 | **1.5** | `CommonHelper.MapPath` resolves under `bin/` | same call, first statement. **Verified**: `MapPath("~/App_Data/x")` lands under the content root |
 | **1.6** | `WebHelper.RestartAppDomain` throws | `UseServiceProviderFactory` + `Populate`. **Verified**: `IHostApplicationLifetime` resolvable from the nopCommerce container |
-| **4.8** | Schema initializer never invoked | `Program.InitializeDatabaseSchema()` — `SqlServerDataProvider.DatabaseInitializer.InitializeDatabase(context)`, called **after** `RunStartupTasks` because `EfStartUpTask` (Order −1000) is what publishes the initializer. Resolved through an explicitly disposed `ILifetimeScope` (`IDbContext` is `InstancePerLifetimeScope` and there is no request scope at startup) |
+| **4.8** | Schema initializer never invoked | ⚠️ **7.2's fix is INERT.** `Program.InitializeDatabaseSchema()` early-returns on `!DatabaseIsInstalled()` and runs once at startup, so it can never fire for the case 4.8 is about. Task 7.7 measured a real install failing with `Invalid object name 'Store'` and moved the call into `SqlServerDataProvider.InitDatabase()`. See §42.1 |
 | **7.13** | Cookie authentication not configured | `AddNopFramework(builder.Configuration)` + `UseNopPipeline()`'s `UseAuthentication()`. **Verified**: scheme present, all four `<forms>` values correct |
 | **7.14** | `IHttpContextAccessor` not registered | `AddNopFramework`. **Verified resolvable** |
 | **7.15** | Session state not configured | `AddNopFramework` + `UseNopPipeline()`'s `UseSession()`. **Verified**: `ISessionStore` registered |
@@ -4442,3 +4455,372 @@ holds a `_ViewImports.cshtml`, so a new theme's view overrides get no `@inherits
 | **7.3-6** | The child-action bridge does not run action filters | accepted |
 | **18 / 7.18** | ImageSharp licence diagnostic | business decision |
 | **18.4** | `CA1416` at the two `Nop.Admin` `CommonController` call sites | 8.3 — 7.3 fixed the two `Nop.Web` ones |
+
+
+
+---
+
+# Nop.Web — the ASP.NET Core host smoke check (task 7.7)
+
+Task 7.7 is the first task in this migration that **ran** the ported application. Groups 2–7 were
+validated by compilation only; apart from the 4 fixtures in `src/Tests/Nop.Tests`, no ported line
+had ever been executed, and roughly 40 entries in this register were marked RESOLVED on the strength
+of code inspection or of throwaway probes run against **synthetic** host applications.
+
+It found **five real defects**, of which **three were release blockers that made nopCommerce
+impossible to install**, and it corrected the recorded status of **two deferrals that were marked
+RESOLVED but were not**.
+
+| Measurement | Value |
+|---|---|
+| new project | `src/Tests/Nop.Web.SmokeTests` — `WebApplicationFactory<Nop.Web.Program>` + NUnit 3.14.0, 49 tests |
+| production source files changed to enable testing | **0** — `Program` was already a `public class` with a conventional `Main`, so no `partial` accommodation was needed |
+| suite result, store installed | **36 passed / 0 failed / 13 skipped** |
+| suite result, store not installed | **32 passed / 0 failed / 17 skipped** |
+| harness proven able to fail | **yes** — 3 `[Explicit]` canaries, one per mechanism, all observed Failed (§41.2) |
+| gate re-verification (`--no-incremental`, `obj`/`bin` removed) | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 — every one matching its recorded baseline, no warning added |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| swallowed-diagnostics check | `"converted to a warning"` **0** on all seven builds |
+
+Environment: SQL Server 2022 (`mcr.microsoft.com/mssql/server:2022-latest`) on a Docker network
+shared with the `mcr.microsoft.com/dotnet/sdk:10.0` build container. A store was installed **through
+the real installer form**, with sample data, which is what surfaced the three blockers.
+
+## 41. How the check is built, and why it can be trusted
+
+### 41.1 It starts the real application, not a facsimile
+
+`WebApplicationFactory<TEntryPoint>` resolves `Nop.Web.Program.Main` through
+`HostFactoryResolver` and invokes it with `stopApplication: false`, so **`Main` runs to completion of
+`app.Run()`**: the pre-container static seams, `AddNopFramework`, `AutofacServiceProviderFactory`,
+`NopHostedEngine.RegisterInto`/`RunStartupTasks`, `InitializeDatabaseSchema`,
+`StartScheduledTasks`, `LogApplicationStart`, then the pipeline in its real order. Only `IServer` is
+substituted (Kestrel → `TestServer`), so no socket is bound and nothing survives disposal.
+
+The content root is pinned through `ASPNETCORE_CONTENTROOT` **and then asserted**, because a wrong
+one would make most of the suite pass vacuously: `UseNopHostingEnvironment` assigns it to
+`CommonHelper.BaseDirectory`, which is what `MapPath`, `DataSettingsManager` (the connection string),
+`PluginManager`, `ThemeProvider` and `NopStaticFileProvider` all resolve against.
+
+The **only** modification to the application under test is one `IStartupFilter` that prepends
+`SmokeProbeMiddleware`. It handles `/__smoke/*` and passes everything else through untouched before
+doing anything else, so no other request sees a different pipeline. It exists because four things
+7.7 must verify are observable only from inside a live request and no nopCommerce controller exposes
+them: per-request Autofac scope sharing, `LinkGenerator` route generation, `IUserAgentHelper`, and
+the endpoint table.
+
+### 41.2 Canaries — the harness was proven able to fail before its green run was believed
+
+`HarnessCanaryTests` is an `[Explicit]` fixture with one deliberately-false assertion per mechanism
+the suite depends on: a real HTTP request through `TestServer`, a resolve through the real Autofac
+container, and the probe middleware's text output. Run on demand:
+
+```
+dotnet test src/Tests/Nop.Web.SmokeTests --filter "FullyQualifiedName~HarnessCanaryTests"
+```
+
+Observed: **3 failed / 0 passed**, as required. This matters because this migration has twice been
+bitten by silently-swallowed failure — the Six Labors licence task failing on every compile under
+`ContinueOnError=true`, and Roslyn hiding a real `CS1929` in `FilePermissionHelper` across three
+completed tasks.
+
+### 41.3 Test outcomes are `Ignore`d, never quietly passed
+
+Install-mode tests skip when a database **is** present; storefront tests skip when one is **not**,
+with the reason in the message (`"NOT EXERCISED: no database is installed …"`). No assertion was
+weakened to make it runnable in the wrong state.
+
+---
+
+## 42. BLOCKERS FOUND AND FIXED — nopCommerce could not be installed
+
+All three were found by POSTing the real installer form. Each was fixed and the install re-run;
+installation now completes with sample data and the storefront serves.
+
+### 42.1 Deferral 4.8 was marked RESOLVED and was not — the schema initializer still never ran
+
+**Symptom, measured:** `Setup failed: Entity: Store State: Added … Invalid object name 'Store'.`
+— i.e. deferral 4.8's predicted failure, verbatim, on a first install.
+
+**Why 7.2's fix could not work.** `Nop.Web/Program.InitializeDatabaseSchema()` opens with
+`if (!DataSettingsHelper.DatabaseIsInstalled()) return;` and runs **once, at host startup**. The case
+deferral 4.8 describes is *installing onto an empty database*, and at startup a not-yet-installed
+store has no `App_Data/Settings.txt`, so the method early-returns. By the time the installer has
+written that file, startup is long past. On every later start the store *is* installed and the
+initializer short-circuits on its own table probe. **The call was inert in both directions** — which
+a clean compile cannot detect and which no amount of code review had caught.
+
+**Fix.** `Nop.Data.SqlServerDataProvider.InitDatabase()` now calls a new
+`protected virtual CreateDatabaseSchema()` after `SetDatabaseInitializer()`. That is the correct
+place and not an arbitrary one: `InitDatabase()` has exactly one caller,
+`InstallController.Index(InstallModel)`, immediately after the installer writes `Settings.txt` and
+immediately before `IInstallationService.InstallData(...)` — and it is where EF6's
+`Database.SetInitializer` hook was registered and, moments later, fired. The context is resolved
+through `EngineContext` (as `CommonHelper.MapPath` already is a few lines above) rather than
+injected, because `IDataProvider.InitDatabase()` is parameterless and changing it would break
+Nop.Core, Nop.Web.Framework and every plugin data provider for no behavioural gain.
+
+**`Program.InitializeDatabaseSchema()` is KEPT**, downgraded to a safety net for the one residual
+case the installer cannot cover — a hand-written or copied `Settings.txt` pointing at an empty
+database — and made non-fatal (see §43.1).
+
+### 42.2 Deferral 4.12's severity was wrong — the join column names break the stored procedures
+
+**Symptom, measured:** `Setup failed: Invalid column name 'ProductTag_Id'. Invalid column name 'Product_Id'.`
+
+Deferral 4.12 recorded that EF Core's skip-navigation convention names the join FK columns
+`<Navigation>Id` where EF6 named them `<Entity>_<Key>`, and concluded "Fix if schema parity against
+an existing 3.90 database is required … Not required for the compile gate." Both halves are
+literally true and together they understate the problem: **`App_Data/Install/SqlServer.StoredProcedures.sql`
+joins these columns by their 3.90 names**, in `ProductLoadAllPaged`, `ProductTagCountLoadAll` and
+`CustomerLoadAllPaged`'s Guests-role test, and `App_Data/Install/Fast/create_*.sql` does the same.
+So creating the stored procedures against an EF Core-generated schema fails, and installation aborts.
+Even if it had not, product search and tag counts would have been broken at runtime.
+
+**Fix.** All eight join tables now pin their column names via
+`j.Property<int>("<EfName>").HasColumnName("<3.90 name>")`, exactly as deferral 4.12 itself
+recommended. Only the *column* name is pinned; the shadow property keeps its EF Core name, so no
+query or navigation code changes.
+
+| Map | Table | EF Core produced | Now |
+|---|---|---|---|
+| `Catalog/ProductMap` | `Product_ProductTag_Mapping` | `ProductsId`, `ProductTagsId` | `Product_Id`, `ProductTag_Id` |
+| `Customers/CustomerMap` | `Customer_CustomerRole_Mapping` | `CustomerId`, `CustomerRolesId` | `Customer_Id`, `CustomerRole_Id` |
+| `Customers/CustomerMap` | `CustomerAddresses` | `CustomerId`, `AddressesId` | `Customer_Id`, `Address_Id` |
+| `Security/PermissionRecordMap` | `PermissionRecord_Role_Mapping` | `PermissionRecordsId`, `CustomerRolesId` | `PermissionRecord_Id`, `CustomerRole_Id` |
+| `Shipping/ShippingMethodMap` | `ShippingMethodRestrictions` | `RestrictedShippingMethodsId`, `RestrictedCountriesId` | `ShippingMethod_Id`, `Country_Id` |
+| `Discounts/DiscountMap` | `Discount_AppliedToCategories` | `AppliedDiscountsId`, `AppliedToCategoriesId` | `Discount_Id`, `Category_Id` |
+| `Discounts/DiscountMap` | `Discount_AppliedToManufacturers` | `AppliedDiscountsId`, `AppliedToManufacturersId` | `Discount_Id`, `Manufacturer_Id` |
+| `Discounts/DiscountMap` | `Discount_AppliedToProducts` | `AppliedDiscountsId`, `AppliedToProductsId` | `Discount_Id`, `Product_Id` |
+
+The EF Core names were read off the live database, not guessed; the 3.90 names were confirmed
+against the column names the installer scripts join by.
+
+### 42.3 NEW — EF Core's foreign-key index naming collides with 15 of nopCommerce's own indexes
+
+**Symptom, measured:** `Setup failed: The operation failed because an index or statistics with name
+'IX_StateProvince_CountryId' already exists on table 'StateProvince'.` — and because the custom
+script aborts at the first failure, **none of the 57 later indexes was created either.**
+
+**Root cause.** EF Core's `ForeignKeyIndexConvention` names its automatic FK index
+`IX_<Table>_<Column>`; EF6's named it `IX_<Column>`. `CreateTablesIfNotExist` runs
+`Database.GenerateCreateScript()` and then the 61 hand-written statements in
+`App_Data/Install/SqlServer.Indexes.sql`, and 15 of those names now collide. Measured on the live
+database: 100 non-primary-key indexes, of which 97 came from EF Core.
+
+**Fix.** Every `CREATE INDEX` in `SqlServer.Indexes.sql` is now preceded by a guarded
+`DROP INDEX`, using `sys.indexes`/`OBJECT_ID` rather than `DROP INDEX IF EXISTS` (which needs SQL
+Server 2016+, where 3.90 supports 2008+). **Drop-and-create, not `IF NOT EXISTS`**, deliberately:
+nopCommerce's definitions must win, because several are strictly richer than the convention index
+they collide with — `IX_StateProvince_CountryId` carries `INCLUDE ([DisplayOrder])`, and skipping the
+`CREATE` would have silently kept EF Core's narrower version. That is exactly the quiet degradation
+this register exists to prevent. The guard also makes the script idempotent, which the 2.x upgrade
+path needs.
+
+**Left open for a schema review, and NOT decided here:** EF Core adds ~97 indexes that 3.90's schema
+did not ask for, with the storage and write-amplification cost that implies on every table. Removing
+`ForeignKeyIndexConvention` outright would restore the 3.90 index set but would also drop the FK
+indexes EF6 *did* create under its own naming, so it is a genuine physical-design decision rather
+than a parity fix. Recorded as **deferral 7.7-3** below.
+
+### 42.4 NEW — eight filesystem paths break on any case-sensitive filesystem
+
+The migration deliberately targets cross-platform `net10.0` (design §7), and design §4 says the
+application is "tested on Windows first". Nothing had ever run it on Linux. Eight paths are spelled
+differently from the directories on disk, and NTFS's case-insensitive lookup was hiding all of them.
+This is the same defect class task 7.4 found when it renamed `Web.config` to `web.config`
+(§31.2) — that fix was treated as a one-off; it was not.
+
+| File | Asked for | On disk | Consequence on Linux |
+|---|---|---|---|
+| `Nop.Services/Media/PictureService.cs` ×3 | `~/content/images`, `~/content/images/thumbs` | `Content/Images`, `Content/Images/Thumbs` | **the entire filesystem picture store is dead** — `Directory.GetFiles` throws `DirectoryNotFoundException` on every picture delete, and no image or thumbnail can be written |
+| `Nop.Services/Installation/CodeFirstInstallationService.cs` ×4 | `~/content/samples/` | `Content/samples` | **installing sample data fails**: `Could not find a part of the path '…/content/samples/category_computers.jpeg'` (measured) |
+| `Nop.Services/Common/PdfService.cs` ×1 | `~/content/files/ExportImport` | `Content/files/ExportImport` | PDF-to-file export throws `DirectoryNotFoundException` |
+| `Nop.Web/Views/Install/Index.cshtml` ×3 | `~/Content/Install/style.css`, `…/style.rtl.css`, `~/content/install/images/…gif` | `Content/install/…` | **the installation page renders with no stylesheet.** Measured: `GET /Content/Install/style.css` → 302 `/install`, `GET /Content/install/style.css` → 200 |
+
+All eight are corrected to the on-disk casing. Two systematic audits were then written and run to
+prove the class is closed, not just the instances:
+
+- **every `MapPath("~/…")` literal** in `Nop.Core`/`Nop.Data`/`Nop.Services`/`Nop.Web.Framework`/`Nop.Web`
+  (22 of them, comments excluded, `Administration/` excluded) resolved case-exactly → **0 mismatches**;
+- **every `~/Content|Scripts|Themes/…` asset reference** in Nop.Web's views, stylesheets and scripts
+  (30 of them) → **0 mismatches**. The four apparent misses are `Themes/{0}/…` format strings
+  resolved at runtime with the theme name.
+
+A permanent regression test, `Deferral_40_the_install_page_only_links_assets_that_actually_serve`,
+now walks every same-origin asset the install page emits and requires a 200 from each.
+
+**NOTE FOR GROUP 8:** `Administration/` was excluded from both audits (task 7.7's scope boundary).
+Nop.Admin has ~325 views and its own `Content/`/`Scripts/` trees. **Task 8.4/8.5 should re-run both
+audits over `Administration/`** — on this evidence it will find instances. Recorded as **deferral
+7.7-4**.
+
+---
+
+## 43. Deferrals RESOLVED by task 7.7
+
+| # | Deferral | How, and how it was proved |
+|---|---|---|
+| **4.8** | Schema initializer never invoked | §42.1. Proved by a real install completing where it previously failed with `Invalid object name 'Store'` |
+| **4.12** | Join column names | §42.2. Proved by stored-procedure creation succeeding where it previously failed with `Invalid column name 'ProductTag_Id'` |
+| **7.2-1** | Startup fails fast on an unreachable database | §43.1 — and 7.2-1 had only **half** the cause |
+| **1.1** | Plugin discovery never runs | `PluginManager.ReferencedPlugins` is non-null in the running host, and `~/Plugins` + `~/Plugins/bin` exist. Count is **0**, which is the correct answer today: no plugin project has been migrated (groups 10–15), so there is no `Description.txt` to find. What is proved is that the scan **ran** |
+| **1.3 / 3** | Per-request DI scope not shared | `EngineContext.Current.ContainerManager.Container` is **reference-equal** to `app.Services.GetAutofacRoot()` (one container), `CurrentScopeProvider` is assigned and returns the request's own `ILifetimeScope`, and two `IWebHelper` resolves inside one request return the **same instance**, which is also the instance `RequestServices` yields |
+| **1.5** | `MapPath` resolves under `bin/` | `CommonHelper.BaseDirectory` equals the content root in the running host and `MapPath("~/App_Data/")` lands inside it |
+| **1.6** | `RestartAppDomain` throws | `IHostApplicationLifetime` resolves from the nop container, and the installer's own `webHelper.RestartAppDomain()` demonstrably stopped the host at the end of installation (`Application is shutting down…`) |
+| **4 / 7.2-4 / 1.4** | Configuration unset | All 14 `NopConfig` properties, the one live `appSettings` key, the three deliberately-commented-out load-balancer keys (still null), and all 6 `Authentication` values assert correct **off the Autofac singleton and off the live `CookieAuthenticationOptions`** — including `ExpireTimeSpan == 30 days`, which is the specific 30-minute silent fallback deferral 7.13 warned about |
+| **7.13 / 11.25** | Cookie authentication | scheme registered, all four `<forms>` values carried, `SecurePolicy == SameAsRequest` (3.90 shipped `requireSSL="false"`) |
+| **7.14 / 7.15 / 11.26 / 11.28 / 14.31** | `IHttpContextAccessor`, `ISessionStore`, `IAntiforgery`, `ITempDataProvider`, `IFileVersionProvider` | all resolve from the running host |
+| **11.20** | FluentValidation not wired — **SECURITY** | Proved twice by execution, not by inspection: a token-less POST is refused, and a POST with a valid token and `Email=not-an-email` re-renders with `Wrong email` and the password-mismatch message. Separately, an empty-credentials install POST returns `Enter admin email` / `Enter admin password` / `Enter confirm password` — three messages that exist **only** in `InstallValidator` |
+| **11.21 / 11.22** | Metadata and model-binder providers | present in `MvcOptions`; `NopModelBinderProvider` at index 0; the implicit-required suppressor asserted to sit **after** `DataAnnotationsMetadataProvider` |
+| **11.23** | `JsonResult` camelCase | `PropertyNamingPolicy == null` |
+| **14.30** | Theming expander | `ThemeableViewLocationExpander` at index 0, and the storefront demonstrably renders through `Themes/DefaultClean` |
+| **32** | No `Widget` view component | the home page and `/cart` render with every widget zone empty, no exception, and no stray `widget-zone` wrapper |
+| **33 / 14.33** | Cache busting inert | 9 emitted asset URLs all carry a real `?v=<sha256>` **and** all return 200 — e.g. `/Scripts/public.common.js?v=LlDNzco6ovFC0YjsIzhK3g8z0nSru9WmU5HJLfAqh3k` |
+| **39 / 7.1-4** | Publish/serve of secrets — **SECURITY** | with `App_Data/Settings.txt` present **and containing a real connection string**, `GET /App_Data/Settings.txt`, `/appsettings.json` and `/web.config` all return **404** and no body contains `Data Source` |
+| **7.20** | `IsSearchEngine()` dead | Googlebot → `True`, Chrome → `False`. Cold first call (46 MB `browscap.xml` parse) **1171 ms**, warm 19 ms, and `App_Data/browscap.crawlersonly.xml` is written — so App_Data is writable and the first request is slow but not pathological, which is what task 7.4 asked 7.7 to confirm |
+| **§28.1** | The seven `SuppressMatchingMetadata` routes | Verified against the **real** endpoint set, where 7.3 could only use a synthetic probe app: all `{SeName}` endpoints carry `SuppressMatchingMetadata`, `LinkGenerator` still returns `/smoke-product-slug` for all seven, `/cart` is not swallowed by `{generic_se_name}`, and the live `searchtermautocomplete` JSON contains `"producturl":"/apple-macbook-pro-13-inch"` generated by `Url.RouteUrl("Product", …)` |
+| **7.3-1** | The `Html.Action` child-action bridge | **the item task 7.3 called the single most important thing for 7.7 to exercise.** The home page's fan-out is proved by markup only each child action's partial can emit: `header-logo` (Common/Logo), `header-links` (Common/HeaderLinks), `top-menu` (Catalog/TopMenu), `footer` (Common/Footer), `flyout-cart` (ShoppingCart/FlyoutShoppingCart), `search-box` (Catalog/SearchBox). Note the deferral itself — the bridge lives in `Nop.Web` and Nop.Admin needs it — **remains open for task 8.3** |
+
+### 43.1 Deferral 7.2-1 — RESOLVED, and it had a second cause nobody had identified
+
+7.2-1 said startup now fails fast on an unreachable database and assigned the accept-or-defer
+decision to 7.7. Verified by execution with a `Settings.txt` naming a non-existent host:
+`Unhandled exception. Nop.Core.NopException: No database instance`, process **exit code 134**.
+
+Making `InitializeDatabaseSchema()` non-fatal was not enough. Re-measured, the host still died —
+now at `Program.StartScheduledTasks → TaskManager.Initialize → ScheduleTaskService.GetAllTasks`,
+which reads the `ScheduleTask` table and therefore cannot succeed while the database is unreachable.
+**7.2-1 attributed the behaviour solely to `InitializeDatabaseSchema()`; that was incomplete.**
+
+**Decision: both are now non-fatal**, and this is a reversal of 7.2's "deliberately not swallowed".
+The reasoning:
+
+- provisioning is now owned by the installation path (§42.1), so the startup call is a safety net
+  rather than the mechanism, and a net must not be more dangerous than what it guards;
+- neither throw distinguishes "empty database" from "database briefly unreachable", and under
+  ANCM/systemd/an orchestrator the second becomes a restart loop with the real cause buried in a
+  crash log;
+- **this is not 3.90 parity.** In System.Web a throw from `Application_Start` failed only the
+  triggering request and ASP.NET re-ran `Application_Start` on the next one — the worker process
+  survived and the site recovered by itself. An exception out of `Program.Main` terminates the
+  process.
+
+Bounded, visible cost: scheduled tasks do not start for the lifetime of that process and an operator
+must restart it once the database is healthy. Verified after the change: the host **starts and stays
+up** with an unreachable database (the run had to be killed by `timeout`).
+
+### 43.2 Confirmations that were previously inference
+
+- **`NopErrorLoggingMiddleware` works, including the `Log404Errors` rule** — the `Log` table
+  contains `Error 404. The requested page (…) was not found.` rows for the 404s this suite provoked.
+  That is the half of `Application_Error` that could not have been exercised by a compile, and it
+  confirms the design decision to observe `Response.StatusCode == 404` rather than an exception.
+- **`LogApplicationStart()` works** — `Application started` rows, level 20, in the same table.
+- **The 404 path works end to end** — an unknown slug returns **404** with the re-executed
+  `Common/PageNotFound` view (`html-not-found-page`), at the original URL.
+- **`robots.txt` and `sitemap.xml`** return 200 with `text/plain` and a real `<urlset>`/`<loc>`,
+  exercising task 7.3's `Response.Write` → `Content(...)` port and the
+  `ISitemapGenerator` `UrlHelper` → `IUrlHelper` signature change.
+- **Deferral 4.7b (entity JSON cycles)** — the two reachable JSON endpoints tested
+  (`searchtermautocomplete`, `getstatesbycountryid`) return well-formed JSON. nopCommerce's
+  project-to-view-model convention holds on those paths. Not a general clearance; see §44.
+- **Deferral 7.3-3 (request validation gone)** — asserted: a `<script>` payload is accepted by the
+  framework (3.90 would have thrown) and is **HTML-encoded** on the way back out, which is the
+  control that actually matters.
+
+---
+
+## 44. NEW deferrals opened by task 7.7
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 7.7-1 | A refused XSRF POST answers **404**, not 400 | 8.3 | Low–Medium |
+| 7.7-2 | The smoke project is not in `NopCommerce.sln` | 18.1 | Low |
+| 7.7-3 | EF Core adds ~97 unrequested foreign-key indexes | schema review (post-migration) | Low–Medium |
+| 7.7-4 | The two case-sensitivity audits have not been run over `Administration/` | 8.4 / 8.5 | Medium |
+| 7.7-5 | Large parts of the application are still unexercised | 8.x / 16.x / 17.x | — (scope note) |
+
+### 7.7-1 A refused XSRF POST answers 404 instead of 400
+
+`PublicAntiForgeryAttribute` behaves correctly: a token-less POST is refused and the action does not
+run. But `BadRequestResult` produces a **bodiless 400**, and `Program.cs` registers
+`UseStatusCodePagesWithReExecute("/page-not-found")`, which fires for *any* empty-bodied 4xx/5xx and
+re-executes `CommonController.PageNotFound` — which sets `Response.StatusCode = 404`. So the client
+sees **404 "Page not found"** where it should see 400.
+
+Task 7.2 recorded this imprecision (§23) but judged only "the uncommon bare 403/400" affected. It is
+not uncommon: it hits **every** XSRF refusal on the public store today (`/register`, `/contactus`,
+and every other `[PublicAntiForgery]` action — measured: `POST /login`, which has no
+`[PublicAntiForgery]`, returns 200 while `POST /register` and `POST /contactus` return 404), and it
+will hit the whole admin surface once `[AdminAntiForgery]` is live at task 8.3.
+
+- **Not a security hole.** The request is refused and the action does not execute; both halves are
+  asserted by tests.
+- **Fix:** restrict the re-execute to 404 — either `UseStatusCodePages` with a predicate, or a small
+  middleware that re-executes `/page-not-found` only for 404 and lets other statuses keep their own
+  status and body. Two tests pin the current behaviour and will flip when it is fixed:
+  `Deferral_11_26_a_token_less_POST_is_refused_SECURITY` and
+  `Deferral_7_7_1_a_refused_XSRF_post_answers_404_instead_of_400_KNOWN_GAP`.
+
+### 7.7-2 The smoke project is not in the solution
+
+`src/Tests/Nop.Web.SmokeTests/Nop.Web.SmokeTests.csproj` is not referenced by `NopCommerce.sln`, so
+`dotnet build NopCommerce.sln` does not build it. The solution file is **task 18.1's** and was
+deliberately not edited here. 18.1 should add it. It must **not** become part of a clean-compile
+gate: task 7.7 is non-gating by design and the suite requires a database for 13 of its 49 tests.
+
+### 7.7-3 EF Core adds ~97 unrequested foreign-key indexes
+
+Measured on a freshly installed database: 100 non-primary-key indexes, of which **97** came from
+`Database.GenerateCreateScript()` and only 3 from nopCommerce's own script at the point of failure.
+3.90's physical design is the 61-statement `SqlServer.Indexes.sql`; EF Core's
+`ForeignKeyIndexConvention` roughly doubles the index count, with storage and write-amplification
+cost on every insert and update.
+
+This was **not** decided at 7.7, because it is not a parity fix: EF6 also created FK indexes, under
+its own `IX_<Column>` naming, so removing the convention would drop indexes 3.90 had rather than
+restore them. Deciding it needs a real schema diff against a 3.90 database. The mechanism, if wanted,
+is one override — `ConfigureConventions(ModelConfigurationBuilder)` +
+`Conventions.Remove(typeof(ForeignKeyIndexConvention))` — plus a review of which FK indexes to
+re-declare explicitly.
+
+### 7.7-4 The case-sensitivity audits have not covered `Administration/`
+
+§42.4 found 8 defects in 52 audited references and closed the class for everything task 7.7 owns.
+`Administration/` was excluded by scope. It has ~325 views and its own asset trees, and its
+`RoxyFilemanController` does path arithmetic of its own. **Tasks 8.4 and 8.5 should re-run both
+audits over it** (every `MapPath("~/…")` literal, and every `~/Content|Scripts|Themes/…` reference in
+views and stylesheets), checked case-exactly against the filesystem. Note this interacts with
+deferral 7.4-2: the admin asset trees do not serve at all yet, so a case defect there is currently
+masked by a more basic one.
+
+### 7.7-5 What is still unexercised — scope note, not a defect
+
+Stated so a green suite is not mistaken for coverage.
+
+- **The whole admin UI.** Not started (group 8). Task 7.7's only admin assertion is the known gap
+  that its static assets 404 (deferral 7.4-2).
+- **All 20 plugins.** Not migrated. Plugin discovery ran and correctly found zero, so nothing
+  exercises `IWidgetPlugin`/`IPaymentMethod`/`IExternalAuthenticationMethod` — which is precisely
+  where the `Html.Action` bridge's five runtime-named call sites live (deferral 7.3-1), where plugin
+  Razor view compilation lives (deferral 1.2), and where `ProcessPaymentRequest.CustomValues`
+  round-trips through the session (deferral 7.3-2).
+- **Authentication end to end.** The cookie handler is registered and its options verified, but no
+  customer was signed in, so `FormsAuthenticationService.SignIn`/`SignOut` and
+  `GetAuthenticatedCustomer()` are not proved. Registration was only exercised on its *rejection*
+  path.
+- **Checkout, orders, payment, email.** Not touched.
+- **Deferral 4.11** (`ExecuteSqlCommand` per-batch transactions during installation) is **still
+  open**. It concerns `SqlFileInstallationService.ExecuteSqlFile`, which is the **Fast** installer
+  (`NopConfig.UseFastInstallationService`); task 7.7 installed with the default
+  `CodeFirstInstallationService`, so that path never ran.
+- **Deferral 4.7 / 4.7a (lazy loading)** is exercised only incidentally by the pages that rendered.
+  No test isolates a navigation walk, and the disposed-context and `AsNoTracking` edge cases in
+  4.7a are not covered.
+- **Image processing.** `PictureService`'s ImageSharp path is *reachable* again on Linux after
+  §42.4, but no test generates a thumbnail. Sample-data installation did import ~90 pictures, which
+  is why the case defect surfaced at all — but the resize/encode path was not asserted.
+- **Windows.** Everything here ran on Linux. `FilePermissionHelper`'s ACL surface
+  (`[SupportedOSPlatform("windows")]`, deferral 18.4) is skipped by `OperatingSystem.IsWindows()`
+  and is therefore untested in both directions.

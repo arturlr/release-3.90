@@ -183,7 +183,10 @@ namespace Nop.Services.Common
                 throw new ArgumentNullException("order");
 
             string fileName = string.Format("order_{0}_{1}.pdf", order.OrderGuid, CommonHelper.GenerateRandomDigitCode(4));
-            string filePath = Path.Combine(CommonHelper.MapPath("~/content/files/ExportImport"), fileName);
+            //task 7.7: case corrected from "~/content/files/ExportImport". The directory on
+            //disk is Content/files/ExportImport, and this path is written to, so on a
+            //case-sensitive filesystem the FileStream below threw DirectoryNotFoundException.
+            string filePath = Path.Combine(CommonHelper.MapPath("~/Content/files/ExportImport"), fileName);
             using (var fileStream = new FileStream(filePath, FileMode.Create))
             {
                 var orders = new List<Order>();

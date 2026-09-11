@@ -40,9 +40,25 @@ namespace Nop.Data.Mapping.Catalog
             builder.Ignore(p => p.RecurringCyclePeriod);
             builder.Ignore(p => p.RentalPricePeriod);
 
+            //Runtime deferral 4.12, closed by task 7.7. EF6's
+            //HasMany(x).WithMany(y).Map(m => m.ToTable("T")) named the join FK columns
+            //<EntityName>_<KeyName>; EF Core's convention names them <NavigationName>Id, so this
+            //table came out as (ProductsId, ProductTagsId) instead of 3.90's
+            //(Product_Id, ProductTag_Id). The deferral rated that "not required for the compile
+            //gate" - correct - but it is required to INSTALL: task 7.7 measured a fresh install
+            //failing with "Setup failed: Invalid column name 'ProductTag_Id'. Invalid column name
+            //'Product_Id'.", because App_Data/Install/SqlServer.StoredProcedures.sql joins these
+            //columns by their 3.90 names in ProductLoadAllPaged and ProductTagCountLoadAll.
+            //Only the COLUMN name is pinned; the shadow property keeps its EF Core name, so no
+            //query or navigation code changes.
             builder.HasMany(p => p.ProductTags)
                 .WithMany(pt => pt.Products)
-                .UsingEntity(j => j.ToTable("Product_ProductTag_Mapping"));
+                .UsingEntity(j =>
+                {
+                    j.ToTable("Product_ProductTag_Mapping");
+                    j.Property<int>("ProductsId").HasColumnName("Product_Id");
+                    j.Property<int>("ProductTagsId").HasColumnName("ProductTag_Id");
+                });
 
             base.Configure(builder);
         }
