@@ -526,11 +526,12 @@ namespace Nop.Web.SmokeTests
             //Nop.Web.deps.json and therefore absent from the application parts MVC seeds itself
             //with. AddNopFramework closes that with
             //NopApplicationPartExtensions.AddNopDiscoveredApplicationParts, which contributes the
-            //assemblies WebAppTypeFinder loads. Nop.Admin.dll is not present in this test host's
-            //base directory (it does not compile yet), so what is asserted here is that the
-            //MECHANISM runs and contributes type-finder assemblies that MVC would not otherwise
-            //have seen. Nop.Core is the witness: it references no MVC assembly, so nothing but this
-            //call can have made it a part.
+            //assemblies WebAppTypeFinder loads. Nop.Core is the witness that the MECHANISM ran: it
+            //references no MVC assembly, so nothing but this call can have made it a part.
+            //
+            //TASK 8.8: Nop.Admin.dll IS now in this host's base directory (deferral 8.4-1), so the
+            //mechanism's actual purpose is asserted separately and specifically by
+            //Task_8_2_Nop_Admin_contributes_BOTH_an_assembly_part_and_a_compiled_views_part.
             var partManager = _factory.Services.GetRequiredService<ApplicationPartManager>();
             var names = partManager.ApplicationParts.Select(p => p.Name).ToList();
 
@@ -548,37 +549,188 @@ namespace Nop.Web.SmokeTests
             //deps.json and let a FileNotFoundException escape - which would take the host down at
             //startup from inside NopHostedEngine.RegisterInto.
             //
-            //HONEST LIMIT OF THIS TEST: it only covers the non-regressing case. Every assembly in
-            //this host's base directory IS in its deps.json, so reverting the fix would still make
-            //this test pass. The behaviour itself was measured with a throwaway probe that placed
-            //an assembly in the base directory and NOT in deps.json - see runtime-deferrals.md
-            //section 50. Task 8.8, where Nop.Admin.dll really is such an assembly, is the first
-            //point at which this can be asserted for real.
+            //TASK 8.8 CLOSED 8.2's HONEST LIMIT. 8.2 wrote: "it only covers the non-regressing
+            //case ... every assembly in this host's base directory IS in its deps.json, so
+            //reverting the fix would still make this test pass ... task 8.8 is the first point at
+            //which this can be asserted for real." That is now true: Nop.Admin.dll is present in
+            //this project's output directory and ABSENT from Nop.Web.SmokeTests.deps.json, which is
+            //exactly the shape production has (Nop.Web.deps.json also has 0 occurrences of
+            //Nop.Admin). See CopyNopAdminToSmokeTestOutput in Nop.Web.SmokeTests.csproj for why the
+            //reference is ReferenceOutputAssembly="false" rather than a plain ProjectReference -
+            //a plain one would put it in deps.json and quietly stop testing this path.
             IList<System.Reflection.Assembly> assemblies = null;
             Assert.DoesNotThrow(() => assemblies = new WebAppTypeFinder().GetAssemblies());
             Assert.IsNotNull(assemblies);
-            Assert.IsTrue(assemblies.Any(a => a.GetName().Name == "Nop.Core"),
-                string.Join(", ", assemblies.Select(a => a.GetName().Name)));
+            var names = assemblies.Select(a => a.GetName().Name).ToList();
+            Assert.IsTrue(names.Contains("Nop.Core"), string.Join(", ", names));
+
+            //The real assertion, now that a deps.json-absent assembly is present to find.
+            Assert.IsTrue(names.Contains("Nop.Admin"),
+                "WebAppTypeFinder did not load Nop.Admin from the base directory. On .NET the " +
+                "default AssemblyLoadContext binds from the deps.json-derived trusted-platform-" +
+                "assemblies list and does NOT probe directories, so this only works because " +
+                "AppDomainTypeFinder.LoadMatchingAssemblies loads by PATH. Assemblies found: " +
+                string.Join(", ", names));
         }
 
         [Test]
-        public void Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP()
+        public void Task_8_8_Nop_Admin_is_discovered_the_way_production_discovers_it()
         {
-            //Task 8.2 wired the Admin area end to end: Nop.Admin/Infrastructure/RouteProvider.cs
+            //The premise every other admin assertion in this suite rests on, asserted explicitly so
+            //it cannot decay silently. Three properties, all measured off the running host:
+            //
+            //  1. the assembly is loaded, from THIS project's output directory;
+            //  2. it is in the DEFAULT AssemblyLoadContext - a separate context would give it its
+            //     own copy of every nopCommerce type, so nothing it contributed would be assignable
+            //     to IRouteProvider / IDependencyRegistrar and the area would silently not register;
+            //  3. it is ABSENT from deps.json, so the path-based load in
+            //     AppDomainTypeFinder.LoadMatchingAssemblies is the mechanism actually exercised -
+            //     the same shape production has. If someone later "simplifies" the csproj to a plain
+            //     ProjectReference, (3) flips and this test says so.
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "adminarea").Result;
+            TestContext.WriteLine(body);
+
+            StringAssert.DoesNotContain("EXCEPTION=", body);
+            StringAssert.Contains("assemblyLoaded=True", body);
+            StringAssert.Contains("assemblyInBaseDirectory=True", body);
+            StringAssert.Contains("assemblyLoadContextIsDefault=True", body);
+            StringAssert.Contains("depsJsonExists=True", body);
+            StringAssert.Contains("adminInDepsJson=False", body,
+                "Nop.Admin is now in this test project's deps.json, so it is resolved from the " +
+                "trusted-platform-assemblies list rather than by the base-directory path probe. " +
+                "That is NOT how the Nop.Web host finds it - see the note on " +
+                "CopyNopAdminToSmokeTestOutput in Nop.Web.SmokeTests.csproj.");
+        }
+
+        [Test]
+        public void Task_8_2_Nop_Admin_contributes_BOTH_an_assembly_part_and_a_compiled_views_part()
+        {
+            //Task 8.2 used ApplicationPartFactory rather than `new AssemblyPart(assembly)` for
+            //exactly this reason: a Razor-SDK assembly carries [ProvideApplicationPartFactory]
+            //naming ConsolidatedAssemblyApplicationPartFactory, which yields the AssemblyPart
+            //(controllers) AND the compiled-Razor part (views). A bare AssemblyPart would register
+            //the controllers and silently leave every admin view unresolvable - deferral 8.1-4's
+            //failure mode arriving by another route. 8.2 could only prove this on a stand-in.
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "adminarea").Result;
+            TestContext.WriteLine(body);
+
+            StringAssert.Contains("adminPart=AssemblyPart", body);
+            StringAssert.Contains("adminPart=CompiledRazorAssemblyPart", body,
+                "Nop.Admin contributed no compiled-views part, so no admin view can be resolved.");
+        }
+
+        [Test]
+        public void Task_8_2_every_admin_view_compiled_under_Areas_Admin_Views_deferral_8_1_4()
+        {
+            //Deferral 8.1-4 in its final form. 8.2 chose option 3 - move the tree to
+            //Areas/Admin/Views/ so ASP.NET Core's own area location formats find it - and predicted
+            //325 compiled identifiers. It is now 326, because task 8.4 ADDED
+            //Areas/Admin/Views/_ViewImports.cshtml (the file that replaced Views/Web.config's
+            //pageBaseType + <namespaces>). Rather than hardcode either number, this asserts the
+            //compiled count equals the count on disk, which is self-maintaining and a stronger
+            //statement: every .cshtml under the tree really did compile.
+            var viewsOnDisk = Directory.GetFiles(
+                Path.Combine(NopWebApplicationFactory.ResolveNopWebContentRoot(),
+                    "Administration", "Areas", "Admin", "Views"),
+                "*.cshtml", SearchOption.AllDirectories).Length;
+            Assert.GreaterOrEqual(viewsOnDisk, 325,
+                "PREMISE BROKEN: only " + viewsOnDisk + " .cshtml files found under " +
+                "Administration/Areas/Admin/Views - check the path, not the product.");
+
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "adminarea").Result;
+            TestContext.WriteLine(body);
+
+            StringAssert.Contains("adminViewCount=" + viewsOnDisk, body,
+                "The number of compiled Razor identifiers under /Areas/Admin/Views/ does not match " +
+                "the " + viewsOnDisk + " .cshtml files on disk.");
+
+            //and NOTHING may be named under the pre-8.2 path, which could never have resolved
+            StringAssert.Contains("viewsUnderLegacyAdministrationPath=0", body);
+
+            //spot-check the views whose absence would break everything rather than one page
+            foreach (var view in new[]
+            {
+                "/Areas/Admin/Views/_ViewImports.cshtml",
+                "/Areas/Admin/Views/_ViewStart.cshtml",
+                "/Areas/Admin/Views/Shared/_AdminLayout.cshtml",
+                "/Areas/Admin/Views/Shared/Menu.cshtml",
+                "/Areas/Admin/Views/Home/Index.cshtml",
+                "/Areas/Admin/Views/Product/List.cshtml"
+            })
+            {
+                StringAssert.Contains("view:" + view + "=True", body, "missing compiled view " + view);
+            }
+        }
+
+        [Test]
+        public void Task_8_2_all_54_admin_controllers_inherit_the_Area_route_value()
+        {
+            //[Area("Admin")] is declared ONCE, on the abstract BaseAdminController, relying on
+            //AreaAttribute deriving from RouteValueAttribute (Inherited = true). Task 8.2 proved
+            //that mechanism on a single probe controller and rested the COVERAGE claim on reading
+            //54 class declarations by hand. This counts them off the live descriptor collection.
+            //
+            //It matters more than routing: the area route value is what makes admin views
+            //resolvable at all, so a controller that failed to inherit it would fail VIEW LOOKUP,
+            //not routing - a confusing failure a long way from its cause.
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "adminarea").Result;
+            TestContext.WriteLine(body);
+
+            StringAssert.Contains("adminControllerCount=54", body,
+                "Expected 54 concrete admin controllers - if this changed legitimately, update the " +
+                "number here and in runtime-deferrals.md.");
+            StringAssert.Contains("adminControllersWithoutAreaCount=0", body,
+                "At least one admin controller does not carry RouteValues[\"area\"] == \"Admin\". " +
+                "It probably does not derive from BaseAdminController, which is where the single " +
+                "[Area(\"Admin\")] declaration lives.");
+        }
+
+        [Test]
+        public void Task_8_2_the_admin_area_route_keeps_3_90s_name_prefix_and_defaults()
+        {
+            //3.90's AdminAreaRegistration.cs, verbatim:
+            //  context.MapRoute("Admin_default", "Admin/{controller}/{action}/{id}",
+            //      new { controller = "Home", action = "Index", area = "Admin", id = "" },
+            //      new[] { "Nop.Admin.Controllers" });
+            //Task 8.2 preserved the name, the URL prefix and both defaults. Two things could not be
+            //carried literally: the namespaces array has no ASP.NET Core counterpart, and `id = ""`
+            //became {id?} (8.2 verified no admin code reads RouteData.Values["id"], and every admin
+            //action taking an id declares it as a parameter, for which "" and absent bind alike).
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "adminarea").Result;
+            TestContext.WriteLine(body);
+
+            StringAssert.Contains("adminRoutePattern=Admin/{controller=Home}/{action=Index}/{id?}", body);
+            StringAssert.Contains("adminRoutePatternCount=1", body,
+                "More than one Admin/ route pattern is registered - 3.90 had exactly one.");
+            StringAssert.Contains("adminHomeIndexReachable=True", body);
+            StringAssert.Contains("adminHomeIndexType=Nop.Admin.Controllers.HomeController", body,
+                "GET /Admin/ must reach Nop.Admin.Controllers.HomeController.Index.");
+        }
+
+        [Test]
+        public void Task_8_2_the_Admin_area_route_is_registered()
+        {
+            //INVERTED BY TASK 8.8 - it was
+            //Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP, which
+            //asserted the route was ABSENT. Leaving it that way after this gate would mean the
+            //suite asserts the bug.
+            //
+            //Task 8.2 wired the area end to end: Nop.Admin/Infrastructure/RouteProvider.cs
             //registers MapAreaControllerRoute("Admin_default", "Admin",
             //"Admin/{controller=Home}/{action=Index}/{id?}") through IRouteProvider, which
-            //RoutePublisher discovers reflectively. It cannot appear yet, for a reason that has
-            //nothing to do with the wiring: Nop.Admin does not compile (task 8.3/8.4), so
-            //Nop.Admin.dll does not exist and cannot be dropped into this host's base directory.
-            //
-            //TASK 8.8 MUST FLIP THIS TEST. Once Nop.Admin compiles and its post-build copy has
-            //run, an endpoint with pattern "Admin/{controller=Home}/{action=Index}/{id?}" must be
-            //present, and this assertion must be inverted. Leaving it as-is after 8.8 would mean
-            //the suite is asserting the bug.
+            //RoutePublisher discovers reflectively from the assembly WebAppTypeFinder loaded. It
+            //could not appear before 8.8 for two stacked reasons: Nop.Admin did not compile until
+            //8.4, and even once it did, Nop.Admin.dll was not in the directory this test host's
+            //BaseDirectory points at (deferral 8.4-1, fixed in Nop.Web.SmokeTests.csproj).
             var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "endpoints?q=Admin/").Result;
 
-            Assert.IsFalse(body.Contains("Admin/{controller=Home}"),
-                "The Admin area route is now registered - INVERT THIS TEST (task 8.8). " + body);
+            StringAssert.Contains("Admin/{controller=Home}", body,
+                "The Admin area route is absent. Check that Nop.Admin.dll reached this project's " +
+                "output directory (see CopyNopAdminToSmokeTestOutput) - WebAppTypeFinder scans " +
+                "AppDomain.CurrentDomain.BaseDirectory, which under `dotnet test` is the TEST " +
+                "project's output directory, not Nop.Web's. Deferral 8.4-1.");
+            StringAssert.Contains("Nop.Admin.Controllers.HomeController.Index", body,
+                "The area route exists but no Nop.Admin action is bound to it: " + body);
         }
 
         #endregion
@@ -668,83 +820,242 @@ namespace Nop.Web.SmokeTests
         // assertions read the LIVE endpoint table and the LIVE descriptor collection, so they hold
         // with or without a database — which matters, because the HTTP-level symptom is only
         // observable on an installed store (InstallUrlMiddleware redirects everything otherwise).
+        //
+        // TASK 8.8 added the 16 admin cases (deferral 8.3-2) and made every case AREA-QUALIFIED.
+        // The area argument is load-bearing, not decoration: Common.LanguageSelector and
+        // Widget.WidgetsByZone exist with the SAME controller+action name in BOTH areas, so an
+        // unqualified assertion about one could be satisfied by the other. Measured: without a
+        // filter Common.LanguageSelector reports 4 endpoints / 2 descriptors across the two areas;
+        // with area="Admin" it reports 2 / 1, all declared by Nop.Admin.Controllers.CommonController.
+        // "" means "an action with no area at all", i.e. the storefront.
+        //
+        // THE CASE 8.3-2 ASKED FOR DOES EXIST, and task 8.8 found it by measurement rather than by
+        // reasoning. The task text asks for "at least one of the 16 marked actions whose name is
+        // shared with an unmarked one", which is the trap 7.3-4 records for the storefront
+        // (ProfileController.Info is marked, CustomerController.Info is not). Searching for a
+        // name collision ACROSS controllers and areas found none. Searching for OVERLOADS on the
+        // same controller found exactly one, in the admin set:
+        // Nop.Admin.Controllers.CommonController.PopularSearchTermsReport is marked in its
+        // parameterless form and UNMARKED in its [HttpPost](DataSourceRequest) form. It is covered
+        // by its own test, Deferral_7_3_4_the_marker_is_per_METHOD_not_per_action_name, which
+        // asserts both halves — and it was found because an earlier version of the parameterised
+        // list below wrongly included it and failed.
         // -----------------------------------------------------------------------------------
 
         [Test]
-        [TestCase("Common", "Footer")]
-        [TestCase("Common", "Logo")]
-        [TestCase("Catalog", "TopMenu")]
-        [TestCase("ShoppingCart", "OrderSummary")]
-        [TestCase("Product", "RelatedProducts")]
-        [TestCase("Profile", "Info")]
-        [TestCase("Widget", "WidgetsByZone")]
+        //storefront
+        [TestCase("Common", "Footer", "")]
+        [TestCase("Common", "Logo", "")]
+        [TestCase("Catalog", "TopMenu", "")]
+        [TestCase("ShoppingCart", "OrderSummary", "")]
+        [TestCase("Product", "RelatedProducts", "")]
+        [TestCase("Profile", "Info", "")]
+        [TestCase("Widget", "WidgetsByZone", "")]
+        [TestCase("Common", "LanguageSelector", "")]
+        //Admin area — all 16 marked admin actions (task 8.8, deferral 8.3-2)
+        [TestCase("Affiliate", "AffiliatedOrderList", "Admin")]
+        [TestCase("Common", "LanguageSelector", "Admin")]
+        [TestCase("Common", "MultistoreDisabledWarning", "Admin")]
+        [TestCase("Common", "AclDisabledWarning", "Admin")]
+        [TestCase("Customer", "ReportRegisteredCustomers", "Admin")]
+        [TestCase("Customer", "CustomerStatistics", "Admin")]
+        [TestCase("Home", "NopCommerceNews", "Admin")]
+        [TestCase("Home", "CommonStatistics", "Admin")]
+        [TestCase("Order", "OrderAverageReport", "Admin")]
+        [TestCase("Order", "OrderIncompleteReport", "Admin")]
+        [TestCase("Order", "OrderStatistics", "Admin")]
+        [TestCase("Order", "LatestOrders", "Admin")]
+        [TestCase("Setting", "Mode", "Admin")]
+        [TestCase("Setting", "StoreScopeConfiguration", "Admin")]
+        [TestCase("Widget", "WidgetsByZone", "Admin")]
         public void Deferral_7_3_4_a_marked_child_action_has_no_matchable_endpoint(
-            string controller, string action)
+            string controller, string action, string area)
         {
-            //Widget/WidgetsByZone is the interesting case: RouteProvider registers an EXPLICIT
-            //"widgetsbyzone/" route for it as well as the Default route, so this proves the
+            //Widget/WidgetsByZone is the interesting storefront case: RouteProvider registers an
+            //EXPLICIT "widgetsbyzone/" route for it as well as the Default route, so this proves the
             //suppression is scoped to the ACTION rather than to one route - which is what 3.90's
             //[ChildActionOnly] did (that URL answered 500 there).
-            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix +
-                "action?controller=" + controller + "&action=" + action).Result;
+            var body = ActionProbe(controller, action, area);
             TestContext.WriteLine(body);
 
             StringAssert.DoesNotContain("EXCEPTION=", body);
             //sanity: the action must actually exist, or "0 matchable endpoints" would be vacuous
             Assert.IsFalse(body.Contains("endpointCount=0"),
-                "No endpoint at all for " + controller + "." + action +
+                "No endpoint at all for " + Describe(controller, action, area) +
                 " - the probe found nothing, so the suppression assertion would be vacuous.");
             StringAssert.Contains("matchableEndpointCount=0", body,
-                controller + "." + action + " is still reachable by URL. Either the " +
+                Describe(controller, action, area) + " is still reachable by URL. Either the " +
                 "[NopChildActionOnly] marker is missing or NopChildActionOnlyConvention is not " +
                 "registered in AddNopFramework.");
         }
 
         [Test]
-        [TestCase("Common", "Footer")]
-        [TestCase("Catalog", "TopMenu")]
-        [TestCase("ShoppingCart", "FlyoutShoppingCart")]
-        [TestCase("Widget", "WidgetsByZone")]
+        //storefront
+        [TestCase("Common", "Footer", "")]
+        [TestCase("Catalog", "TopMenu", "")]
+        [TestCase("ShoppingCart", "FlyoutShoppingCart", "")]
+        [TestCase("Widget", "WidgetsByZone", "")]
+        //Admin area (task 8.8). The admin views make 69 @Html.Action(...) calls, so this
+        //invariant matters here for exactly the same reason it does on the storefront.
+        [TestCase("Common", "LanguageSelector", "Admin")]
+        [TestCase("Home", "CommonStatistics", "Admin")]
+        [TestCase("Order", "LatestOrders", "Admin")]
+        [TestCase("Setting", "StoreScopeConfiguration", "Admin")]
+        [TestCase("Widget", "WidgetsByZone", "Admin")]
         public void Deferral_7_3_4_a_marked_child_action_is_STILL_visible_to_the_Html_Action_bridge(
-            string controller, string action)
+            string controller, string action, string area)
         {
-            //THE CRITICAL CONSTRAINT. Task 7.3's ChildActionExtensions bridge resolves these
-            //actions through IActionDescriptorCollectionProvider and invokes them by reflection; it
-            //never touches the matcher. So suppressing MATCHING must leave the descriptor in place.
-            //If this ever fails, the home page's ~15 child actions stop rendering and the fix has
-            //traded a minor information exposure for a broken storefront - so it is asserted
-            //directly rather than reasoned about, and asserted here (no database required) rather
-            //than only via a rendered page.
-            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix +
-                "action?controller=" + controller + "&action=" + action).Result;
+            //THE CRITICAL CONSTRAINT. Task 7.3's ChildActionExtensions bridge - promoted to
+            //Nop.Web.Framework by task 8.3 so Nop.Admin could use it - resolves these actions
+            //through IActionDescriptorCollectionProvider and invokes them by reflection; it never
+            //touches the matcher. So suppressing MATCHING must leave the descriptor in place.
+            //If this ever fails, the home page's ~15 child actions and the admin dashboard's
+            //statistics panels stop rendering, and the fix has traded a minor information exposure
+            //for a broken UI - so it is asserted directly rather than reasoned about, and asserted
+            //here (no database required) rather than only via a rendered page.
+            var body = ActionProbe(controller, action, area);
             TestContext.WriteLine(body);
 
             StringAssert.Contains("visibleToChildActionBridge=True", body,
-                controller + "." + action + " has vanished from IActionDescriptorCollectionProvider. " +
-                "@Html.Action would now throw \"could not find an action\" - see " +
-                "Nop.Web.Framework/ChildActionExtensions.cs.");
+                Describe(controller, action, area) + " has vanished from " +
+                "IActionDescriptorCollectionProvider. @Html.Action would now throw \"could not " +
+                "find an action\" - see Nop.Web.Framework/ChildActionExtensions.cs.");
         }
 
         [Test]
-        [TestCase("Home", "Index")]
-        [TestCase("Customer", "Info")]
-        [TestCase("Catalog", "Search")]
-        [TestCase("Common", "ContactUs")]
-        public void Deferral_7_3_4_an_UNMARKED_action_is_still_matchable(string controller, string action)
+        //storefront
+        [TestCase("Home", "Index", "")]
+        [TestCase("Customer", "Info", "")]
+        [TestCase("Catalog", "Search", "")]
+        [TestCase("Common", "ContactUs", "")]
+        //Admin area (task 8.8) - the convention must only remove the marked 16 here
+        [TestCase("Home", "Index", "Admin")]
+        [TestCase("Common", "SystemInfo", "Admin")]
+        [TestCase("Common", "Warnings", "Admin")]
+        [TestCase("Product", "List", "Admin")]
+        [TestCase("Customer", "List", "Admin")]
+        [TestCase("Order", "List", "Admin")]
+        [TestCase("Setting", "GeneralCommon", "Admin")]
+        [TestCase("Widget", "List", "Admin")]
+        public void Deferral_7_3_4_an_UNMARKED_action_is_still_matchable(
+            string controller, string action, string area)
         {
-            //The other side of the ledger. The convention must only remove the marked 48; marking
-            //an action that was never [ChildActionOnly] would delete a legitimate URL endpoint.
-            //Customer/Info is deliberately included: ProfileController.Info IS marked and both are
-            //called "Info", so this catches a name-based rather than method-based application of
-            //the marker.
-            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix +
-                "action?controller=" + controller + "&action=" + action).Result;
+            //The other side of the ledger. The convention must only remove the marked actions;
+            //marking one that was never [ChildActionOnly] would delete a legitimate URL endpoint.
+            //Customer/Info is deliberately included on the storefront side: ProfileController.Info
+            //IS marked and both are called "Info", so this catches a name-based rather than
+            //method-based application of the marker.
+            //
+            //The admin cases are chosen to sit on the SAME controllers as marked actions -
+            //Common, Home, Order, Setting, Widget all carry at least one [NopChildActionOnly] -
+            //so a convention that suppressed a whole controller rather than a method would fail
+            //here rather than pass quietly.
+            var body = ActionProbe(controller, action, area);
             TestContext.WriteLine(body);
 
             StringAssert.DoesNotContain("EXCEPTION=", body);
+            Assert.IsFalse(body.Contains("endpointCount=0"),
+                "No endpoint at all for " + Describe(controller, action, area) +
+                " - check the test data, not the product.");
             Assert.IsFalse(body.Contains("matchableEndpointCount=0"),
-                controller + "." + action + " has NO matchable endpoint but was never " +
+                Describe(controller, action, area) + " has NO matchable endpoint but was never " +
                 "[ChildActionOnly] in 3.90 - the marker has been applied too widely.");
+        }
+
+        [Test]
+        public void Deferral_7_3_4_the_marker_is_per_METHOD_not_per_action_name()
+        {
+            //THE TRAP DEFERRAL 7.3-4 RECORDS, in its strongest available form — and it exists in
+            //exactly ONE place in the whole solution, which task 8.8 found by measurement after an
+            //earlier version of the parameterised list above wrongly demanded 0 matchable endpoints
+            //here and failed.
+            //
+            //Nop.Admin.Controllers.CommonController declares TWO overloads called
+            //PopularSearchTermsReport:
+            //    [NopChildActionOnly] PopularSearchTermsReport()                 <- the child action
+            //    [HttpPost]           PopularSearchTermsReport(DataSourceRequest) <- the Kendo grid
+            //3.90 had the identical shape (verified against git 9cb503f: [ChildActionOnly] on the
+            //parameterless one, nothing on the POST one), so the grid data action MUST stay
+            //URL-reachable while its same-named sibling must not be.
+            //
+            //A marker applied by action NAME - which is what 7.3-4 warns about, and what a
+            //name-driven script would produce - would either break the admin dashboard's
+            //popular-search-terms grid (if it suppressed both) or leave the child action exposed
+            //(if it suppressed neither). Both halves are asserted, so neither error can pass.
+            //
+            //Measured, and searched exhaustively: this is the only controller+action name in either
+            //Nop.Web or Nop.Admin that carries both a marked and an unmarked overload.
+            var body = ActionProbe("Common", "PopularSearchTermsReport", "Admin");
+            TestContext.WriteLine(body);
+
+            StringAssert.DoesNotContain("EXCEPTION=", body);
+
+            //both overloads must be present, or the two halves below are vacuous
+            StringAssert.Contains("actionDescriptorCount=2", body,
+                "Expected both PopularSearchTermsReport overloads; the premise of this test is gone.");
+            StringAssert.Contains("descriptorSignature=PopularSearchTermsReport()", body);
+            StringAssert.Contains("descriptorSignature=PopularSearchTermsReport(DataSourceRequest)", body);
+
+            //half 1: the MARKED parameterless overload is out of inbound matching
+            Assert.IsTrue(
+                body.Contains("suppressMatching=True") &&
+                body.Split('\n').Any(l => l.Contains("suppressMatching=True") &&
+                                          l.Contains("signature=PopularSearchTermsReport()")),
+                "The [NopChildActionOnly] parameterless overload is still matchable - the child " +
+                "action partial is exposed by URL. " + body);
+
+            //half 2: the UNMARKED [HttpPost] grid overload is still matchable
+            Assert.IsTrue(
+                body.Split('\n').Any(l => l.Contains("suppressMatching=False") &&
+                                          l.Contains("signature=PopularSearchTermsReport(DataSourceRequest)")),
+                "The unmarked [HttpPost] grid overload has been suppressed too - the admin " +
+                "dashboard's popular-search-terms grid will return no data. The marker has been " +
+                "applied by action NAME rather than per method. " + body);
+
+            //and no marked overload may be reported as matchable, nor an unmarked one suppressed
+            Assert.IsFalse(
+                body.Split('\n').Any(l => l.Contains("suppressMatching=True") &&
+                                          l.Contains("signature=PopularSearchTermsReport(DataSourceRequest)")),
+                "The grid overload is suppressed: " + body);
+        }
+
+        [Test]
+        public void Task_8_8_the_area_filter_really_discriminates_between_the_two_LanguageSelectors()
+        {
+            //NON-VACUITY CONTROL for every area-qualified assertion above. Common.LanguageSelector
+            //exists in BOTH Nop.Web.Controllers.CommonController and
+            //Nop.Admin.Controllers.CommonController. If the filter did not work, an "Admin" case
+            //could be satisfied by the storefront's endpoint - the exact way an assertion passes
+            //for the wrong reason. Measured: 1 descriptor each when filtered, 2 when not.
+            var admin = ActionProbe("Common", "LanguageSelector", "Admin");
+            var storefront = ActionProbe("Common", "LanguageSelector", "");
+            var unfiltered = ActionProbe("Common", "LanguageSelector", null);
+
+            StringAssert.Contains("actionDescriptorCount=1", admin);
+            StringAssert.Contains("declaringType=Nop.Admin.Controllers.CommonController", admin);
+            StringAssert.DoesNotContain("declaringType=Nop.Web.Controllers.CommonController", admin);
+
+            StringAssert.Contains("actionDescriptorCount=1", storefront);
+            StringAssert.Contains("declaringType=Nop.Web.Controllers.CommonController", storefront);
+            StringAssert.DoesNotContain("declaringType=Nop.Admin.Controllers.CommonController", storefront);
+
+            //and unfiltered really does see both, which is what proves the two filtered results
+            //above are a partition rather than the same single action seen twice
+            StringAssert.Contains("actionDescriptorCount=2", unfiltered);
+        }
+
+        private string ActionProbe(string controller, string action, string area)
+        {
+            var url = SmokeProbeMiddleware.Prefix + "action?controller=" + controller +
+                      "&action=" + action;
+            if (area != null)
+                url += "&area=" + area;
+            return _client.GetStringAsync(url).Result;
+        }
+
+        private static string Describe(string controller, string action, string area)
+        {
+            return (string.IsNullOrEmpty(area) ? "<storefront>" : area) + "/" + controller + "." + action;
         }
 
         // -----------------------------------------------------------------------------------

@@ -490,15 +490,32 @@ namespace Nop.Web.SmokeTests
             //CommonController.PageNotFound instead of returning the bare partial. In 3.90 the same
             //request threw (MVC 5's [ChildActionOnly] raised InvalidOperationException, i.e. a
             //500); 404 is the better answer and is what the endpoint-routing mechanism gives.
+            //
+            //*** TASK 8.8 CORRECTED THIS ASSERTION. It had never executed. ***
+            //This test lives in the installed-store fixture and every run before task 8.8 skipped
+            //it for want of a database. Its original clause was
+            //    StringAssert.DoesNotContain("class=\"footer\"", html)
+            //which FAILS against correct behaviour: the response is the PageNotFound view, which
+            //renders the full storefront layout, and that layout invokes the Footer child action
+            //through Nop.Web.Framework's ChildActionExtensions bridge. So `class="footer"` is
+            //present in a perfectly correct 404 - and its presence is actually EVIDENCE THE BRIDGE
+            //WORKS, not evidence of the exposure.
+            //
+            //The real discriminator between "the bare partial was served" and "a 404 page was
+            //served" is whether the body is a full HTML document: the bare Footer partial is a
+            //fragment with no <!DOCTYPE> and no <title>.
             var response = _client.GetAsync("/Common/Footer").Result;
             TestContext.WriteLine("/Common/Footer -> " + (int)response.StatusCode);
             Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode,
                 "A former child action is still URL-reachable - deferral 7.3-4 has regressed.");
             var html = response.Content.ReadAsStringAsync().Result;
-            StringAssert.DoesNotContain("class=\"footer\"", html,
-                "The bare footer partial was served - exactly the exposure 7.3-4 describes.");
             StringAssert.Contains("html-not-found-page", html,
                 "Expected the PageNotFound view, i.e. a genuine 404 that still re-executes.");
+            StringAssert.Contains("<!DOCTYPE html>", html,
+                "The response is a bare fragment, not a page - the partial was served after all, " +
+                "which is exactly the exposure 7.3-4 describes.");
+            StringAssert.Contains("<title>", html,
+                "The response has no <title>, so it is a partial fragment rather than a page.");
         }
 
         [Test]

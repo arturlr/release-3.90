@@ -854,5 +854,78 @@
              Condition="!Exists('$(NopWebHostOutputDir)')"
              Text="Nop.Admin: the host output directory $(NopWebHostOutputDir) does not exist yet, so Nop.Admin.dll was NOT dropped into it. Build Nop.Web and then rebuild this project; without the drop the Admin area is not routable and its views do not resolve (task 8.2)." />
   </Target>
+  <!--
+    ===================================================================================
+    TASK 8.8 - RUNTIME DEFERRAL 8.7-3. The GENERATION half of the web.config defect.
+    ===================================================================================
+    Task 8.7 fixed the defect with IsTransformWebConfigDisabled above and added a
+    SOURCE-TREE test (Nop.Web.SmokeTests.AdminStaticAssetTests
+    .Task_8_7_the_admin_project_has_no_web_config_at_any_casing) asserting no web.config
+    exists under Administration/. It recorded that the generation half was still unguarded:
+    removing the property would reintroduce the 485-byte ANCM shim silently, and that
+    source-tree test would still pass. The defect was invisible for three tasks precisely
+    because nothing looked at PUBLISH OUTPUT for a file nobody authored.
+
+    *** 8.7's SUGGESTED TECHNIQUE DOES NOT WORK, AND THIS IS WHY THE CHECK IS HERE. ***
+    8.7 proposed asserting it "without a full publish by evaluating the
+    ResolvedFileToPublish item set (the technique 8.1 section 46.2 used)". MEASURED, both
+    ways:
+
+        dotnet msbuild Nop.Admin.csproj -t:ComputeFilesToPublish
+            -p:IsTransformWebConfigDisabled=true   -> 0 web.config mentions
+            -p:IsTransformWebConfigDisabled=false  -> 0 web.config mentions
+
+    The TransformWebConfig task WRITES the file straight into the publish directory; it does
+    not contribute a ResolvedFileToPublish item. So an item-set assertion passes in BOTH
+    states - it would have been a vacuous test, which is worse than no test. Recorded rather
+    than written.
+
+    A real publish DOES reveal it, measured:
+        IsTransformWebConfigDisabled=true  -> no web.config at any casing
+        IsTransformWebConfigDisabled=false -> web.config, 485 bytes,
+                                             arguments=".\Nop.Admin.dll", AspNetCoreModuleV2
+
+    So the guard lives here, at the moment the file would appear, rather than in a test that
+    would have to shell out to `dotnet publish`. It cannot be vacuous: it fails for exactly
+    the state that is broken. Both casings are checked, because `Exists` is case-sensitive on
+    Linux and task 8.7 measured that the generated name flips between "Web.config" and
+    "web.config" depending on whether a legacy file is present.
+
+    AfterTargets="_TransformWebConfig", and getting there took three measured attempts:
+      1. AfterTargets="Publish" - passed in BOTH states. A -v:n log shows the Web SDK runs
+         _TransformWebConfig AFTER Publish, so the check ran before the file existed.
+      2. AfterTargets="Publish;_TransformWebConfig" - ALSO passed in both states, because
+         MSBuild runs a target AT MOST ONCE per build: it had already run after Publish, so
+         the second hook never got a turn. (Diagnosed by printing $(PublishDir) from inside
+         the target and seeing exactly one line, before the file appeared.)
+      3. AfterTargets="_TransformWebConfig" alone - fires exactly when it should.
+
+    Hooking an underscore-prefixed SDK-internal target is a deliberate, narrow coupling: it is
+    the target that WRITES the file, so if Microsoft renames it the transform behaviour has
+    changed and this needs revisiting anyway. When the transform is disabled that target does
+    not run and this check does not either - which is correct, because then nothing can
+    generate the file, and the case of a HAND-ADDED web.config is already covered by task
+    8.7's source-tree test.
+
+    Set NopAdminAllowPublishedWebConfig=true to bypass, if a future task deliberately wants
+    one - and read section 75.2 of runtime-deferrals.md first.
+  -->
+  <Target Name="VerifyNopAdminPublishesNoWebConfig" AfterTargets="_TransformWebConfig"
+          Condition="'$(NopAdminAllowPublishedWebConfig)' != 'true'">
+    <ItemGroup>
+      <!--
+        Exists() on each item is REQUIRED: a literal (non-wildcard) Include creates the item
+        whether or not the file is there, so without these conditions the target fires
+        unconditionally. Measured - the first version of this target failed BOTH states.
+        Both casings are listed because Exists() is case-sensitive on Linux.
+      -->
+      <NopAdminPublishedWebConfig Include="$(PublishDir)web.config"
+                                  Condition="Exists('$(PublishDir)web.config')" />
+      <NopAdminPublishedWebConfig Include="$(PublishDir)Web.config"
+                                  Condition="Exists('$(PublishDir)Web.config')" />
+    </ItemGroup>
+    <Error Condition="'@(NopAdminPublishedWebConfig)' != ''"
+           Text="Nop.Admin published a web.config (@(NopAdminPublishedWebConfig)). Nop.Admin is a LIBRARY with no Main; the SDK's TransformWebConfig task generates an ANCM shim naming Nop.Admin.dll as the application entry point, and that file COLLIDES BY NAME with Nop.Web's own 14 KB web.config in the single-directory deployment (deferral 8.5-1), replacing it with a 485-byte shim that boots a library with no entry point and silently drops task 7.4's urlCompression and X-Powered-By settings. Restore &lt;IsTransformWebConfigDisabled&gt;true&lt;/IsTransformWebConfigDisabled&gt; in Nop.Admin.csproj. See runtime-deferrals.md 75.2 and deferral 8.7-3." />
+  </Target>
 
 </Project>

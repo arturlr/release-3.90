@@ -5860,11 +5860,19 @@ create first is now **`Areas/Admin/Views/_ViewImports.cshtml`**, from
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 8.2-1 | `PluginManager.PerformFileDeploy` loads shadow-copied plugin assemblies by **name**, which cannot work on .NET | 10.x (first plugin task) | **High** |
+| 8.2-1 | ~~`PluginManager.PerformFileDeploy` loads shadow-copied plugin assemblies by **name**, which cannot work on .NET~~ | — | ✅ **RESOLVED by 8.8** (§77.3) — `AssemblyLoadContext.Default.LoadFromAssemblyPath`, verified with a real planted plugin and proven able to fail (reverting it throws `FileNotFoundException` out of host startup) |
 | 8.2-2 | `dotnet publish` of `Nop.Web` does not include `Nop.Admin.dll` | 18.x | Medium — **NARROWED by 8.5** (§64.3): its remedy ("publish both into one directory") did not work before and now does; what remains is that nothing enforces the two step. Re-recorded as deferral **8.5-1** |
 | 8.2-3 | 12 plugin view sites still reference the old `~/Administration/Views/Shared/…` paths | 11.1–11.2, 13.1, 14.4, 15.1 | Medium |
 
-### 8.2-1 Plugin assemblies cannot be loaded by name either — the same defect, wider blast radius
+### 8.2-1 Plugin assemblies cannot be loaded by name either — the same defect, wider blast radius — ✅ **RESOLVED by task 8.8, see §77.3**
+
+> **RESOLUTION.** Task 8.8 applied the one-line change below and **verified it with a real
+> plugin** — a new permanent `src/Tests/Nop.Plugin.SmokeProbe/` planted under the content root's
+> `Plugins/` directory and discovered by the real `PluginManager.Initialize()`. Proven able to
+> fail: reverting to `Assembly.Load(AssemblyName…)` throws
+> `FileNotFoundException: Could not load file or assembly 'Nop.Plugin.SmokeProbe…'` **out of host
+> startup**, exactly as predicted below. `Nop.Core` re-gated at 0 errors / 3 warnings.
+> Everything below is the original analysis.
 
 `Nop.Core/Plugins/PluginManager.cs` line ~357 does
 
@@ -6354,7 +6362,7 @@ automated checks rather than needing a hand-maintained exception.
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
 | 8.3-1 | ~~The admin System Info `<machineKey>` warning is gone with nothing in its place~~ | — | ✅ **CLOSED BY DECISION at 8.7** (§75.5) — no replacement warning. The risk is already documented in `appsettings.json`'s `MultipleInstancesEnabled` block and under 7.13; a Data Protection key-ring diagnostic is a new feature, is not equivalent to the auto-generated-key check 3.90 made, and could not be exercised (deferral 8.4-1). Reversal recipe recorded |
-| 8.3-2 | The admin `[NopChildActionOnly]` and area-route smoke assertions cannot be written until `Nop.Admin` compiles | 8.8 | Medium — bookkeeping, but 8.8 must not skip it |
+| 8.3-2 | ~~The admin `[NopChildActionOnly]` and area-route smoke assertions cannot be written until `Nop.Admin` compiles~~ | — | ✅ **RESOLVED by 8.8** (§78) — `KNOWN_GAP` inverted, all 16 admin cases added to the three invariants (area-qualified), `BackupFileDownload` authorization asserted, and the per-METHOD marker trap found by measurement |
 | 8.3-3 | ~~`RoxyFilemanController.MapPath` now **throws** for a relative path instead of resolving one~~ | — | ✅ **RESOLVED by 8.6** (§71.1). Note 8.3's "all three callers are already inoperative" was one caller short: `LangRes` → `ParseJSON(GetLangFile())` is a live relative-path caller on every error path, degraded rather than crashing only because `ParseJSON`'s empty `catch` swallowed the throw too |
 
 ### 8.3-1 The `<machineKey>` warning was removed with no replacement — ✅ **CLOSED BY DECISION at task 8.7, see §75.5**
@@ -6391,7 +6399,7 @@ orphaned, which is harmless.
   diagnostic and a new feature, not a port — so it is a decision for the owner of this page's
   configuration story rather than something to invent inside a controller sweep.
 
-### 8.3-2 The admin smoke assertions are not writable yet
+### 8.3-2 The admin smoke assertions are not writable yet — ✅ **RESOLVED by task 8.8, see §78**
 
 `tasks.md` step 8.3 asks for the admin cases to be added to `Nop.Web.SmokeTests`'s parameterised
 `Deferral_7_3_4_*` tests. **They cannot be written honestly today:** those tests read the live
@@ -6760,9 +6768,9 @@ exists at that path, case-exactly, and 8.1 already confirmed it publishes.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 8.4-1 | `Nop.Admin.dll` does not reach the smoke-test output directory, so **no admin smoke assertion can be written yet** — including the three 8.8 is required to add | 8.8 | Medium — bookkeeping, but it blocks deferral 8.3-2's whole list |
+| 8.4-1 | ~~`Nop.Admin.dll` does not reach the smoke-test output directory~~ | — | ✅ **RESOLVED by 8.8** (§76) — build-order-only `ProjectReference` + explicit copy, deliberately keeping the assembly **absent from `deps.json`** so the test host reproduces production. Proven able to fail: removing it fails **65** tests |
 
-### 8.4-1 `Nop.Admin.dll` never reaches the smoke-test base directory
+### 8.4-1 `Nop.Admin.dll` never reaches the smoke-test base directory — ✅ **RESOLVED by task 8.8, see §76**
 
 `Nop.Admin` now compiles, and `Nop.Admin.csproj`'s `CopyNopAdminToHostOutput` target duly drops
 `Nop.Admin.dll` into `src/Presentation/Nop.Web/bin/Debug/net10.0/` — **verified present, 5.8 MB.**
@@ -7115,7 +7123,7 @@ the full suite re-run green.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 8.5-1 | Nothing enforces the two-step publish, and `_AdminLayout`'s own asset list is still unverified end to end | 8.8 / 18.x | Medium |
+| 8.5-1 | Nothing enforces the two-step publish (**still open, 18.x**); `_AdminLayout`'s asset list unverified end to end (✅ **RESOLVED by 8.8**, §79) | 18.x | Medium |
 
 ### 8.5-1 The published deployment is correct but not self-enforcing, and the layout's asset list is unverified
 
@@ -7910,7 +7918,7 @@ demonstrated the failure paths directly.
 |---|------|---------------|----------|
 | 8.7-1 | Three `WebRequest`/`WebClient` sites remain obsolete across three projects | post-migration | Low |
 | 8.7-2 | Nine `CS0618` FluentValidation `Custom(...)` sites remain, and will grow through groups 10–17 | post-migration (with the FV pin) | Low |
-| 8.7-3 | No test asserts that a *publish* of `Nop.Admin` emits no ANCM `web.config` | 8.8 / 18.x | Medium |
+| 8.7-3 | ~~No test asserts that a *publish* of `Nop.Admin` emits no ANCM `web.config`~~ | — | ✅ **RESOLVED by 8.8** (§77.2) — `VerifyNopAdminPublishesNoWebConfig` in `Nop.Admin.csproj`. Note **8.7's suggested `ResolvedFileToPublish` technique does not work** and would have produced a vacuous test |
 
 ### 8.7-1 Three obsolete `WebRequest`/`WebClient` sites, in three projects
 
@@ -7940,7 +7948,7 @@ a blocker.
   against a database, and assert the resulting `ModelState` keys rather than only that validation
   still rejects.
 
-### 8.7-3 Nothing asserts that a publish emits no ANCM `web.config`
+### 8.7-3 Nothing asserts that a publish emits no ANCM `web.config` — ✅ **RESOLVED by task 8.8, see §77.2**
 
 §75.8's new test asserts no `web.config` exists **in the source tree**, which guards the file half
 of §75.2. The **generation** half is guarded only by `IsTransformWebConfigDisabled` and by the
@@ -7968,3 +7976,526 @@ of §75.2. The **generation** half is guarded only by `IsTransformWebConfigDisab
 | **35** | minification gone, nothing replaces it | post-migration (design §8) |
 | **18 / 7.18** | ImageSharp licence diagnostic | business decision on the version pin; §70.2 confirmed it does not affect this project at 2.1.13 |
 | **7.2-1** · **7.2-3** · **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** · **7.4-1** · **7.5-1** · **7.7-2** · **7.7-3** · **4.10** · **4.11** · **9/4.9** · **11.27** | unchanged | as previously recorded |
+
+
+
+---
+
+# The 8.8 clean-compile gate — and the three defects that made it mean something (task 8.8)
+
+Task 8.8 is the gate that unblocks all 20 plugin projects (groups 10–15). **The compile criterion
+was already met before it started** — `Nop.Admin` was at 0 errors / 15 warnings after 8.7 — so the
+substance of the task was making the gate *mean* something: fixing deferral **8.4-1** so the Admin
+area is loadable in the test host at all, and then writing the runtime assertions tasks 8.2 through
+8.7 had each recorded as "cannot be written honestly until then".
+
+It **RESOLVES six deferrals** — **8.4-1**, **8.3-2**, **8.7-3**, **8.2-1**, the second half of
+**8.5-1**, and task 8.6's §74 — closes every remaining "still inference" item from 8.2, and **found
+three real defects**, of which **two were release blockers**:
+
+1. **the admin UI could not render a single page** — two distinct area bugs in the `Html.Action`
+   bridge (§77.1);
+2. **the entire plugin subsystem would have died at startup on the first migrated plugin**
+   — deferral 8.2-1, measured rather than predicted (§77.3);
+3. an assertion that had never executed was **wrong** (§77.5).
+
+| Measurement | Value |
+|---|---|
+| `Nop.Admin` errors / warnings | **0 / 15** — unchanged. 4 `CS0618` FluentValidation `Custom(...)` in `Validators/` + 1 `SYSLIB0014` `WebRequest.Create`, both families deliberately kept (§75.4), plus the 10 pre-existing upstream `SYSLIB*` |
+| all six projects re-gated, `--no-incremental` after `rm -rf obj bin` | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 · `Nop.Admin` **0**/15 — every baseline exact, **no warning added**, even though this task edited `Nop.Core` and `Nop.Web.Framework` |
+| swallowed-diagnostics check, all six `-v:normal` logs | `"converted to a warning"` **0** · `ContinueOnError` **0** · `NU1901`–`NU1904` **0** · `error MSB*` **0** · `error NETSDK*` **0** · Six Labors licence lines **0** |
+| residual legacy API surface in `Nop.Admin` source | **604 files scanned (278 `.cs` + 326 `.cshtml`), 0 real hits** — comment-blanking scanner over 55 tokens, **proven able to fail** (§77.6) |
+| `Nop.Admin.dll` AssemblyRef metadata table | **`Nop.Admin v3.9.0.0`, 44 refs, 0 banned** — read from the metadata table, not a text search, **proven able to fail** (§77.6) |
+| `Nop.Tests` | **4 passed / 0 failed** |
+| `Nop.Admin.Tests` | **53 passed / 0 failed / 0 skipped**; 4 canaries **all Failed** |
+| `Nop.Web.SmokeTests` | **148 passed / 0 failed / 13 skipped** (was 74/0/18 — **+74 passing**); 8 canaries **all Failed** (2 added here) |
+| files changed | `Nop.Core/Plugins/PluginManager.cs`, `Nop.Web.Framework/ChildActionExtensions.cs`, `Nop.Admin.csproj`, `Nop.Web.SmokeTests.csproj`, 4 smoke-test files; **new** `src/Tests/Nop.Plugin.SmokeProbe/`, `AdminUiRenderTests.cs`, `PluginDiscoveryTests.cs` |
+| left behind | nothing — all scaffolding deleted, `git status` shows only the intended files, no running container |
+
+---
+
+## 76. Deferral 8.4-1 RESOLVED — and the fix deliberately reproduces production rather than being convenient
+
+**The defect, restated.** `Nop.Admin.csproj`'s `CopyNopAdminToHostOutput` target does drop
+`Nop.Admin.dll` into `src/Presentation/Nop.Web/bin/Debug/net10.0/` (8.5 verified it, 5.8 MB), yet
+`Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP` kept passing after
+`Nop.Admin` reached 0 errors. `WebAppTypeFinder` scans `AppDomain.CurrentDomain.BaseDirectory`,
+which under `dotnet test` is the **test project's** output directory, and nothing copied the
+assembly there.
+
+**The fix, in `src/Tests/Nop.Web.SmokeTests/Nop.Web.SmokeTests.csproj`:** a
+`ProjectReference` to `Nop.Admin.csproj` with **`ReferenceOutputAssembly="false"`**,
+`ExcludeAssets="all"`, `PrivateAssets="all"` — build order only, no compiling reference — plus a
+`CopyNopAdminToSmokeTestOutput` target that copies the assembly using the reference project's own
+`GetTargetPath`.
+
+### 76.1 Why not a plain `ProjectReference`, which also puts the DLL there
+
+Because it would put `Nop.Admin` in the test project's `deps.json`, and **that changes which
+mechanism is under test**. On .NET the default `AssemblyLoadContext` binds from the
+`deps.json`-derived trusted-platform-assemblies list and does **not** probe the base directory —
+that is the root cause task 8.2 measured and fixed in `AppDomainTypeFinder.LoadMatchingAssemblies`.
+In production (`dotnet run` on `Nop.Web`) `Nop.Admin.dll` is present in the base directory and
+**absent** from `Nop.Web.deps.json`; it is found by the path-based load. A plain reference would
+have verified the admin area through a route production never takes, in precisely the respect that
+produced the defect.
+
+Measured, both sides:
+
+| | `Nop.Admin.dll` in output dir | occurrences of `Nop.Admin` in `deps.json` |
+|---|---|---|
+| production (`Nop.Web/bin/Debug/net10.0/`) | present, 5.85 MB | **0** |
+| `Nop.Web.SmokeTests` after this fix | present, 5.85 MB | **0** |
+| control: `Nop.Web` in the same `deps.json` | — | 2 |
+
+### 76.2 It closes an honest limit 8.2 recorded about itself
+
+8.2's `Task_8_2_WebAppTypeFinder_loads_base_directory_assemblies_without_throwing` said, in its own
+comment: *"it only covers the non-regressing case … reverting the fix would still make this test
+pass … task 8.8, where `Nop.Admin.dll` really is such an assembly, is the first point at which this
+can be asserted for real."* That is now true, and the test asserts
+`names.Contains("Nop.Admin")` rather than merely not throwing.
+
+**Proven, not asserted.** Deleting `Nop.Admin.dll` from the test output directory and running with
+`-p:NopAdminCopyToSmokeTestOutput=false` produced **65 failures / 79 passes**: every admin
+assertion in the suite went red — including that test — and **every storefront assertion stayed
+green**. That is the non-vacuity proof for the whole of §78 in one experiment.
+
+### 76.3 The build-order consequence, stated
+
+A `ProjectReference` of any kind makes MSBuild build `Nop.Admin` first, so
+`dotnet test src/Tests/Nop.Web.SmokeTests` now fails if `Nop.Admin` fails to compile. Acceptable as
+of this gate (`Nop.Admin` is at 0 errors) and **confined to this test project** — `Nop.Web` still
+has no reference to `Nop.Admin` in either direction, so the 7.6 gate is untouched and design §6's
+sibling relationship stands.
+
+`Nop.Admin`'s own dependencies were already present transitively through `Nop.Web` — verified:
+`Autofac`, `AutoMapper`, `FluentValidation`, `Newtonsoft.Json`, `SixLabors.ImageSharp` and
+`System.ServiceModel.Syndication` all in the test output. Only `Nop.Admin.dll` was missing.
+
+---
+
+## 77. The three defects
+
+### 77.1 BLOCKER — the admin UI could not render a single page. Two area bugs in the `Html.Action` bridge
+
+Found by requesting `/Admin/` as an authenticated administrator for the first time. Task 8.3
+promoted `ChildActionExtensions` from `Nop.Web` to `Nop.Web.Framework` so `Nop.Admin`'s **69**
+`@Html.Action(...)` call sites could use it, but nothing ever exercised it **across an area
+boundary**. Both bugs came from one omission — the bridge ignored the ambient area — and both
+produced a **500**, not a degradation.
+
+**Bug 1 — the child view was resolved through the NON-AREA location formats.**
+
+```
+Nop.Core.NopException: Html.Action('NopCommerceNews', 'Home'): the view 'NopCommerceNews' was not
+found. Searched: /Themes/DefaultClean/Views/Home/NopCommerceNews.cshtml,
+/Themes/DefaultClean/Views/Shared/NopCommerceNews.cshtml, /Views/Home/NopCommerceNews.cshtml,
+/Views/Shared/NopCommerceNews.cshtml, …
+  at AspNetCoreGeneratedDocument.Areas_Admin_Views_Home_Index.ExecuteAsync()
+```
+
+It never looked under `/Areas/Admin/Views/`. `InvokeAction` built the child `RouteData` from the
+caller's route values plus `controller`/`action` only, **dropping `area`**, and the Razor view engine
+selects its location formats from `RouteData`.
+
+**Bug 2 — the WRONG controller was selected when a name exists in both areas.**
+
+```
+System.InvalidOperationException: The model item passed into the ViewDataDictionary is of type
+'Nop.Web.Models.Common.LanguageSelectorModel', but this ViewDataDictionary instance requires a
+model item of type 'Nop.Admin.Models.Common.LanguageSelectorModel'.
+  at AspNetCoreGeneratedDocument.Areas_Admin_Views_Shared__AdminLayout … line 132
+```
+
+`_AdminLayout.cshtml` — the layout of **every** admin page — invoked `Nop.Web`'s
+`CommonController.LanguageSelector`. `FindAction` matched on action + controller **name** only, so
+the two cross-area collisions (`Common.LanguageSelector`, `Widget.WidgetsByZone`) were ambiguous and
+the fewest-parameters tie-break decided arbitrarily. Note the call site was **already** passing
+`new { area = "Admin" }` and it made no difference, because the route values were never consulted.
+
+**The fix.** Precedence is an explicit `area` in the caller's route values, else the ambient area
+from `ViewContext.RouteData` — MVC 5's behaviour, and what 68 of the 69 admin call sites (and all
+101 storefront ones, none of which passes an area) rely on. The resolved area is put back on the
+child `RouteData`, taken from the **descriptor** so it is right even when the search fell back
+across areas. Area matching is a **preference, not a restriction**: with no candidate in the
+caller's area the search falls back to all areas, so a plugin reaching from an admin view into a
+storefront action behaves exactly as before.
+
+#### Failability, measured — and one half is NOT independently pinned
+
+| state | `AdminUiRenderTests` result |
+|---|---|
+| both halves reverted (the pre-8.8 state) | **23 of 29 fail** — the only 6 that pass are those that render no admin view |
+| child-`RouteData` half reverted alone | **13 fail** |
+| `FindAction` area preference reverted alone | **0 fail** |
+
+**The last row is recorded rather than glossed.** With the area correctly on the child route data,
+`IActionDescriptorCollectionProvider` currently happens to enumerate the admin candidate first, so
+the ambiguous pick lands on the right controller *by accident*. MVC guarantees no such ordering, so
+the preference is what makes the outcome deterministic — but **no test pins it independently**, and
+the code says so at the call site. A future reader must not remove it on the grounds that nothing
+goes red.
+
+### 77.2 Deferral 8.7-3 RESOLVED — and 8.7's suggested technique would have produced a vacuous test
+
+8.7 proposed asserting the publish-output half *"without a full publish by evaluating the
+`ResolvedFileToPublish` item set (the technique 8.1 §46.2 used)"*. **Measured, both ways:**
+
+```
+dotnet msbuild Nop.Admin.csproj -t:ComputeFilesToPublish -getItem:ResolvedFileToPublish
+    -p:IsTransformWebConfigDisabled=true   -> 0 web.config mentions
+    -p:IsTransformWebConfigDisabled=false  -> 0 web.config mentions
+```
+
+`TransformWebConfig` **writes** the file straight into the publish directory; it does not contribute
+a `ResolvedFileToPublish` item. An item-set assertion therefore passes in **both** states — worse
+than no test. Reported instead of written.
+
+A real publish does reveal it, measured:
+
+| | result |
+|---|---|
+| `IsTransformWebConfigDisabled=true` | no `web.config` at any casing |
+| `IsTransformWebConfigDisabled=false` | `web.config`, **485 bytes**, `arguments=".\Nop.Admin.dll"`, `AspNetCoreModuleV2` |
+
+**The guard therefore lives in `Nop.Admin.csproj` as `VerifyNopAdminPublishesNoWebConfig`**, at the
+moment the file would appear, rather than in a test that would have to shell out to
+`dotnet publish`. Getting the hook right took three measured attempts, all recorded on the target:
+
+1. `AfterTargets="Publish"` — **passed in both states.** A `-v:n` log shows the Web SDK runs
+   `_TransformWebConfig` **after** `Publish`, so the check ran before the file existed.
+2. `AfterTargets="Publish;_TransformWebConfig"` — **also passed in both states**, because MSBuild
+   runs a target **at most once per build**: it had already run after `Publish`, so the second hook
+   never got a turn. Diagnosed by printing `$(PublishDir)` from inside the target and seeing exactly
+   one line, before the file appeared.
+3. `AfterTargets="_TransformWebConfig"` alone — fires exactly when it should. **Verified: publish
+   passes with the property `true`, fails with `false`.**
+
+A fourth defect was found and fixed in the same target: `<Include>` with a **literal** path creates
+the item whether or not the file exists, so the first version failed in *both* states. Each item now
+carries `Condition="Exists(...)"`, and both casings are listed because `Exists` is case-sensitive on
+Linux — which matters, since 8.7 measured the generated name flipping between `Web.config` and
+`web.config`.
+
+### 77.3 Deferral 8.2-1 RESOLVED — the plugin subsystem would have died at startup, and it is now proven
+
+**Fixed here rather than left for group 10**, because it is the same one-line change as §50.3 and
+group 10 would have hit it on its first plugin.
+
+`Nop.Core/Plugins/PluginManager.cs`, `PerformFileDeploy`:
+
+```csharp
+// was: Assembly.Load(AssemblyName.GetAssemblyName(shadowCopiedPlug.FullName))
+var shadowCopiedAssembly = AssemblyLoadContext.Default
+    .LoadFromAssemblyPath(shadowCopiedPlug.FullName);
+```
+
+**Verified with a REAL plugin, not a probe.** A new permanent minimal plugin,
+`src/Tests/Nop.Plugin.SmokeProbe/` (a single class deriving from `BasePlugin`, no controller, no
+view, no settings), is planted with a generated `Description.txt` under the content root's
+`Plugins/` directory **before the host starts**, so the real `PluginManager.Initialize()` — invoked
+from `Program.Main` via `UseNopHostingEnvironment` — discovers it, shadow-copies it to
+`~/Plugins/bin` and loads it. `PluginDiscoveryTests` then asserts four things, all of which pass:
+
+| Assertion | Result |
+|---|---|
+| the plugin is discovered and its assembly loaded | ✅ `Nop.Plugin.SmokeProbe` |
+| it was loaded **from `~/Plugins/bin`** — the shadow copy, i.e. the deps.json-absent path | ✅ |
+| that assembly is **absent from `deps.json`** and **absent from the test output directory** | ✅ both — so neither the TPA list nor `WebAppTypeFinder` can have provided it |
+| `PluginType` is non-null and **assignable to `IPlugin`**, in the **default** load context | ✅ |
+| it became an MVC `ApplicationPart` (deferral 1.2's mechanism, first exercised with a real plugin) | ✅ |
+
+**Proven able to fail, and the failure is exactly what 8.2 predicted.** Reverting the one line to
+3.90's `Assembly.Load(AssemblyName…)`:
+
+```
+System.Exception : Plugin 'Task 8.8 plugin-load probe'. Could not load file or assembly
+'Nop.Plugin.SmokeProbe, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null'.
+  ----> System.IO.FileNotFoundException
+```
+
+thrown out of `OneTimeSetUp`, i.e. **out of host startup** — all four tests fail. `Nop.Core` was
+re-gated after the change: **0 errors / 3 warnings**, its recorded 2.5 baseline exactly.
+
+**Why the DEFAULT context is mandatory, and why the probe plugin derives from `BasePlugin`.** An
+assembly in a separate context gets its own copy of every `Nop.Core` type, so
+`typeof(IPlugin).IsAssignableFrom(t)` in `PluginManager.Initialize` would be **false** and the
+plugin would be discovered, loaded and then **silently ignored** — worse than failing loudly. The
+probe plugin's `ProjectReference` to `Nop.Core` carries `Private="false"` for the same reason: a
+local copy of `Nop.Core` next to the plugin would mask exactly this property.
+
+### 77.4 What is left of the same root cause
+
+This was the **third** instance of "on .NET, an assembly is only discoverable if it is physically in
+the directory the finder scans, and it must be loaded **by path**". All three are now closed:
+`AppDomainTypeFinder.LoadMatchingAssemblies` (8.2, §50.3), `PluginManager.PerformFileDeploy`
+(8.8, above), and `Nop.Admin.dll` not reaching the smoke-test base directory (8.4-1, §76). A grep
+for `Assembly.Load(` across the migrated projects finds no further call site of this shape.
+
+### 77.5 An assertion that had never executed was wrong
+
+`InstalledStoreTests.Deferral_7_3_4_a_former_child_action_is_no_longer_reachable_by_URL` lives in
+the installed-store fixture, so every run before this task skipped it. It ran for the first time
+here and **failed against correct behaviour**: its clause
+`StringAssert.DoesNotContain("class=\"footer\"", html)` cannot hold, because the response is the
+`PageNotFound` view, which renders the full storefront layout, and that layout invokes the `Footer`
+child action through the bridge. `class="footer"` in a correct 404 is **evidence the bridge works**.
+
+Corrected to the real discriminator between "the bare partial was served" and "a 404 page was
+served": the body must be a full document (`<!DOCTYPE html>`, `<title>`, `html-not-found-page`). The
+bare `Footer` partial is a fragment with none of those.
+
+A second, related weakness was found and fixed in this task's own new fixture: `AdminUiRenderTests`
+originally decided "am I signed in?" from `GET /Admin/ == 200`, so when a revert experiment broke
+admin rendering **every test skipped instead of failing** — the exact trap deferral 8.3-2 warns
+about. The discriminator is now whether the request is **refused** (a 302 challenge), so a 500 counts
+as signed-in and is reported as a failure.
+
+### 77.6 The two gate scans, and proof each can fail
+
+**Source scan.** A naive grep is meaningless here — the migration deliberately leaves prose naming
+every legacy type it replaced. The scanner blanks `//`, `/* */` and `@* *@` comments first, tracking
+string, char and verbatim-string literals so a `//` inside a URL is not mistaken for a comment, then
+searches the residue for 55 tokens (`System.Web.*`, bare `System.Web`, `HttpContext.Current`,
+`HttpContextBase`, `HttpPostedFileBase`, `MvcHtmlString`, `HttpUtility`, `JsonRequestBehavior`,
+`AllowHtml`, `ValidateInput`, `ChildActionOnly`, `HttpVerbs`, `DependencyResolver`, `RouteTable`,
+`AreaRegistration`, `UrlParameter`, `MachineKeySection`, `ConfigurationManager`,
+`System.Configuration`, `System.Runtime.Caching`, `ImageResizer`, `WebGrease`, `MiniProfiler`,
+`StackExchange.Profiling`, `System.Data.Entity`, `System.Drawing.Common`, `System.Drawing.Imaging`,
+`ColorTranslator`, `Antlr`, `Microsoft.Web.`, `BundleTable`, `ViewEngines.Engines`,
+`Autofac.Integration`, …), with `NopChildActionOnly` explicitly allow-listed.
+
+**Proven able to fail:** planted `_ScanCanary.cs` (`using System.Web.Mvc;` + `HttpContext.Current`)
+and `_ScanCanary.cshtml` (`@using System.Web.Optimization` + `@HttpContext.Current`) were reported —
+**6 real hits** — while comment-only mentions of the same tokens on adjacent lines were correctly
+**not** counted. Canaries removed; re-run clean.
+
+**Result: 604 files scanned (278 `.cs` + 326 `.cshtml`), 0 real hits.**
+
+**Assembly-reference scan.** Read from the **`AssemblyRef` metadata table** via
+`System.Reflection.Metadata`, not a text search over the binary — a text search would report a
+banned name that merely appears in a string literal and would prove nothing either way. Banned
+prefixes: `System.Web`, `ImageResizer`, `WebGrease`, `Autofac.Integration`, `MiniProfiler`,
+`StackExchange.Profiling`, `EntityFramework` (EF6), `Antlr`, `Microsoft.Web.`,
+`System.Runtime.Caching`, `Microsoft.SqlServer.Compact`.
+
+| Assembly | identity | refs | banned |
+|---|---|---|---|
+| `Nop.Admin.dll` | `Nop.Admin v3.9.0.0` | 44 | **NONE** |
+| `Nop.Web.dll` | `Nop.Web v3.9.0.0` | 56 | **NONE** |
+| `Nop.Web.Framework.dll` | v3.9.0.0 | 59 | **NONE** |
+| `Nop.Services.dll` | v3.9.0.0 | 48 | **NONE** |
+| `Nop.Data.dll` | v3.9.0.0 | 15 | **NONE** |
+| `Nop.Core.dll` | v3.9.0.0 | 41 | **NONE** |
+
+**Proven able to fail** with an `--also-ban=Nop.Core` switch that exists solely for that purpose:
+`BANNED REFS: Nop.Core`, `RESULT: FAIL`. Without it, "NONE" would be unfalsifiable, since no
+assembly in the migrated tree carries a banned reference to detect.
+
+The `v3.9.0.0` identities also re-confirm that every project's hand-kept `Properties/AssemblyInfo.cs`
+is in effect (§37.1 / §46.4 / §75.6).
+
+### 77.7 The honest exception — `System.Drawing.Common`, reported the same way 7.5 §38.3 and 8.6 §70.3 did
+
+The gate checklist asks for no `System.Drawing.Common`. **It is still in the graph, and that is
+correct.** Precisely characterised:
+
+- **absent from `Nop.Admin.dll`'s `AssemblyRef` table** — no type is bound, as 8.6 §70.3 measured;
+- present in `Nop.Admin.deps.json` at **4.7.2**, and in `Nop.Web`'s;
+- **exactly one incoming edge** in `project.assets.json`: `EPPlus/4.5.3.3 → System.Drawing.Common 4.7.0`,
+  lifted to 4.7.2 by the central pin task 4.2 §10 added to clear
+  **`NU1904` / GHSA-rxg9-xrhp-64gj / CVE-2021-24112** (CRITICAL RCE). Removing it would reintroduce
+  a vulnerable package;
+- **absent from `Nop.Admin`'s own output directory** (it is present in `Nop.Web`'s, which is where
+  EPPlus's consumer lands it);
+- restore is silent: **0 `NU1901`–`NU1904`**.
+
+The runtime caveat is unchanged: `System.Drawing.Common` is Windows-only, EPPlus needs it only for
+autofit column measurement and embedded images, and no call site uses either.
+
+---
+
+## 78. Deferral 8.3-2 RESOLVED — the runtime assertions, and one thing the task asked for that had to be found rather than assumed
+
+`Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP` is **inverted**, not
+deleted: it is now `Task_8_2_the_Admin_area_route_is_registered` and additionally requires a
+`Nop.Admin` action to be bound to that pattern.
+
+Every "still inference" item from 8.2 and 8.8's own list is now verified **by execution**, off a
+new `/__smoke/adminarea` probe reading the live host:
+
+| Previously inference | Measured |
+|---|---|
+| `Nop.Admin.dll` loads, from the base directory, into the **default** load context, **absent from `deps.json`** | ✅ all four |
+| contributes **both** part types | ✅ `AssemblyPart` **and** `CompiledRazorAssemblyPart` |
+| **325** compiled identifiers under `/Areas/Admin/Views/` | **326** — 8.2's prediction was right at the time; task 8.4 *added* `Areas/Admin/Views/_ViewImports.cshtml`. The test asserts the compiled count **equals the on-disk `.cshtml` count**, which is self-maintaining and a stronger statement, plus `>= 325` and six named views |
+| **0** views named under the pre-8.2 `/Administration/` path (deferral 8.1-4) | ✅ 0 |
+| all **54** controllers inherit `[Area("Admin")]` from `BaseAdminController` | ✅ `adminControllerCount=54`, `adminControllersWithoutAreaCount=0`, across 1070 actions |
+| 3.90's route name / prefix / defaults survive | ✅ exactly one `Admin/` pattern, `Admin/{controller=Home}/{action=Index}/{id?}` |
+| `GET /Admin/` reaches `HomeController.Index` | ✅ `Nop.Admin.Controllers.HomeController` |
+| `CopyNopAdminToHostOutput` fires in a real `Build` | ✅ observed in a `-v:normal` log copying into the host output directory |
+
+### 78.1 The three `Deferral_7_3_4_*` invariants gained all 16 admin cases, and every case is now AREA-QUALIFIED
+
+The `/__smoke/action` probe gained an `area` filter, and it is **not decoration**:
+`Common.LanguageSelector` and `Widget.WidgetsByZone` exist with the same controller+action name in
+**both** areas, so an unqualified assertion about one could be satisfied by the other. Measured:
+unfiltered, `Common.LanguageSelector` reports 4 endpoints / 2 descriptors; with `area=Admin`, 2 / 1,
+all declared by `Nop.Admin.Controllers.CommonController`.
+`Task_8_8_the_area_filter_really_discriminates_between_the_two_LanguageSelectors` pins that
+partition, so the filter cannot silently stop filtering.
+
+### 78.2 The "marked name shared with an unmarked one" case DOES exist — found by measurement after a wrong test failed
+
+8.3-2 asks for *"at least one of the 16 marked actions whose name is shared with an unmarked one"*,
+the trap 7.3-4 records for the storefront (`ProfileController.Info` marked, `CustomerController.Info`
+not). Searching for a collision **across controllers and areas found none**. Searching for
+**overloads on the same controller** found exactly one, in the admin set — and it was found because
+an earlier version of the parameterised list wrongly included it and **failed**:
+
+```
+Nop.Admin.Controllers.CommonController
+    [NopChildActionOnly] PopularSearchTermsReport()                  <- the child action
+    [HttpPost]           PopularSearchTermsReport(DataSourceRequest)  <- the Kendo grid data action
+```
+
+3.90 had the identical shape (verified against git `9cb503f`: `[ChildActionOnly]` on the
+parameterless one, nothing on the POST one), so the grid action **must** stay URL-reachable while its
+same-named sibling must not be. A marker applied by action **name** would either break the admin
+dashboard's popular-search-terms grid or leave the child action exposed.
+
+`Deferral_7_3_4_the_marker_is_per_METHOD_not_per_action_name` asserts **both** halves, using a new
+`signature=` field on the probe output so overloads can be told apart. It is the only such case in
+either project — searched exhaustively.
+
+### 78.3 `BackupFileDownload` authorization — the 3.90 defect, asserted
+
+Two assertions, both with a **separate unauthenticated client** (reusing the fixture's signed-in one
+would prove nothing): an anonymous `GET /Admin/Common/BackupFileDownload?fileName=…` must be a
+**302 to `/login`**, never a 200; and the 3.90 static path
+`/Administration/db_backups/….bak` must still **404**, so the fix cannot be undone by widening the
+static-file allow-list. A companion test asserts the same challenge for five ordinary admin URLs, so
+`[AdminAuthorize]` is shown to gate the whole area rather than one action.
+
+---
+
+## 79. Deferral 8.5-1 (second half) and task 8.6 §74 RESOLVED, and task 8.4 §62's four checks
+
+New fixture `src/Tests/Nop.Web.SmokeTests/AdminUiRenderTests.cs` — **29 tests**, all passing
+against a real installed store with an authenticated administrator. This is also the fixture that
+found §77.1.
+
+| Item | Assertion, and what it covers |
+|---|---|
+| **8.4 §62 (1)** — the 78 `@helper` → `Capture` conversions | For 4 `_CreateOrUpdate`-style pages, every `class="tab-pane" id="tab-…"` wrapper must have content between its tags. 8.4 measured the failure mode by disabling `PushWriter`/`PopWriter`: bodies hoisted above their wrappers and **every tab-pane empty** — markup that compiles and is visible only in the rendered HTML. Measured live: `/Admin/Product/Create` 5 panes, `/Admin/Discount/Create` 5, `/Admin/Category/Create` 3, `/Admin/Customer/Create` 1 |
+| **8.4 §62 (2)** — `Menu.cshtml` | `sidebar-menu` plus `treeview-menu` (the **nested** level, i.e. the recursive `Capture`) plus four `href="/Admin/…"` links. Covers `XmlSiteMap.LoadFrom` against the physical `sitemap.config`, the recursion that needs `Push`/`PopWriter` to be a **stack**, and `SiteMapNode.RouteValues` on the ported type |
+| **8.4 §62 (3)** — `GetFullHtmlFieldId` | For 3 date fields, the rendered `<input id="…">` must match the adjacent `$("#…").kendoDatePicker()` selector. Verified live: `id="DateOfBirth"` ↔ `$("#DateOfBirth")`, and `StartDate`/`EndDate` on `/Admin/Order/List`. A divergence silently strips the widget from every admin date field |
+| **8.4 §62 (4)** — Shared-before-controller shadowing | **HONEST RESULT: no such pair exists.** No file name appears both in `Areas/Admin/Views/Shared/` and in a controller folder, so the real view set cannot exercise the quirk and no end-to-end assertion is available. 8.2's probe result and `Task_8_2_the_Admin_area_searches_Shared_BEFORE_the_controller_folder` remain the evidence. The test therefore pins the **absence**: if someone adds `Shared/List.cshtml`, every controller's own `List.cshtml` silently stops being used, and it fails saying so |
+| **deferral 8.5-1, second half** | For 3 admin pages, **every** emitted same-origin asset `href`/`src` must return 200 — the equivalent of the install-page check. 8.4 verified `_AdminLayout`'s 81 references *statically* and 8.5 verified 14 *representatively*; nothing rendered a page and demanded all of them resolve. Guarded against vacuity by requiring more than 15 assets to be extracted |
+| **task 8.6 §74** | `a=DIRLIST` reports `FILES_ROOT` from `conf.json` (a **physical** read, one of the two reasons 8.5 kept the admin `Content/` tree in place); `a=GENERATETHUMB` returns **`image/png` with a real PNG signature** — covering `ShowThumbnail`, the buffered `Response.Body` write Kestrel requires, `GetImageEncoder` and `CheckPath`/`FixPath` in one request; `a=FILESLIST` reports a non-zero width, i.e. `Image.Identify` really works. On Linux, where the `Bitmap`/`Graphics` pipeline throws `DllNotFoundException: libgdiplus`, a green run **is** the cross-platform assertion |
+
+**Two things 8.6 §74 asked for are NOT covered and are recorded as such:** the oversize-upload
+resize and the corrupt-`.png` `FILESLIST` degradation. Both are covered at the unit level by
+`src/Tests/Nop.Admin.Tests` (53 tests, 0 skipped); adding HTTP multipart upload assertions was
+judged out of proportion to the marginal evidence, since the same code path is already executed.
+
+---
+
+## 80. NEW deferrals opened by task 8.8
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 8.8-1 | The `FindAction` area preference is not pinned by any test | none (accepted) | Low |
+| 8.8-2 | `Nop.Plugin.SmokeProbe` and the three test projects are not in `NopCommerce.sln` | 18.1 | Low |
+| 8.8-3 | The admin UI has only been rendered as a **single-language, sample-data** store by one administrator | 16.x / 17.x | Low — scope note |
+| 8.8-4 | 20 admin actions are exposed as endpoints only because `BaseController`'s public methods are treated as actions | post-migration | Low |
+
+### 8.8-1 The `FindAction` area preference is not independently pinned
+
+See §77.1. Reverting it alone fails nothing, because the descriptor enumeration currently happens to
+yield the admin candidate first. Recorded at the call site as well as here so it is not deleted on
+the grounds that the suite stays green. A test that pins it would need to force the opposite
+enumeration order, which MVC does not expose.
+
+### 8.8-2 `Nop.Plugin.SmokeProbe` is not in the solution
+
+`src/Tests/Nop.Plugin.SmokeProbe/Nop.Plugin.SmokeProbe.csproj` joins
+`src/Tests/Nop.Web.SmokeTests` (deferral 7.7-2) and `src/Tests/Nop.Admin.Tests` (deferral 8.6-1) as
+a project `NopCommerce.sln` does not reference. **Task 18.1 should add all three.** None must become
+part of a clean-compile gate: they are verification, and `Nop.Web.SmokeTests` needs a database for
+13 of its 161 tests.
+
+Note `Nop.Plugin.SmokeProbe` is reached by a build-order `ProjectReference` from
+`Nop.Web.SmokeTests`, so it is always built even while absent from the solution.
+
+### 8.8-3 The admin UI has been rendered in exactly one configuration
+
+Stated so 29 green tests are not over-read. The store used was: **one language** (English), **sample
+data installed**, **one administrator**, **SQL Server 2022 on Linux**, single instance. Consequences:
+
+- `Areas/Admin/Views/Common/LanguageSelector.cshtml` opens with
+  `@if (Model.AvailableLanguages.Count > 1)`, so the **correct** render is empty and no positive
+  marker exists for it (§77.1's second test asserts the absence of the model-mismatch instead);
+- multi-store, vendor-scoped and non-English admin rendering are unexercised, as is
+  `AdminValidateIpAddress`;
+- `TinyMceHelper.GetTinyMceLanguage()`'s culture probe — one of the two measured reasons task 8.5
+  kept the admin `Content/` tree in place, and one that **fails silently** by falling back to
+  English — is never exercised with a non-English culture.
+
+### 8.8-4 `BaseController`'s public methods appear as endpoints
+
+Observed while reading the endpoint table: each admin controller contributes four
+`RenderPartialViewToString` endpoints and one `GetActiveStoreScopeConfiguration` endpoint, because
+they are public methods on `BaseAdminController`/`BaseController` and MVC treats every public method
+on a controller as an action. The storefront has the same shape.
+
+- **Pre-existing and not introduced here** — MVC 5 did the same, which is why 3.90's
+  `BaseController` methods were reachable too.
+- **Impact:** they are not `[NonAction]`, so `/Admin/Product/RenderPartialViewToString` is a matched
+  endpoint. `RenderPartialViewToString` throws without a valid view name and
+  `GetActiveStoreScopeConfiguration` is `protected`-like in intent but public in fact; both sit
+  behind `[AdminAuthorize]`, so this is untidiness rather than exposure. Recorded because it inflates
+  the endpoint table by ~270 entries and would be a one-attribute fix (`[NonAction]`) if anyone cares.
+
+---
+
+## 81. Deferrals explicitly NOT closed by 8.8, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **8.2-3** | 12 plugin view sites still reference `~/Administration/Views/Shared/…` | **11.1–11.2, 13.1, 14.4, 15.1** — those are unmigrated MVC 5 Razor views in projects this gate unblocks; the list with line numbers is in §51/8.2-3 |
+| **8.5-1** (first half) | nothing **enforces** the two-step publish, so a publish of `Nop.Web` alone has no admin area, silently | **18.x**. Narrowed further here: §77.2's new target means the second step can no longer break the first, and a full two-step publish check belongs with 18.x's packaging work |
+| **8.2-2** | `dotnet publish` of `Nop.Web` omits `Nop.Admin.dll` | **18.x** — unchanged |
+| **8.6-2** | `FixPath` does not normalise `..` | none — pre-existing, permission-gated, and `RoxyFilemanController.cs` was not touched by this task |
+| **8.7-1** | three `WebRequest`/`WebClient` `SYSLIB0014` sites across `Nop.Core`, `Nop.Services`, `Nop.Admin` | post-migration — convert all three together or none |
+| **8.7-2** | nine FluentValidation `Custom(...)` `CS0618` sites | post-migration, with any revisit of design §9's 7.6.105 pin. Will grow through groups 10–17 |
+| **35** | minification gone, nothing replaces it | post-migration (design §8) |
+| **18 / 7.18** | ImageSharp licence diagnostic | business decision on the version pin; §70.2 confirmed it does not affect `Nop.Admin` at 2.1.13, and **0 licence lines** were observed on all six builds here |
+| **7.2-1** · **7.2-3** · **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** · **7.4-1** · **7.5-1** · **7.7-2** · **7.7-3** · **4.10** · **4.11** · **9/4.9** · **11.27** | unchanged | as previously recorded. **4.11** (`ExecuteSqlCommand` per-batch transactions during the **Fast** installer) is still open: this task installed with the default `CodeFirstInstallationService`, so that path still never ran |
+
+## 82. What groups 10–15 should know before the first plugin
+
+1. **Deferral 8.2-1 is FIXED and verified** (§77.3). The plugin subsystem loads a shadow-copied
+   assembly by path into the **default** load context, and `src/Tests/Nop.Web.SmokeTests`'
+   `PluginDiscoveryTests` keeps that continuously exercised with a real plugin. Do not "simplify" it
+   back to `Assembly.Load`.
+2. **Deferral 1.2's mechanism is now exercised** — a loaded plugin does become an MVC
+   `ApplicationPart`. What is still unexercised is a plugin with **compiled Razor views**: the probe
+   plugin has none, so only the `AssemblyPart` half is asserted. The first plugin with a view is the
+   first real test of `ConsolidatedAssemblyApplicationPartFactory` on the plugin path.
+3. **`IRouteProvider` is `void RegisterRoutes(IEndpointRouteBuilder)`** and the four gotchas in
+   §17.4a still apply — in particular that equal-precedence patterns now throw
+   `AmbiguousMatchException`, and that `.WithOrder(1000)` is **not** the fix (§28.1).
+4. **`Html.Action` is now area-aware** (§77.1). A plugin admin view invoking a storefront action, or
+   the reverse, still works — the area is a preference with a fallback — but a plugin that declares
+   an action whose controller+action name already exists in the other area will now get **its own
+   area's** action, which is the correct MVC 5 behaviour and may differ from what it got before this
+   task.
+5. **`ChildActionExtensions` and `ViewCompatibilityExtensions` live in `Nop.Web.Framework`** in
+   namespace `Nop.Web.Framework` (tasks 8.3 / 8.4), which every `_ViewImports.cshtml` already
+   imports — so a plugin view needs no new `@using` for `@Html.Action` or `.ToHtmlString()`.
+6. **The five dynamically-named `Html.Action` call sites** are in `IWidgetPlugin`,
+   `IPaymentMethod` and `IExternalAuthenticationMethod` (deferral 7.3-1). Those contracts still
+   expose action/controller/`RouteValueDictionary` triples, and they are the reason the bridge cannot
+   be replaced by view components.

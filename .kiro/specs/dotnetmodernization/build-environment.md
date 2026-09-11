@@ -58,10 +58,19 @@ Paths inside the container are rooted at `/workspace`, which maps to `/home/artr
 
 `src/Tests/Nop.Web.SmokeTests` boots the real `Nop.Web` host in-process through
 `WebApplicationFactory<Nop.Web.Program>`. **It is deliberately NOT part of any clean-compile gate** —
-task 7.7 is non-gating and 18 of its 92 tests need a database. (Counts as of task 8.7; tasks 8.2, 8.5 and 8.7 each added always-run assertions.)
+task 7.7 is non-gating and 13 of its 161 tests need a database. (Counts as of task 8.8, which added
+the `AdminUiRenderTests` and `PluginDiscoveryTests` fixtures plus the admin cases on the existing
+`Deferral_7_3_4_*` invariants.)
 
-Without a database (74 pass, 18 skip — install-mode coverage, the host/container group, plus the
-canaries):
+**As of task 8.8 this project also builds `Nop.Admin` and `Nop.Plugin.SmokeProbe`.** Both are
+**build-order-only** `ProjectReference`s (`ReferenceOutputAssembly="false"`), for reasons documented
+at length in the csproj: `Nop.Admin.dll` must be in the test host's `BaseDirectory` and **absent from
+`deps.json`** so the base-directory path load is the mechanism under test (runtime deferral 8.4-1),
+and `Nop.Plugin.SmokeProbe.dll` must **not** reach the output directory at all or `WebAppTypeFinder`
+would load it directly and bypass `PluginManager`'s shadow copy (deferral 8.2-1). The practical
+consequence: `dotnet test` on this project now fails if `Nop.Admin` fails to compile.
+
+Without a database (74 pass, 87 skip — the storefront and admin-render fixtures plus the canaries):
 
 ```bash
 docker run --rm -u "$(id -u):$(id -g)" -e DOTNET_CLI_HOME=/tmp -e HOME=/tmp \
@@ -73,7 +82,7 @@ docker run --rm -u "$(id -u):$(id -g)" -e DOTNET_CLI_HOME=/tmp -e HOME=/tmp \
 Tests that need an installed store `Assert.Ignore` with `"NOT EXERCISED: no database is
 installed …"`, so the run is green and the gap is visible rather than silently passed.
 
-### With a database (full storefront coverage — the `InstalledStoreTests` group stops skipping)
+### With a database (full storefront AND admin coverage — 148 pass / 0 fail / 13 skip)
 
 ```bash
 docker network create nopnet
@@ -83,13 +92,20 @@ docker run -d --name nopsql --network nopnet \
 ```
 
 Then install a store by POSTing the real installer form (this is what surfaced task 7.7's three
-blockers, so it is worth doing rather than seeding the database directly). Run `Nop.Web` inside a
-container **on `nopnet`**, and POST to `/install` with
+blockers and task 8.8's two, so it is worth doing rather than seeding the database directly). Run
+`Nop.Web` inside a container **on `nopnet`**, and POST to `/install` with
 `DataProvider=sqlserver`, `SqlConnectionInfo=sqlconnectioninfo_raw`,
 `DatabaseConnectionString=Data Source=nopsql;Initial Catalog=<db>;User ID=sa;Password=<password>;TrustServerCertificate=True`,
 `SqlServerCreateDatabase=true`, `InstallSampleData=true` and admin credentials. Sample data is needed
 for the product-slug test. The installer calls `IWebHelper.RestartAppDomain()` on success, which stops
 the host — that is expected.
+
+**The admin credentials matter.** `AdminUiRenderTests` signs in as
+`admin@gate88.local` / `Gate88Pass!` (constants on that fixture) and every test in it `Assert.Ignore`s
+with an explicit message if it cannot. Install with those values, or update the two constants. Note
+the skip condition is deliberately **"not authorised"** and not **"the page did not render"**: a
+broken admin page is reported as a **failure**, because an earlier version keyed off
+`GET /Admin/ == 200` and silently skipped the whole fixture when a revert experiment broke rendering.
 
 Finally run `dotnet test` as above but add `--network nopnet` to the `docker run`, so the test
 container can reach `nopsql`.
@@ -98,16 +114,26 @@ Two artifacts are left under `src/Presentation/Nop.Web/App_Data/` and are **giti
 `Settings.txt` (the connection string the installer wrote) and `browscap.crawlersonly.xml`
 (regenerated on demand). Delete `Settings.txt` to return to install mode.
 
-### Note for task 8.5's `AdminStaticAssetTests` (added at 8.5)
+### Note on files the fixtures plant (added at 8.5, extended at 8.8)
 
-That fixture plants a `.bak` under `Administration/db_backups/` and a `.zip` under
-`Administration/Content/Roxy_Fileman/tmp/` in `OneTimeSetUp` and deletes them in
-`OneTimeTearDown`, so its refusal assertions are made against files that really exist rather than
-against trivially-true absences. Both names carry the `8_5_smoke_planted` marker; if a crashed run
-ever leaves one behind it shows up in `git status` rather than silently, and it is safe to delete.
-The fixture needs **no database and no `Nop.Admin.dll`** — the static-file provider resolves against
-the filesystem, so admin asset serving is observable without the Admin area being routable
-(deferral 8.4-1).
+`AdminStaticAssetTests` plants a `.bak` under `Administration/db_backups/` and a `.zip` under
+`Administration/Content/Roxy_Fileman/tmp/`, so its refusal assertions are made against files that
+really exist rather than against trivially-true absences. Both carry the `8_5_smoke_planted` marker.
+
+`AdminUiRenderTests` plants `Content/Images/uploaded/8_8_smoke_planted.png` (a real PNG copied from
+the repository) so Roxy Fileman has something to make a thumbnail of.
+
+`PluginDiscoveryTests` plants a whole plugin — `Plugins/Nop.Plugin.SmokeProbe/` with the built
+assembly and a generated `Description.txt` — **before** the host starts, because
+`PluginManager.Initialize()` runs once from `Program.Main`. `src/Presentation/Nop.Web/Plugins/*` is
+already gitignored, so nothing there can be committed by accident.
+
+All of them are removed in `OneTimeTearDown`. A crashed run leaves an obviously-named file that shows
+up in `git status` (or, for the plugin, under the gitignored `Plugins/`) rather than silently; the
+shadow copy at `Plugins/bin/Nop.Plugin.SmokeProbe.dll` may survive because the assembly is loaded
+into the test process, and is safe to delete. None of these fixtures needs `Nop.Admin.dll` to be
+*routable* — the static-file provider resolves against the filesystem — but the admin-render and
+plugin fixtures do need the copies described above.
 
 ### Proving the harness can fail
 
@@ -119,10 +145,11 @@ dotnet test src/Tests/Nop.Web.SmokeTests/Nop.Web.SmokeTests.csproj \
   --filter "FullyQualifiedName~HarnessCanaryTests"
 ```
 
-**All six must report Failed.** If any passes, the corresponding group of real assertions cannot be
+**All eight must report Failed.** If any passes, the corresponding group of real assertions cannot be
 trusted. (Task 7.7 shipped three; the deferral 7.3-4 / 7.7-1 fix added a fourth for the
 `/__smoke/action` probe; task 8.2 added a fifth for the view-location expander; task 8.5 added a
-sixth for the admin static-asset assertions.)
+sixth for the admin static-asset assertions; task 8.8 added a seventh for the `/__smoke/adminarea`
+probe and an eighth for admin-authenticated page fetches.)
 
 
 ## Running the Nop.Admin imaging tests (task 8.6)
@@ -149,7 +176,9 @@ replaced throws `TypeInitializationException` → `DllNotFoundException: Unable 
 the platform explicitly and `Assert.Ignore`s on Windows rather than passing vacuously.
 
 Like `Nop.Web.SmokeTests`, this project is **not** in `NopCommerce.sln` (task 18.1 owns the solution
-file — deferral 7.7-2) and must **not** become part of a clean-compile gate.
+file — deferral 7.7-2) and must **not** become part of a clean-compile gate. The same applies to
+`src/Tests/Nop.Plugin.SmokeProbe`, added at task 8.8 (deferral 8.8-2) — though that one is always
+built anyway, via a build-order `ProjectReference` from `Nop.Web.SmokeTests`.
 
 ### Proving the harness can fail
 

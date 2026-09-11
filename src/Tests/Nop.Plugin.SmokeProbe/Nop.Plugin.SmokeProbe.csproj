@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Nop.Plugin.SmokeProbe - a MINIMAL real nopCommerce plugin, created by task 8.8.
+
+    WHY IT EXISTS
+    =============
+    Runtime deferral 8.2-1: PluginManager.PerformFileDeploy loaded each shadow-copied plugin
+    assembly with Assembly.Load(AssemblyName.GetAssemblyName(path)), which CANNOT WORK ON .NET.
+    The default AssemblyLoadContext binds from the deps.json-derived trusted-platform-assemblies
+    list and does not probe directories, and ~/Plugins/bin is in no deps.json - so the call
+    throws FileNotFoundException, PluginManager.Initialize rethrows it, and the HOST DIES AT
+    STARTUP. Task 8.2 measured the underlying behaviour; task 8.8 fixed the call site and
+    verified it with this plugin.
+
+    It has gone unnoticed because no real plugin exists yet - task 7.7 measured
+    ReferencedPlugins non-null with 0 plugins found - which is exactly why a permanent, minimal
+    plugin is worth having: it keeps the whole discovery path (Description.txt parse -> shadow
+    copy -> assembly load -> IPlugin scan -> MVC application part) continuously exercised
+    instead of first exercised by group 10.
+
+    IT IS NOT A PRODUCT PLUGIN. It ships no controller, no view, no setting and no
+    IDependencyRegistrar; it exists to be loaded. src/Tests/ is the right home: it is test
+    infrastructure, and like Nop.Web.SmokeTests and Nop.Admin.Tests it is NOT in
+    NopCommerce.sln (task 18.1 owns the solution file - deferral 7.7-2) and must NOT be part of
+    any clean-compile gate.
+
+    HOW IT IS USED
+    ==============
+    Nop.Web.SmokeTests takes a BUILD-ORDER-ONLY ProjectReference to it
+    (ReferenceOutputAssembly="false"), so it is always built but its assembly is deliberately
+    NOT copied into the test output directory - if it were, WebAppTypeFinder would load it as an
+    ordinary base-directory assembly and the plugin path under test would be bypassed.
+    PluginDiscoveryTests copies the built dll plus a generated Description.txt into
+    <contentroot>/Plugins/Nop.Plugin.SmokeProbe/ before the host starts, and deletes them
+    afterwards. src/Presentation/Nop.Web/Plugins/* is already gitignored.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Nop.Plugin.SmokeProbe</AssemblyName>
+    <RootNamespace>Nop.Plugin.SmokeProbe</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Private="false" is load-bearing: Nop.Core must NOT be copied next to the plugin. A real
+      nopCommerce plugin resolves Nop.Core from the already-loaded host assembly, and a local
+      copy would mask the property this whole exercise is about - that the plugin is loaded into
+      the DEFAULT AssemblyLoadContext, so its BasePlugin is the SAME type as the host's and
+      PluginManager's `typeof(IPlugin).IsAssignableFrom(t)` scan finds it. In a separate context
+      that scan silently returns false and the plugin is discovered, loaded and then ignored.
+    -->
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" Private="false" />
+  </ItemGroup>
+
+</Project>

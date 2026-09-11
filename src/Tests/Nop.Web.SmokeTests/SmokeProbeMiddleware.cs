@@ -8,8 +8,10 @@ using Autofac;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Razor.Compilation;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
@@ -116,6 +118,9 @@ namespace Nop.Web.SmokeTests
                         break;
                     case "action":
                         WriteActionProbe(context, sb);
+                        break;
+                    case "adminarea":
+                        WriteAdminAreaProbe(context, sb);
                         break;
                     default:
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -269,25 +274,48 @@ namespace Nop.Web.SmokeTests
         /// asserted directly, and it is asserted in <b>install mode too</b>, where no page can be
         /// rendered to notice the breakage.
         /// </para>
-        /// <para>Query string: <c>?controller=Common&amp;action=Footer</c>.</para>
+        /// <para>Query string: <c>?controller=Common&amp;action=Footer</c>, optionally
+        /// <c>&amp;area=Admin</c>.</para>
+        /// <para>
+        /// <b>The <c>area</c> filter is not optional decoration — task 8.8 added it because two
+        /// controller+action pairs exist in BOTH areas:</b> <c>Common.LanguageSelector</c> and
+        /// <c>Widget.WidgetsByZone</c>. Without the filter, an assertion about the admin action
+        /// could be satisfied by the storefront's endpoint and vice versa, which is precisely the
+        /// "assertion that passes for the wrong reason" this suite exists to avoid. Omit the
+        /// parameter to match any area (the pre-8.8 behaviour); pass <c>area=Admin</c> to require
+        /// the admin one; pass <c>area=</c> (empty) to require an action with NO area.
+        /// </para>
         /// </remarks>
         private static void WriteActionProbe(HttpContext context, StringBuilder sb)
         {
             var controllerName = context.Request.Query["controller"].ToString();
             var actionName = context.Request.Query["action"].ToString();
-            sb.AppendLine("query=" + controllerName + "." + actionName);
+            var hasAreaFilter = context.Request.Query.ContainsKey("area");
+            var areaName = context.Request.Query["area"].ToString();
+            sb.AppendLine("query=" + controllerName + "." + actionName +
+                (hasAreaFilter ? " area=[" + areaName + "]" : " area=<any>"));
+
+            Func<ControllerActionDescriptor, bool> matches = d =>
+            {
+                if (d == null)
+                    return false;
+                if (!string.Equals(d.ControllerName, controllerName, StringComparison.OrdinalIgnoreCase) ||
+                    !string.Equals(d.ActionName, actionName, StringComparison.OrdinalIgnoreCase))
+                    return false;
+                if (!hasAreaFilter)
+                    return true;
+
+                string actual;
+                if (!d.RouteValues.TryGetValue("area", out actual))
+                    actual = null;
+                return string.Equals(actual ?? string.Empty, areaName, StringComparison.OrdinalIgnoreCase);
+            };
 
             //(a) the endpoint table - every endpoint built for this action, from the Default
             //conventional route and from any explicit MapControllerRoute that targets it.
             var sources = context.RequestServices.GetServices<EndpointDataSource>();
             var endpoints = sources.SelectMany(s => s.Endpoints)
-                .Where(e =>
-                {
-                    var d = e.Metadata.GetMetadata<ControllerActionDescriptor>();
-                    return d != null &&
-                           string.Equals(d.ControllerName, controllerName, StringComparison.OrdinalIgnoreCase) &&
-                           string.Equals(d.ActionName, actionName, StringComparison.OrdinalIgnoreCase);
-                })
+                .Where(e => matches(e.Metadata.GetMetadata<ControllerActionDescriptor>()))
                 .ToList();
 
             sb.AppendLine("endpointCount=" + endpoints.Count);
@@ -299,9 +327,12 @@ namespace Nop.Web.SmokeTests
                 if (!isSuppressed)
                     matchable++;
 
+                var descriptor = endpoint.Metadata.GetMetadata<ControllerActionDescriptor>();
                 var route = endpoint as RouteEndpoint;
                 sb.AppendLine("endpoint pattern=" + (route == null ? "<not-a-route>" : route.RoutePattern.RawText)
-                    + " suppressMatching=" + isSuppressed);
+                    + " suppressMatching=" + isSuppressed
+                    + " declaringType=" + descriptor.ControllerTypeInfo.FullName
+                    + " signature=" + Signature(descriptor));
             }
             sb.AppendLine("matchableEndpointCount=" + matchable);
 
@@ -309,11 +340,187 @@ namespace Nop.Web.SmokeTests
             var provider = context.RequestServices.GetRequiredService<IActionDescriptorCollectionProvider>();
             var descriptors = provider.ActionDescriptors.Items
                 .OfType<ControllerActionDescriptor>()
-                .Where(d => string.Equals(d.ControllerName, controllerName, StringComparison.OrdinalIgnoreCase) &&
-                            string.Equals(d.ActionName, actionName, StringComparison.OrdinalIgnoreCase))
+                .Where(d => matches(d))
                 .ToList();
             sb.AppendLine("actionDescriptorCount=" + descriptors.Count);
             sb.AppendLine("visibleToChildActionBridge=" + (descriptors.Count > 0));
+            foreach (var descriptor in descriptors)
+                sb.AppendLine("descriptorSignature=" + Signature(descriptor));
+        }
+
+        /// <summary>
+        /// A stable, readable identity for one action METHOD, so overloads can be told apart.
+        /// </summary>
+        /// <remarks>
+        /// Needed because <c>[NopChildActionOnly]</c> is applied per METHOD, not per action name,
+        /// and exactly one place in the solution exercises the difference:
+        /// <c>Nop.Admin.Controllers.CommonController.PopularSearchTermsReport</c> has a marked
+        /// parameterless overload (the child action that renders the partial) and an <b>unmarked</b>
+        /// <c>[HttpPost] (DataSourceRequest command)</c> overload (the Kendo grid data action, which
+        /// must stay URL-reachable). 3.90 had the identical shape — verified against git history.
+        /// </remarks>
+        private static string Signature(ControllerActionDescriptor descriptor)
+        {
+            if (descriptor == null)
+                return "<null>";
+            var parameters = descriptor.Parameters == null || descriptor.Parameters.Count == 0
+                ? string.Empty
+                : string.Join(",", descriptor.Parameters.Select(p => p.ParameterType.Name));
+            return descriptor.ActionName + "(" + parameters + ")";
+        }
+
+        /// <summary>
+        /// Task 8.8 — everything about the <c>Admin</c> area that is only observable from inside
+        /// the running host: how <c>Nop.Admin.dll</c> was discovered, which MVC application parts
+        /// it contributed, its compiled Razor view identifiers, whether every one of its
+        /// controllers inherited <c>[Area("Admin")]</c>, and the shape of the area route.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Task 8.2 could prove all of this only against a throwaway stand-in assembly, because
+        /// <c>Nop.Admin</c> did not compile. Task 8.8's <c>ProjectReference</c>-plus-copy
+        /// arrangement (runtime deferral 8.4-1) makes the real assembly discoverable, and
+        /// deliberately reproduces production's shape: present in the base directory, <b>absent
+        /// from <c>deps.json</c></b>, so the path-based load in
+        /// <c>AppDomainTypeFinder.LoadMatchingAssemblies</c> is the mechanism actually exercised.
+        /// </para>
+        /// <para>
+        /// Nothing here names a <c>Nop.Admin</c> type: the assembly is reached reflectively,
+        /// which is how the host reaches it and what lets this project keep its
+        /// <c>ReferenceOutputAssembly="false"</c> reference.
+        /// </para>
+        /// </remarks>
+        private static void WriteAdminAreaProbe(HttpContext context, StringBuilder sb)
+        {
+            const string adminAssemblyName = "Nop.Admin";
+            const string adminAreaName = "Admin";
+
+            //--- (1) how was the assembly discovered? ------------------------------------------
+            var loaded = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == adminAssemblyName);
+            sb.AppendLine("assemblyLoaded=" + (loaded != null));
+            if (loaded != null)
+            {
+                sb.AppendLine("assemblyLocation=" + loaded.Location);
+
+                var loadedDir = string.IsNullOrEmpty(loaded.Location)
+                    ? null
+                    : System.IO.Path.GetFullPath(System.IO.Path.GetDirectoryName(loaded.Location));
+                var baseDir = System.IO.Path.GetFullPath(
+                    AppContext.BaseDirectory.TrimEnd(System.IO.Path.DirectorySeparatorChar));
+                sb.AppendLine("assemblyInBaseDirectory=" +
+                    (loadedDir != null &&
+                     string.Equals(loadedDir, baseDir, StringComparison.OrdinalIgnoreCase)));
+
+                sb.AppendLine("assemblyLoadContextIsDefault=" +
+                    ReferenceEquals(
+                        System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(loaded),
+                        System.Runtime.Loader.AssemblyLoadContext.Default));
+            }
+
+            //The property that makes this a faithful reproduction of production rather than a
+            //different mechanism wearing the same name. If Nop.Admin ever appears in this test
+            //project's deps.json, the assembly is resolved from the trusted-platform-assemblies
+            //list and the base-directory probe is no longer under test at all.
+            var depsPath = System.IO.Path.Combine(AppContext.BaseDirectory,
+                "Nop.Web.SmokeTests.deps.json");
+            sb.AppendLine("depsJsonExists=" + System.IO.File.Exists(depsPath));
+            if (System.IO.File.Exists(depsPath))
+            {
+                sb.AppendLine("adminInDepsJson=" +
+                    System.IO.File.ReadAllText(depsPath)
+                        .Contains(adminAssemblyName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            //--- (2) MVC application parts -----------------------------------------------------
+            //Task 8.2 used ApplicationPartFactory rather than `new AssemblyPart(assembly)`
+            //precisely so a Razor-SDK assembly contributes BOTH its controllers and its compiled
+            //views. A bare AssemblyPart would register the controllers and silently leave every
+            //view unresolvable - deferral 8.1-4's failure mode arriving by another route.
+            var partManager = context.RequestServices.GetRequiredService<ApplicationPartManager>();
+            foreach (var part in partManager.ApplicationParts.Where(p => p.Name == adminAssemblyName))
+                sb.AppendLine("adminPart=" + part.GetType().Name);
+
+            //--- (3) compiled Razor view identifiers -------------------------------------------
+            var views = new ViewsFeature();
+            partManager.PopulateFeature(views);
+            var adminViews = views.ViewDescriptors
+                .Select(v => v.RelativePath ?? string.Empty)
+                .Where(p => p.StartsWith("/Areas/Admin/Views/", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            sb.AppendLine("adminViewCount=" + adminViews.Count);
+            sb.AppendLine("viewsUnderLegacyAdministrationPath=" + views.ViewDescriptors
+                .Count(v => (v.RelativePath ?? string.Empty)
+                    .StartsWith("/Administration/", StringComparison.OrdinalIgnoreCase)));
+            foreach (var probe in new[]
+            {
+                "/Areas/Admin/Views/_ViewImports.cshtml",
+                "/Areas/Admin/Views/_ViewStart.cshtml",
+                "/Areas/Admin/Views/Shared/_AdminLayout.cshtml",
+                "/Areas/Admin/Views/Shared/Menu.cshtml",
+                "/Areas/Admin/Views/Home/Index.cshtml",
+                "/Areas/Admin/Views/Product/List.cshtml"
+            })
+            {
+                sb.AppendLine("view:" + probe + "=" + adminViews.Any(
+                    p => string.Equals(p, probe, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            //--- (4) [Area("Admin")] inherited by EVERY admin controller ----------------------
+            //Declared once on the abstract BaseAdminController; AreaAttribute derives from
+            //RouteValueAttribute, which is Inherited = true. Task 8.2 proved the MECHANISM on a
+            //single probe controller and rested the COVERAGE claim on reading 54 class
+            //declarations. This counts them off the live descriptor collection instead.
+            var provider = context.RequestServices.GetRequiredService<IActionDescriptorCollectionProvider>();
+            var adminDescriptors = provider.ActionDescriptors.Items
+                .OfType<ControllerActionDescriptor>()
+                .Where(d => d.ControllerTypeInfo.Assembly.GetName().Name == adminAssemblyName)
+                .ToList();
+
+            var byController = adminDescriptors
+                .GroupBy(d => d.ControllerTypeInfo.FullName)
+                .OrderBy(g => g.Key)
+                .ToList();
+            sb.AppendLine("adminControllerCount=" + byController.Count);
+            sb.AppendLine("adminActionCount=" + adminDescriptors.Count);
+
+            var wrongArea = byController
+                .Where(g => !g.All(d =>
+                {
+                    string area;
+                    return d.RouteValues.TryGetValue("area", out area) &&
+                           string.Equals(area, adminAreaName, StringComparison.Ordinal);
+                }))
+                .Select(g => g.Key)
+                .ToList();
+            sb.AppendLine("adminControllersWithoutAreaCount=" + wrongArea.Count);
+            foreach (var name in wrongArea)
+                sb.AppendLine("controllerWithoutArea=" + name);
+
+            //--- (5) the area route itself ----------------------------------------------------
+            //3.90's AdminAreaRegistration.cs registered
+            //  "Admin_default", "Admin/{controller}/{action}/{id}",
+            //  new { controller = "Home", action = "Index", area = "Admin", id = "" }
+            //Task 8.2 preserved the name, the prefix and both defaults; `id = ""` became {id?}.
+            var routeEndpoints = context.RequestServices.GetServices<EndpointDataSource>()
+                .SelectMany(s => s.Endpoints)
+                .OfType<RouteEndpoint>()
+                .Where(e => (e.RoutePattern.RawText ?? string.Empty)
+                    .StartsWith("Admin/", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            sb.AppendLine("adminRoutePatternCount=" +
+                routeEndpoints.Select(e => e.RoutePattern.RawText).Distinct().Count());
+            foreach (var pattern in routeEndpoints.Select(e => e.RoutePattern.RawText).Distinct())
+                sb.AppendLine("adminRoutePattern=" + pattern);
+
+            var homeIndex = routeEndpoints
+                .Select(e => e.Metadata.GetMetadata<ControllerActionDescriptor>())
+                .FirstOrDefault(d => d != null &&
+                    d.ControllerTypeInfo.Assembly.GetName().Name == adminAssemblyName &&
+                    d.ControllerName == "Home" && d.ActionName == "Index");
+            sb.AppendLine("adminHomeIndexReachable=" + (homeIndex != null));
+            if (homeIndex != null)
+                sb.AppendLine("adminHomeIndexType=" + homeIndex.ControllerTypeInfo.FullName);
         }
 
         /// <summary>

@@ -99,6 +99,58 @@ namespace Nop.Web.Framework
     /// three plugin contracts are ever changed to return a view-component name instead of an
     /// action/controller/<c>RouteValueDictionary</c> triple, this class can go.
     /// </para>
+    /// <para>
+    /// <b>AREA-AWARENESS — TASK 8.8. TWO REAL DEFECTS, MEASURED BY RENDERING A REAL ADMIN PAGE
+    /// FOR THE FIRST TIME. The admin UI could not render a single page before this.</b>
+    /// Task 8.3 promoted this class from <c>Nop.Web</c> to <c>Nop.Web.Framework</c> so
+    /// <c>Nop.Admin</c>'s 69 <c>@Html.Action(...)</c> call sites could use it, but nothing
+    /// exercised it across an area boundary until the 8.8 gate made the Admin area loadable
+    /// (runtime deferral 8.4-1). Both defects came from one omission — the bridge ignored the
+    /// ambient area — and both produced a 500, not a degradation:
+    /// </para>
+    /// <list type="number">
+    /// <item><b>The child view was resolved through the NON-AREA location formats.</b>
+    /// <c>@Html.Action("NopCommerceNews", "Home")</c> from
+    /// <c>Areas/Admin/Views/Home/Index.cshtml</c> failed with <i>"the view 'NopCommerceNews' was
+    /// not found. Searched: /Themes/DefaultClean/Views/Home/…, /Views/Home/…, /Views/Shared/…"</i>
+    /// — i.e. it never looked under <c>/Areas/Admin/Views/</c>. Cause:
+    /// <c>InvokeAction</c> built the child <see cref="RouteData"/> from the caller's route values
+    /// plus <c>controller</c>/<c>action</c> only, dropping <c>area</c>, and the Razor view engine
+    /// selects its location formats from <c>RouteData</c>. Fixed by putting the resolved area
+    /// back on the child route data.</item>
+    /// <item><b>The WRONG controller was selected when a name exists in both areas.</b>
+    /// <c>@Html.Action("LanguageSelector", "Common", new { area = "Admin" })</c> from
+    /// <c>Areas/Admin/Views/Shared/_AdminLayout.cshtml</c> — the layout of every admin page —
+    /// invoked <c>Nop.Web.Controllers.CommonController</c> and died with <i>"The model item
+    /// passed into the ViewDataDictionary is of type 'Nop.Web.Models.Common.LanguageSelectorModel',
+    /// but this ViewDataDictionary instance requires a model item of type
+    /// 'Nop.Admin.Models.Common.LanguageSelectorModel'"</i>. Cause: <c>FindAction</c> matched on
+    /// action + controller NAME only, so the two same-named pairs
+    /// (<c>Common.LanguageSelector</c> and <c>Widget.WidgetsByZone</c>) were ambiguous and the
+    /// fewest-parameters tie-break decided arbitrarily. Note the call site was already passing
+    /// the area explicitly and it made no difference, because the route values were never
+    /// consulted. Fixed by preferring candidates in the caller's area.</item>
+    /// </list>
+    /// <para>
+    /// Precedence is: an explicit <c>area</c> in the caller's route values, else the ambient area
+    /// from <c>ViewContext.RouteData</c> — which is MVC 5's behaviour and what 68 of the 69 admin
+    /// call sites (and all 101 storefront ones, none of which passes an area) rely on. Matching
+    /// is a PREFERENCE, not a restriction: if no candidate is in the caller's area the search
+    /// falls back to all areas, so a plugin reaching from an admin view into a storefront action
+    /// still works exactly as it did before 8.8.
+    /// </para>
+    /// <para>
+    /// <b>Failability, measured rather than asserted.</b> With both halves reverted — the pre-8.8
+    /// state — <b>23 of the 29</b> tests in <c>Nop.Web.SmokeTests.AdminUiRenderTests</c> fail; the
+    /// only 6 that pass are the ones that do not render an admin view. Reverting the child
+    /// <c>RouteData</c> half alone fails 13. <b>Reverting the <c>FindAction</c> area preference
+    /// alone fails NOTHING, and that is recorded rather than glossed:</b> with the area correctly
+    /// on the child route data, <c>IActionDescriptorCollectionProvider</c> currently happens to
+    /// enumerate the admin candidate first, so the ambiguous pick lands on the right controller by
+    /// accident. MVC guarantees no such ordering, so the preference is kept as the thing that makes
+    /// the outcome deterministic — but no test pins it independently, and a future reader should
+    /// not assume one does.
+    /// </para>
     /// </remarks>
     public static class ChildActionExtensions
     {
@@ -139,7 +191,22 @@ namespace Nop.Web.Framework
             if (string.IsNullOrEmpty(controllerName))
                 controllerName = viewContext.RouteData.Values["controller"] as string;
 
-            return InvokeAction(viewContext, actionName, controllerName, ToRouteValues(routeValues));
+            var values = ToRouteValues(routeValues);
+
+            //=========================================================================
+            //TASK 8.8 - THE AREA. Both bugs this fixes were found by rendering a real
+            //admin page for the first time; see the AREA-AWARENESS block in the class
+            //remarks. An explicit `area` in the caller's route values wins (exactly one
+            //call site in the solution does that: _AdminLayout.cshtml's LanguageSelector);
+            //otherwise the AMBIENT area is inherited, which is what MVC 5 did and what
+            //the other 68 admin call sites rely on.
+            //=========================================================================
+            object explicitArea;
+            var areaName = values.TryGetValue("area", out explicitArea)
+                ? Convert.ToString(explicitArea)
+                : Convert.ToString(viewContext.RouteData.Values["area"]);
+
+            return InvokeAction(viewContext, actionName, controllerName, values, areaName ?? string.Empty);
         }
 
         /// <summary>
@@ -172,15 +239,15 @@ namespace Nop.Web.Framework
         }
 
         private static IHtmlContent InvokeAction(ViewContext viewContext, string actionName, string controllerName,
-            RouteValueDictionary routeValues)
+            RouteValueDictionary routeValues, string areaName)
         {
             var services = viewContext.HttpContext.RequestServices;
 
-            var descriptor = FindAction(services, actionName, controllerName);
+            var descriptor = FindAction(services, actionName, controllerName, areaName);
             if (descriptor == null)
                 throw new NopException(string.Format(
-                    "Html.Action could not find an action '{0}' on controller '{1}'. In ASP.NET Core an action is only discoverable if its controller is part of an application part.",
-                    actionName, controllerName));
+                    "Html.Action could not find an action '{0}' on controller '{1}' in area '{2}'. In ASP.NET Core an action is only discoverable if its controller is part of an application part.",
+                    actionName, controllerName, areaName));
 
             //route values the invoked action sees: the caller's, plus controller/action.
             //Anything the action does NOT declare as a parameter is still visible through
@@ -188,6 +255,17 @@ namespace Nop.Web.Framework
             var childRouteValues = new RouteValueDictionary(routeValues);
             childRouteValues["controller"] = descriptor.ControllerName;
             childRouteValues["action"] = descriptor.ActionName;
+
+            //TASK 8.8 - the area must be on the child RouteData, or the Razor view engine
+            //resolves the child view through the NON-AREA location formats and an admin view
+            //is never found. The value is taken from the descriptor rather than from
+            //`areaName`, so it is right even when FindAction fell back across areas.
+            string resolvedArea;
+            if (descriptor.RouteValues.TryGetValue("area", out resolvedArea) &&
+                !string.IsNullOrEmpty(resolvedArea))
+                childRouteValues["area"] = resolvedArea;
+            else
+                childRouteValues.Remove("area");
 
             var routeData = new RouteData();
             foreach (var kvp in childRouteValues)
@@ -208,8 +286,34 @@ namespace Nop.Web.Framework
         /// overload whose parameters the supplied route values can satisfy reproduces MVC 5's
         /// action-method selection closely enough for the call sites that exist.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>TASK 8.8 — the <paramref name="areaName"/> filter is not optional.</b> Two
+        /// controller+action pairs exist in BOTH areas: <c>Common.LanguageSelector</c> and
+        /// <c>Widget.WidgetsByZone</c>. Before this filter existed, an area-agnostic name match
+        /// made them ambiguous and the tie-break picked whichever had fewer parameters, so
+        /// <c>Areas/Admin/Views/Shared/_AdminLayout.cshtml</c> — the layout of every admin page —
+        /// invoked <b>Nop.Web</b>'s <c>CommonController.LanguageSelector</c> and died with
+        /// <i>"The model item passed into the ViewDataDictionary is of type
+        /// 'Nop.Web.Models.Common.LanguageSelectorModel', but this ViewDataDictionary instance
+        /// requires a model item of type 'Nop.Admin.Models.Common.LanguageSelectorModel'"</i>.
+        /// </para>
+        /// <para>
+        /// The fallback to an area-agnostic search is deliberate and preserves the pre-8.8
+        /// behaviour for anything that legitimately reaches across areas: a plugin's admin view
+        /// invoking a storefront action, or vice versa. Only the <i>preference</i> changed.
+        /// </para>
+        /// <para>
+        /// <b>NOT INDEPENDENTLY PINNED BY A TEST, and that is measured.</b> Reverting this
+        /// preference on its own makes no test in <c>AdminUiRenderTests</c> fail, because with the
+        /// area present on the child route data the descriptor collection currently happens to
+        /// enumerate the admin candidate first and the ambiguous pick is right by accident. MVC
+        /// guarantees no ordering, so this preference is what makes the outcome deterministic
+        /// rather than lucky — do not remove it on the grounds that nothing goes red.
+        /// </para>
+        /// </remarks>
         private static ControllerActionDescriptor FindAction(IServiceProvider services, string actionName,
-            string controllerName)
+            string controllerName, string areaName)
         {
             var provider = services.GetRequiredService<IActionDescriptorCollectionProvider>();
 
@@ -220,6 +324,11 @@ namespace Nop.Web.Framework
                              string.Equals(x.ControllerName, controllerName, StringComparison.OrdinalIgnoreCase)))
                 .ToList();
 
+            //prefer the candidates in the CALLER's area; fall back to all of them if none match
+            var inArea = candidates.Where(x => AreaOf(x) == (areaName ?? string.Empty)).ToList();
+            if (inArea.Count > 0)
+                candidates = inArea;
+
             if (candidates.Count <= 1)
                 return candidates.FirstOrDefault();
 
@@ -227,6 +336,14 @@ namespace Nop.Web.Framework
             //nopCommerce child actions have no overloads, so this only ever breaks ties
             //introduced by [HttpGet]/[HttpPost] pairs on the same name.
             return candidates.OrderBy(x => x.Parameters.Count).First();
+        }
+
+        private static string AreaOf(ControllerActionDescriptor descriptor)
+        {
+            string area;
+            if (descriptor.RouteValues != null && descriptor.RouteValues.TryGetValue("area", out area))
+                return area ?? string.Empty;
+            return string.Empty;
         }
 
         private static object CreateController(IServiceProvider services, ControllerActionDescriptor descriptor,

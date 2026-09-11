@@ -64,9 +64,12 @@
     DataSettingsHelper) independently of Nop.Web, and the migration's own rule is that direct
     usage means a direct reference.
 
-    NOT referenced: Nop.Admin. Task 7.7's scope boundary is explicit - nothing under
-    Administration/ is touched, that is group 8. One consequence IS asserted here, as a
-    known-gap test: the install page links admin CSS which does not serve (deferral 7.4-2).
+    NOT referenced FOR COMPILATION: Nop.Admin. Task 7.7's scope boundary was explicit -
+    nothing under Administration/ was touched, that is group 8. TASK 8.8 added a
+    BUILD-ORDER-ONLY reference plus an explicit copy; see the long note on
+    CopyNopAdminToSmokeTestOutput below for why it is deliberately not a compiling
+    reference. No test names a Nop.Admin type; every admin assertion reaches the assembly
+    reflectively, which is how the host itself reaches it.
   -->
 
   <PropertyGroup>
@@ -90,6 +93,104 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Presentation\Nop.Web\Nop.Web.csproj" />
     <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" />
+
+    <!--
+      ===================================================================================
+      TASK 8.8 - RUNTIME DEFERRAL 8.4-1. READ THE TARGET BELOW BEFORE CHANGING THIS.
+      ===================================================================================
+      ReferenceOutputAssembly="false" is the whole point: this establishes BUILD ORDER only.
+      It is NOT a compiling reference, no Nop.Admin assets flow into this project, and
+      Nop.Admin does NOT appear in Nop.Web.SmokeTests.deps.json. The assembly is placed in
+      the output directory by CopyNopAdminToSmokeTestOutput instead.
+    -->
+    <ProjectReference Include="..\..\Presentation\Nop.Web\Administration\Nop.Admin.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+
+    <!--
+      TASK 8.8 - runtime deferral 8.2-1. Build-order only, for the same reason and by the same
+      mechanism as the Nop.Admin reference above, but with an ADDITIONAL requirement: this
+      assembly must NOT reach the test output directory. If it did, WebAppTypeFinder would load
+      it as an ordinary base-directory assembly and it would become an application part without
+      ever going through PluginManager's shadow copy - i.e. the plugin path under test would be
+      bypassed and PluginDiscoveryTests would pass for the wrong reason.
+      PluginDiscoveryTests copies the built dll into <contentroot>/Plugins/ itself.
+    -->
+    <ProjectReference Include="..\Nop.Plugin.SmokeProbe\Nop.Plugin.SmokeProbe.csproj"
+                      ReferenceOutputAssembly="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
   </ItemGroup>
+
+  <!--
+    ===================================================================================
+    TASK 8.8 - RUNTIME DEFERRAL 8.4-1: getting Nop.Admin.dll into the directory the host
+    actually scans. DO NOT SIMPLIFY THIS INTO A PLAIN ProjectReference.
+    ===================================================================================
+    THE DEFECT. Task 8.2 wired the Admin area end to end and Nop.Admin.csproj's
+    CopyNopAdminToHostOutput target does drop Nop.Admin.dll into
+    src/Presentation/Nop.Web/bin/$(Configuration)/$(TargetFramework)/ - verified present,
+    5.8 MB. Yet Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP
+    kept passing after Nop.Admin reached 0 errors. The reason is not the wiring:
+    Nop.Core's WebAppTypeFinder scans AppDomain.CurrentDomain.BaseDirectory, and under
+    `dotnet test` that is THIS project's output directory, not Nop.Web's. Nop.Admin.dll was
+    never copied here, because this project references Nop.Web and Nop.Web deliberately does
+    not reference Nop.Admin (design section 6). So the Admin area was absent from the test
+    host, and every admin assertion deferral 8.3-2 asks for would have been vacuous.
+
+    *** WHY NOT A PLAIN ProjectReference, WHICH ALSO PUTS THE DLL HERE? ***
+    Because it would put Nop.Admin in this project's deps.json, and that changes WHICH
+    MECHANISM is under test. On .NET the default AssemblyLoadContext binds from the
+    deps.json-derived trusted-platform-assemblies list and does NOT probe the base
+    directory - that is the root cause task 8.2 measured and fixed in
+    AppDomainTypeFinder.LoadMatchingAssemblies (runtime-deferrals.md section 50). In
+    PRODUCTION (`dotnet run` on Nop.Web) Nop.Admin.dll is present in the base directory and
+    ABSENT from Nop.Web.deps.json - it is discovered by the path-based load. A plain
+    ProjectReference here would exercise the TPA path instead, i.e. it would verify the
+    admin area through a route production never takes, in exactly the respect that produced
+    the defect. ReferenceOutputAssembly="false" + an explicit copy reproduces production.
+
+    A MEASURABLE BONUS, and it closes an honest limit 8.2 recorded. 8.2's
+    Task_8_2_WebAppTypeFinder_loads_base_directory_assemblies_without_throwing said of
+    itself: "it only covers the non-regressing case ... reverting the fix would still make
+    this test pass ... task 8.8, where Nop.Admin.dll really is such an assembly, is the
+    first point at which this can be asserted for real." With this arrangement Nop.Admin.dll
+    really IS such an assembly here, so that test is now a real assertion, and 8.8 asserts
+    the deps.json absence explicitly so the property cannot silently decay into a plain
+    reference later.
+
+    BUILD-ORDER CONSEQUENCE, stated plainly. A ProjectReference of any kind makes MSBuild
+    build Nop.Admin before this project, so `dotnet test src/Tests/Nop.Web.SmokeTests` now
+    fails if Nop.Admin fails to compile. That is acceptable as of task 8.8 (Nop.Admin is at
+    0 errors) and it is confined to this TEST project - the 7.6 gate on Nop.Web is
+    untouched, because Nop.Web still has no reference to Nop.Admin in either direction.
+
+    Nop.Admin's own dependencies are already here transitively through Nop.Web - verified:
+    Autofac, AutoMapper, FluentValidation, Newtonsoft.Json, SixLabors.ImageSharp and
+    System.ServiceModel.Syndication are all present in this project's output. Only
+    Nop.Admin.dll itself was missing.
+
+    GetTargetPath is used rather than a hardcoded bin path so the source location stays
+    correct if Nop.Admin's output layout changes; it only reads the path, it does not build
+    (the ProjectReference above already guaranteed the build).
+  -->
+  <Target Name="CopyNopAdminToSmokeTestOutput" AfterTargets="Build"
+          Condition="'$(NopAdminCopyToSmokeTestOutput)' != 'false'">
+    <MSBuild Projects="..\..\Presentation\Nop.Web\Administration\Nop.Admin.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework)">
+      <Output TaskParameter="TargetOutputs" ItemName="NopAdminSmokeDrop" />
+    </MSBuild>
+    <ItemGroup>
+      <NopAdminSmokeDrop Include="@(NopAdminSmokeDrop->'%(RootDir)%(Directory)%(Filename).pdb')"
+                         Condition="Exists('%(RootDir)%(Directory)%(Filename).pdb')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(NopAdminSmokeDrop)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
+    <Error Condition="!Exists('$(OutDir)Nop.Admin.dll')"
+           Text="Nop.Admin.dll did not reach $(OutDir). Runtime deferral 8.4-1 has regressed: WebAppTypeFinder scans AppDomain.CurrentDomain.BaseDirectory, so without this file the Admin area is absent from the test host and every admin assertion in this suite is vacuous." />
+  </Target>
 
 </Project>

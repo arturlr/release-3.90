@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Threading;
 using Nop.Core.ComponentModel;
 using Nop.Core.Configuration;
@@ -354,7 +355,31 @@ namespace Nop.Core.Plugins
             shadowCopiedPlug = InitializeMediumTrust(plug, shadowCopyPlugFolder);
 
             //we can now register the plugin definition
-            var shadowCopiedAssembly = Assembly.Load(AssemblyName.GetAssemblyName(shadowCopiedPlug.FullName));
+            //
+            //TASK 8.8 - RUNTIME DEFERRAL 8.2-1 RESOLVED. This was
+            //    Assembly.Load(AssemblyName.GetAssemblyName(shadowCopiedPlug.FullName))
+            //which CANNOT WORK ON .NET and would have taken the host down at startup on the
+            //first migrated plugin. Task 8.2 MEASURED that exact call failing for an assembly
+            //that is present on disk but absent from the host's deps.json: the default
+            //AssemblyLoadContext binds from the deps.json-derived trusted-platform-assemblies
+            //list and does NOT probe directories, so it throws
+            //    System.IO.FileNotFoundException: Could not load file or assembly '...'
+            //~/Plugins/bin is in no deps.json, so every shadow-copied plugin is exactly that
+            //case. On .NET Framework it worked only because the private bin path was probed.
+            //
+            //This is the THIRD instance of one root cause. The other two were
+            //AppDomainTypeFinder.LoadMatchingAssemblies (fixed by task 8.2 - see the remarks on
+            //that method) and Nop.Admin.dll not reaching the smoke-test host's base directory
+            //(deferral 8.4-1, fixed at task 8.8). It went unnoticed here only because no plugin
+            //has been migrated yet: task 7.7 measured ReferencedPlugins non-null with 0 plugins.
+            //
+            //The DEFAULT load context is required, not incidental: an assembly loaded into a
+            //separate context gets its own copy of every nopCommerce type, so its IPlugin /
+            //IDependencyRegistrar / IRouteProvider implementations would not be assignable to
+            //the interfaces the type finder scans for - the plugin would load and then be
+            //invisible, which is worse than failing loudly.
+            var shadowCopiedAssembly = AssemblyLoadContext.Default
+                .LoadFromAssemblyPath(shadowCopiedPlug.FullName);
 
             //Task 2.4: System.Web.Compilation.BuildManager.AddReferencedAssembly has no
             //ASP.NET Core counterpart. It existed so that the System.Web Razor/MVC build

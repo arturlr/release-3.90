@@ -30,6 +30,11 @@ namespace Nop.Web.SmokeTests
     /// deferral 7.3-4 assertions read</item>
     /// <item>the configured Razor view-location expander's emitted location formats, which is what
     /// the task 8.2 / deferral 8.1-4 assertions read</item>
+    /// <item>the admin static-asset assertions (task 8.5)</item>
+    /// <item>the <c>/__smoke/adminarea</c> probe's report, which is what task 8.8's admin area /
+    /// application-part / compiled-view / controller-area assertions read</item>
+    /// <item>an ADMIN-AUTHENTICATED page fetch, which is what every assertion in
+    /// <c>AdminUiRenderTests</c> rests on</item>
     /// </list>
     /// <para>
     /// The fixture is <see cref="ExplicitAttribute"/>, so an ordinary <c>dotnet test</c> reports it
@@ -41,7 +46,8 @@ namespace Nop.Web.SmokeTests
     /// selected explicitly, the corresponding group of real assertions cannot be trusted.
     /// Task 7.7 ran this and observed 3 failed / 0 passed; the deferral 7.3-4 / 7.7-1 fix added a
     /// fourth and observed 4 failed / 0 passed; task 8.2 added a fifth and observed
-    /// 5 failed / 0 passed.
+    /// 5 failed / 0 passed; task 8.5 added a sixth; task 8.8 added a seventh and an eighth and
+    /// observed 8 failed / 0 passed.
     /// </para>
     /// </remarks>
     [TestFixture]
@@ -161,6 +167,53 @@ namespace Nop.Web.SmokeTests
             Assert.IsTrue(
                 status == System.Net.HttpStatusCode.OK && versioned.Contains("?v="),
                 "CANARY: this assertion is meant to fail. status=" + status + " versioned=" + versioned);
+        }
+        [Test]
+        public void CANARY_admin_area_probe_assertions_can_fail()
+        {
+            //Guards the task 8.8 admin-area assertions, which all read the /__smoke/adminarea
+            //probe's text report - a mechanism no other canary covers. Its lines are shaped
+            //`key=value` and asserted with substring matches, so the failure mode that would make
+            //them vacuous is a substring that never appears. adminControllerCount is 54; asserting
+            //an impossible value must be reported as a failure.
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "adminarea").Result;
+            StringAssert.Contains("adminControllerCount=999999", body,
+                "CANARY: this assertion is meant to fail.");
+        }
+
+        [Test]
+        public void CANARY_authenticated_admin_page_assertions_can_fail()
+        {
+            //Guards AdminUiRenderTests, whose assertions are HTML substring matches against pages
+            //fetched by an ADMIN-AUTHENTICATED client. Two things could make them vacuous: the
+            //sign-in silently not happening (so every page is a 302 and a DoesNotContain assertion
+            //passes trivially), or a substring that never appears. This exercises both against the
+            //same request: it signs in exactly as the fixture does, then asserts a marker no admin
+            //page emits.
+            //
+            //If NO database is installed this cannot sign in - in which case it STILL fails, on the
+            //200 assertion, which is the correct outcome for a canary.
+            var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true
+            });
+            client.PostAsync("/login", new FormUrlEncodedContent(
+                new System.Collections.Generic.Dictionary<string, string>
+                {
+                    { "Email", AdminUiRenderTests.AdminEmail },
+                    { "Password", AdminUiRenderTests.AdminPassword }
+                })).Wait();
+
+            var response = client.GetAsync("/Admin/").Result;
+            var html = response.Content.ReadAsStringAsync().Result ?? string.Empty;
+            client.Dispose();
+
+            Assert.IsTrue(
+                response.StatusCode == HttpStatusCode.OK &&
+                html.Contains("ThisMarkerIsNeverEmittedByAnyAdminPage"),
+                "CANARY: this assertion is meant to fail. status=" + (int)response.StatusCode +
+                " len=" + html.Length);
         }
     }
 }
