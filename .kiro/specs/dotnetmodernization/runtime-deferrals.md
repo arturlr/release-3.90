@@ -1536,6 +1536,16 @@ Everything below was introduced knowingly.
   equivalents). Consequences: **every theme is ignored** and the store renders from the base
   `Views/` folder; **the `/Administration/Views/…` locations are not searched at all**, so if task
   8.x leaves the admin views where 3.90 put them the whole admin UI 404s on view lookup.
+
+  > **UPDATED BY TASK 8.2.** The second half of that sentence is now obsolete in its details, and
+  > it was always understating the problem — see deferral **8.1-4** and **§50**. The
+  > `/Administration/Views/…` formats could never have matched anything even with the expander
+  > correctly registered, because the admin views are compiled into `Nop.Admin.dll` and named
+  > relative to *that* project's root. Task 8.2 removed those two formats and moved the view tree
+  > to `Areas/Admin/Views/`. What is still true, and still silent, is the theming half — **and
+  > there is now a second silent consequence:** without the expander at index 0, the admin area
+  > loses the 3.90 quirk that makes a same-named `Shared` view shadow the controller-specific one
+  > (§16.1, §50.1), because ASP.NET Core's own area formats order those the other way round.
 - **Note the ordering requirement:** ASP.NET Core searches expanders' output *before* it searches
   what the previous expander returned only in the order expanders are added. If any other expander
   is added later, add this one first.
@@ -1817,14 +1827,34 @@ The replacement is `Themes/ThemeableViewLocationExpander.cs`, ~180 lines includi
 |---|---|
 | Per-theme public-store views: `~/Themes/{theme}/Views/{controller}/{view}.cshtml` then `~/Themes/{theme}/Views/Shared/{view}.cshtml`, before the non-themed defaults | Emitted first in the expanded location list, in that order |
 | Non-themed fallbacks `~/Views/{controller}/…`, `~/Views/Shared/…` | Next in the list |
-| Admin views resolvable from `~/Administration/Views/…` for **non-area** lookups | Last two entries of the non-area list, same order as 3.90's `ViewLocationFormats` |
+| Admin views resolvable from `~/Administration/Views/…` for **non-area** lookups | Last two entries of the non-area list, same order as 3.90's `ViewLocationFormats` — **REMOVED BY TASK 8.2**, see the note below |
 | Per-theme **area** views `~/Areas/{area}/Themes/{theme}/Views/…` before `~/Areas/{area}/Views/…` | Area list, same order |
-| The "little hack to get nop's admin area to be in /Administration/ instead of /Nop/Admin/ or Areas/Admin/", applied **only** when the area name equals `admin` (case-insensitive) | Two entries prepended to the area list for that area only |
-| 3.90's exact ordering quirk inside that hack | 3.90 did two `Insert(0, …)` calls, so `…/Views/Shared/{0}.cshtml` ends up **before** `…/Views/{1}/{0}.cshtml`. Preserved **verbatim** rather than "corrected", so admin view resolution behaves as it did. Flagged here because it is surprising: a same-named Shared view shadows the controller-specific one. |
+| The "little hack to get nop's admin area to be in /Administration/ instead of /Nop/Admin/ or Areas/Admin/", applied **only** when the area name equals `admin` (case-insensitive) | Two entries prepended to the area list for that area only — **REPOINTED BY TASK 8.2 at `/Areas/{2}/Views/…`**, see the note below |
+| 3.90's exact ordering quirk inside that hack | 3.90 did two `Insert(0, …)` calls, so `…/Views/Shared/{0}.cshtml` ends up **before** `…/Views/{1}/{0}.cshtml`. Preserved **verbatim** rather than "corrected", so admin view resolution behaves as it did. Flagged here because it is surprising: a same-named Shared view shadows the controller-specific one. **Still preserved after task 8.2, and it is now the ONLY reason the admin-only prepended pair exists** — see below |
 | Theme resolved per lookup through `IThemeContext.WorkingThemeName` via `EngineContext` (3.90's `GetCurrentTheme()`) | `protected virtual GetCurrentTheme()`, same seam, same cost. Wrapped in try/catch so a not-yet-installed store resolves from the non-themed locations instead of throwing inside view lookup |
 | Per-theme cache correctness (3.90's `CreateCacheKey(prefix, name, controller, area, theme)`) | The theme name is written to `ViewLocationExpanderContext.Values`, which forms part of the framework's view-lookup cache key. **This is required, not cosmetic** — without it the first theme's resolved path would be cached and served to every store/theme |
 | `protected virtual` extensibility for plugin vendors | `PopulateValues`, `ExpandViewLocations` and `GetCurrentTheme` are `virtual`; the class is `partial` |
 | Layout ("master") theming | Now automatic: ASP.NET Core resolves a named layout through the same location pipeline, so the expander themes layouts too. This is why `WebViewPage.Layout`'s override could be deleted |
+
+> **TASK 8.2 AMENDMENT — the two `/Administration/` paths are gone; the ordering quirk is not.**
+> Deferral **8.1-4** established that `/Administration/Views/…` could never match a compiled admin
+> view, because the Razor source generator names a view relative to *its own project's* root and
+> the admin views compile into `Nop.Admin.dll`. Task 8.2 therefore:
+>
+> - **removed** `/Administration/Views/{1}/{0}.cshtml` and `/Administration/Views/Shared/{0}.cshtml`
+>   from the non-area `ThemeableViewLocationFormats`;
+> - **renamed** `AdminAreaPrefixLocationFormats` to `AdminAreaSharedFirstLocationFormats` and
+>   repointed it at `/Areas/{2}/Views/Shared/{0}.cshtml` then `/Areas/{2}/Views/{1}/{0}.cshtml`;
+> - **moved the view tree** to `src/Presentation/Nop.Web/Administration/Areas/Admin/Views/`.
+>
+> The array now holds the same two paths that `ThemeableAreaViewLocationFormats` holds, in the
+> opposite order. **That is not redundancy — it is the entire mechanism preserving 3.90's
+> Shared-before-controller shadowing**, because ASP.NET Core's own area formats put the
+> controller-specific entry first. Deleting the array compiles, renders, and silently changes which
+> view is served. Its *position* (before the themed area formats, so admin views are not themeable)
+> is preserved as well. Verified by execution — including the end-to-end rendered HTML — and
+> guarded by `Nop.Web.SmokeTests.Task_8_2_the_Admin_area_searches_Shared_BEFORE_the_controller_folder`
+> plus a regression canary. See §50.1 and §50.6.
 
 ### 16.2 What is SIMPLIFIED — six format arrays collapse to two
 
@@ -5328,7 +5358,7 @@ by string concatenation rather than written as a literal.
 | 8.1-1 | `Content/Roxy_Fileman/tmp/` does not exist, so the file manager's "download folder as zip" throws | 8.5 / 8.6 | Low |
 | 8.1-2 | Two case-sensitivity defects in `_AdminLayout.cshtml` | 8.4 | Medium |
 | 8.1-3 | `Server.MapPath` with a **relative** path has no ASP.NET Core equivalent | 8.6 | Medium |
-| 8.1-4 | The admin views' compiled Razor identifiers will be `/Views/…`, which `ThemeableViewLocationExpander` does **not** search | 8.2 / 8.4 | **High** |
+| 8.1-4 | ~~The admin views' compiled Razor identifiers will be `/Views/…`, which `ThemeableViewLocationExpander` does **not** search~~ | — | ✅ **RESOLVED by 8.2** (§50) — **option 3**: the tree was moved to `Areas/Admin/Views/`. Proved by execution, including the 3.90 Shared-first ordering quirk |
 
 ### 8.1-1 `Content/Roxy_Fileman/tmp/` does not exist
 
@@ -5371,7 +5401,15 @@ resolve them to explicit content-root-relative paths — and note that
 which does **not** exist on disk either, so 8.6 should establish what the intended target is
 rather than mechanically translating the `..`.
 
-### 8.1-4 Compiled admin view identifiers will not match the themeable view-location expander — HIGHEST IMPACT
+### 8.1-4 Compiled admin view identifiers will not match the themeable view-location expander — HIGHEST IMPACT — ✅ **RESOLVED by task 8.2, see §50**
+
+> **RESOLUTION SUMMARY.** **Option 3** was chosen, on the user's approval: the 325-view tree was
+> moved with `git mv` from `Administration/Views/` to `Administration/Areas/Admin/Views/`, so the
+> views compile as `/Areas/Admin/Views/…` and are found by ASP.NET Core's own area location
+> formats. The expander's two dead `/Administration/Views/…` formats were removed and its
+> admin-only prepended pair was repointed at `/Areas/{2}/Views/…` **keeping 3.90's Shared-first
+> order**. Everything below is the original analysis, kept because it is the measurement the
+> decision rests on. §50 records what was done, what was measured, and what remains inference.
 
 **Measured, not inferred.** The Razor source generator names a view by its path **relative to
 its own project directory**. Confirmed two ways:
@@ -5405,7 +5443,7 @@ file locations.
 a routing or area bug rather than a view-location one, so it is worth knowing the cause before
 8.2/8.4 start.
 
-**Options for 8.2/8.4, none of them decided here:**
+**Options for 8.2/8.4, none of them decided here** (**8.2 chose option 3** — see §50):
 
 1. Prefix the compiled identifiers, so views compile as `/Administration/Views/…` and the
    existing expander formats work untouched. The Razor SDK exposes this per-item
@@ -5447,3 +5485,452 @@ or admin view resolution changes behaviour.
 | **11.27** | `BaseNopModel.BindModel` no longer invoked | accepted; no override exists anywhere |
 | **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** | payment `CustomValues` JSON, request validation gone, browser detection gone, bridge skips filters | 12.1–12.5 / accepted |
 | **18 / 7.18** | ImageSharp licence diagnostic | business decision — **and it does not affect this project**, see §46.4 |
+
+
+
+---
+
+# Nop.Admin — Admin area routing, and the resolution of deferral 8.1-4 (task 8.2)
+
+Task 8.2 replaced 3.90's `AreaRegistration` with ASP.NET Core area routing **and** resolved
+HIGH deferral **8.1-4** by relocating the 325-view tree into a real area. It also had to solve
+the question 8.1 flagged as the load-bearing unknown — *how the `Nop.Web` host discovers
+`Nop.Admin.dll` at all* — and while solving it **found that the mechanism the whole design
+depended on does not work on .NET, and would have taken the storefront down at startup.**
+
+| Measurement | Value |
+|---|---|
+| upstream re-gate, `--no-incremental` after `rm -rf obj bin` | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 — every one matching its recorded baseline exactly, **no warning added** |
+| swallowed-diagnostics check, all five | `"converted to a warning"` **0** · `ContinueOnError` **0** · `NU1901`–`NU1904` **0** |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| `Nop.Web.SmokeTests` | **54 passed / 0 failed / 18 skipped** (was 48/0/18). All 48 previously-passing tests still pass; **+6** new |
+| `HarnessCanaryTests` (`[Explicit]`) | **5 failed / 0 passed** — a fifth canary was added for the view-location-expander mechanism (§50.6) |
+| `Nop.Admin` | **2953 unique** `CS*`/`RZ*` diagnostics across **672** files (was 2959/673), 10 warnings, **0 of them originating in Nop.Admin** |
+| resolved item sets | `Compile` **277** · `Content` **340** · leakage outside `Administration/` **0** — unchanged by the move |
+| files moved | **326** with `git mv` (325 `.cshtml` + `Views/Web.config`), all recorded by git as renames |
+| probe | 22 executed assertions, **22 pass**; probe proven able to fail two ways (§50.6); deleted, `git status` clean of it |
+
+## 50. Task 8.2 — what changed
+
+### 50.1 Deferral 8.1-4 RESOLVED — option 3, the views moved into a real area
+
+**What was done**
+
+- `git mv src/Presentation/Nop.Web/Administration/Views` →
+  `src/Presentation/Nop.Web/Administration/Areas/Admin/Views`. 326 files, all detected as
+  renames.
+- **35 explicit `~/Administration/Views/…` view paths inside the admin views were rewritten to
+  `~/Areas/Admin/Views/…`.** This is not cosmetic and it is not 8.4's: an explicit `~/`-rooted
+  view path bypasses location formats entirely and is resolved directly against the compiled
+  identifier, so leaving them stale would have broken **every admin page**. The 35 are
+  `Areas/Admin/Views/_ViewStart.cshtml` (`Layout = "~/…/Shared/_AdminLayout.cshtml"`, i.e. the
+  layout of the entire admin UI) plus 34 popup views naming `_AdminPopupLayout.cshtml`.
+- `Nop.Admin.csproj`: the publish exclusion moved from `Views\Web.config` to
+  `Areas\Admin\Views\Web.config`.
+- `Nop.Web.Framework/Themes/ThemeableViewLocationExpander.cs`:
+  - the two `/Administration/Views/…` entries were **removed** from
+    `ThemeableViewLocationFormats`. They could never match anything (that is deferral 8.1-4) and
+    keeping them would have been two wasted probes per lookup plus a false signal that admin view
+    resolution was handled;
+  - `AdminAreaPrefixLocationFormats` was renamed `AdminAreaSharedFirstLocationFormats` and
+    repointed at `/Areas/{2}/Views/Shared/{0}.cshtml` then `/Areas/{2}/Views/{1}/{0}.cshtml`.
+
+**How the 3.90 ordering quirk was preserved — and why the array still exists at all**
+
+§16.1 records that 3.90's `GetPath()` did two `Insert(0, …)` calls, so
+`~/Administration/Views/Shared/{0}.cshtml` ended up **ahead of**
+`~/Administration/Views/{1}/{0}.cshtml` and a same-named `Shared` view **shadows** the
+controller-specific one. ASP.NET Core's own area formats — and this expander's
+`ThemeableAreaViewLocationFormats` — order them the **other** way round.
+
+The quirk is preserved by keeping the admin-only prepended pair, in 3.90's order, ahead of the
+ordinary area formats. The array now contains the same two paths that the general area formats
+contain, in the opposite order, which looks redundant and is not: **it is the only thing making
+`Shared` win.** Deleting it compiles, renders, and silently changes which view is served. The
+class comment says so, a smoke test asserts it, and a regression canary proved the test detects
+its removal (§50.6).
+
+The array's **position** is preserved too: in 3.90 the `/Administration/` entries came *before*
+the themed area formats, so admin views were never themeable. That is unchanged.
+
+**Why option 3 and not the other two**
+
+- **Option 1 (prefix the compiled identifiers)** depends on `_RazorGenerateRelativePath`-style
+  Razor SDK item metadata that is effectively an implementation detail.
+- **Option 2 (repoint the expander at `/Views/…`)** is a genuine correctness hazard: those are
+  already the storefront's non-themed fallbacks, and both projects have a `Views/Product/`, so a
+  same-named view could resolve to the wrong project's copy.
+- **Option 3** is what ASP.NET Core's area conventions are for, it is coherent with this task
+  introducing `[Area("Admin")]`, and doing the move **now** avoided touching all 325 views twice
+  (8.4 edits every one of them). It also makes the "little hack" in §16.1 — which existed solely
+  to serve `/Administration/` instead of `Areas/Admin/` — redundant except for the ordering.
+
+### 50.2 The `AreaRegistration` replacement
+
+`AdminAreaRegistration.cs` was **deleted**. `System.Web.Mvc.AreaRegistration`,
+`AreaRegistrationContext` and `AreaRegistration.RegisterAllAreas()` have no ASP.NET Core
+counterpart at all: an area is a route value declared by `[Area]` plus an endpoint registered
+with `MapAreaControllerRoute`, and nothing discovers areas for you.
+
+**3.90, verbatim** (read from the deleted file, not from `tasks.md`):
+
+```csharp
+public override string AreaName { get { return "Admin"; } }
+context.MapRoute(
+    "Admin_default",
+    "Admin/{controller}/{action}/{id}",
+    new { controller = "Home", action = "Index", area = "Admin", id = "" },
+    new[] { "Nop.Admin.Controllers" });
+```
+
+**New:** `src/Presentation/Nop.Web/Administration/Infrastructure/RouteProvider.cs` —
+
+```csharp
+routeBuilder.MapAreaControllerRoute("Admin_default", "Admin",
+    "Admin/{controller=Home}/{action=Index}/{id?}");
+```
+
+contributed through nopCommerce's own `IRouteProvider`, which `RoutePublisher` discovers
+reflectively through `ITypeFinder` — i.e. from `Nop.Admin` itself, with no declaration in the
+host and no `Global.asax` (deleted at 7.2). The URL prefix, the **route name**, the default
+controller and the default action are all 3.90's. `tasks.md` suggested the name `"areaAdmin"`;
+3.90's was `"Admin_default"` and that is what shipped — nothing generates URLs by it (checked),
+so keeping 3.90's name is free.
+
+Two things could not be carried over literally:
+
+- **`string[] namespaces` is gone.** It became `DataTokens["Namespaces"]` in MVC 5 and has no
+  ASP.NET Core counterpart — controller discovery is application-part based. Dropped, as
+  `IRouteProvider`'s own remarks instruct.
+- **`id = ""` became `{id?}`.** MVC 5 could only make a trailing segment optional by giving it a
+  default, so `/Admin/Product/Edit` matched with `RouteData.Values["id"] == ""`; with `{id?}` the
+  value is simply **absent**. **Verified harmless:** no file under `Administration/` reads
+  `RouteData.Values["id"]` (grep), and every admin action taking an id declares it as a method
+  parameter, for which `""` and absent bind identically. Recorded because it is an observable
+  difference, not because it has a known consequence.
+
+**`[Area("Admin")]` is declared once, on `BaseAdminController`, not on 54 files.**
+`AreaAttribute` derives from `RouteValueAttribute`, which is `Inherited = true`, and all 54
+concrete admin controllers derive from `BaseAdminController` (verified by reading every `class X :`
+declaration under `Controllers/` — 54 of 54). **The inheritance was verified by execution**, not
+assumed: the probe built a controller deriving from an abstract base carrying `[Area("Admin")]`
+and asserted `ControllerActionDescriptor.RouteValues["area"] == "Admin"`. Note for 8.3: a new
+admin controller that does **not** derive from `BaseAdminController` needs its own `[Area]`, and
+the area value is what makes admin views resolvable at all — a controller without it fails **view
+lookup**, not routing.
+
+`BaseAdminController.cs` also gained `using Microsoft.AspNetCore.Mvc;` (for the attribute).
+`using System.Web.Mvc;` was left in place; 8.3 owns removing it.
+
+**`Priority` is `int.MaxValue`.** 3.90's `Application_Start` called `RegisterAllAreas()` *before*
+`RegisterRoutes(...)` and MVC 5's `RouteCollection` stopped at the first match, so the admin route
+was tried before every storefront route. Endpoint routing compares `Endpoint.Order` **before**
+pattern precedence (measured at 7.3, §28.2) and MVC assigns an auto-incrementing order per `Map*`
+call, so registering first is what reproduces 3.90's outcome. In practice the ordering is
+immaterial — no storefront pattern begins with the literal segment `admin` — but it is
+deterministic, where two providers sharing priority 0 would depend on the order `ITypeFinder`
+happens to return assemblies in.
+
+### 50.3 THE LOAD-BEARING UNKNOWN — and the mechanism that did not work
+
+`Nop.Web` and `Nop.Admin` are deliberate **siblings**: design §6 records that neither references
+the other, and that in 3.90 the relationship was a build/deploy one — `Nop.Admin`'s `OutputPath`
+was `..\bin\`, so `Nop.Admin.dll` landed in `Nop.Web\bin`, `System.Web`'s `BuildManager` loaded
+**every** assembly in `bin` implicitly, and `AreaRegistration.RegisterAllAreas()` then found the
+area by reflecting over loaded assemblies. **.NET has neither of those two mechanisms**, so an
+explicit host-side statement is unavoidable.
+
+**A `ProjectReference` from `Nop.Web` was considered and rejected**, on three grounds, the second
+of which is decisive today:
+
+1. it converts design §6's build/deploy relationship into a **compile-time** one, so `Nop.Web`
+   can no longer build on its own;
+2. it couples the **7.6 gate to the 8.8 gate** — MSBuild builds project references first, so with
+   `Nop.Admin` at ~3000 errors, `Nop.Web` (0 errors / 15 warnings) would **stop building
+   entirely**, which is a hard regression;
+3. the design calls them siblings in both directions.
+
+The shipped answer has three parts.
+
+**(a) The assembly must be in the host's base directory.** `Nop.Admin.csproj` gains a
+`CopyNopAdminToHostOutput` target (`AfterTargets="Build"`) that copies `Nop.Admin.dll` (+ `.pdb`)
+into `src/Presentation/Nop.Web/bin/$(Configuration)/$(TargetFramework)/`. This reproduces 3.90's
+drop, directionally (`Nop.Admin` → `Nop.Web`, exactly as 3.90's `OutputPath` was), so it adds no
+compile-time reference, no MSBuild build-order coupling, and cannot make `Nop.Web` fail. It is a
+copy rather than a shared `OutputPath` because two projects writing one directory would let a
+clean or rebuild of either clobber the other. It is guarded by `Exists()` on the destination
+(creating it would leave a stray dll in a folder with no host) and by `ContinueOnError`, with an
+explicit `Message` when the host has not been built. **Verified by execution** — with a source
+file present, MSBuild reported
+`Copying file from ".../Administration/bin/Debug/net10.0/Nop.Admin.dll" to ".../Nop.Web/bin/Debug/net10.0/Nop.Admin.dll"`
+and the file landed there.
+It can be disabled with `-p:NopAdminCopyToHostOutput=false`.
+
+**(b) THE DEFECT: `AppDomainTypeFinder.LoadMatchingAssemblies` could not load it, and threw.**
+
+The plan was to reuse `Nop.Core`'s `WebAppTypeFinder`, which already loads every matching
+assembly in `AppDomain.CurrentDomain.BaseDirectory` — because that is what already makes a
+sibling's `IDependencyRegistrar`, `IRouteProvider`, `IStartupTask` and AutoMapper profile
+discoverable, and reusing it means one discovery rule in the process rather than two. **Measured
+with a probe that placed an assembly in the host's base directory and not in its `deps.json`:**
+
+```
+FileNotFoundException: Could not load file or assembly
+  'Nop.ProbeAdminLike, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null'.
+  at System.AppDomain.Load(AssemblyName)
+  at Nop.Core.Infrastructure.AppDomainTypeFinder.LoadMatchingAssemblies(String)
+  at Nop.Core.Infrastructure.WebAppTypeFinder.GetAssemblies()
+```
+
+3.90's `AppDomain.Load(AssemblyName)` worked because .NET Framework probed the application's
+private bin path. On .NET the default `AssemblyLoadContext` binds from the host's
+trusted-platform-assemblies list, **built from `<app>.deps.json`**, and does **not** probe the
+base directory. And because only `BadImageFormatException` was caught, the exception escaped
+`WebAppTypeFinder.GetAssemblies()` — so dropping `Nop.Admin.dll` next to `Nop.Web.dll` would not
+merely have failed to load the admin, it would have **stopped the storefront booting**, from
+inside `NopHostedEngine.RegisterInto`, before anything could report the cause.
+
+**Fix (in `Nop.Core`, gated at 2.5, re-gated at 0 errors / 3 warnings):**
+`LoadMatchingAssemblies` now loads by **path** —
+`AssemblyLoadContext.Default.LoadFromAssemblyPath(dllPath)` — which is the .NET equivalent of
+what 3.90 intended, and traces rather than throws on any load failure so a single stray or
+unloadable file in the output directory cannot stop the application starting. The **default**
+load context is used deliberately: an assembly in a separate context would get its own copy of
+every nopCommerce type, so nothing it contributed would be assignable to the interfaces the
+finder scans for. Verified by the probe: after the fix `WebAppTypeFinder.GetAssemblies()` loads
+the satellite, does not throw, and `FindClassesOfType<IRouteProvider>()` returns its route
+provider.
+
+**(c) MVC application parts.** New
+`Nop.Web.Framework/Infrastructure/NopApplicationPartExtensions.cs`. `AddControllersWithViews()`
+seeds the `ApplicationPartManager` from the **entry assembly's** `DependencyContext`, i.e. from
+`Nop.Web.deps.json`, so `Nop.Admin` is absent from it and its controllers are not routable and
+its compiled views not findable. `AddNopFramework` now also calls
+`ConfigureApplicationPartManager(NopApplicationPartExtensions.AddNopDiscoveredApplicationParts)`,
+which contributes every assembly the type finder loaded and is not already a part.
+
+Two details that matter:
+
+- **`ApplicationPartFactory` is used, not `new AssemblyPart(assembly)`.** A Razor-SDK assembly
+  carries `[ProvideApplicationPartFactory]` naming `ConsolidatedAssemblyApplicationPartFactory`,
+  which yields **both** the `AssemblyPart` (controllers) and the Razor part (compiled views). The
+  probe confirmed both appear: `Nop.ProbeAdminLike[AssemblyPart]` **and**
+  `Nop.ProbeAdminLike[CompiledRazorAssemblyPart]`. A bare `AssemblyPart` would have registered
+  the controllers and silently left every view unresolvable — which is deferral 8.1-4's failure
+  mode arriving by a different route.
+- **This also fixes a latent half-closure of deferral 1.2.**
+  `NopServiceCollectionExtensions.AddPluginApplicationParts` used exactly that bare
+  `new AssemblyPart(assembly)`, so a plugin's **compiled Razor views were never contributed**.
+  Its body moved to `NopApplicationPartExtensions` and now shares the factory-based routine; the
+  old method is retained as a delegating shim because it is public API.
+
+**Accepted cost, stated plainly:** the type finder's assembly set is used rather than a narrower
+filter, so the three libraries and a handful of third-party assemblies
+(`SkiaSharp`, `StackExchange.Redis`, `Azure.Core`, `netstandard`, …) also become parts and are
+scanned once at startup for controllers/view components/tag helpers, of which they contain none.
+A cleverer filter (for example "references an MVC assembly") was rejected because getting it
+wrong fails **silently** — views simply not found — which is the exact failure class this task
+exists to remove. The set is already what `NopEngine` reflects over, so this adds no new
+reflection surface, and the probe verified a host with those parts starts and serves correctly.
+
+### 50.4 What was proved by execution, and what remains inference
+
+`Nop.Admin` does not compile (2953 errors, tasks 8.3/8.4), so the real assembly could not be
+exercised. A throwaway probe was therefore built **outside** the migrated projects and deleted
+afterwards (`git status` verified clean): a `Microsoft.NET.Sdk.Web` library standing in for
+`Nop.Admin` — `Areas/Admin/Views/**`, a concrete controller deriving from an abstract base
+carrying `[Area("Admin")]`, an `IRouteProvider` calling `MapAreaControllerRoute` — plus a host
+referencing only `Nop.Web.Framework` and **deliberately not referencing the satellite**, which
+did the two things `AddNopFramework` does that matter here.
+
+**PROVED BY EXECUTION (22/22):**
+
+| Assertion | Result |
+|---|---|
+| the satellite is in the host's base directory and **absent from its `deps.json`** | ✅ |
+| `AppDomain.Load(AssemblyName)` — 3.90's call — **FAILS** for it | ✅ `FileNotFoundException` |
+| after the `Nop.Core` fix, `WebAppTypeFinder.GetAssemblies()` **does not throw** and loads it into the **default** context | ✅ |
+| `WebAppTypeFinder.FindClassesOfType<IRouteProvider>()` finds the satellite's provider | ✅ |
+| **compiled Razor identifiers are `/Areas/Admin/Views/…`** and **none** carries an `/Administration/` prefix | ✅ 6/6 |
+| the satellite becomes an application part — as **both** `AssemblyPart` and `CompiledRazorAssemblyPart` | ✅ |
+| its controller action is discovered by `IActionDescriptorCollectionProvider` | ✅ |
+| **`[Area("Admin")]` on the abstract base is INHERITED** — `RouteValues["area"] == "Admin"` | ✅ |
+| `ICompositeViewEngine.FindView` for a view present in **both** `Shared` and the controller folder resolves to **`Shared`** — the 3.90 quirk | ✅ |
+| a controller-folder-only view and a `Shared`-only view both still resolve | ✅ |
+| the expander emits `Shared` before the controller entry for the Admin area, and **no** `/Administration/` location | ✅ |
+| the **storefront** (non-area) formats are unchanged and the framework defaults remain the final fallback | ✅ |
+| **`GET /Admin/ProbeThing/Both` → 200**, via `MapAreaControllerRoute` registered from the satellite's own `IRouteProvider` | ✅ |
+| the rendered body is the **`Shared`** view, wrapped by the layout `_ViewStart` resolved through an explicit `~/Areas/Admin/…` path | ✅ |
+| `GET /ProbeThing/Both` (no `Admin` prefix) → **404**, i.e. the prefix is required | ✅ |
+
+**STILL INFERENCE — what task 8.8 must confirm with the real assembly:**
+
+1. that `Nop.Admin.dll` specifically loads, contributes both part types, and yields **325**
+   compiled identifiers under `/Areas/Admin/Views/`;
+2. that all **54** concrete controllers really do inherit the area value (the probe proved the
+   *mechanism* on one controller; the *coverage* claim rests on reading the 54 class
+   declarations);
+3. that the post-build copy fires in a real `Build` (the target was exercised via
+   `-t:CopyNopAdminToHostOutput` with a source file present, not via a successful compile, because
+   `AfterTargets="Build"` cannot run while the build fails);
+4. that `GET /Admin/` reaches `Nop.Admin.Controllers.HomeController.Index`;
+5. `Nop.Web.SmokeTests.Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP`
+   **must be inverted at 8.8** — leaving it as-is would mean the suite asserts the bug.
+
+### 50.5 A required project property that would have failed the 8.8 gate
+
+`Nop.Admin.csproj` gains **`<OutputType>Library</OutputType>`**. `Microsoft.NET.Sdk.Web` defaults
+`OutputType` to `Exe` — measured, `dotnet msbuild -getProperty:OutputType` returns `Exe` with the
+property removed — and `Nop.Admin` has no `Main`, so the build ends with
+`CSC : error CS5001: Program does not contain a static 'Main' method suitable for an entry point`.
+That was observed on the probe.
+
+**Worth recording because the naive check was misleading:** removing the property *today* does
+**not** produce CS5001, because Roslyn never reaches entry-point resolution while the compilation
+has ~3000 **declaration-phase** errors — the same phase-ordering behaviour §19 records. The probe
+reproduced both sides (with only a method-**body** error, CS5001 was reported; with declaration
+errors, it was not). So CS5001 would have surfaced for the first time exactly when 8.3/8.4
+finished and the gate was expected to pass. `Microsoft.NET.Sdk.Web` remains the right SDK — it
+imports the Razor SDK, which compiles the 325 views.
+
+### 50.6 Tests added, and proof they can fail
+
+Six always-run assertions in `Nop.Web.SmokeTests/HostAndContainerTests.cs`, reading the
+**configured** expander and application-part manager out of the **real** `Nop.Web` host — which
+is stronger than the probe, whose host was synthetic:
+
+| Test | What it protects |
+|---|---|
+| `Task_8_2_the_Admin_area_searches_Shared_BEFORE_the_controller_folder` | the 3.90 quirk (§16.1) |
+| `Task_8_2_the_expander_emits_no_Administration_location_deferral_8_1_4` | the 8.1-4 fix, for area, other-area and non-area lookups |
+| `Task_8_2_the_storefront_view_locations_are_unchanged` | no storefront regression from editing the gated expander |
+| `Task_8_2_the_sibling_UI_application_part_mechanism_ran_in_the_real_host` | `AddNopDiscoveredApplicationParts` actually executes |
+| `Task_8_2_WebAppTypeFinder_loads_base_directory_assemblies_without_throwing` | the changed `Nop.Core` path still works — **weak, see below** |
+| `Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP` | records the current state; **8.8 must invert it** |
+
+**Honest limit.** The `WebAppTypeFinder` test only covers the non-regressing case: every assembly
+in that host's base directory *is* in its `deps.json`, so reverting the `Nop.Core` fix would still
+make it pass. The behaviour is evidenced by the probe, and 8.8 — where `Nop.Admin.dll` really is
+such an assembly — is the first point at which it can be asserted for real. The test says so.
+
+**Proof the assertions can fail**, two independent ways:
+
+1. **A permanent fifth canary**,
+   `HarnessCanaryTests.CANARY_view_location_expander_assertions_can_fail`, guarding the one
+   mechanism no existing canary covered (reading location formats off the configured expander).
+   The `[Explicit]` fixture now reports **5 failed / 0 passed**.
+2. **A temporary regression, then reverted.** With `AddRange(AdminAreaSharedFirstLocationFormats)`
+   replaced by a re-added `/Administration/…` format **and** the
+   `AddNopDiscoveredApplicationParts` registration commented out, the suite reported
+   **3 failed / 51 passed / 18 skipped** — precisely
+   `…searches_Shared_BEFORE_the_controller_folder`, `…emits_no_Administration_location…` and
+   `…application_part_mechanism_ran_in_the_real_host`, and **nothing else**. The probe was
+   likewise re-run with the ordering fix disabled and reported **3 failed** (`5a`, `5d`, `6b`) —
+   including the end-to-end HTTP body flipping from `[SHARED-BOTH]` to `[CONTROLLER-BOTH]`, which
+   is the silent behaviour change in its observable form. Both files were restored and the full
+   suite re-run green.
+
+### 50.7 Error inventory after 8.2, for tasks 8.3 / 8.4
+
+**2953 unique `CS*`/`RZ*` diagnostics across 672 files** (8.1 measured 2959/673 — the delta is
+the deleted `AdminAreaRegistration.cs` and the `using Microsoft.AspNetCore.Mvc;` added to
+`BaseAdminController`). Composition unchanged: `CS0246` (`System.Web.Mvc` types) dominates, then
+`CS0234` (360), `RZ1002` `@helper` (156), `CS0103` (10), `RZ2005`/`RZ1011` (8 each). **No CS5001.**
+Distribution by directory: `Controllers` 4806 diagnostic lines, `Models` 2202, `Areas` 676 (the
+views), `Helpers` 8, `Extensions` 4.
+
+**The `_ViewImports.cshtml` leverage point is unchanged in size but has MOVED:** the file 8.4 must
+create first is now **`Areas/Admin/Views/_ViewImports.cshtml`**, from
+`Areas/Admin/Views/Web.config`'s `pageBaseType` + `<namespaces>`. Razor's upward walk from
+`Areas/Admin/Views/<Controller>/X.cshtml` reaches `Areas/Admin/Views/` → `Areas/Admin/` →
+`Areas/` → project root, so one file at `Areas/Admin/Views/` covers the whole tree (there is no
+`Themes/` tree here — deferral 7.5-1's per-tree rule is satisfied by one file).
+
+## 51. NEW deferrals opened by task 8.2
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 8.2-1 | `PluginManager.PerformFileDeploy` loads shadow-copied plugin assemblies by **name**, which cannot work on .NET | 10.x (first plugin task) | **High** |
+| 8.2-2 | `dotnet publish` of `Nop.Web` does not include `Nop.Admin.dll` | 8.5 / 18.x | Medium |
+| 8.2-3 | 12 plugin view sites still reference the old `~/Administration/Views/Shared/…` paths | 11.1–11.2, 13.1, 14.4, 15.1 | Medium |
+
+### 8.2-1 Plugin assemblies cannot be loaded by name either — the same defect, wider blast radius
+
+`Nop.Core/Plugins/PluginManager.cs` line ~357 does
+
+```csharp
+var shadowCopiedAssembly = Assembly.Load(AssemblyName.GetAssemblyName(shadowCopiedPlug.FullName));
+```
+
+on a plugin shadow-copied into `~/Plugins/bin`. **That is the same call, in the same failing
+situation, as the `AppDomainTypeFinder` defect §50.3 measured**: `~/Plugins/bin` is in no
+`deps.json`, so the default load context cannot resolve the assembly by name and
+`Assembly.Load` throws `FileNotFoundException`. On .NET Framework it worked because the private
+bin path was probed.
+
+- **Why it has not been observed.** No plugin has been migrated (groups 10–15), so there is no
+  `Description.txt` for `PluginManager.Initialize()` to find — task 7.7 measured
+  `ReferencedPlugins` non-null with **0 plugins**. The scan runs; nothing is ever loaded.
+- **Impact if unfixed:** the **entire plugin subsystem** fails on the first real plugin, and it
+  fails at startup rather than at use. This is a blocker for group 10 onwards, not a nicety.
+- **Fix:** the same one-line change §50.3 applied —
+  `AssemblyLoadContext.Default.LoadFromAssemblyPath(shadowCopiedPlug.FullName)`. It must be the
+  **default** context, or plugin types will not be assignable to nopCommerce interfaces.
+- **Deliberately not done here.** It is outside task 8.2's scope, it is unexercised until a
+  plugin exists, and `PerformFileDeploy` has other .NET-porting questions around it (deferral 1.2's
+  `BuildManager.AddReferencedAssembly`, the shadow-copy locking semantics) that the plugin task
+  should decide together.
+
+### 8.2-2 `dotnet publish` of `Nop.Web` does not include `Nop.Admin.dll`
+
+§50.3(a)'s copy target hooks `AfterTargets="Build"` and writes into `Nop.Web`'s **build** output.
+Publish is computed from `Nop.Web`'s own item graph, so a published storefront has no
+`Nop.Admin.dll` and therefore **no admin area at all** — routes absent, views absent, silently.
+
+- **Remedy:** publish both projects into one directory, or add a publish-time equivalent of the
+  copy. This interacts with task 8.5, which owns admin static assets and already has to decide how
+  `Administration/Content` and `Administration/Scripts` reach a deployment, and with 18.x's
+  full-solution work.
+- Not solved here because a publish-time answer needs 8.5's decision, and because a `Build`-only
+  copy is sufficient for the 8.8 gate and for `dotnet run`.
+
+### 8.2-3 Twelve plugin view sites still reference the pre-8.2 admin view paths
+
+The admin view tree moved, so these break. All are in unmigrated legacy plugin projects owned by
+tasks 11–15, which have to touch every one of these views anyway (they are MVC 5 Razor), so they
+were **not** edited here — but a stale path is exactly the kind of thing that gets missed, so the
+full list is recorded:
+
+| File | Line(s) | Reference |
+|---|---|---|
+| `Nop.Plugin.DiscountRules.HasOneProduct/Views/ProductAddPopup.cshtml` | 2, 126 | `_AdminPopupLayout.cshtml`, `_GridPagerMessages.cshtml` |
+| `Nop.Plugin.Feed.GoogleShopping/Views/Configure.cshtml` | 279 | `_GridPagerMessages.cshtml` |
+| `Nop.Plugin.Pickup.PickupInStore/Views/Configure.cshtml` | 57 | `_GridPagerMessages.cshtml` |
+| `Nop.Plugin.Pickup.PickupInStore/Views/Create.cshtml` | 2 | `_AdminPopupLayout.cshtml` |
+| `Nop.Plugin.Pickup.PickupInStore/Views/Edit.cshtml` | 2 | `_AdminPopupLayout.cshtml` |
+| `Nop.Plugin.Shipping.FixedOrByWeight/Views/AddRateByWeightPopup.cshtml` | 2 | `_AdminPopupLayout.cshtml` |
+| `Nop.Plugin.Shipping.FixedOrByWeight/Views/EditRateByWeightPopup.cshtml` | 2 | `_AdminPopupLayout.cshtml` |
+| `Nop.Plugin.Shipping.FixedOrByWeight/Views/_ByWeight.cshtml` | 71 | `_GridPagerMessages.cshtml` |
+| `Nop.Plugin.Shipping.FixedOrByWeight/Views/_FixedRate.cshtml` | 61 | `_GridPagerMessages.cshtml` |
+| `Nop.Plugin.Tax.FixedOrByCountryStateZip/Views/_CountryStateZip.cshtml` | 80 | `_GridPagerMessages.cshtml` |
+| `Nop.Plugin.Tax.FixedOrByCountryStateZip/Views/_FixedRate.cshtml` | 60 | `_GridPagerMessages.cshtml` |
+
+The fix is mechanical: `~/Administration/Views/…` → `~/Areas/Admin/Views/…`. Note it must be the
+explicit path, not a bare view name: these are cross-assembly references to views compiled into
+`Nop.Admin.dll`, and a plugin's own `Views/` folder has no `Shared` in the admin area's location
+chain.
+
+## 52. Deferrals explicitly NOT closed by 8.2, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **7.4-2** (admin static assets half) | admin `Content/`/`Scripts/` still do not **serve** | **8.5**. Unchanged by this task: `NopStaticFileProvider`'s allow-list excludes `Administration/`, which also keeps the relocated `Areas/Admin/Views/**/*.cshtml` unreachable over HTTP — correct, and worth noting the move did not widen that surface |
+| **8.1-1** | `Content/Roxy_Fileman/tmp/` does not exist | 8.5 / 8.6 |
+| **8.1-2** | two casing defects in `Areas/Admin/Views/Shared/_AdminLayout.cshtml` (the file moved; the line numbers 43 and 99 are unchanged) | 8.4 |
+| **8.1-3** | `Server.MapPath` with a relative path in `RoxyFilemanController` | 8.6 |
+| **7.3-1** | the `Html.Action` bridge lives in `Nop.Web` and the admin views need it | 8.3 — recommend promoting it to `Nop.Web.Framework` |
+| **7.3-4** | apply `[NopChildActionOnly]` to the admin actions | 8.3. The mechanism is finished (§45.1) |
+| **18.4** | `CA1416` at the two `Nop.Admin` `CommonController` call sites | 8.3 — still not visible, the file has too many errors for the analyser to run |
+| **35** | minification gone; and the two inert bundling checkboxes in `Areas/Admin/Views/Setting/GeneralCommon.cshtml` | post-migration / 8.4 |
+| **7.7-2** | the smoke project is not in `NopCommerce.sln` | 18.1 |
+| **7.2-3** · **7.4-1** · **7.7-3** · **11.27** · **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** · **4.10** · **4.11** · **9/4.9** · **18/7.18** | unchanged | as previously recorded |

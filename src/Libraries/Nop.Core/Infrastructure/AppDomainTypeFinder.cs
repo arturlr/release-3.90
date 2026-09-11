@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text.RegularExpressions;
 
 namespace Nop.Core.Infrastructure
@@ -234,6 +235,49 @@ namespace Nop.Core.Infrastructure
         /// <param name="directoryPath">
         /// The physical path to a directory containing dlls to load in the app domain.
         /// </param>
+        /// <remarks>
+        /// <para>
+        /// <b>TASK 8.2 — this method did not work on .NET, and the failure was fatal rather than
+        /// silent. MEASURED, not inferred.</b> 3.90 called <c>AppDomain.Load(AssemblyName)</c>,
+        /// which on .NET Framework probed the application's private bin path and therefore
+        /// resolved any assembly sitting in <c>bin</c>. On .NET the default
+        /// <see cref="AssemblyLoadContext"/> binds from the host's <b>trusted-platform-assemblies
+        /// list, built from <c>&lt;app&gt;.deps.json</c></b>, and does <b>not</b> probe the base
+        /// directory. A .NET 10 probe placed an assembly in the host's base directory but not in
+        /// its <c>deps.json</c> and got:
+        /// </para>
+        /// <code>
+        /// System.IO.FileNotFoundException: Could not load file or assembly
+        ///   'Nop.ProbeAdminLike, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null'.
+        ///   at System.AppDomain.Load(AssemblyName)
+        ///   at Nop.Core.Infrastructure.AppDomainTypeFinder.LoadMatchingAssemblies(String)
+        /// </code>
+        /// <para>
+        /// Only <see cref="BadImageFormatException"/> was caught, so that exception escaped
+        /// <c>WebAppTypeFinder.GetAssemblies()</c> and would have taken the whole host down at
+        /// startup — from inside <c>NopHostedEngine.RegisterInto</c>, before anything could
+        /// report the real cause. The method is now path-based
+        /// (<see cref="AssemblyLoadContext.LoadFromAssemblyPath"/>), which is the .NET equivalent
+        /// of what 3.90 intended, and every load failure is traced rather than thrown so a single
+        /// stray or unloadable file in the output directory cannot stop the application starting.
+        /// </para>
+        /// <para>
+        /// This is what makes the <b>sibling UI assembly</b> discoverable: <c>Nop.Admin</c> is
+        /// deliberately not a compile-time reference of <c>Nop.Web</c> (design §6), so it is
+        /// absent from <c>Nop.Web.deps.json</c>; it is placed in the host's output directory by a
+        /// post-build copy in <c>Nop.Admin.csproj</c>, reproducing 3.90's <c>OutputPath=..\bin\</c>
+        /// drop, and picked up here. See runtime-deferrals.md §50 and
+        /// <c>Nop.Web.Framework.Infrastructure.NopApplicationPartExtensions</c>.
+        /// </para>
+        /// <para>
+        /// <b>NOTE for the plugin tasks (10.x–15.x):</b>
+        /// <c>PluginManager.PerformFileDeploy</c> loads shadow-copied plugin assemblies with the
+        /// same <c>Assembly.Load(AssemblyName.GetAssemblyName(path))</c> call and has the same
+        /// defect — a shadow-copied plugin is in <c>~/Plugins/bin</c>, which is in no
+        /// <c>deps.json</c> either. It was left alone here because it is outside task 8.2's scope
+        /// and no plugin has been migrated yet; recorded as runtime deferral 8.2-1.
+        /// </para>
+        /// </remarks>
         protected virtual void LoadMatchingAssemblies(string directoryPath)
         {
             var loadedAssemblyNames = new List<string>();
@@ -254,18 +298,24 @@ namespace Nop.Core.Infrastructure
                     var an = AssemblyName.GetAssemblyName(dllPath);
                     if (Matches(an.FullName) && !loadedAssemblyNames.Contains(an.FullName))
                     {
-                        App.Load(an);
+                        //load by PATH, not by name - see the remarks. The default load context is
+                        //used deliberately: an assembly loaded into a separate context would get
+                        //its own copy of every nopCommerce type, so nothing it contributed would
+                        //be assignable to the interfaces this class scans for.
+                        AssemblyLoadContext.Default.LoadFromAssemblyPath(dllPath);
                     }
-
-                    //old loading stuff
-                    //Assembly a = Assembly.ReflectionOnlyLoadFrom(dllPath);
-                    //if (Matches(a.FullName) && !loadedAssemblyNames.Contains(a.FullName))
-                    //{
-                    //    App.Load(a.FullName);
-                    //}
                 }
                 catch (BadImageFormatException ex)
                 {
+                    //not a managed assembly
+                    Trace.TraceError(ex.ToString());
+                }
+                catch (Exception ex)
+                {
+                    //a file that cannot be loaded (missing dependency, duplicate identity already
+                    //loaded from another path, locked file, ...) must not prevent startup. 3.90
+                    //let FileNotFoundException escape, but on .NET Framework it could not occur
+                    //for a file in bin; on .NET it can, and fatally - see the remarks.
                     Trace.TraceError(ex.ToString());
                 }
             }

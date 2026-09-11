@@ -74,11 +74,19 @@ namespace Nop.Web.Framework.Themes
 
             //default
             "/Views/{1}/{0}.cshtml",
-            "/Views/Shared/{0}.cshtml",
+            "/Views/Shared/{0}.cshtml"
 
-            //Admin
-            "/Administration/Views/{1}/{0}.cshtml",
-            "/Administration/Views/Shared/{0}.cshtml"
+            //NOTE (task 8.2, runtime deferral 8.1-4): 3.90 also listed
+            //    "/Administration/Views/{1}/{0}.cshtml"
+            //    "/Administration/Views/Shared/{0}.cshtml"
+            //here, because the admin views were PHYSICAL FILES under the Nop.Web application
+            //root. Under ASP.NET Core they are COMPILED INTO Nop.Admin.dll and looked up by
+            //their compiled identifier, which the Razor source generator derives from the path
+            //relative to NOP.ADMIN's own project root - so those two formats could never match
+            //anything and are removed. Task 8.2 relocated the tree to
+            //Administration/Areas/Admin/Views/, i.e. the identifiers are now
+            ///Areas/Admin/Views/..., which AdminAreaSharedFirstLocationFormats below (and the
+            //ordinary area formats) do match. See runtime-deferrals.md section 50.
         };
 
         //3.90 equivalents: AreaViewLocationFormats / AreaPartialViewLocationFormats /
@@ -99,12 +107,23 @@ namespace Nop.Web.Framework.Themes
         //    newLocations.Insert(0, "~/Administration/Views/{1}/{0}.cshtml");
         //    newLocations.Insert(0, "~/Administration/Views/Shared/{0}.cshtml");
         //i.e. two Insert(0, ...) calls, so the Shared entry ends up FIRST and the
-        //controller-specific entry second. That ordering is preserved verbatim rather than
-        //"corrected", so admin view resolution behaves exactly as it did in 3.90.
-        private static readonly string[] AdminAreaPrefixLocationFormats =
+        //controller-specific entry second.
+        //
+        //TASK 8.2 (runtime deferral 8.1-4): the /Administration/ PATHS are gone - the admin
+        //views now live at, and compile as, /Areas/Admin/Views/... - but the ORDERING QUIRK IS
+        //PRESERVED DELIBERATELY AND IS THE ONLY REASON THIS ARRAY STILL EXISTS. ASP.NET Core's
+        //own area formats (and ThemeableAreaViewLocationFormats below) order these the other way
+        //round: controller-specific first, Shared second. Prepending the pair in 3.90's order,
+        //for the Admin area only, means a same-named Shared view still SHADOWS the
+        //controller-specific one, exactly as it did in 3.90. Removing this array would compile,
+        //render, and silently change which view wins.
+        //
+        //Also note the position: in 3.90 these two entries came BEFORE the themed area formats,
+        //so admin views were never themeable. That is preserved too.
+        private static readonly string[] AdminAreaSharedFirstLocationFormats =
         {
-            "/Administration/Views/Shared/{0}.cshtml",
-            "/Administration/Views/{1}/{0}.cshtml"
+            "/Areas/{2}/Views/Shared/{0}.cshtml",
+            "/Areas/{2}/Views/{1}/{0}.cshtml"
         };
 
         #endregion
@@ -174,9 +193,10 @@ namespace Nop.Web.Framework.Themes
 
             if (usingAreas)
             {
-                //the /Administration/ hack, applied only to the Admin area — as in 3.90
+                //the 3.90 Shared-before-controller ordering quirk, applied only to the Admin
+                //area - as in 3.90, and see the remarks on the array itself
                 if (context.AreaName.Equals(AdminAreaName, StringComparison.OrdinalIgnoreCase))
-                    locations.AddRange(AdminAreaPrefixLocationFormats);
+                    locations.AddRange(AdminAreaSharedFirstLocationFormats);
 
                 locations.AddRange(ThemeableAreaViewLocationFormats);
             }

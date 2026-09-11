@@ -1,6 +1,8 @@
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Nop.Core;
 using Nop.Core.Infrastructure;
@@ -26,6 +28,8 @@ namespace Nop.Web.SmokeTests
     /// <item>the <c>/__smoke/*</c> probe middleware's text output</item>
     /// <item>the <c>/__smoke/action</c> probe's endpoint / descriptor report, which is what the
     /// deferral 7.3-4 assertions read</item>
+    /// <item>the configured Razor view-location expander's emitted location formats, which is what
+    /// the task 8.2 / deferral 8.1-4 assertions read</item>
     /// </list>
     /// <para>
     /// The fixture is <see cref="ExplicitAttribute"/>, so an ordinary <c>dotnet test</c> reports it
@@ -33,10 +37,11 @@ namespace Nop.Web.SmokeTests
     /// </para>
     /// <code>dotnet test src/Tests/Nop.Web.SmokeTests --filter "FullyQualifiedName~HarnessCanaryTests"</code>
     /// <para>
-    /// <b>All three MUST report Failed.</b> If any of them passes, or is silently skipped when
+    /// <b>All of them MUST report Failed.</b> If any of them passes, or is silently skipped when
     /// selected explicitly, the corresponding group of real assertions cannot be trusted.
     /// Task 7.7 ran this and observed 3 failed / 0 passed; the deferral 7.3-4 / 7.7-1 fix added a
-    /// fourth and observed 4 failed / 0 passed.
+    /// fourth and observed 4 failed / 0 passed; task 8.2 added a fifth and observed
+    /// 5 failed / 0 passed.
     /// </para>
     /// </remarks>
     [TestFixture]
@@ -100,6 +105,34 @@ namespace Nop.Web.SmokeTests
             var body = _client.GetStringAsync(
                 SmokeProbeMiddleware.Prefix + "action?controller=Common&action=NoSuchActionExists").Result;
             StringAssert.Contains("visibleToChildActionBridge=True", body,
+                "CANARY: this assertion is meant to fail.");
+        }
+        [Test]
+        public void CANARY_view_location_expander_assertions_can_fail()
+        {
+            //Guards the task 8.2 / deferral 8.1-4 assertions. They read the CONFIGURED expander out
+            //of RazorViewEngineOptions and inspect the location formats it emits - a mechanism no
+            //other canary covers. The expander never emits this format, so asserting that it does
+            //must be reported as a failure.
+            var razor = _factory.Services
+                .GetRequiredService<Microsoft.Extensions.Options.IOptions<
+                    Microsoft.AspNetCore.Mvc.Razor.RazorViewEngineOptions>>().Value;
+            var expander = razor.ViewLocationExpanders.First();
+
+            var actionContext = new Microsoft.AspNetCore.Mvc.ActionContext(
+                new Microsoft.AspNetCore.Http.DefaultHttpContext { RequestServices = _factory.Services },
+                new Microsoft.AspNetCore.Routing.RouteData(),
+                new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor());
+            var context = new Microsoft.AspNetCore.Mvc.Razor.ViewLocationExpanderContext(
+                actionContext, "SomeView", "SomeController", "Admin", null, false);
+            context.Values = new System.Collections.Generic.Dictionary<string, string>();
+            expander.PopulateValues(context);
+
+            var locations = expander
+                .ExpandViewLocations(context, new[] { "/FRAMEWORK/DEFAULT/{0}.cshtml" })
+                .ToList();
+
+            CollectionAssert.Contains(locations, "/ThisLocationFormatIsNeverEmitted/{0}.cshtml",
                 "CANARY: this assertion is meant to fail.");
         }
     }

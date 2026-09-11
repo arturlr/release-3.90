@@ -70,6 +70,35 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+
+    <!--
+      TASK 8.2 - REQUIRED, and its absence would fail the 8.8 gate with a single confusing error
+      that has nothing to do with the ~3000 CS*/RZ* porting errors 8.1 inventoried.
+
+      Nop.Admin is a LIBRARY that contributes an MVC area to the Nop.Web host. It is not an
+      independently launchable application, has no Program.cs and never had a Global.asax (3.90
+      recorded that as UseCustomServer=True with an external CustomServerUrl). But
+      Microsoft.NET.Sdk.Web defaults OutputType to Exe - MEASURED, not assumed:
+      `dotnet msbuild Nop.Admin.csproj -getProperty:OutputType` returns "Exe" with this property
+      removed - and an Exe with no Main gets
+
+          CSC : error CS5001: Program does not contain a static 'Main' method suitable for an
+          entry point
+
+      which was observed on a throwaway Microsoft.NET.Sdk.Web probe of this exact shape.
+
+      NOTE ON WHEN IT BITES, because this was checked and the naive expectation was wrong:
+      removing this property today does NOT produce CS5001, because Roslyn never reaches
+      entry-point resolution while the compilation still has ~3000 DECLARATION-phase errors -
+      the same phase-ordering behaviour recorded in runtime-deferrals.md section 19. The probe
+      reproduced both sides: with only a method-BODY error present, CS5001 was reported
+      alongside it; with declaration errors present, it was not. So CS5001 would have surfaced
+      for the first time exactly when 8.3/8.4 finished and the gate was expected to pass.
+
+      Microsoft.NET.Sdk.Web is still the right SDK: it imports the Razor SDK, which is what
+      compiles the 325 views under Areas/Admin/Views/.
+    -->
+    <OutputType>Library</OutputType>
   </PropertyGroup>
 
   <!--
@@ -397,7 +426,11 @@
       task 7.5 removed 7.4's equivalents from Nop.Web.csproj.
     -->
     <Content Update="Web.config" CopyToPublishDirectory="Never" />
-    <Content Update="Views\Web.config" CopyToPublishDirectory="Never" />
+    <!--
+      TASK 8.2 moved the view tree from Views\ to Areas\Admin\Views\ to resolve deferral
+      8.1-4, so this path moved with it. 8.4 deletes the file from its new location.
+    -->
+    <Content Update="Areas\Admin\Views\Web.config" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
   <!--
@@ -504,18 +537,24 @@
       AdminAreaRegistration.cs      the System.Web.Mvc AreaRegistration for the "Admin"
                                     area. TASK 8.2 deletes it and replaces it with
                                     MapAreaControllerRoute contributed through
-                                    IRouteProvider. Note this project has NO IRouteProvider
-                                    implementation yet, so 8.2 adds the first one.
+                                    IRouteProvider. DONE BY TASK 8.2: the file was deleted and
+                                    replaced by Infrastructure\RouteProvider.cs, which registers
+                                    MapAreaControllerRoute("Admin_default", "Admin",
+                                    "Admin/{controller=Home}/{action=Index}/{id?}").
       Web.config                    TASK 8.7 (excluded from publish above)
-      Views\Web.config              TASK 8.4 (excluded from publish above). Its
+      Areas\Admin\Views\Web.config  TASK 8.4 (excluded from publish above). Its
                                     pageBaseType + <namespaces> are what
-                                    Views\_ViewImports.cshtml must carry. NOTE the file is
-                                    at Views\Web.config, NOT Areas\Admin\Views\web.config
-                                    as tasks.md step 8.4 says - the admin views live at
-                                    Administration\Views\, which is what
-                                    Nop.Web.Framework's ThemeableViewLocationExpander
-                                    already searches (runtime-deferrals.md section 16.1).
-      sitemap.config                the admin menu, read by Views\Shared\Menu.cshtml
+                                    Areas\Admin\Views\_ViewImports.cshtml must carry.
+                                    TASK 8.2 MOVED THE WHOLE VIEW TREE from Views\ to
+                                    Areas\Admin\Views\ to resolve deferral 8.1-4 - the Razor
+                                    source generator names a view relative to THIS project's
+                                    root, so the views used to compile as /Views/... while
+                                    ThemeableViewLocationExpander searched /Administration/Views/...
+                                    and nothing resolved. They now compile as
+                                    /Areas/Admin/Views/..., which the expander's area formats
+                                    match (runtime-deferrals.md section 50).
+      sitemap.config                the admin menu, read by
+                                    Areas\Admin\Views\Shared\Menu.cshtml
                                     through Nop.Web.Framework's XmlSiteMap. Still valid
                                     input on .NET 10; task 6.4 only changed
                                     SiteMapNode.RouteValues' namespace. KEPT and published.
@@ -534,5 +573,89 @@
       Content\ and Scripts\         TASK 8.5 (relocation or static-file allow-list).
                                     Publish metadata is set above; serving is 8.5's.
   -->
+
+  <!--
+    ===================================================================================
+    TASK 8.2 - HOW THE Nop.Web HOST DISCOVERS THIS ASSEMBLY. READ THIS BEFORE CHANGING IT.
+    ===================================================================================
+    This target is one half of the answer; the other half is
+    Nop.Web.Framework/Infrastructure/NopApplicationPartExtensions.cs. Together they replace
+    two System.Web mechanisms that have no .NET counterpart:
+
+      * System.Web's BuildManager loaded EVERY assembly in bin implicitly. In 3.90 this project
+        set <OutputPath>..\bin\</OutputPath>, i.e. it dropped Nop.Admin.dll straight into
+        Nop.Web\bin, and that is how the host came to have it at all. Design section 6 calls
+        this out explicitly: "that packaging relationship is a build/deploy detail, not a
+        compile-time project reference".
+      * AreaRegistration.RegisterAllAreas() then found the area by reflecting over loaded
+        assemblies. There is no equivalent; task 8.2's Infrastructure/RouteProvider.cs
+        contributes the route through nopCommerce's own IRouteProvider instead.
+
+    WHY NOT A ProjectReference FROM Nop.Web?  Considered and rejected, on three grounds:
+      1. it converts design section 6's build/deploy relationship into a COMPILE-TIME one, so
+         Nop.Web can no longer build on its own;
+      2. it couples the 7.6 gate to the 8.8 gate - MSBuild builds project references first, so
+         with Nop.Admin at ~3000 errors, Nop.Web (currently 0 errors / 15 warnings) would stop
+         building entirely;
+      3. the two projects are documented siblings and neither references the other, in either
+         direction.
+
+    WHY A POST-BUILD COPY AND NOT <OutputPath>..\bin\...</OutputPath>?  Two projects writing to
+    one directory would let a clean or rebuild of either clobber the other's output, and
+    "dotnet build Nop.Web" alone would appear to produce a half-populated directory. A copy is
+    additive, directional (Nop.Admin -> Nop.Web, exactly as 3.90's OutputPath was), leaves this
+    project's own bin\Debug\net10.0\ intact for the 8.8 gate, and cannot make Nop.Web fail.
+
+    *** MEASURED, NOT ASSUMED, AND THE FIRST ANSWER WAS WRONG. ***
+    A .NET 10 probe established that the copy ALONE is not sufficient, and that a naive copy was
+    actively DANGEROUS. Nop.Core's WebAppTypeFinder is what scans loaded assemblies for
+    IRouteProvider / IDependencyRegistrar / IStartupTask, and its inherited
+    AppDomainTypeFinder.LoadMatchingAssemblies used AppDomain.Load(AssemblyName) - which on .NET
+    binds from the host's deps.json-derived trusted-platform-assemblies list and does NOT probe
+    the base directory. The probe put an assembly in the host's base directory but not in its
+    deps.json and got
+
+        System.IO.FileNotFoundException: Could not load file or assembly 'Nop.ProbeAdminLike ...'
+          at System.AppDomain.Load(AssemblyName)
+          at Nop.Core.Infrastructure.AppDomainTypeFinder.LoadMatchingAssemblies(String)
+
+    and, because only BadImageFormatException was caught, that exception escaped
+    WebAppTypeFinder.GetAssemblies() and TOOK THE HOST DOWN AT STARTUP. So dropping this
+    assembly next to Nop.Web.dll without the accompanying Nop.Core fix would not merely have
+    failed to load the admin - it would have stopped the storefront booting.
+
+    Task 8.2 therefore also changed AppDomainTypeFinder.LoadMatchingAssemblies to load by PATH
+    (AssemblyLoadContext.Default.LoadFromAssemblyPath) and to trace rather than throw. See the
+    remarks on that method, and runtime-deferrals.md section 50.
+
+    NOTE FOR TASK 8.5 / 18.x: this covers BUILD output only. "dotnet publish" of Nop.Web will
+    not include Nop.Admin.dll, because publish is computed from Nop.Web's own item graph. A
+    deployment must publish both projects into one directory, or the admin area is simply absent
+    at runtime. Recorded as runtime deferral 8.2-2.
+  -->
+  <Target Name="CopyNopAdminToHostOutput" AfterTargets="Build"
+          Condition="'$(NopAdminCopyToHostOutput)' != 'false'">
+    <PropertyGroup>
+      <!-- ..\ is src\Presentation\Nop.Web\, i.e. the host project directory. -->
+      <NopWebHostOutputDir>$(MSBuildThisFileDirectory)..\bin\$(Configuration)\$(TargetFramework)\</NopWebHostOutputDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <NopAdminHostDrop Include="$(TargetPath)" />
+      <NopAdminHostDrop Include="$(TargetDir)$(TargetName).pdb" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+    </ItemGroup>
+    <!--
+      Only when the host has already been built. Creating the directory ourselves would leave a
+      stray Nop.Admin.dll in a folder with no host to load it. ContinueOnError: a failed copy
+      must not fail the 8.8 gate, which is a COMPILE gate.
+    -->
+    <Copy SourceFiles="@(NopAdminHostDrop)"
+          DestinationFolder="$(NopWebHostOutputDir)"
+          SkipUnchangedFiles="true"
+          ContinueOnError="WarnAndContinue"
+          Condition="Exists('$(NopWebHostOutputDir)')" />
+    <Message Importance="high"
+             Condition="!Exists('$(NopWebHostOutputDir)')"
+             Text="Nop.Admin: the host output directory $(NopWebHostOutputDir) does not exist yet, so Nop.Admin.dll was NOT dropped into it. Build Nop.Web and then rebuild this project; without the drop the Admin area is not routable and its views do not resolve (task 8.2)." />
+  </Target>
 
 </Project>

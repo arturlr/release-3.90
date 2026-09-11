@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Converters;
 using Nop.Core;
 using Nop.Core.Domain.Common;
@@ -11,6 +12,24 @@ using Nop.Web.Framework.Security;
 
 namespace Nop.Admin.Controllers
 {
+    //TASK 8.2 - [Area("Admin")] replaces 3.90's AdminAreaRegistration (deleted). It is declared
+    //ONCE, here, rather than on 54 files: Microsoft.AspNetCore.Mvc.AreaAttribute derives from
+    //RouteValueAttribute, which is declared [AttributeUsage(..., Inherited = true)], so every
+    //controller that derives from this one inherits it. All 54 concrete admin controllers do
+    //(verified by inspection of every `class X : ...` declaration under Controllers/).
+    //
+    //THE INHERITANCE WAS VERIFIED BY EXECUTION, not assumed: a throwaway .NET 10 probe built a
+    //controller deriving from an abstract base carrying [Area("Admin")], resolved
+    //IActionDescriptorCollectionProvider, and asserted the concrete controller's
+    //ActionDescriptor.RouteValues["area"] == "Admin". See runtime-deferrals.md section 50.
+    //
+    //Two consequences worth knowing before task 8.3:
+    //  * the area value is what makes the admin Razor views resolvable at all - the view-location
+    //    expander only contributes /Areas/{2}/... locations for an AREA lookup, so a controller
+    //    that somehow does not inherit this attribute will fail view lookup, not routing.
+    //  * a NEW admin controller that does not derive from BaseAdminController needs its own
+    //    [Area("Admin")].
+    [Area("Admin")]
     [NopHttpsRequirement(SslRequirement.Yes)]
     [AdminValidateIpAddress]
     [AdminAuthorize]

@@ -9,7 +9,7 @@ namespace Nop.Web.Framework.Menu
     /// to <see cref="Microsoft.AspNetCore.Routing.RouteValueDictionary"/>. Same type name,
     /// same members (dictionary of <c>string</c> → <c>object</c>), so the only change any
     /// consumer needs is the <c>using</c>. Consumers: <see cref="XmlSiteMap"/>,
-    /// <c>Nop.Web/Administration/Views/Shared/Menu.cshtml</c> (which passes
+    /// <c>Nop.Web/Administration/Areas/Admin/Views/Shared/Menu.cshtml</c> (which passes
     /// <c>item.RouteValues</c> to <c>Html.ActionLink</c>/<c>Url.Action</c>) and any plugin
     /// implementing <see cref="IAdminMenuPlugin"/>.
     /// </remarks>

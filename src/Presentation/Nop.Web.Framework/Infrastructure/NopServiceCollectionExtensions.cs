@@ -312,12 +312,28 @@ namespace Nop.Web.Framework.Infrastructure
             //deferral 1.2 - plugin assemblies must be application parts or their controllers
             //and Razor views are invisible to MVC. Requires PluginManager.Initialize() to have
             //run already (deferral 1.1) - call it BEFORE this method.
-            mvcBuilder.ConfigureApplicationPartManager(AddPluginApplicationParts);
+            mvcBuilder.ConfigureApplicationPartManager(
+                NopApplicationPartExtensions.AddPluginApplicationParts);
 
-            //deferral 30 (HIGHEST) - without this every theme is ignored and, worse, the
-            //~/Administration/Views/... locations are never searched, so the admin UI 404s on
-            //view lookup. Inserted at index 0: ASP.NET Core applies expanders in order and
-            //this one must see the unexpanded locations.
+            //TASK 8.2 - the same problem, for the sibling UI assembly rather than for plugins.
+            //Nop.Admin is not a compile-time reference of Nop.Web (design section 6), so it is
+            //absent from Nop.Web.deps.json and therefore absent from the application parts MVC
+            //seeds itself with - which means, with nothing else done, its controllers are not
+            //routable and its compiled Razor views cannot be found. In 3.90 System.Web's
+            //BuildManager loaded everything in bin implicitly and
+            //AreaRegistration.RegisterAllAreas() found the area; .NET has neither. This
+            //contributes the assemblies WebAppTypeFinder already loads and scans, so there is
+            //one discovery rule in the process rather than two. See the long remarks on
+            //NopApplicationPartExtensions.
+            mvcBuilder.ConfigureApplicationPartManager(
+                NopApplicationPartExtensions.AddNopDiscoveredApplicationParts);
+
+            //deferral 30 (HIGHEST) - without this every theme is ignored, and the Shared-before-
+            //controller ordering quirk the admin views rely on (see
+            //ThemeableViewLocationExpander.AdminAreaSharedFirstLocationFormats) is not applied,
+            //so a same-named Shared view silently stops shadowing the controller-specific one.
+            //Inserted at index 0: ASP.NET Core applies expanders in order and this one must see
+            //the unexpanded locations.
             services.Configure<RazorViewEngineOptions>(options =>
             {
                 options.ViewLocationExpanders.Insert(0, new ThemeableViewLocationExpander());
@@ -331,36 +347,23 @@ namespace Nop.Web.Framework.Infrastructure
         /// controllers, view components and Razor views are discoverable (deferral 1.2).
         /// </summary>
         /// <remarks>
-        /// Silent no-op when <see cref="PluginManager.ReferencedPlugins"/> is null, which is
-        /// the case until <c>PluginManager.Initialize()</c> is called (deferral 1.1, owned by
-        /// task 7.2). Call order in <c>Program.cs</c> must be
-        /// <c>PluginManager.Initialize()</c> → <c>AddNopFramework()</c>.
+        /// <para>
+        /// <b>Task 8.2 moved the implementation to
+        /// <see cref="NopApplicationPartExtensions.AddPluginApplicationParts"/></b>, where it
+        /// now shares one <see cref="ApplicationPartFactory"/>-based routine with the sibling-UI
+        /// case. This method is retained as a delegating shim because it is public API.
+        /// </para>
+        /// <para>
+        /// The move also fixed a latent defect: this method used to add a bare
+        /// <c>new AssemblyPart(assembly)</c>, which registers a plugin's <b>controllers</b> but
+        /// silently ignores its <b>compiled Razor views</b>, because a Razor-SDK assembly's
+        /// views are only surfaced by the <c>[ProvideApplicationPartFactory]</c> factory it
+        /// declares. Deferral 1.2 was therefore only half closed.
+        /// </para>
         /// </remarks>
         public static void AddPluginApplicationParts(ApplicationPartManager partManager)
         {
-            if (partManager == null)
-                return;
-
-            var referencedPlugins = PluginManager.ReferencedPlugins;
-            if (referencedPlugins == null)
-                return;
-
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var part in partManager.ApplicationParts)
-                seen.Add(part.Name);
-
-            foreach (var plugin in referencedPlugins)
-            {
-                Assembly assembly = plugin == null ? null : plugin.ReferencedAssembly;
-                if (assembly == null)
-                    continue;
-
-                var name = assembly.GetName().Name;
-                if (!seen.Add(name))
-                    continue;
-
-                partManager.ApplicationParts.Add(new AssemblyPart(assembly));
-            }
+            NopApplicationPartExtensions.AddPluginApplicationParts(partManager);
         }
     }
 }

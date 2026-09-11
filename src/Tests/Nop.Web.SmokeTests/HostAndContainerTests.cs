@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Razor;
@@ -440,6 +441,147 @@ namespace Nop.Web.SmokeTests
             Assert.IsInstanceOf<ThemeableViewLocationExpander>(razor.ViewLocationExpanders.First(),
                 "Without the expander at index 0 every theme is ignored, silently (14.30).");
         }
+
+        #region Task 8.2 / deferral 8.1-4 — admin view locations
+
+        /// <summary>
+        /// Builds a populated <see cref="ViewLocationExpanderContext"/> and returns what the
+        /// <b>configured</b> expander from the real host emits for it.
+        /// </summary>
+        private IList<string> ExpandLocations(string areaName)
+        {
+            var razor = _factory.Services.GetRequiredService<IOptions<RazorViewEngineOptions>>().Value;
+            var expander = razor.ViewLocationExpanders.First();
+
+            var actionContext = new ActionContext(
+                new Microsoft.AspNetCore.Http.DefaultHttpContext { RequestServices = _factory.Services },
+                new Microsoft.AspNetCore.Routing.RouteData(),
+                new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor());
+
+            var context = new ViewLocationExpanderContext(actionContext, "SomeView", "SomeController",
+                areaName, null, false);
+            context.Values = new Dictionary<string, string>();
+            expander.PopulateValues(context);
+
+            return expander
+                .ExpandViewLocations(context, new[] { "/FRAMEWORK/DEFAULT/{0}.cshtml" })
+                .ToList();
+        }
+
+        [Test]
+        public void Task_8_2_the_Admin_area_searches_Shared_BEFORE_the_controller_folder()
+        {
+            //3.90's ThemeableVirtualPathProviderViewEngine.GetPath() did two Insert(0, ...) calls,
+            //so ~/Administration/Views/Shared/{0}.cshtml ended up ahead of
+            //~/Administration/Views/{1}/{0}.cshtml and a same-named Shared view SHADOWED the
+            //controller-specific one. Task 6.3 preserved that quirk verbatim (runtime-deferrals.md
+            //section 16.1); task 8.2 moved the paths to /Areas/Admin/Views/ and had to preserve it
+            //again, because ASP.NET Core's own area formats order these the OTHER way round.
+            //Removing the quirk compiles, renders, and silently changes which view wins.
+            var locations = ExpandLocations("Admin");
+
+            Assert.AreEqual("/Areas/{2}/Views/Shared/{0}.cshtml", locations[0],
+                "The Shared entry must come first for the Admin area (3.90 quirk, section 16.1).");
+            Assert.AreEqual("/Areas/{2}/Views/{1}/{0}.cshtml", locations[1],
+                "The controller-folder entry must come second for the Admin area.");
+        }
+
+        [Test]
+        public void Task_8_2_the_expander_emits_no_Administration_location_deferral_8_1_4()
+        {
+            //Deferral 8.1-4: those two formats could never match anything, because the admin views
+            //are compiled into Nop.Admin.dll and the Razor source generator names them relative to
+            //NOP.ADMIN's project root. Keeping them would have been two wasted probes per lookup
+            //and, more importantly, a false signal that admin view resolution was handled.
+            foreach (var areaName in new[] { "Admin", "SomeOtherArea", null })
+            {
+                var locations = ExpandLocations(areaName);
+                Assert.IsFalse(
+                    locations.Any(l => l.StartsWith("/Administration/", StringComparison.OrdinalIgnoreCase)),
+                    "area=" + (areaName ?? "<none>") + ": " + string.Join(" | ", locations));
+            }
+        }
+
+        [Test]
+        public void Task_8_2_the_storefront_view_locations_are_unchanged()
+        {
+            //The expander lives in the gated Nop.Web.Framework and is shared with the storefront,
+            //so the admin change must not touch non-area lookups.
+            var locations = ExpandLocations(null);
+
+            var i = locations.IndexOf("/Views/{1}/{0}.cshtml");
+            Assert.GreaterOrEqual(i, 0, "storefront default location missing: " + string.Join(" | ", locations));
+            Assert.AreEqual("/Views/Shared/{0}.cshtml", locations[i + 1],
+                "storefront Shared fallback must follow the controller-specific one");
+            Assert.AreEqual("/FRAMEWORK/DEFAULT/{0}.cshtml", locations.Last(),
+                "the framework's own locations must remain the final fallback");
+            Assert.IsFalse(locations.Any(l => l.StartsWith("/Areas/", StringComparison.Ordinal)),
+                "a non-area lookup must not search area locations: " + string.Join(" | ", locations));
+        }
+
+        [Test]
+        public void Task_8_2_the_sibling_UI_application_part_mechanism_ran_in_the_real_host()
+        {
+            //Nop.Admin is not a compile-time reference of Nop.Web, so it is absent from
+            //Nop.Web.deps.json and therefore absent from the application parts MVC seeds itself
+            //with. AddNopFramework closes that with
+            //NopApplicationPartExtensions.AddNopDiscoveredApplicationParts, which contributes the
+            //assemblies WebAppTypeFinder loads. Nop.Admin.dll is not present in this test host's
+            //base directory (it does not compile yet), so what is asserted here is that the
+            //MECHANISM runs and contributes type-finder assemblies that MVC would not otherwise
+            //have seen. Nop.Core is the witness: it references no MVC assembly, so nothing but this
+            //call can have made it a part.
+            var partManager = _factory.Services.GetRequiredService<ApplicationPartManager>();
+            var names = partManager.ApplicationParts.Select(p => p.Name).ToList();
+
+            Assert.Contains("Nop.Core", names,
+                "AddNopDiscoveredApplicationParts did not run: " + string.Join(", ", names));
+            Assert.Contains("Nop.Services", names, string.Join(", ", names));
+        }
+
+        [Test]
+        public void Task_8_2_WebAppTypeFinder_loads_base_directory_assemblies_without_throwing()
+        {
+            //Task 8.2 changed AppDomainTypeFinder.LoadMatchingAssemblies from
+            //AppDomain.Load(AssemblyName) to AssemblyLoadContext.Default.LoadFromAssemblyPath,
+            //because the former cannot resolve a base-directory assembly that is absent from
+            //deps.json and let a FileNotFoundException escape - which would take the host down at
+            //startup from inside NopHostedEngine.RegisterInto.
+            //
+            //HONEST LIMIT OF THIS TEST: it only covers the non-regressing case. Every assembly in
+            //this host's base directory IS in its deps.json, so reverting the fix would still make
+            //this test pass. The behaviour itself was measured with a throwaway probe that placed
+            //an assembly in the base directory and NOT in deps.json - see runtime-deferrals.md
+            //section 50. Task 8.8, where Nop.Admin.dll really is such an assembly, is the first
+            //point at which this can be asserted for real.
+            IList<System.Reflection.Assembly> assemblies = null;
+            Assert.DoesNotThrow(() => assemblies = new WebAppTypeFinder().GetAssemblies());
+            Assert.IsNotNull(assemblies);
+            Assert.IsTrue(assemblies.Any(a => a.GetName().Name == "Nop.Core"),
+                string.Join(", ", assemblies.Select(a => a.GetName().Name)));
+        }
+
+        [Test]
+        public void Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP()
+        {
+            //Task 8.2 wired the Admin area end to end: Nop.Admin/Infrastructure/RouteProvider.cs
+            //registers MapAreaControllerRoute("Admin_default", "Admin",
+            //"Admin/{controller=Home}/{action=Index}/{id?}") through IRouteProvider, which
+            //RoutePublisher discovers reflectively. It cannot appear yet, for a reason that has
+            //nothing to do with the wiring: Nop.Admin does not compile (task 8.3/8.4), so
+            //Nop.Admin.dll does not exist and cannot be dropped into this host's base directory.
+            //
+            //TASK 8.8 MUST FLIP THIS TEST. Once Nop.Admin compiles and its post-build copy has
+            //run, an endpoint with pattern "Admin/{controller=Home}/{action=Index}/{id?}" must be
+            //present, and this assertion must be inverted. Leaving it as-is after 8.8 would mean
+            //the suite is asserting the bug.
+            var body = _client.GetStringAsync(SmokeProbeMiddleware.Prefix + "endpoints?q=Admin/").Result;
+
+            Assert.IsFalse(body.Contains("Admin/{controller=Home}"),
+                "The Admin area route is now registered - INVERT THIS TEST (task 8.8). " + body);
+        }
+
+        #endregion
 
         [Test]
         public void Deferrals_11_26_14_31_11_28_framework_services_resolve()
