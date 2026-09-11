@@ -224,16 +224,22 @@ namespace Nop.Web.SmokeTests
         public void Deferral_40_the_install_page_only_links_assets_that_actually_serve()
         {
             //The audit that found the casing defect, expressed as a test: every same-origin
-            //stylesheet/script/image the install view emits must return 200. Administration/ is
-            //excluded because those genuinely do not serve yet - deferral 7.4-2, task 8.5.
+            //stylesheet/script/image the install view emits must return 200.
+            //
+            //TASK 8.5 REMOVED THE Administration/ EXCLUSION. It was there because those assets
+            //genuinely did not serve (deferral 7.4-2); now they do, and including them is what
+            //makes this test cover the install page's ACTUAL rendered surface rather than the
+            //part of it that happened to work. The install page links two admin stylesheets.
             var html = _client.GetStringAsync("/install").Result;
             var refs = Regex.Matches(html, "(?:href|src)=\"(/[^\"]+\\.(?:css|js|gif|png|jpg|ico))\"")
                             .Select(m => m.Groups[1].Value)
-                            .Where(u => !u.StartsWith("/Administration/", StringComparison.OrdinalIgnoreCase))
                             .Distinct()
                             .ToList();
 
             Assert.IsNotEmpty(refs, "No same-origin assets found in the install page - check the premise.");
+            Assert.IsTrue(refs.Any(u => u.StartsWith("/Administration/", StringComparison.OrdinalIgnoreCase)),
+                "No /Administration/ asset in the install page - the premise for removing the " +
+                "exclusion no longer holds, so re-check this test rather than deleting the assertion.");
             TestContext.WriteLine("install page assets checked: " + string.Join(", ", refs));
 
             var broken = refs.Where(u => _client.GetAsync(u).Result.StatusCode != HttpStatusCode.OK).ToList();
@@ -274,17 +280,30 @@ namespace Nop.Web.SmokeTests
         }
 
         [Test]
-        public void Deferral_7_4_2_admin_static_assets_do_NOT_serve_yet_KNOWN_GAP()
+        public void Deferral_7_4_2_admin_static_assets_DO_serve_now()
         {
-            //Documented gap, owned by task 8.5: NopStaticFileProvider's allow-list deliberately
-            //excludes Administration/. The install page links two admin stylesheets, so the page
-            //renders UNSTYLED-ABOVE-THE-FOLD today. This test asserts the CURRENT behaviour on
-            //purpose - when 8.5 widens the allow-list it will fail, which is the signal to update it.
+            //INVERTED BY TASK 8.5. This test used to assert the opposite - that the admin
+            //stylesheets the install view links do NOT serve - because task 7.4's allow-list
+            //deliberately excluded Administration/ and the install page therefore rendered
+            //unstyled above the fold. Task 8.5 widened NopStaticFileProvider with
+            //Administration/Content/** and Administration/Scripts/**, so the premise flipped.
+            //
+            //The broad coverage lives in AdminStaticAssetTests, which runs in BOTH store states.
+            //What this keeps is the end-to-end link: the install VIEW asks for these, and they
+            //must be the paths that serve.
             var html = _client.GetStringAsync("/install").Result;
             StringAssert.Contains("/Administration/Content/bootstrap/css/bootstrap.min.css", html,
                 "The install view no longer links admin CSS - re-check this test's premise.");
 
-            AssertNotServed("/Administration/Content/bootstrap/css/bootstrap.min.css");
+            foreach (var path in new[]
+            {
+                "/Administration/Content/bootstrap/css/bootstrap.min.css",
+                "/Administration/Content/adminLTE/AdminLTE-2.3.0.min.css"
+            })
+            {
+                Assert.AreEqual(HttpStatusCode.OK, _client.GetAsync(path).Result.StatusCode,
+                    "expected 200 for " + path);
+            }
         }
 
         /// <summary>

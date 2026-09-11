@@ -4011,15 +4011,15 @@ namespace Nop.Admin.Controllers
                 //ensure valid color is chosen/entered
                 if (String.IsNullOrEmpty(model.ColorSquaresRgb))
                     ModelState.AddModelError("", "Color is required");
-                try
-                {
-                    //ensure color is valid (can be instanciated)
-                    System.Drawing.ColorTranslator.FromHtml(model.ColorSquaresRgb);
-                }
-                catch (Exception exc)
-                {
-                    ModelState.AddModelError("", exc.Message);
-                }
+                //ensure color is valid (can be parsed)
+                //TASK 8.6 - System.Drawing.ColorTranslator.FromHtml lives in the Windows-only
+                //System.Drawing.Common package and is replaced by SixLabors.ImageSharp's
+                //Color.TryParse (design section 7). TryParse returns a bool rather than
+                //throwing, so the try/catch is gone; see HtmlColorHelper for the measured
+                //parity matrix, including the one loosening (bare hex without '#').
+                var colorValidationError = HtmlColorHelper.ValidateHtmlColor(model.ColorSquaresRgb);
+                if (colorValidationError != null)
+                    ModelState.AddModelError("", colorValidationError);
             }
 
             //ensure a picture is uploaded
@@ -4168,15 +4168,15 @@ namespace Nop.Admin.Controllers
                 //ensure valid color is chosen/entered
                 if (String.IsNullOrEmpty(model.ColorSquaresRgb))
                     ModelState.AddModelError("", "Color is required");
-                try
-                {
-                    //ensure color is valid (can be instanciated)
-                    System.Drawing.ColorTranslator.FromHtml(model.ColorSquaresRgb);
-                }
-                catch (Exception exc)
-                {
-                    ModelState.AddModelError("", exc.Message);
-                }
+                //ensure color is valid (can be parsed)
+                //TASK 8.6 - System.Drawing.ColorTranslator.FromHtml lives in the Windows-only
+                //System.Drawing.Common package and is replaced by SixLabors.ImageSharp's
+                //Color.TryParse (design section 7). TryParse returns a bool rather than
+                //throwing, so the try/catch is gone; see HtmlColorHelper for the measured
+                //parity matrix, including the one loosening (bare hex without '#').
+                var colorValidationError = HtmlColorHelper.ValidateHtmlColor(model.ColorSquaresRgb);
+                if (colorValidationError != null)
+                    ModelState.AddModelError("", colorValidationError);
             }
 
             //ensure a picture is uploaded

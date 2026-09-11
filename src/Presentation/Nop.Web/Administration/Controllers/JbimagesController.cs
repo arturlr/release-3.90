@@ -57,7 +57,16 @@ namespace Nop.Admin.Controllers
                 return View();
             }
 
-            var directory = "~/content/images/uploaded/";
+            //TASK 8.5 - CASING FIX (runtime deferral 7.7-4, admin static-asset half).
+            //Was "~/content/images/uploaded/". The directory on disk is Content/Images/uploaded,
+            //so on a case-sensitive filesystem CommonHelper.MapPath returned a path whose parent
+            //does not exist and the FileStream(..., FileMode.Create) below threw
+            //DirectoryNotFoundException - i.e. uploading an image from the admin rich-text editor
+            //failed outright on Linux/containers and worked on Windows. Same defect class task
+            //7.7 found 8 instances of. Note Content/Roxy_Fileman/conf.json already spells its
+            //FILES_ROOT "~/Content/Images/uploaded" correctly, so the two upload paths that share
+            //this directory now agree.
+            var directory = "~/Content/Images/uploaded/";
             var filePath = Path.Combine(CommonHelper.MapPath(directory), fileName);
 
             var fileExtension = Path.GetExtension(filePath);

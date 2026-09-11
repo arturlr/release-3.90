@@ -784,6 +784,13 @@ one. Everything below was introduced knowingly by task 4.2.
 - **Action:** a business decision, not a code one. Either set `$(SixLaborsLicenseKey)` /
   `$(SixLaborsLicenseFile)` / add `sixlabors.lic`, or pin back to the last purely Apache-2.0
   line (2.1.x). It affects `Nop.Services` now and `Nop.Admin` at task 8.6.
+  **OBSOLETE IN ITS DETAILS — corrected by task 8.1 §46.4 and re-confirmed by execution at task
+  8.6 §70.2.** The pin was subsequently moved to **2.1.13**, which ships **no `build/` targets at
+  all** and therefore no `ValidateLicenseTask`. Measured on a `-v:n` build of `Nop.Admin` with
+  ImageSharp genuinely compiled against: **0** Six Labors licence lines, **0**
+  `"converted to a warning"`, **0** `ContinueOnError`. So `Nop.Admin` is **not** affected, and
+  neither is `Nop.Services` at the current pin. What remains is the business decision about the
+  version choice itself.
 - These two lines are 2 of the 11 warnings at the 4.3 gate.
 
 ### 7.19 `Nop.Data` deferrals that name task 4.2 but are not fixable here
@@ -4105,7 +4112,7 @@ the setting in `appsettings.json`.
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
 | 7.4-1 | A Kestrel-only deployment gets no response compression | none (deployment decision) | Low |
-| 7.4-2 | Nop.Admin's static assets and `db_backups` need the same two fixes, and cannot get them from here | 8.5 / 8.1 | Medium — security-relevant |
+| 7.4-2 | ~~Nop.Admin's static assets and `db_backups` need the same two fixes~~ | — | ✅ **FULLY RESOLVED**: `db_backups` publish half by **8.1** (§46.2), serving half by **8.5** (§63) — allow-list widened with `Administration/Content/**` + `Administration/Scripts/**`, verified by 19 live assertions. 8.5 also found the publish paths were wrong (§64) |
 
 ### 7.4-1 A Kestrel-only deployment gets no response compression
 
@@ -4128,7 +4135,7 @@ explicitly reviewed `EnableForHttps`. Placement, if added: immediately after
 `UseForwardedHeaders()` and before `UseNopStaticFiles()`, which keeps the mandated middleware order
 intact.
 
-### 7.4-2 Nop.Admin needs the same two fixes and cannot inherit them
+### 7.4-2 Nop.Admin needs the same two fixes and cannot inherit them — ✅ **FULLY RESOLVED** (publish half by 8.1 §46.2, serving half by 8.5 §63)
 
 Two items are structurally out of reach from `Nop.Web.csproj`, because `Administration\**` is in
 `DefaultItemExcludes` (task 7.1) — nothing under it is an item of this project.
@@ -5355,12 +5362,12 @@ by string concatenation rather than written as a literal.
 
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
-| 8.1-1 | `Content/Roxy_Fileman/tmp/` does not exist, so the file manager's "download folder as zip" throws | 8.5 / 8.6 | Low |
+| 8.1-1 | ~~`Content/Roxy_Fileman/tmp/` does not exist~~ | — | ✅ **RESOLVED by 8.5** (§65) — `placeholder.txt` committed + publish include; `.zip` withheld from publish and refused over HTTP. **Now sufficient**: 8.6 resolved 8.1-3, and `../tmp/` demonstrably resolves to exactly this directory (§71.1) |
 | 8.1-2 | ~~Two case-sensitivity defects in `_AdminLayout.cshtml`~~ | — | ✅ **RESOLVED by 8.4** (§59.5) |
-| 8.1-3 | `Server.MapPath` with a **relative** path has no ASP.NET Core equivalent | 8.6 | Medium |
+| 8.1-3 | ~~`Server.MapPath` with a **relative** path has no ASP.NET Core equivalent~~ | — | ✅ **RESOLVED by 8.6** (§71.1) — the intended base is the Roxy Fileman installation directory, established from four pieces of evidence rather than translated from the `..`. Also found: 3.90 itself resolved these paths to nonexistent locations, so all three were already broken |
 | 8.1-4 | ~~The admin views' compiled Razor identifiers will be `/Views/…`, which `ThemeableViewLocationExpander` does **not** search~~ | — | ✅ **RESOLVED by 8.2** (§50) — **option 3**: the tree was moved to `Areas/Admin/Views/`. Proved by execution, including the 3.90 Shared-first ordering quirk |
 
-### 8.1-1 `Content/Roxy_Fileman/tmp/` does not exist
+### 8.1-1 `Content/Roxy_Fileman/tmp/` does not exist — ✅ **RESOLVED by task 8.5, see §65**
 
 The legacy project carried `<Folder Include="Content\Roxy_Fileman\tmp\" />`, a Visual Studio
 empty-folder placeholder. **The directory is not in this checkout** — git does not track empty
@@ -5393,7 +5400,7 @@ half of deferral 7.7-4. They were masked twice over: the admin assets do not ser
 would still have 404'd — which is exactly the interaction `tasks.md` step 8.5 warns about, and it is
 now removed.
 
-### 8.1-3 `Server.MapPath` with a relative path has no equivalent
+### 8.1-3 `Server.MapPath` with a relative path has no equivalent — ✅ **RESOLVED by task 8.6, see §71.1**
 
 `RoxyFilemanController.cs` lines 241 (`"../Uploads"`) and 505 (`"../tmp/"`). Every other
 `MapPath` in the project is `~/`-rooted and maps cleanly onto `CommonHelper.MapPath`; these two
@@ -5854,7 +5861,7 @@ create first is now **`Areas/Admin/Views/_ViewImports.cshtml`**, from
 | # | Item | Owner task(s) | Severity |
 |---|------|---------------|----------|
 | 8.2-1 | `PluginManager.PerformFileDeploy` loads shadow-copied plugin assemblies by **name**, which cannot work on .NET | 10.x (first plugin task) | **High** |
-| 8.2-2 | `dotnet publish` of `Nop.Web` does not include `Nop.Admin.dll` | 8.5 / 18.x | Medium |
+| 8.2-2 | `dotnet publish` of `Nop.Web` does not include `Nop.Admin.dll` | 18.x | Medium — **NARROWED by 8.5** (§64.3): its remedy ("publish both into one directory") did not work before and now does; what remains is that nothing enforces the two step. Re-recorded as deferral **8.5-1** |
 | 8.2-3 | 12 plugin view sites still reference the old `~/Administration/Views/Shared/…` paths | 11.1–11.2, 13.1, 14.4, 15.1 | Medium |
 
 ### 8.2-1 Plugin assemblies cannot be loaded by name either — the same defect, wider blast radius
@@ -5930,7 +5937,7 @@ chain.
 | **7.4-2** (admin static assets half) | admin `Content/`/`Scripts/` still do not **serve** | **8.5**. Unchanged by this task: `NopStaticFileProvider`'s allow-list excludes `Administration/`, which also keeps the relocated `Areas/Admin/Views/**/*.cshtml` unreachable over HTTP — correct, and worth noting the move did not widen that surface |
 | **8.1-1** | `Content/Roxy_Fileman/tmp/` does not exist | 8.5 / 8.6 |
 | **8.1-2** | two casing defects in `Areas/Admin/Views/Shared/_AdminLayout.cshtml` (the file moved; the line numbers 43 and 99 are unchanged) | 8.4 |
-| **8.1-3** | `Server.MapPath` with a relative path in `RoxyFilemanController` | 8.6 |
+| **8.1-3** | `Server.MapPath` with a relative path in `RoxyFilemanController` | 8.6 — ✅ since RESOLVED, §71.1 |
 | **7.3-1** | the `Html.Action` bridge lives in `Nop.Web` and the admin views need it | 8.3 — recommend promoting it to `Nop.Web.Framework` |
 | **7.3-4** | apply `[NopChildActionOnly]` to the admin actions | 8.3. The mechanism is finished (§45.1) |
 | **18.4** | `CA1416` at the two `Nop.Admin` `CommonController` call sites | 8.3 — still not visible, the file has too many errors for the analyser to run |
@@ -6348,7 +6355,7 @@ automated checks rather than needing a hand-maintained exception.
 |---|------|---------------|----------|
 | 8.3-1 | The admin System Info `<machineKey>` warning is gone with nothing in its place | 8.7 (decision) | Low — but it stands in for a real multi-instance risk |
 | 8.3-2 | The admin `[NopChildActionOnly]` and area-route smoke assertions cannot be written until `Nop.Admin` compiles | 8.8 | Medium — bookkeeping, but 8.8 must not skip it |
-| 8.3-3 | `RoxyFilemanController.MapPath` now **throws** for a relative path instead of resolving one | 8.6 | Medium |
+| 8.3-3 | ~~`RoxyFilemanController.MapPath` now **throws** for a relative path instead of resolving one~~ | — | ✅ **RESOLVED by 8.6** (§71.1). Note 8.3's "all three callers are already inoperative" was one caller short: `LangRes` → `ParseJSON(GetLangFile())` is a live relative-path caller on every error path, degraded rather than crashing only because `ParseJSON`'s empty `catch` swallowed the throw too |
 
 ### 8.3-1 The `<machineKey>` warning was removed with no replacement
 
@@ -6391,7 +6398,7 @@ its name with an unmarked one; and assert `GET /Admin/Common/BackupFileDownload`
 authorization (§55 / the `.bak` action). The three invariants are already proven mechanisms (§45.1),
 so this is coverage, not design.
 
-### 8.3-3 `RoxyFilemanController.MapPath` throws for a relative path
+### 8.3-3 `RoxyFilemanController.MapPath` throws for a relative path — ✅ **RESOLVED by task 8.6, see §71.1**
 
 `HttpServerUtility.MapPath` resolved a **relative** path against the *current request's* virtual
 directory, and nothing in ASP.NET Core has that notion — deferral **8.1-3**, owned by task 8.6. The
@@ -6418,9 +6425,9 @@ mechanically translating the `..`, exactly as deferral 8.1-3 says.
 | # | Item | Why not here |
 |---|------|---|
 | **7.4-2** (admin static assets half) | admin `Content/`/`Scripts/` still do not **serve** | **8.5**. Unchanged by this task |
-| **8.1-1** | `Content/Roxy_Fileman/tmp/` does not exist | **8.5 / 8.6**. Now additionally reachable through deferral 8.3-3's throw |
+| **8.1-1** | `Content/Roxy_Fileman/tmp/` does not exist | **8.5 / 8.6**. Now additionally reachable through deferral 8.3-3's throw — ✅ both since RESOLVED (8.5 §65, 8.6 §71.1) |
 | **8.1-2** | two casing defects in `Areas/Admin/Views/Shared/_AdminLayout.cshtml` | **8.4** — a view |
-| **8.1-3** | `Server.MapPath` with a relative path | **8.6**. Not papered over; see deferral 8.3-3 |
+| **8.1-3** | `Server.MapPath` with a relative path | **8.6**. Not papered over; see deferral 8.3-3 — ✅ since RESOLVED, §71.1 |
 | **7.7-4** (admin half) | case-sensitivity audit over `Administration/` | **8.4 / 8.5** for views and assets. 8.3 audited and **fixed one instance in controller code** — `CommonController`'s `"content\\files\\exportimport"` (§55.8) — and 8.1 had already run the `MapPath` literal audit clean (5 literals) |
 | **35** | minification gone; the two inert bundling checkboxes in `Areas/Admin/Views/Setting/GeneralCommon.cshtml` | post-migration / **8.4** |
 | **18 / 7.18** | ImageSharp licence diagnostic | business decision — and §46.4 measured that it does **not** affect this project at the pinned 2.1.13 |
@@ -6787,7 +6794,7 @@ the directory the finder scans.**
 |---|------|---|
 | **7.4-2** (admin static assets half) | admin `Content/`/`Scripts/` still do not **serve** | **8.5**. Unchanged by this task, but its blocker is gone: the two casing defects that would have made a widened allow-list 404 anyway are fixed (§59.5) |
 | **8.1-1** | `Content/Roxy_Fileman/tmp/` does not exist | **8.5 / 8.6** |
-| **8.1-3** · **8.3-3** | relative `Server.MapPath` in `RoxyFilemanController`, which now throws `NopException` naming 8.1-3 | **8.6** |
+| **8.1-3** · **8.3-3** | relative `Server.MapPath` in `RoxyFilemanController`, which now throws `NopException` naming 8.1-3 | **8.6** — ✅ since RESOLVED, §71.1 |
 | **8.2-2** | `dotnet publish` of `Nop.Web` omits `Nop.Admin.dll` | **8.5 / 18.x**. Note deferral 8.4-1 is the *test-harness* instance of the same root cause, and 8.8's fix for one does not fix the other |
 | **8.2-3** | 12 plugin view sites still reference `~/Administration/Views/Shared/…` | **11.1–11.2, 13.1, 14.4, 15.1**. Unchanged: the admin view tree is still at `Areas/Admin/Views/`, so those paths are still stale |
 | **8.3-1** | the System Info `<machineKey>` warning is gone with nothing in its place | **8.7** |
@@ -6819,3 +6826,716 @@ not reach without the admin area loaded. In priority order:
    they diverge, every admin date field silently loses its widget.
 5. **The Shared-before-controller view resolution quirk** (§50.1) against real admin views, which
    8.2 could only prove on a probe.
+
+
+
+---
+
+# Nop.Admin — making the static assets serve (task 8.5)
+
+Task 8.5 closes the **admin half of deferral 7.4-2** and **deferral 8.1-1**, and makes deferral
+**8.2-2**'s own recommended remedy actually work — it did not before, and the measurement of why
+is the most consequential thing in this task.
+
+It found **three real defects**, none of which a compile could see and two of which only manifest
+in a *published* application:
+
+1. publishing `Nop.Admin` put its `Content/` and `Scripts/` trees at the **publish root**, so a
+   published admin would have 404'd on every asset *even with the allow-list widened*, and would
+   additionally have **overwritten the storefront's own asset trees**;
+2. the 12 Roxy Fileman `.json` files were split off from that fix by an SDK item-type detail;
+3. `JbimagesController` asked for `~/content/images/uploaded/`, so admin rich-text image upload
+   threw `DirectoryNotFoundException` on Linux.
+
+| Measurement | Value |
+|---|---|
+| gates, `--no-incremental` after `rm -rf obj bin` | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 · `Nop.Admin` **0**/16 — every baseline exact, **no warning added** |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| `Nop.Web.SmokeTests` | **73 passed / 0 failed / 18 skipped** (was 54/0/18). All 54 still pass; **+19 new**, all in the always-run set — no new skip |
+| `HarnessCanaryTests` (`[Explicit]`) | **6 failed / 0 passed** (was 5/0) — a sixth canary added for the admin-asset mechanism |
+| swallowed-diagnostics check | `"converted to a warning"` **0** · `ContinueOnError` **0** · `NU1901`–`NU1904` **0** · Six Labors licence lines **0** · `error MSB*` **0** |
+| case-sensitivity audit (deferral 7.7-4, static-asset half) | 6 `MapPath`-class literals · 0 rooted refs in admin `.css`/`.js` · 582 relative CSS `url(...)` · 4 concatenated fragments → **0 mismatches** after one fix; auditor proven able to fail on two of the four passes |
+| publish audit, with a **planted `.bak` and a planted `tmp/*.zip` on disk** | **PASS** — 18 required paths present, 8 required absences held, 0 `.bak`/`.cs`/`.cshtml`/`tmp *.zip` anywhere, 0 stray files outside `Administration/` |
+| files touched | `NopStaticFileProvider.cs`, `Nop.Admin.csproj`, `Administration/Controllers/JbimagesController.cs`, 1 new placeholder, 1 new + 2 edited smoke-test files |
+| **not** touched | `RoxyFilemanController.cs`, `ProductController.cs`, `CheckoutAttributeController.cs` (task 8.6, concurrent), `Web.config` (8.7), `Validators/` |
+
+> **Verification ran in an isolated `git worktree`, not the working tree.** Task 8.6 was editing
+> `RoxyFilemanController.cs` concurrently and `Nop.Admin` was transiently at `CS0246: ImageFormat`
+> mid-edit, so a build in the shared tree measured 8.6's in-flight state rather than 8.5's change.
+> A detached worktree at `HEAD` carrying **only** this task's files was used instead. The worktree
+> was removed afterwards.
+
+## 63. The decision — the provider moved, the assets did not (deferral 7.4-2, admin half)
+
+**Widening the allow-list was chosen over relocating the trees under `wwwroot/`**, and the reason
+is the same shape as task 7.4's for the storefront (§33.1) but with **different, admin-specific
+call sites**, which were read rather than inherited:
+
+| Blocker | Detail |
+|---|---|
+| `RoxyFilemanController` | its `confFile` field is `"~/Administration/Content/Roxy_Fileman/conf.json"`, read through `CommonHelper.MapPath` — a **content-root-relative physical read**, not a URL. A relocated `Content/` tree leaves the file manager unconfigurable. Note this file is **task 8.6's** and was being edited concurrently, so relocation would have required a cross-task edit to keep a shipped feature working |
+| `TinyMceHelper.GetTinyMceLanguage()` | probes `CommonHelper.MapPath("~/Administration/Content/tinymce/langs/")` for `{culture}.js`, then for `{culture with - → _}.js`, and **falls back to English when the probe misses**. So relocation would have **silently** dropped admin editor localisation for all ten shipped languages rather than failing loudly — the exact failure class this register exists for |
+
+`ThemeProvider`, `CommonModelFactory`'s favicon probe and `PictureService`'s thumbnail writes — 7.4's
+three storefront blockers — do **not** apply to the admin tree. The two above do, and either alone
+is sufficient.
+
+### 63.1 What was added to `NopStaticFileProvider`
+
+`Administration/Content/**` and `Administration/Scripts/**`, as a **nested** first-two-segment rule
+(`AllowedAdministrationRoots` + `AdministrationRoot`) rather than `"Administration"` appended to
+`AllowedRoots`. That distinction is the whole security argument: a bare root entry would also have
+exposed
+
+- `Administration/db_backups/*.bak` — **full copies of the store database.** 3.90 mapped `.bak` in
+  `<staticContent><mimeMap>` specifically so backups could be downloaded over HTTP, which bypassed
+  `[AdminAuthorize]` entirely; task 7.4 refused to reproduce the mapping (§33.2) and task 8.3
+  replaced the static link in `CommonController` with a permission-checked streaming action.
+- `Administration/Areas/Admin/Views/**` — the 325 `.cshtml` files task 8.2 relocated.
+- `Administration/Web.config`, `Administration/sitemap.config`, `Administration/bin/**`,
+  `Administration/obj/**`.
+
+Requiring `segments[0] == "Administration"` **and** `segments[1] ∈ {Content, Scripts}` refuses all
+of those structurally, instead of relying on `DeniedExtensions` to catch them one file type at a
+time. `IsAllowedDirectory` uses `>= 2` where `IsAllowedFile` uses `>= 3`, so
+`Administration/Content` is enumerable but `Administration` is not.
+
+**What this deliberately DOES serve, as 3.90 parity:**
+`Administration/Content/Roxy_Fileman/index.html` and its `conf.json` + `lang/*.json`.
+`Areas/Admin/Views/Shared/EditorTemplates/RichEditor.cshtml` points TinyMCE at that `index.html`,
+and the file manager's own client script (`Content/Roxy_Fileman/js/utils.js`) fetches `conf.json`
+and a language pack **over HTTP** — so `conf.json` is needed on both the disk and the URL path.
+It holds paths, size limits and the upload allow/deny extension lists; no credentials.
+
+### 63.2 NEW: `DeniedSubpaths` — `Administration/Content/Roxy_Fileman/tmp` is refused
+
+An exclusion checked **before** any allow rule, in both `IsAllowedFile` and `IsAllowedDirectory`.
+
+`RoxyFilemanController`'s DOWNLOADDIR operation writes a temporary `.zip` of a media folder there,
+streams it and deletes it. Those archives contain arbitrary uploaded content and an interrupted
+request can leave one behind, so serving the directory statically would make it downloadable
+without passing `[AdminAuthorize]` — the same shape as the `.bak` defect. Nothing needs it: the
+controller streams the file itself and never emits its URL.
+
+It is a **path** exclusion rather than an extra `DeniedExtensions` entry because **`.zip` must keep
+working elsewhere** — verified: `~/Content/samples/product_IfYouWait_1.zip` and two siblings are
+the sample downloadable products a stock install seeds, and they are served over HTTP. A global
+`.zip` deny would have broken them.
+
+## 64. THE PHYSICAL-LOCATION DEFECT — publishing put the admin assets in the wrong place, on top of the storefront's
+
+This is the finding that mattered most, and it is invisible from a development build.
+
+`NopStaticFileProvider` resolves a request subpath against the **host's content root** — the
+project directory under `dotnet run`, the **publish directory** in a deployment. The admin views
+request `~/Administration/Content/...` and `~/Administration/Scripts/...` (task 8.4 audited all 81
+such references). Measured, `dotnet publish` of `Nop.Admin` produced:
+
+```
+<publish root>/Content/...      <- NOT Administration/Content
+<publish root>/Scripts/...
+<publish root>/db_backups/...
+<publish root>/sitemap.config
+```
+
+Two independent failures follow, and task 8.1's publish work — which was correct about *whether*
+the files ship — could not see either, because it only checked presence, not path:
+
+1. **A published admin 404s on every asset anyway.** The widened allow-list matches the URL and
+   then finds nothing on disk. Development works perfectly; only the deployment is broken.
+2. **It silently corrupts the storefront.** Deferral 8.2-2's own suggested remedy is to "publish
+   both projects into one directory", and against the flat layout that overwrites files.
+   The overlap is real, not hypothetical:
+   - `Content/`: `ionicons`, `jquery-ui-themes` — and **`Content/ionicons` is structurally
+     different** between the two (storefront has `ionicons.css` at the top level; admin has `css/`
+     and `fonts/` subdirectories), so whichever published last would win;
+   - `Scripts/`: **12 files** — `jquery-1.10.2*.js`/`.map`, `jquery-migrate-1.2.1*.js`,
+     `jquery-ui-1.10.3.custom*.js`, `jquery.validate*.js`, `jquery.validate.unobtrusive*.js` —
+     plus the `fineuploader` directory. Twelve of those happen to be **byte-identical today**,
+     which is exactly the accident that lets this class of bug survive review.
+
+**Fix:** `Link` metadata on every publish item in `Nop.Admin.csproj`, moving them under
+`Administration\`. Verified by evaluating `ResolvedFileToPublish`: `RelativePath` goes from
+`Content/styles.css` to `Administration/Content/styles.css`.
+
+### 64.1 The first attempt was wrong, and the audit caught it
+
+`Link="Administration\Content\%(RecursiveDir)%(Filename)%(Extension)"` — the obvious first guess —
+publishes to `Administration/Content/Content/...`. These are **`Update` rules against items the
+SDK's project-rooted default glob created**, not a fresh `Include="Content\**"`, so
+`%(RecursiveDir)` **already carries the prefix**. Measured directly:
+
+```
+Identity "Content/styles.css"          -> RecursiveDir "Content/"
+Identity "Scripts/admin.navigation.js" -> RecursiveDir "Scripts/"
+```
+
+The correct form is `Link="Administration\%(RecursiveDir)%(Filename)%(Extension)"`. The publish
+audit reported 16 failures on the wrong version and 1 on the next iteration, so it was **proven
+able to fail before its PASS was believed** — organically, not by a planted canary.
+
+### 64.2 The `None` rules were not sufficient — 12 Roxy Fileman `.json` files were split off
+
+Measured, not reasoned about. The Web SDK's default globs classify **`.json` as `Content`, not
+`None`**, so 12 files under `Content/Roxy_Fileman/` were `Content` items: they already published
+(Content defaults to `PreserveNewest`) but at the **unlinked root path**. A publish therefore still
+contained `Content/Roxy_Fileman/conf.json` alongside a correctly-placed `Administration/Content/`.
+
+Both groups are load-bearing: `conf.json` is read server-side **and** fetched over HTTP, and
+`lang/*.json` are 11 UI language packs the client script fetches by URL. So this was not cosmetic —
+it would have left the file manager broken in a deployment.
+
+Fixed with mirrored `Content Update="Content\**"` / `Scripts\**` / `db_backups\**` rules carrying
+the same `Link`. Written over the trees rather than the 12 files so a future `.json` — or any other
+extension the SDK classifies as `Content` — cannot silently reintroduce the split.
+
+`sitemap.config` needed the same treatment for the same reason: it is a `.config`, hence already a
+`Content` item that publishes, but `Areas/Admin/Views/Shared/Menu.cshtml` reads it through
+`CommonHelper.MapPath("~/Administration/sitemap.config")`, so at the root the **admin menu does not
+render in a deployment**.
+
+### 64.3 Deferral 8.2-2 — its remedy now works; the deployment ergonomics remain 18.x's
+
+Verified end to end: publish `Nop.Web`, then publish `Nop.Admin` into the same directory.
+Afterwards the storefront's `Scripts/jquery.validate.min.js` checksum is **unchanged**,
+`Content/ionicons/` still holds only its own two files, all admin assets are under
+`Administration/`, `Nop.Admin.dll` sits at the publish root where `WebAppTypeFinder` scans, and
+`App_Data/Settings.txt` / `*.bak` / `*.cs` / `*.cshtml` / `tmp/*.zip` counts are all **0**.
+
+**8.2-2 is therefore narrowed, not closed.** What is fixed is that the two-step publish is now
+*correct*; what remains is that it is still two steps and nothing enforces it, so a deployment that
+publishes only `Nop.Web` has no admin area — silently. That is a deployment-packaging decision for
+**18.x**, unchanged in substance.
+
+## 65. Deferral 8.1-1 RESOLVED — `Content/Roxy_Fileman/tmp/` now exists
+
+`src/Presentation/Nop.Web/Administration/Content/Roxy_Fileman/tmp/placeholder.txt` is committed,
+following the pattern task 7.4 used for `Content/Images/Thumbs/` (§31.3) and task 8.1 for
+`db_backups/`. Both of those hit the same trap and so does this one: a `.txt` is a `None` item, so
+it defaults to `CopyToPublishDirectory=Never` and needs the explicit publish include —
+`Content\**` → `PreserveNewest` covers it, and `Content\Roxy_Fileman\tmp\**\*.zip` → `Never`
+withholds the archives. Verified with a planted `.zip`: **placeholder present, `.zip` absent** — a
+discriminating pair, where testing the exclusion alone cannot distinguish "the rule works" from
+"`None` defaults to `Never` anyway".
+
+Checked rather than assumed: `.gitignore`'s `*.tmp` matches a *file* named `*.tmp`, not a directory
+named `tmp`, and `git check-ignore` confirms the placeholder is tracked.
+
+**NECESSARY BUT NOT SUFFICIENT, and that is stated on the placeholder itself.** DOWNLOADDIR stays
+inoperative until **task 8.6** resolves deferral **8.1-3 / 8.3-3**: `RoxyFilemanController.MapPath`
+throws `NopException` for a relative path such as `"../tmp/"`, because
+`HttpServerUtility.MapPath`'s "resolve against the current request's virtual directory" semantics
+have no ASP.NET Core equivalent. 8.5 supplied the directory; 8.6 owns the path.
+
+## 66. Deferral 7.7-4, static-asset half — one real defect found and fixed
+
+Task 8.4 closed the admin-**view** half. This closes the static-asset half, with a scripted audit
+(comments blanked first, with string/char/verbatim-literal tracking; every path resolved **segment
+by segment** against the real filesystem, rooted at the Nop.Web content root).
+
+**`Administration/Controllers/JbimagesController.cs` asked for `~/content/images/uploaded/`.**
+The directory on disk is `Content/Images/uploaded`, so on a case-sensitive filesystem
+`CommonHelper.MapPath` returned a path whose parent does not exist and the
+`FileStream(..., FileMode.Create)` immediately below threw `DirectoryNotFoundException` — i.e.
+**uploading an image from the admin rich-text editor failed outright on Linux/containers and worked
+on Windows.** Same defect class as task 7.7's eight instances. Fixed to `~/Content/Images/uploaded/`,
+which also makes it agree with `Content/Roxy_Fileman/conf.json`, whose `FILES_ROOT` already spelled
+the same directory correctly.
+
+**It was missed by task 8.1's audit A because that audit matched only literals written inline in a
+`MapPath(...)` call.** Both `JbimagesController` (a `directory` local) and `RoxyFilemanController`
+(its `confFile` field) assign the literal to a variable first. 8.5's audit therefore checks **every
+`"~/..."` literal** in every admin `.cs` file, which is why it found 6 where 8.1 found 5.
+
+Final result, current tree: **6 `MapPath`-class literals · 0 rooted refs in admin `.css`/`.js` ·
+582 relative CSS `url(...)`/`@import` · 4 concatenated fragments → 0 case mismatches.** The 25
+unresolved CSS references are third-party files genuinely absent from the repository, pre-existing
+in 3.90 and identical to the 25 task 8.1 recorded — not a casing problem.
+
+**The auditor was proven able to fail**, on two of its four passes independently: a planted
+`~/content/Images/uploaded/` was reported by pass A, and a planted
+`url(IMAGES/throbber-synchronizing.gif)` in `Administration/Content/styles.css` by pass C. Both
+canaries were reverted and `git status` verified clean of them. (A first CSS canary using
+`../IMAGES/...` was *correctly* reported as "missing" rather than "case" — `Administration/IMAGES`
+exists at no casing — so it was replaced with a valid one rather than counted as a pass.)
+
+## 67. Tests added, and how they were proven able to fail
+
+**New fixture `src/Tests/Nop.Web.SmokeTests/AdminStaticAssetTests.cs` — 19 assertions, all in the
+always-run set.** Placement is deliberate: because the provider resolves against the filesystem,
+admin asset serving is observable **without `Nop.Admin.dll` being loaded**, which sidesteps
+deferral **8.4-1** entirely and means these assertions hold in *both* store states — where
+`InstallModeTests` and `InstalledStoreTests` each cover only one.
+
+| Assertions | What they pin |
+|---|---|
+| `Deferral_7_4_2_an_admin_asset_serves` ×14 | one per asset family — stylesheet, RTL stylesheet, third-party CSS, image, web font, Kendo (the `{0}`-substituted family), TinyMCE language pack, Roxy Fileman `index.html` + `conf.json` + `lang/en.json`, admin JS. Includes the two files deferral 8.1-2 was about, so a widened allow-list cannot be credited for serving a path the views spell differently |
+| `Deferral_7_4_2_admin_assets_get_the_same_cache_headers_as_storefront_assets` | `public,max-age=604800` — proves admin assets go through the **same** `StaticFileOptions`, i.e. 3.90's `<clientCache>` applies, rather than there being a second unconfigured pipeline |
+| `Deferral_33_admin_assets_are_cache_busted_for_free` | the property deferral 7.4-2 predicted: `IFileVersionProvider` versions an admin asset, the versioned URL still serves, **and a denied path comes back unversioned** — the third clause is what stops the first from passing on an unconditional suffix |
+| `Task_8_5_widening_the_allow_list_did_not_expose_the_rest_of_Administration_SECURITY` | 14 paths, each asserted to **exist on disk first** so a refusal is a decision. A `.bak` and a `tmp/*.zip` are planted in setup and removed in teardown |
+| `Task_8_5_the_Administration_directory_itself_cannot_be_enumerated_SECURITY` | 7 directories refused, **and** the 2 admin asset roots confirmed enumerable — so it cannot pass because the provider refuses everything |
+| `Deferral_7_7_4_admin_asset_urls_are_case_exact_against_the_filesystem` | 4 mis-cased URLs refused. `Assert.Ignore`s with a reason on a case-insensitive filesystem rather than passing vacuously |
+
+**Two known-gap tests inverted** in `InstallModeTests`:
+`Deferral_7_4_2_admin_static_assets_do_NOT_serve_yet_KNOWN_GAP` →
+`…_DO_serve_now`; and `Deferral_40_the_install_page_only_links_assets_that_actually_serve` lost its
+`Administration/` exclusion and gained an assertion that an `/Administration/` reference is
+actually present, so the exclusion's removal cannot be quietly undone by deleting the coverage.
+
+**Proof the new assertions can fail — four ways, three of them organic:**
+
+1. **A sixth permanent canary**, `HarnessCanaryTests.CANARY_admin_static_asset_assertions_can_fail`,
+   covering both assertion shapes against one non-existent admin asset (a 200 assertion, and a
+   `?v=` assertion via `IFileVersionProvider`, which returns the path unchanged when it cannot see
+   the file). The `[Explicit]` fixture now reports **6 failed / 0 passed**.
+2. **Temporary regression A** — the task 8.5 *file* rule commented out of `IsAllowedFile`:
+   **18 failed / 55 passed / 18 skipped**, precisely the 14 parameterised serving cases plus the
+   cache-header, cache-busting and two install-page assertions. The two SECURITY tests and the
+   enumeration test **still passed**, which is the desired result: they are independent of the
+   serving fix rather than tautologically coupled to it.
+3. **Temporary regression B** — `IsDeniedSubpath` commented out of both call sites:
+   **2 failed / 71 passed**, exactly the two SECURITY tests, confirming the planted `tmp/*.zip`
+   *would* be served without the exclusion and that the tests catch it.
+4. The publish audit's own 16-then-1-failure trajectory (§64.1).
+
+All probes reverted; the provider was diffed byte-for-byte against the working tree afterwards and
+the full suite re-run green.
+
+## 68. NEW deferral opened by task 8.5
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 8.5-1 | Nothing enforces the two-step publish, and `_AdminLayout`'s own asset list is still unverified end to end | 8.8 / 18.x | Medium |
+
+### 8.5-1 The published deployment is correct but not self-enforcing, and the layout's asset list is unverified
+
+Two residues, recorded together because 8.8 can close the second and only 18.x can close the first.
+
+- **The two-step publish is not enforced.** §64.3 verified that publishing `Nop.Web` then
+  `Nop.Admin` into one directory now produces a correct deployment. Nothing makes that happen:
+  `dotnet publish` of `Nop.Web` alone yields a storefront with no `Nop.Admin.dll` and no
+  `Administration/` tree, i.e. **no admin area at all, silently**. This is deferral 8.2-2's
+  residue, narrowed to ergonomics.
+- **`_AdminLayout.cshtml`'s asset references are still not verified end to end.** Task 8.4 audited
+  all 81 of them **statically** against the filesystem, and 8.5 asserts 14 representative paths
+  serve — but nothing yet renders an admin page and requires every asset URL it emits to return
+  200, which is what `Deferral_40_the_install_page_only_links_assets_that_actually_serve` does for
+  the storefront. That needs the admin area routable, i.e. deferral **8.4-1** fixed first.
+  **Recommended for 8.8**, alongside its existing four runtime checks: request any admin page and
+  apply the same regex-and-fetch audit to its emitted `href`/`src` set. It is ~10 lines given the
+  existing helper and it would close the last inference in this area.
+
+## 69. Deferrals explicitly NOT closed by 8.5, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **8.1-3 / 8.3-3** | relative `Server.MapPath` in `RoxyFilemanController` | **8.6**, and out of scope by instruction — that file must not be edited from here. §65 supplied the directory its `"../tmp/"` caller needs; the path itself is 8.6's — ✅ since RESOLVED, §71.1, and it resolves to exactly the directory §65 created |
+| **8.4-1** | `Nop.Admin.dll` is not in the smoke-test base directory, so the Admin area is absent from the test host | **8.8**. Deliberately *not* worked around: 8.5's assertions are designed to hold without it, so this task neither depends on nor masks it |
+| **8.3-2** | the deferred admin smoke assertions | **8.8** |
+| **8.2-2** | nothing enforces the two-step publish | narrowed here (§64.3), re-targeted to **18.x** as deferral 8.5-1 |
+| **8.3-1** | the System Info `<machineKey>` warning | **8.7** |
+| **35** | minification gone, nothing replaces it | post-migration (design §8) |
+| the 6 `Nop.Admin` warnings | 4 `CS0618` FluentValidation `Custom(...)`, 1 `CS0618` `TimeZone`, 1 `SYSLIB0014` `WebRequest.Create` | **8.7**. `Validators/` untouched, per instruction |
+| **7.2-1** · **7.2-3** · **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** · **7.4-1** · **7.5-1** · **7.7-2** · **7.7-3** · **4.10** · **4.11** · **9/4.9** · **11.27** · **8.2-1** · **8.2-3** · **18/7.18** | unchanged | as previously recorded. **8.2-1** (plugin assemblies loaded by name) is still HIGH and still blocks group 10 |
+
+
+
+---
+
+# Nop.Admin — System.Drawing → SixLabors.ImageSharp (task 8.6)
+
+Task 8.6 is not a compile fix. `Nop.Admin` was already at **0 errors / 16 warnings** before it
+started and is at **0 errors / 16 warnings** after — the same 16, not one added and not one
+removed. It is a **correctness and platform-support** task: `System.Drawing.Common` is Windows-only
+from .NET 6, `Nop.Admin` was the only project in the solution still binding it, and the imaging
+half of that binding **did not work on Linux at all**.
+
+It **RESOLVES four deferrals** — **8.1-3**, **8.3-3**, and both halves of the `System.Drawing`
+item design §7 opened — and **corrects two recorded predictions** that turned out to be wrong
+(§70.1, §70.2).
+
+| Measurement | Value |
+|---|---|
+| `Nop.Admin` errors / warnings, before → after | **0 / 16 → 0 / 16** — byte-for-byte the same six own warnings (4 `CS0618` FluentValidation `Custom(...)`, 1 `CS0618` `TimeZone`, 1 `SYSLIB0014` `WebRequest.Create`), all pre-existing 3.90 code and all **8.7's**. `Validators/`, `Models/`, `Infrastructure/`, `Extensions/` untouched |
+| upstream re-gate, `--no-incremental` | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 — every baseline exact, **no warning added** |
+| swallowed-diagnostics check (`-v:n`) | `"converted to a warning"` **0** · `ContinueOnError` **0** · `NU1901`–`NU1904` **0** · `error MSB*` **0** · `error NETSDK*` **0** · **Six Labors licence lines 0** (§70.2) · **`CA1416` 0** (§70.1) |
+| `System.Drawing.Common` in `Nop.Admin.dll`'s AssemblyRef table | **45 refs incl. `System.Drawing.Common` → 44 refs with none.** Measured on both sides by reading the metadata table, not inferred (§70.3) |
+| residual `System.Drawing` binding in source | **0 real hits across 604 files**, comment-blanking scan proven with a planted canary (§70.4) |
+| new tests | `src/Tests/Nop.Admin.Tests` — **53 passed / 0 failed / 0 skipped**, driving the real controller. 4 canaries, all **Failed** as required |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| `Nop.Web.SmokeTests` | **73 passed / 0 failed / 18 skipped** and **6 canaries all Failed**. Was 54/0/18 with 5 canaries; the **+19 tests and the 6th canary are task 8.5's concurrent work**, not this task's — 8.6 touched no file that project reads (§70.5) |
+| files changed | 3 controllers + 1 new helper under `Administration/`, 1 new test project, 1 doc section. **`Nop.Web/Infrastructure/NopStaticFileProvider.cs`, the admin asset trees, `JbimagesController.cs`, `Nop.Admin.csproj`, `Web.config` — all untouched** (8.5's and 8.7's) |
+
+## 70. What was measured, including two corrections to the record
+
+### 70.1 CORRECTION — `CA1416` never appears, so the Windows-only-ness was invisible at compile time
+
+`tasks.md` step 8.6 and task 8.3's handover both say *"Expect `CA1416` warnings once the project
+compiles."* **Measured: there are none, before or after.** A `-v:n` build of the pre-8.6 tree
+contains **zero** `CA1416` lines.
+
+The reason matters. This solution pins `System.Drawing.Common` at **4.7.2** — the pre-.NET-6 line,
+pinned centrally by task 4.2 §10 to clear `NU1904` / GHSA-rxg9-xrhp-64gj / CVE-2021-24112 — and
+that package's reference assembly carries **no `[SupportedOSPlatform("windows")]` annotations**.
+The platform-compatibility analyser therefore has nothing to flag. Only `System.Drawing.Common`
+6.0+ is annotated.
+
+So this task has **no warnings to clear and the warning count does not move**, and the more
+important consequence: the defect had **no compile-time signal of any kind**. The only way to
+observe it was to run the code on a non-Windows host, which nothing in this migration had done
+until now. That makes the case for the task stronger, not weaker.
+
+### 70.2 CONFIRMED — the Six Labors licence diagnostic still does not affect this project
+
+Task 4.2 §7.18 recorded that ImageSharp 4.1.1 emitted *"No Six Labors license found"* as an
+**error downgraded to a warning by `ContinueOnError=true`**, and named `Nop.Admin` at task 8.6 as a
+second affected project. Task 8.1 §46.4 corrected that: the **2.1.13** pin ships no `build/`
+targets and therefore no `ValidateLicenseTask`.
+
+Re-verified here now that ImageSharp is genuinely compiled against: a `-v:n` build produces
+**0** lines matching *Six Labors licen*, *sixlabors.com/pricing* or *ValidateLicense*, and **0**
+`"converted to a warning"` and **0** `ContinueOnError`. The only `licen` substrings in the whole
+log are the source file name `LicenseFilePopup`. §7.18's sentence naming `Nop.Admin` remains
+obsolete; the business decision it describes still applies only to the version choice itself.
+
+### 70.3 The assembly-reference delta was measured on both sides, not asserted
+
+A source scan cannot prove the emitted assembly changed. The `AssemblyRef` metadata table of the
+built `Nop.Admin.dll` was read directly (`System.Reflection.Metadata`), **before and after**, by
+reverting the three controllers to `HEAD`, rebuilding, dumping, and restoring:
+
+| | assembly refs | `System.Drawing.Common` | `SixLabors.ImageSharp` |
+|---|---|---|---|
+| before 8.6 | 45 | **present** | absent |
+| after 8.6 | 44 | **absent** | **present** |
+
+Identity is `Nop.Admin v3.9.0.0` in both, confirming `Properties/AssemblyInfo.cs` is still in
+effect (task 8.1 §46.4 / 7.5 §37.1).
+
+**The package remains in the graph, and that is correct.** `System.Drawing.Common` 4.7.2 still
+resolves transitively through the single edge `EPPlus/4.5.3.3 → System.Drawing.Common` and its
+runtime asset is still copied to the output directory. Removing it is not an option — it would
+reintroduce a package carrying a CRITICAL RCE advisory — and it is not a problem, because nothing
+in the repository binds a type from it any more. This is exactly the honest exception task 7.5
+§38.3 recorded for `Nop.Web`. The distinction to hold on to: **`System.Drawing.Color`/`Point`/
+`Size`/`Rectangle` live in the cross-platform `System.Drawing.Primitives`**, part of the net10.0
+shared framework; only `Bitmap`/`Graphics`/`ColorTranslator`/`ImageFormat` and friends are in the
+Windows-only `System.Drawing.Common`. The scan in §70.4 is written to that distinction rather than
+banning the string `System.Drawing` wholesale.
+
+### 70.4 The residual scan, and proof it works
+
+A naive `grep` is meaningless here: this migration deliberately leaves explanatory prose naming
+the legacy types it replaced, and the files touched by this task now contain a great deal of it.
+The scanner blanks `//`, `/* */` and `@* *@` comments first — tracking string, char and
+verbatim-string literals so a `//` inside a URL is not mistaken for a comment — and only then
+searches the residue for the Windows-only `System.Drawing.Common` surface (`System.Drawing.Imaging`,
+`System.Drawing.Drawing2D`, `ColorTranslator`, `InterpolationMode`, `PixelFormat`,
+`GetThumbnailImage(Abort)`, `Graphics.FromImage`, `Bitmap` on a word boundary, `using System.Drawing`,
+`ImageResizer`).
+
+**Proven able to fail** before its clean result was believed: a planted `_Scan86Canary.cs` was
+reported with **6 hits**, while three adjacent comment lines mentioning `Bitmap`,
+`ColorTranslator`, `System.Drawing.Imaging`, `PixelFormat`, `Graphics.FromImage` and `ImageResizer`
+were correctly **not** reported. Canary removed; `git status` verified clean of it.
+
+Result on the real tree: **604 files scanned (`.cs` + `.cshtml` under `Administration/`), 0 real
+hits.** One pre-existing hit was a `#region` name in `RoxyFilemanController.cs`, renamed so the
+scan is clean for future automated checks rather than needing a hand-maintained exception.
+
+### 70.5 What the new test project does, and why it is not in `Nop.Web.SmokeTests`
+
+Compiling an ImageSharp call proves nothing about whether it produces a correct image, so
+`src/Tests/Nop.Admin.Tests` drives the **real** `RoxyFilemanController` through a test subclass —
+real files on disk, a real `DefaultHttpContext`, real encoded bytes read back with
+`Image.Load`/`Image.Identify`. Nothing is mocked. 53 tests, 0 skipped. See `build-environment.md`
+for the command.
+
+It is a **separate project, deliberately**. A `ProjectReference` from `Nop.Web.SmokeTests` to
+`Nop.Admin` would put `Nop.Admin.dll` into the smoke-test project's output directory — which is
+what `AppDomain.CurrentDomain.BaseDirectory`, and therefore `WebAppTypeFinder`, actually scans —
+so the Admin area would start registering and
+`Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP` would fail. Adding
+that reference and inverting that test is **deferral 8.4-1, explicitly task 8.8's**, in a pass that
+also owns four runtime checks. This project therefore never boots the host.
+
+Like `Nop.Web.SmokeTests`, it is **not in `NopCommerce.sln`** (task 18.1's file — deferral 7.7-2)
+and must not be gated.
+
+**Four canaries, all Failed as required**, guarding the four mechanisms the suite rests on. One
+matters more than the others: `DefaultHttpContext.Response.Body` is `Stream.Null` by default and
+**discards writes silently**, so a harness that forgot to replace it would make every imaging
+assertion vacuous while still reporting green.
+
+**Independently, the tests demonstrated they can fail on real work:** the first run reported
+**3 failures**, all in `RoxyFilemanMapPathTests`, because the first cut of the relative-path
+resolution climbed **one directory level too high** — `Path.Combine(roxyRoot, "../lang/en.json")`
+normalises to `Content/lang/en.json`, not `Content/Roxy_Fileman/lang/en.json`. That is a real bug
+the tests caught before it shipped, and §71.1's leading-segment rule is the fix.
+
+---
+
+## 71. Deferrals RESOLVED by task 8.6
+
+### 71.1 Deferrals 8.1-3 and 8.3-3 — RESOLVED: the intended relative-path target, established from evidence
+
+`Nop.Admin/Controllers/RoxyFilemanController.cs`, `MapPath` (and the new `ROXY_FILEMAN_ROOT`
+constant).
+
+Task 8.3 made this method **throw `NopException` naming deferral 8.1-3** for a relative path rather
+than guess a translation, and §48 recorded that **8.6 must establish the *intended* target, not
+mechanically translate the `..`**. The throw is gone; the target is
+`~/Administration/Content/Roxy_Fileman/` — the Roxy Fileman installation directory, i.e. the
+directory that holds `conf.json` — on four independent pieces of evidence:
+
+1. **Upstream provenance.** The file's own header says it was ported from
+   `\RoxyFileman-1.4.3-net\fileman\asp_net\main.ashx`. The handler sat one level *below* the
+   fileman root, which is exactly what the leading `../` in every one of these literals exists to
+   climb out of.
+2. **`lang/` exists on disk at exactly `Administration/Content/Roxy_Fileman/lang/`, and nowhere
+   else in the repository** — verified: it is the only directory named `lang` in the whole tree,
+   and it holds the 11 `<code>.json` files `GetLangFile()` asks for.
+3. **Deferral 8.1-1 independently names the same base.** It identifies the missing `../tmp/`
+   directory as `Content/Roxy_Fileman/tmp/`, carried in 3.90 by a
+   `<Folder Include="Content\Roxy_Fileman\tmp\"/>` placeholder. Task 8.5, running concurrently,
+   created exactly that directory — corroboration from a task that did not know this one's answer.
+4. **`conf.json`'s own action URLs are written relative to the same directory**
+   (`"../../../Admin/RoxyFileman/ProcessRequest"` reaches the application root from
+   `Administration/Content/Roxy_Fileman/`).
+
+**The rule as implemented:** the leading run of `./` and `../` segments is consumed — they stood
+for "up out of the handler's own folder", and nopCommerce has no such folder — and the remainder is
+resolved against `ROXY_FILEMAN_ROOT`. `../lang/en.json` therefore lands on
+`Administration/Content/Roxy_Fileman/lang/en.json`. Any `..` surviving that run is normalised by
+`Path.GetFullPath` and then **rejected if it escapes the fileman directory**; no in-tree caller can
+trigger that (every relative literal is a compile-time constant or comes from `conf.json`), it is
+simply cheaper to be safe by construction. `CommonHelper.MapPath` does not normalise `..` at all,
+so normalising here also means `CheckPath`'s prefix comparison is never handed a path containing
+`..`.
+
+**This is NOT what 3.90 resolved to at runtime, and that is a deliberate, recorded improvement
+rather than a faithfulness lapse.** `HttpServerUtility.MapPath` resolved a relative path against
+the *request's own* directory, so for the MVC route `/Admin/RoxyFileman/ProcessRequest` the base
+was `/Admin/RoxyFileman/` and `../lang/en.json` resolved to `<root>/Admin/lang/en.json` — **a path
+that does not exist**. So in 3.90 the language file never loaded: `ParseJSON`'s empty `catch`
+swallowed the read failure and `LangRes` returned the resource **key** (`"E_UploadNotAll"`) instead
+of a sentence. **All three relative paths were broken by the .ashx-to-MVC port in 3.90 and were
+never fixed.** Reproducing that would mean preserving a defect. The observable improvement is that
+Roxy Fileman error messages are localized again.
+
+**Task 8.3's claim that "all three callers are already inoperative" was one caller short.**
+`LangRes` → `ParseJSON(GetLangFile())` is a **live** relative-path caller reached from every error
+path in the file, not one of the three named. Under 8.3's throwing `MapPath` it was
+degraded-but-not-crashing, because `ParseJSON`'s empty `catch` swallowed the `NopException` too —
+which is precisely why nobody noticed. The other three are as 8.3 described: the `"../Uploads"`
+fallback is unreached (`conf.json` sets `FILES_ROOT`), `"../tmp/"` is deferral 8.1-1, and
+`VerifyAction`'s call site is commented out in 3.90.
+
+`VerifyAction` still fails its comparison after this change, exactly as it did in 3.90 (its
+`".." + setting` arithmetic was nonsense in both hosting models). Its call site remains commented
+out, so nothing observable changes.
+
+**Pinned by six tests**, including one that asserts against the **real repository tree** rather
+than against the implementation's own arithmetic: pointed at the real `Nop.Web` content root,
+`../lang/en.json` must resolve to a file that **exists**, and its grandparent must be the directory
+holding `conf.json`.
+
+### 71.2 The `System.Drawing` imaging pipeline — RESOLVED, and it was genuinely dead on Linux
+
+Measured with the exact `System.Drawing.Common` 4.7.2 pin this solution carries, on Linux:
+
+| call | result |
+|---|---|
+| `new Bitmap(4, 4)` | **`TypeInitializationException`** → `DllNotFoundException: Unable to load shared library 'libgdiplus'` |
+| `Graphics.FromImage(...)` | **same** |
+| `ColorTranslator.FromHtml("#ff0000")` | **works** — see §71.3 |
+
+Note the failure is `DllNotFoundException`, **not** `PlatformNotSupportedException`: the 4.7.x line
+still attempts libgdiplus on Unix, where `System.Drawing.Common` 6.0+ throws PNSE outright. Either
+way `RoxyFilemanController`'s three imaging paths — `ShowThumbnail`, `ImageResize` and
+`ListFiles`' dimension read — could not execute at all off Windows.
+
+Three call sites ported, following `Nop.Services/Media/PictureService.cs`'s approach from task 4.2
+rather than inventing a second style, and against the same central **2.1.13** pin (the last purely
+Apache-2.0 line):
+
+| 3.90 | now |
+|---|---|
+| `Bitmap`, `Bitmap.FromStream`, `Bitmap.Clone(Rectangle, PixelFormat.DontCare)`, `Image.GetThumbnailImage` | `Image.Load` + `Mutate(x => x.Crop(area).Resize(new ResizeOptions { … }))` + `Save(stream, PngEncoder)` |
+| `new Bitmap(w,h)` + `Graphics.FromImage` + `InterpolationMode.HighQualityBicubic` + `DrawImage` | `Mutate(x => x.Resize(new ResizeOptions { … }))` with `KnownResamplers.Bicubic` |
+| `Image.FromStream(fs)` read for `Width`/`Height` only | `Image.Identify(fs)` — header-only |
+| `ImageFormat` (`GetImageFormat`) | `IImageEncoder` (`GetImageEncoder`) — `PngEncoder`/`GifEncoder`/`JpegEncoder` default |
+| `Image.GetThumbnailImageAbort` + `public virtual bool ThumbnailCallback()` | **both dropped** (design §7) — ImageSharp's resize needs no abort callback |
+
+**Every line of the surrounding arithmetic is 3.90's, unchanged**, and the observable results were
+verified by execution rather than by reading: a 200x100 source asked for 140x120 still yields
+exactly **140x100** (3.90 clamped the height to the source height), asked for 140x**0** still
+yields **140x70** (height derived from the source ratio), a 50x30 source asked for 500x400 still
+yields **50x30**, and the thumbnail is **PNG regardless of source format** with
+`Content-Type: image/png`. `ImageResize` 1200x600 within 1000x1000 still yields **1000x500**;
+`.png`/`.jpg`/`.gif`/other destinations still encode as PNG/JPEG/GIF/JPEG.
+
+**The crop rectangle is asserted by content, not just by dimensions.** A 200x100 source whose
+leftmost 20 columns are blue, asked for 140x120, must come back with **no blue at all** — the
+centred 140px crop starts at x=30, so the stripe is outside it. A crop that was not centred, or was
+not applied, would leak blue.
+
+#### Behavioural differences, recorded rather than silently accepted
+
+- **`Convert.ToInt16` is KEPT in `ImageResize`**, not quietly widened to `ToInt32`. It is 3.90's,
+  the bound comes from `conf.json` (`MAX_IMAGE_WIDTH`/`HEIGHT`, shipped as 1000), and widening it
+  would change which inputs throw.
+- **`ImageResize`'s early return is preserved**, so an upload that already fits is **not rewritten
+  at all** — it keeps its original bytes and its original encoder. That matters: a re-encode would
+  recompress a JPEG. Asserted byte-for-byte.
+- **`GetThumbnailImage` could return a JPEG's embedded EXIF thumbnail** when one was present and
+  large enough (typically 160x120, visibly worse than a resample). ImageSharp always resamples the
+  full image, so thumbnails of camera JPEGs come out **better** than 3.90's. Dimensions and format
+  are unaffected.
+- **GIF palettes differ.** ImageSharp's built-in GIF encoder quantizes by default — design §7's
+  note, the same property that covers `ImageResizer.Plugins.PrettyGifs` for `Nop.Services` — but
+  the palette it selects is not byte-identical to GDI+'s, so a re-encoded GIF's exact pixels may
+  differ. Dimensions and format do not.
+- **`ResizeMode.Stretch`, not `Max` — a deliberate difference from `PictureService`.** The explicit
+  `Crop` has already produced a region with the target aspect ratio and GDI+'s
+  `GetThumbnailImage(width, height, …)` produced *exactly* that box, so `Stretch` is what
+  reproduces it. `PictureService` uses `Max` because it is replacing ImageResizer's *padding*
+  `FitMode` — a different problem with a different answer.
+- **`ListFiles` no longer aborts a whole directory listing on one corrupt file.**
+  `Image.Identify` returns **null** for a file it cannot recognise (verified) where
+  `Image.FromStream` threw; 3.90's rethrow then turned that into an error response and the listing
+  was lost. The entry now reports `0x0` and the listing completes. The `catch`/`throw` is kept for
+  anything that does throw. All four extensions `GetFileType` classifies as images
+  (`.jpg`/`.jpeg`/`.png`/`.gif`) are supported by ImageSharp, so `null` means genuinely corrupt or
+  misnamed.
+- **The thumbnail response write is now buffered.** 3.90 saved the image straight into the response
+  stream. Kestrel disallows synchronous writes to `Response.Body` (`AllowSynchronousIO` is `false`
+  by default), so the image is encoded into memory and written with `WriteAsync` — the same
+  substitution task 6.2 made for `Response.BinaryWrite`. This removes a latent sync-IO failure that
+  would have thrown on the first real thumbnail request; a thumbnail is at most a few hundred KB.
+- **Pre-existing 3.90 defect NOT fixed, deliberately.** `ProcessRequest`'s `GENERATETHUMB` branch
+  does `int w = 140, h = 0; int.TryParse(GetRequestValue("width")…, out w);` — `TryParse` **always
+  assigns**, so a missing or unparsable `width` sets `w` to **0**, discarding the 140 default, and
+  `cropRatio` becomes `NaN`. Both hosting models end in an exception caught by `ProcessRequest` and
+  turned into an error response, so the observable behaviour is identical and it is left alone.
+
+### 71.3 The four `ColorTranslator.FromHtml` sites — RESOLVED, with the parity matrix measured
+
+`Administration/Helpers/HtmlColorHelper.cs` (new) replaces the four identical probes in
+`ProductController` (2) and `CheckoutAttributeController` (2). Design §7 maps them onto
+`SixLabors.ImageSharp.Color.TryParse`; they are not an imaging pipeline.
+
+**Note the count: FOUR, not three.** The task brief says three; `tasks.md` says four; there are
+four (`ProductController.cs` ~4017 and ~4174, `CheckoutAttributeController.cs` ~520 and ~610).
+`SpecificationAttributeController` also owns a `ColorSquaresRgb` but has **never** validated it —
+a pre-existing 3.90 asymmetry, left alone because adding validation there would be new behaviour.
+
+**These four were NOT throwing on Linux**, unlike the imaging. Measured: `ColorTranslator.FromHtml`
+resolves named and hex colours in managed code and only reaches libgdiplus for real imaging. They
+are migrated anyway because they were the last thing binding a Windows-only package for a job a
+cross-platform library does natively — and because the parse is measurably **stricter** afterwards.
+
+Parity was measured over a **33-input matrix**, not reasoned about. Identical for everything the
+admin UI can produce — the `farbtastic` picker in `Product/_CreateOrUpdateProductAttributeValue.cshtml`
+and `CheckoutAttribute/_CreateOrUpdateValue.cshtml` emits `#rrggbb`, and `#rrggbb`, `#rgb` and every
+CSS named colour in any casing (including `rebeccapurple`) parse identically. **Eleven inputs
+differ:**
+
+| direction | inputs | note |
+|---|---|---|
+| **TIGHTENED** — now rejected, previously accepted | `ButtonFace`, `ActiveBorder`, `Menu` | Windows **system** colour names — OS theme colours, meaningless in a colour square |
+| | `255,0,0`, `0xFF0000` | non-CSS numeric forms |
+| | `#12345`, `#1234567` | malformed hex `ColorTranslator` silently accepted and **mangled** (`#12345` became `01234500`) |
+| | `" "` | whitespace, which `ColorTranslator` returned as `Color.Empty` without throwing, so **3.90 saved it as a valid colour** |
+| **LOOSENED** — now accepted, previously rejected | `FF0000`, `f00` | hex **without** the leading `#` |
+
+All eight tightenings are improvements: each of those values used to be stored verbatim and emitted
+into markup as a CSS colour, where it is invalid.
+
+**The one loosening is recorded, not defended.** ImageSharp accepts bare hex; `ColorTranslator`
+threw `ArgumentException`. Consequence: an admin who types over the colour picker's value can now
+save `FF0000`, which is not a valid CSS colour, so the square renders colourless instead of showing
+a validation error. It is only reachable by hand-typing. `Color.TryParse` is what design §7
+prescribes and it was not second-guessed; the difference is pinned by a test named
+`Task_8_6_KNOWN_LOOSENING_bare_hex_without_a_hash_is_now_accepted`, so tightening it later is a
+deliberate test change rather than a silent one.
+
+**The model-error count is unchanged for an empty value.** All four sites already emit "Color is
+required" from their own `String.IsNullOrEmpty` test, and `FromHtml("")` returned `Color.Empty`
+without throwing — so 3.90 produced exactly **one** error. `ValidateHtmlColor` returns `null` for
+null/empty so it stays at one rather than two. The `try`/`catch (Exception exc)` wrapper is gone at
+all four sites because nothing throws any more; the message is now `"X" is not a valid color`
+instead of GDI+'s internal text (3.90 surfaced things like *"notacolour is not a valid value for
+Int32."* to the admin).
+
+---
+
+## 72. NEW deferrals opened by task 8.6
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 8.6-1 | `src/Tests/Nop.Admin.Tests` is not in `NopCommerce.sln` | 18.1 | Low |
+| 8.6-2 | `FixPath` does not normalise `..`, so a `~/`-rooted path can still escape `FILES_ROOT` | none (pre-existing, permission-gated) | Low — security observation |
+
+### 8.6-1 The new test project is not in the solution
+
+`src/Tests/Nop.Admin.Tests/Nop.Admin.Tests.csproj` is not referenced by `NopCommerce.sln`, so
+`dotnet build NopCommerce.sln` does not build it. The solution file is **task 18.1's** and was
+deliberately not edited here — exactly the status deferral **7.7-2** records for
+`Nop.Web.SmokeTests`. 18.1 should add both. Neither must become part of a clean-compile gate:
+8.6's project needs no database and no host, but it is verification, not a gate.
+
+### 8.6-2 `FixPath` still does not normalise `..` — pre-existing, and deliberately not widened
+
+`MapPath`'s new relative branch normalises and enforces a ceiling (§71.1). Its `~/`-rooted branch
+does **not**, because that is `CommonHelper.MapPath`'s behaviour and every `FixPath` result goes
+through it — so `CheckPath`'s prefix comparison behaves exactly as it did in 3.90, which is what
+faithfulness required.
+
+The pre-existing weakness that leaves in place: `FixPath` accepts any path whose lowercase form
+*contains* `FILES_ROOT`, so `"/Content/Images/uploaded/../../../x"` passes its check and
+`CommonHelper.MapPath` returns it with the `..` intact for the OS to resolve. `CheckPath`'s
+`IndexOf(GetFilesRoot()) != 0` test then also passes, because the prefix is literally there.
+
+- **Not exploited by anything in tree**, and the whole controller is gated on the
+  `HtmlEditorManagePictures` permission plus `[AdminAuthorize]`, so it is reachable only by a store
+  operator who already has file-manager rights over `FILES_ROOT`.
+- **Deliberately not fixed here**, because normalising `FixPath` changes what `CheckPath` accepts
+  and rejects — a behaviour change to a security check, made without being able to exercise the
+  file manager end to end. Recorded so it is a decision rather than an oversight. The fix, if
+  wanted, is one `Path.GetFullPath` in `FixPath` plus a ceiling test identical to the one `MapPath`
+  now carries.
+
+---
+
+## 73. Deferrals explicitly NOT closed by 8.6, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **8.1-1** | `Content/Roxy_Fileman/tmp/` does not exist, so the zip download throws | **8.5's** — and it is doing it: the directory plus `placeholder.txt` appeared during this task. 8.6 deliberately did **not** touch `DownloadDir`, even though a one-line `Directory.CreateDirectory` would fix it, because 8.5's task text owns the choice between a committed placeholder (plus a publish include, since a `.txt` is a `None` item) and creating on demand. **Coordination note: 8.6's resolution of 8.1-3 makes 8.5's target concrete** — `../tmp/` now resolves to exactly `Administration/Content/Roxy_Fileman/tmp/`, which is where 8.5 put it. Nothing in 8.6 depends on it |
+| **7.4-2** (admin assets half) | admin `Content/`/`Scripts/` do not serve | **8.5's**. `NopStaticFileProvider.cs` untouched by this task |
+| **8.3-1** | the System Info `<machineKey>` warning is gone with nothing in its place | **8.7's** |
+| **8.3-2** · **8.4-1** | the admin smoke assertions, and getting `Nop.Admin.dll` into the smoke-test output directory | **8.8's**, in one pass. §70.5 explains why 8.6 stayed out of that project entirely rather than half-doing it |
+| the 6 `Nop.Admin` warnings | 4 `CS0618` FluentValidation `Custom(...)`, 1 `CS0618` `TimeZone`, 1 `SYSLIB0014` `WebRequest.Create` | **8.7's**. `Validators/` was not touched, per the task brief |
+| **18 / 7.18** | ImageSharp licence diagnostic | business decision on the version pin — and §70.2 re-confirms it does not affect this project at 2.1.13 |
+| **35** | minification gone | post-migration |
+| **8.2-1** | plugin assemblies loaded by **name**, which cannot work on .NET | **10.x** — still HIGH, still blocks group 10 |
+| **8.2-2** · **8.2-3** | `dotnet publish` omits `Nop.Admin.dll`; 12 plugin views reference the pre-8.2 admin view paths | 8.5 / 18.x · 11.1–11.2, 13.1, 14.4, 15.1 |
+| **7.2-1** · **7.2-3** · **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** · **7.4-1** · **7.5-1** · **7.7-2** · **7.7-3** · **4.10** · **4.11** · **9/4.9** · **11.27** | unchanged | as previously recorded |
+
+## 74. What task 8.8 should exercise for this task
+
+The imaging is verified by execution at the unit level, but never through a real HTTP request,
+because Roxy Fileman needs an authenticated admin with `HtmlEditorManagePictures` and a database.
+Once the admin area is loadable (deferral 8.4-1):
+
+1. **`GET /Admin/RoxyFileman/ProcessRequest?a=GENERATETHUMB&f=/Content/Images/uploaded/<file>&width=140&height=120`**
+   should return `image/png` at the dimensions §71.2 predicts. That single request covers
+   `ShowThumbnail`, the buffered `Response.Body` write, `CheckPath`/`FixPath` and `GetSetting`.
+2. **An upload of an image wider than `MAX_IMAGE_WIDTH`** should land on disk at 1000px, and an
+   in-range upload should land byte-identical — the `ImageResize` no-op path.
+3. **`a=FILESLIST`** over a directory containing a deliberately corrupt `.png` should list every
+   entry, with the corrupt one reporting `0x0` rather than failing the whole request (§71.2).
+4. **An error path** — e.g. `a=UPLOAD` of a `FORBIDDEN_UPLOADS` extension — should return a
+   localized sentence, not the bare key `E_UploadNotAll`. That is the observable proof that
+   deferral 8.1-3's resolution reaches `LangRes`.

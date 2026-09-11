@@ -58,9 +58,9 @@ Paths inside the container are rooted at `/workspace`, which maps to `/home/artr
 
 `src/Tests/Nop.Web.SmokeTests` boots the real `Nop.Web` host in-process through
 `WebApplicationFactory<Nop.Web.Program>`. **It is deliberately NOT part of any clean-compile gate** —
-task 7.7 is non-gating and 14 of its 66 tests need a database.
+task 7.7 is non-gating and 18 of its 91 tests need a database. (Counts as of task 8.5; tasks 8.2 and 8.5 each added always-run assertions.)
 
-Without a database (48 pass, 18 skip — install-mode coverage, the host/container group, plus the
+Without a database (73 pass, 18 skip — install-mode coverage, the host/container group, plus the
 canaries):
 
 ```bash
@@ -98,6 +98,17 @@ Two artifacts are left under `src/Presentation/Nop.Web/App_Data/` and are **giti
 `Settings.txt` (the connection string the installer wrote) and `browscap.crawlersonly.xml`
 (regenerated on demand). Delete `Settings.txt` to return to install mode.
 
+### Note for task 8.5's `AdminStaticAssetTests` (added at 8.5)
+
+That fixture plants a `.bak` under `Administration/db_backups/` and a `.zip` under
+`Administration/Content/Roxy_Fileman/tmp/` in `OneTimeSetUp` and deletes them in
+`OneTimeTearDown`, so its refusal assertions are made against files that really exist rather than
+against trivially-true absences. Both names carry the `8_5_smoke_planted` marker; if a crashed run
+ever leaves one behind it shows up in `git status` rather than silently, and it is safe to delete.
+The fixture needs **no database and no `Nop.Admin.dll`** — the static-file provider resolves against
+the filesystem, so admin asset serving is observable without the Admin area being routable
+(deferral 8.4-1).
+
 ### Proving the harness can fail
 
 The suite is only evidence if it has been shown to go red. `HarnessCanaryTests` is `[Explicit]` and
@@ -108,6 +119,47 @@ dotnet test src/Tests/Nop.Web.SmokeTests/Nop.Web.SmokeTests.csproj \
   --filter "FullyQualifiedName~HarnessCanaryTests"
 ```
 
-**All four must report Failed.** If any passes, the corresponding group of real assertions cannot be
+**All six must report Failed.** If any passes, the corresponding group of real assertions cannot be
 trusted. (Task 7.7 shipped three; the deferral 7.3-4 / 7.7-1 fix added a fourth for the
-`/__smoke/action` probe.)
+`/__smoke/action` probe; task 8.2 added a fifth for the view-location expander; task 8.5 added a
+sixth for the admin static-asset assertions.)
+
+
+## Running the Nop.Admin imaging tests (task 8.6)
+
+`src/Tests/Nop.Admin.Tests` drives the real `Nop.Admin.Controllers.RoxyFilemanController` through a
+test subclass — real files on disk, a real `DefaultHttpContext`, real encoded bytes read back — so
+the SixLabors.ImageSharp port that replaced `System.Drawing` is verified by execution rather than by
+compilation. It needs **no database and no host**: it does not use `WebApplicationFactory` and never
+boots `Nop.Web`.
+
+```bash
+docker run --rm -u "$(id -u):$(id -g)" -e DOTNET_CLI_HOME=/tmp -e HOME=/tmp \
+  -v /home/artrodri/release-3.90:/workspace -w /workspace \
+  mcr.microsoft.com/dotnet/sdk:10.0 \
+  dotnet test src/Tests/Nop.Admin.Tests/Nop.Admin.Tests.csproj -c Debug --nologo
+```
+
+**53 passed / 0 failed / 0 skipped.** Nothing is mocked and nothing skips.
+
+Running it on Linux is the point, not an accident: the `Bitmap`/`Graphics` pipeline these tests
+replaced throws `TypeInitializationException` → `DllNotFoundException: Unable to load shared library
+'libgdiplus'` on this platform, so a green run *is* the cross-platform assertion.
+`Task_8_6_these_tests_are_running_on_a_platform_where_the_System_Drawing_pipeline_could_not` reports
+the platform explicitly and `Assert.Ignore`s on Windows rather than passing vacuously.
+
+Like `Nop.Web.SmokeTests`, this project is **not** in `NopCommerce.sln` (task 18.1 owns the solution
+file — deferral 7.7-2) and must **not** become part of a clean-compile gate.
+
+### Proving the harness can fail
+
+```bash
+dotnet test src/Tests/Nop.Admin.Tests/Nop.Admin.Tests.csproj \
+  --filter "FullyQualifiedName~HarnessCanaryTests"
+```
+
+**All four must report Failed.** They guard the four mechanisms the suite rests on: that the
+controller harness really captures response bytes (a `DefaultHttpContext` whose `Response.Body` is
+left as `Stream.Null` discards writes silently, which would make every imaging assertion vacuous),
+that the `MapPath` assertions compare against a real resolution, that the colour-parity assertions
+discriminate, and that the assembly-reference scan really reads the built assembly.

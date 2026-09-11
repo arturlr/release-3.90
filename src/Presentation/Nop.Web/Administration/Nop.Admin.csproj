@@ -316,14 +316,16 @@
     with NETSDK1022; `Update` only changes metadata, and no-ops harmlessly for a path that
     does not exist.
 
-    INTERACTION WITH TASK 8.5, which owns admin static assets: 8.5 decides WHERE the
-    assets are SERVED from - either by relocating Content\ and Scripts\ under wwwroot, or
-    (cheaper, and what deferral 7.4-2 recommends) by widening
+    RESOLVED BY TASK 8.5 - the SERVING half of deferral 7.4-2. 8.5 widened
     Nop.Web\Infrastructure\NopStaticFileProvider.cs's allow-list with
-    Administration/Content/** and Administration/Scripts/**. That is orthogonal to
-    WHETHER the files are DEPLOYED, which is what this block fixes. If 8.5 relocates the
-    trees under wwwroot, wwwroot publishes by default and these two entries become
-    harmless no-ops.
+    Administration/Content/** and Administration/Scripts/**, rather than relocating the
+    trees under wwwroot. Relocation was rejected on measured grounds: TWO admin call sites
+    read these directories as CONTENT-ROOT-RELATIVE PHYSICAL PATHS, not URLs -
+    RoxyFilemanController's confFile (~/Administration/Content/Roxy_Fileman/conf.json) and
+    TinyMceHelper.GetTinyMceLanguage()'s probe of
+    ~/Administration/Content/tinymce/langs/{culture}.js, the second of which fails SILENTLY
+    by falling back to English. See the AllowedAdministrationRoots remarks in that file.
+    8.5 also had to change the publish paths here - see the Link note below.
   -->
   <ItemGroup>
     <!--
@@ -336,15 +338,103 @@
       db_backups\ - for the placeholder ONLY; the .bak files are withheld immediately
                   below. This entry is NOT redundant and it is NOT cosmetic - see the
                   measured defect note in the withheld block.
-      sitemap.config is NOT listed: it is a .config, so the SDK already classifies it as
-      Content, and Content defaults to CopyToPublishDirectory=PreserveNewest. It must
-      publish - Views\Shared\Menu.cshtml line 7 does
-      siteMap.LoadFrom("~/Administration/sitemap.config"), so the admin menu does not
-      render without it. Verified present in the computed publish set.
+
+      =================================================================================
+      TASK 8.5 - THE `Link` METADATA IS LOAD-BEARING. DO NOT REMOVE IT.
+      =================================================================================
+      Without it these items publish to the publish root as Content\..., Scripts\... and
+      db_backups\..., which is WRONG for two independent, measured reasons.
+
+      (1) IT DOES NOT MATCH THE URL. Every admin view requests these assets as
+          ~/Administration/Content/... and ~/Administration/Scripts/... (task 8.4 audited
+          all 81 such references and fixed two casing defects in _AdminLayout.cshtml).
+          Nop.Web's NopStaticFileProvider resolves a request subpath against the HOST's
+          CONTENT ROOT - which is the project directory under `dotnet run` and the PUBLISH
+          DIRECTORY in a deployment. So a published app must have the assets at
+          Administration/Content/** and Administration/Scripts/**, or task 8.5's widened
+          allow-list matches the URL and then finds nothing on disk: a 404 in the published
+          app only, with the development build working perfectly.
+
+      (2) IT COLLIDES WITH Nop.Web's OWN ASSET TREES. Deferral 8.2-2's suggested remedy is
+          to "publish both projects into one directory", and MEASURED against the flat
+          layout that silently overwrites files. Nop.Web has its own Content\ and Scripts\
+          at the publish root, and the overlap is not hypothetical:
+            Content\   : ionicons, jquery-ui-themes                       (2 directories)
+            Scripts\   : jquery-1.10.2*.js/.map, jquery-migrate-1.2.1*.js,
+                         jquery-ui-1.10.3.custom*.js, jquery.validate*.js,
+                         jquery.validate.unobtrusive*.js, fineuploader   (12 files + 1 dir)
+          Content\ionicons is STRUCTURALLY DIFFERENT between the two - the storefront has
+          ionicons.css at the top level, the admin has css\ and fonts\ subdirectories - so
+          whichever project published last would win, non-deterministically. Twelve of the
+          Scripts\ collisions happen to be byte-identical today, which is exactly the kind
+          of accident that makes this class of bug survive review.
+
+      %(RecursiveDir) here is "Content/" or "Scripts/" - i.e. it ALREADY carries the prefix,
+      because these are `Update` rules against items the SDK's project-rooted default glob
+      created, not a fresh `Include="Content\**"`. Restating the prefix in the Link (the
+      obvious first guess) publishes to Administration\Content\Content\... - MEASURED, and the
+      audit caught it. Verified by evaluating the item metadata directly:
+        Identity "Content/styles.css" -> RecursiveDir "Content/"
+      and then by evaluating ResolvedFileToPublish: RelativePath goes from "Content/styles.css"
+      to "Administration/Content/styles.css".
+
+      NOTE this changes the PUBLISH path only. No CopyToOutputDirectory is set anywhere in
+      this file, so the BUILD output is untouched and `dotnet run` of Nop.Web keeps serving
+      these assets from the source tree at src\Presentation\Nop.Web\Administration\Content\
+      - which is where they physically are, and where the two content-root-relative readers
+      (RoxyFilemanController's conf.json and TinyMceHelper's langs\ probe) expect them.
     -->
-    <None Update="Content\**" CopyToPublishDirectory="PreserveNewest" />
-    <None Update="Scripts\**" CopyToPublishDirectory="PreserveNewest" />
-    <None Update="db_backups\**" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Content\**"
+          CopyToPublishDirectory="PreserveNewest"
+          Link="Administration\%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Update="Scripts\**"
+          CopyToPublishDirectory="PreserveNewest"
+          Link="Administration\%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Update="db_backups\**"
+          CopyToPublishDirectory="PreserveNewest"
+          Link="Administration\%(RecursiveDir)%(Filename)%(Extension)" />
+
+    <!--
+      TASK 8.5 - the `None` rules above are not sufficient on their own, and this was MEASURED
+      rather than reasoned about. The Web SDK's default globs classify `.json` as `Content`,
+      not `None`, so 12 files under Content\Roxy_Fileman\ are Content items: they already
+      published (Content defaults to PreserveNewest) but at the UNLINKED root path, i.e. a
+      publish still contained Content\Roxy_Fileman\conf.json alongside a correctly-placed
+      Administration\Content\. Both of those groups are load-bearing:
+        conf.json    - read server-side by RoxyFilemanController.GetSetting() AND fetched over
+                       HTTP by the file manager's own client script (Content\Roxy_Fileman\
+                       js\utils.js), so it must be at the right path on BOTH counts.
+        lang\*.json  - 11 UI language packs the same client script fetches by URL.
+      The rule is written over Content\** rather than the 12 files so that a future .json (or
+      any other extension the SDK classifies as Content) cannot silently reintroduce the split.
+      Scripts\** and db_backups\** get the same treatment for the same reason, even though
+      neither contains a Content-classified file today.
+    -->
+    <Content Update="Content\**"
+             CopyToPublishDirectory="PreserveNewest"
+             Link="Administration\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Content Update="Scripts\**"
+             CopyToPublishDirectory="PreserveNewest"
+             Link="Administration\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Content Update="db_backups\**"
+             CopyToPublishDirectory="PreserveNewest"
+             Link="Administration\%(RecursiveDir)%(Filename)%(Extension)" />
+
+    <!--
+      TASK 8.5 - sitemap.config is a .config, so the SDK already classifies it as `Content`
+      and Content defaults to CopyToPublishDirectory=PreserveNewest; it needed no include.
+      It DOES need the Link, for the same reason as the trees above:
+      Areas\Admin\Views\Shared\Menu.cshtml line 7 calls
+      siteMap.LoadFrom("~/Administration/sitemap.config"), which goes through
+      CommonHelper.MapPath - i.e. the HOST's content root - so in a published app the file
+      must sit at Administration\sitemap.config, not at the root. Without this the admin menu
+      does not render in a deployment. (It is read from DISK, never served over HTTP:
+      NopStaticFileProvider's allow-list requires Administration/{Content|Scripts}/..., and
+      .config is in DeniedExtensions besides.)
+    -->
+    <Content Update="sitemap.config"
+             CopyToPublishDirectory="PreserveNewest"
+             Link="Administration\sitemap.config" />
   </ItemGroup>
 
   <ItemGroup>
@@ -400,6 +490,19 @@
       be "fixed" by re-adding the mimeMap or widening the static-file allow-list.
     -->
     <None Update="db_backups\**\*.bak" CopyToPublishDirectory="Never" />
+
+    <!--
+      TASK 8.5, deferral 8.1-1 - Content\Roxy_Fileman\tmp\ is created by the placeholder file
+      committed there, which the Content\** include above already publishes (with its Link).
+      The transient .zip archives RoxyFilemanController writes into it must NOT be deployed:
+      they are per-request temporaries containing arbitrary uploaded media, and one can survive
+      an interrupted request. They cannot be SERVED either - NopStaticFileProvider.DeniedSubpaths
+      refuses Administration/Content/Roxy_Fileman/tmp outright - so this is the publish half of
+      the same decision. Note a global *.zip exclusion would be wrong: the storefront's
+      Content\samples\product_*.zip are the sample downloadable products and must ship.
+    -->
+    <None Update="Content\Roxy_Fileman\tmp\**\*.zip" CopyToPublishDirectory="Never" />
+    <Content Update="Content\Roxy_Fileman\tmp\**\*.zip" CopyToPublishDirectory="Never" />
 
     <!--
       Legacy Razor/MVC5 configuration files. Both are DELETED by later tasks - Web.config
@@ -574,8 +677,10 @@
                                     outright. All five migrated projects keep theirs.
                                     Moving to SDK-generated assembly info is a
                                     solution-wide change, not a per-project one.
-      Content\ and Scripts\         TASK 8.5 (relocation or static-file allow-list).
-                                    Publish metadata is set above; serving is 8.5's.
+      Content\ and Scripts\         DONE BY TASK 8.5 - served through the host's
+                                    static-file middleware via NopStaticFileProvider's
+                                    widened allow-list, NOT relocated under wwwroot.
+                                    Publish paths are Link-ed under Administration\ above.
   -->
 
   <!--
@@ -632,10 +737,23 @@
     (AssemblyLoadContext.Default.LoadFromAssemblyPath) and to trace rather than throw. See the
     remarks on that method, and runtime-deferrals.md section 50.
 
-    NOTE FOR TASK 8.5 / 18.x: this covers BUILD output only. "dotnet publish" of Nop.Web will
-    not include Nop.Admin.dll, because publish is computed from Nop.Web's own item graph. A
-    deployment must publish both projects into one directory, or the admin area is simply absent
-    at runtime. Recorded as runtime deferral 8.2-2.
+    NOTE FOR TASK 18.x: this covers BUILD output only. "dotnet publish" of Nop.Web will not include
+    Nop.Admin.dll, because publish is computed from Nop.Web's own item graph. Recorded as runtime
+    deferral 8.2-2.
+
+    TASK 8.5 MADE 8.2-2's OWN REMEDY - "publish both projects into one directory" - ACTUALLY WORK,
+    and it did not before. Measured against the pre-8.5 layout, publishing Nop.Admin into Nop.Web's
+    publish directory silently corrupted the storefront: this project's Content\ and Scripts\ landed
+    at the publish ROOT, on top of Nop.Web's own trees, with 12 file collisions in Scripts\ and a
+    structurally different Content\ionicons\ (storefront: ionicons.css at the top level; admin:
+    css\ and fonts\ subdirectories). The Link metadata in the publish-shaping block above moves
+    every content item under Administration\, which is BOTH collision-free AND the path the admin
+    views' ~/Administration/Content|Scripts/... URLs require at runtime. Verified end to end:
+    publish Nop.Web, then publish Nop.Admin into the same directory, and afterwards the storefront's
+    Scripts\jquery.validate.min.js checksum is unchanged, Content\ionicons\ still holds only its own
+    two files, the admin assets are all under Administration\, and Nop.Admin.dll sits at the root
+    where WebAppTypeFinder scans. The assembly itself needs no Link - the root is where it belongs.
+    What is still 18.x's is making that two-step a single deployment command.
   -->
   <Target Name="CopyNopAdminToHostOutput" AfterTargets="Build"
           Condition="'$(NopAdminCopyToHostOutput)' != 'false'">

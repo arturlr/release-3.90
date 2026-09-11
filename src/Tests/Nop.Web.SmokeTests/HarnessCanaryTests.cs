@@ -135,5 +135,32 @@ namespace Nop.Web.SmokeTests
             CollectionAssert.Contains(locations, "/ThisLocationFormatIsNeverEmitted/{0}.cshtml",
                 "CANARY: this assertion is meant to fail.");
         }
+
+        [Test]
+        public void CANARY_admin_static_asset_assertions_can_fail()
+        {
+            //Guards the task 8.5 assertions in AdminStaticAssetTests. Those come in two shapes and
+            //this canary covers both against the SAME path, so it cannot pass by half:
+            //
+            //  (a) "an admin asset serves"  - a 200 assertion. The failure mode that would make it
+            //      vacuous is a client that reports 200 for anything, so this asserts 200 for an
+            //      admin path that genuinely does not exist.
+            //  (b) "a denied path is not versioned" - asserted via IFileVersionProvider, which
+            //      returns the path UNCHANGED when it cannot see the file. So a ?v= assertion on a
+            //      non-existent admin asset must fail; if it passed, the versioning assertions in
+            //      Deferral_33_admin_assets_are_cache_busted_for_free would be measuring an
+            //      unconditional suffix rather than the allow-list.
+            const string doesNotExist = "/Administration/Content/NoSuchAdminAsset_8_5_canary.css";
+
+            var versionProvider = _factory.Services
+                .GetRequiredService<Microsoft.AspNetCore.Mvc.ViewFeatures.IFileVersionProvider>();
+            var versioned = versionProvider.AddFileVersionToPath("/", doesNotExist);
+
+            var status = _client.GetAsync(doesNotExist).Result.StatusCode;
+
+            Assert.IsTrue(
+                status == System.Net.HttpStatusCode.OK && versioned.Contains("?v="),
+                "CANARY: this assertion is meant to fail. status=" + status + " versioned=" + versioned);
+        }
     }
 }

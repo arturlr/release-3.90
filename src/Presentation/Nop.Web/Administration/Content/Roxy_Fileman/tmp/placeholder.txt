@@ -1,0 +1,31 @@
+This file exists only to make git track the directory that contains it.
+
+Runtime deferral 8.1-1, resolved by task 8.5.
+
+Nop.Admin.Controllers.RoxyFilemanController's DOWNLOADDIR operation writes a temporary
+.zip here (MapPath("../tmp/" + dirName + ".zip")), streams it to the client and deletes it.
+ZipFile.CreateFromDirectory throws DirectoryNotFoundException when the parent directory is
+absent, so the directory is mandatory rather than incidental.
+
+The classic Nop.Admin.csproj guaranteed it with <Folder Include="Content\Roxy_Fileman\tmp\" />,
+a Visual Studio placeholder that an SDK project has no equivalent for - and which never
+deployed the directory anyway, because MSBuild does not copy empty directories. git does not
+track empty directories either, so the directory was absent from a fresh clone and the
+operation failed. That was PRE-EXISTING in 3.90, not a migration regression.
+
+Same pattern as Administration/db_backups/placeholder.txt (task 8.1) and
+Content/Images/Thumbs/placeholder.txt (task 7.4). Both of those hit the same trap this one
+does: a .txt is a `None` item under the SDK, so it defaults to CopyToPublishDirectory=Never
+and needs an explicit publish include in Nop.Admin.csproj - see the PUBLISH SHAPING block
+there.
+
+NOT REACHABLE OVER HTTP, deliberately: NopStaticFileProvider excludes
+Administration/Content/Roxy_Fileman/tmp from its allow-list, because the archives generated
+here contain arbitrary uploaded content and serving them statically would bypass
+[AdminAuthorize] - the same shape as the .bak defect task 8.3 fixed.
+
+STILL OPEN, and owned by task 8.6 (deferral 8.1-3 / 8.3-3): RoxyFilemanController.MapPath
+throws NopException for a RELATIVE path such as "../tmp/", because HttpServerUtility.MapPath's
+"resolve against the current request's virtual directory" semantics have no ASP.NET Core
+equivalent. This directory existing is necessary but NOT sufficient - DOWNLOADDIR stays
+inoperative until 8.6 resolves that path to an explicit content-root-relative one.

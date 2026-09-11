@@ -1,0 +1,84 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Nop.Admin.Tests - created by task 8.6 (Requirements 5.8, 5.9, 5.11, 5.3, 5.10).
+
+    WHY THIS PROJECT EXISTS
+    =======================
+    Task 8.6 replaces the Windows-only System.Drawing imaging in Nop.Admin with
+    SixLabors.ImageSharp. Compiling an ImageSharp call proves nothing about whether it
+    produces a correct image, so the assertions here drive the REAL
+    Nop.Admin.Controllers.RoxyFilemanController through a test subclass - real files on disk,
+    a real DefaultHttpContext, real encoded bytes read back - rather than a copy of its
+    arithmetic. That is also what demonstrates the point of the task: every one of these
+    tests runs on Linux, where the code it replaced threw
+    TypeInitializationException -> DllNotFoundException('libgdiplus').
+
+    WHY NOT src/Tests/Nop.Web.SmokeTests
+    ====================================
+    Because it would break that project's recorded baseline (54 passed / 0 failed / 18
+    skipped) for a reason unrelated to this task. Those tests boot the real Nop.Web host, and
+    a ProjectReference to Nop.Admin would put Nop.Admin.dll into the test project's output
+    directory - which is what AppDomain.CurrentDomain.BaseDirectory, and therefore
+    WebAppTypeFinder, actually scans. The Admin area would start registering and
+    Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP would fail.
+    Adding that reference and inverting that test is deferral 8.4-1, explicitly owned by task
+    8.8, which also has four runtime checks to make in the same pass. This project therefore
+    keeps entirely away from the smoke host: no WebApplicationFactory, no ASP.NET Core host,
+    no static-file provider. It only needs the controller class and a fake HttpContext.
+
+    NOT IN NopCommerce.sln
+    ======================
+    Same status as src/Tests/Nop.Web.SmokeTests (deferral 7.7-2): the solution file is task
+    18.1's and was not edited here. 18.1 should add both. Neither belongs in a clean-compile
+    gate.
+
+    PACKAGES / SDK
+    ==============
+    Microsoft.NET.Sdk (not .Web) - a test assembly. Versions come from
+    src/Directory.Packages.props (ManagePackageVersionsCentrally=true), so every
+    PackageReference is intentionally version-less. NUnit is pinned at 3.14.0 centrally
+    because NUnit 4 removed the classic Assert.AreEqual surface, matching Nop.Tests and
+    Nop.Web.SmokeTests.
+
+    No mocking package, on purpose: nothing here is doubled. The one constructor argument
+    RoxyFilemanController takes (IPermissionService) is passed as null because not one of the
+    methods under test reads it - the permission check lives in ProcessRequest, which is not
+    exercised here.
+
+    TargetFramework, Nullable, ImplicitUsings and GenerateAssemblyInfo come from
+    src/Directory.Build.props; net10.0 is restated so it is verifiable from this file
+    (Requirement 1.2). There is no Properties/AssemblyInfo.cs - this is new code, not a
+    converted project, so nothing is lost by GenerateAssemblyInfo=false.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <!--
+      SixLabors.ImageSharp is declared DIRECTLY, not leaned on transitively: the tests read
+      the encoded output back with Image.Load/Image.Identify to assert its dimensions and
+      format, which is direct usage, and the migration's own rule is that direct usage means
+      a direct reference. Pinned centrally at 2.1.13 - the last purely Apache-2.0 line - so
+      this project cannot drift away from the version Nop.Admin and Nop.Services use.
+    -->
+    <PackageReference Include="SixLabors.ImageSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Nop.Admin for the controller and the colour helper under test; Nop.Core directly
+      because the tests set CommonHelper.BaseDirectory, which is the seam every MapPath in
+      the controller resolves against (deferral 1.5).
+    -->
+    <ProjectReference Include="..\..\Presentation\Nop.Web\Administration\Nop.Admin.csproj" />
+    <ProjectReference Include="..\..\Libraries\Nop.Core\Nop.Core.csproj" />
+  </ItemGroup>
+
+</Project>
