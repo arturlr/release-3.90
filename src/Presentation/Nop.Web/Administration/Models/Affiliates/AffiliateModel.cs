@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Models.Common;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
@@ -17,11 +17,9 @@ namespace Nop.Admin.Models.Affiliates
         public string Url { get; set; }
         
         [NopResourceDisplayName("Admin.Affiliates.Fields.AdminComment")]
-        [AllowHtml]
         public string AdminComment { get; set; }
 
         [NopResourceDisplayName("Admin.Affiliates.Fields.FriendlyUrlName")]
-        [AllowHtml]
         public string FriendlyUrlName { get; set; }
         
         [NopResourceDisplayName("Admin.Affiliates.Fields.Active")]

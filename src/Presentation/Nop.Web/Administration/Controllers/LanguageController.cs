@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Localization;
 using Nop.Core;
@@ -17,6 +17,8 @@ using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
 using Nop.Web.Framework.Security;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Controllers
 {
@@ -223,8 +225,13 @@ namespace Nop.Admin.Controllers
                 //No language found with the specified id
                 return RedirectToAction("List");
 
-            //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
+            //TASK 8.3 - HttpServerUtility.ScriptTimeout is GONE and has no replacement.
+            //It raised System.Web's per-request execution timeout (httpRuntime/executionTimeout);
+            //ASP.NET Core and Kestrel impose no per-request execution timeout at all, so there is
+            //nothing left to raise and the operation now runs untimed - strictly more permissive.
+            //The nearest modern equivalents are host configuration (Kestrel limits / IIS
+            //requestTimeout), not a per-action call. Same removal task 7.3 made at the two
+            //InstallController sites.
 
             var model = language.ToModel();
             //Stores
@@ -415,8 +422,16 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ResourceAdd(int languageId, [Bind(Exclude = "Id")] LanguageResourceModel model)
+        public virtual ActionResult ResourceAdd(int languageId, LanguageResourceModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "Id")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.Id.
+            model.Id = 0;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
 
@@ -487,7 +502,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ImportXml(int id, FormCollection form)
+        public virtual ActionResult ImportXml(int id, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageLanguages))
                 return AccessDeniedView();
@@ -497,15 +512,20 @@ namespace Nop.Admin.Controllers
                 //No language found with the specified id
                 return RedirectToAction("List");
 
-            //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
+            //TASK 8.3 - HttpServerUtility.ScriptTimeout is GONE and has no replacement.
+            //It raised System.Web's per-request execution timeout (httpRuntime/executionTimeout);
+            //ASP.NET Core and Kestrel impose no per-request execution timeout at all, so there is
+            //nothing left to raise and the operation now runs untimed - strictly more permissive.
+            //The nearest modern equivalents are host configuration (Kestrel limits / IIS
+            //requestTimeout), not a per-action call. Same removal task 7.3 made at the two
+            //InstallController sites.
 
             try
             {
-                var file = Request.Files["importxmlfile"];
-                if (file != null && file.ContentLength > 0)
+                var file = GetRequestFiles()["importxmlfile"];
+                if (file != null && file.Length > 0)
                 {
-                    using (var sr = new StreamReader(file.InputStream, Encoding.UTF8))
+                    using (var sr = new StreamReader(file.OpenReadStream(), Encoding.UTF8))
                     {
                         string content = sr.ReadToEnd();
                         _localizationService.ImportResourcesFromXml(language, content);

@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Models.Customers;
 using Nop.Admin.Models.Security;
 using Nop.Core;
@@ -10,6 +10,7 @@ using Nop.Services.Customers;
 using Nop.Services.Localization;
 using Nop.Services.Logging;
 using Nop.Services.Security;
+using Microsoft.AspNetCore.Http;
 
 namespace Nop.Admin.Controllers
 {
@@ -96,7 +97,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ActionName("Permissions")]
-        public virtual ActionResult PermissionsSave(FormCollection form)
+        public virtual ActionResult PermissionsSave(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAcl))
                 return AccessDeniedView();
@@ -108,7 +109,9 @@ namespace Nop.Admin.Controllers
             foreach (var cr in customerRoles)
             {
                 string formKey = "allow_" + cr.Id;
-                var permissionRecordSystemNamesToRestrict = form[formKey] != null ? form[formKey].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>();
+                //TASK 8.3 - explicit `string` local; see BaseAdminController.GetRequestValue.
+                string allowValue = form[formKey];
+                var permissionRecordSystemNamesToRestrict = allowValue != null ? allowValue.Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>();
 
                 foreach (var pr in permissionRecords)
                 {

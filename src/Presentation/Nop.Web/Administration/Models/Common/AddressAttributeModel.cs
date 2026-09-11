@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Common;
 using Nop.Web.Framework;
@@ -17,7 +17,6 @@ namespace Nop.Admin.Models.Common
         }
 
         [NopResourceDisplayName("Admin.Address.AddressAttributes.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Address.AddressAttributes.Fields.IsRequired")]
@@ -26,7 +25,6 @@ namespace Nop.Admin.Models.Common
         [NopResourceDisplayName("Admin.Address.AddressAttributes.Fields.AttributeControlType")]
         public int AttributeControlTypeId { get; set; }
         [NopResourceDisplayName("Admin.Address.AddressAttributes.Fields.AttributeControlType")]
-        [AllowHtml]
         public string AttributeControlTypeName { get; set; }
 
         [NopResourceDisplayName("Admin.Address.AddressAttributes.Fields.DisplayOrder")]
@@ -42,7 +40,6 @@ namespace Nop.Admin.Models.Common
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Address.AddressAttributes.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
     }

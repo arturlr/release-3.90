@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Catalog;
 using Nop.Web.Framework;
@@ -17,11 +17,9 @@ namespace Nop.Admin.Models.Catalog
         }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.Fields.Description")]
-        [AllowHtml]
         public string Description {get;set;}
         
 
@@ -46,11 +44,9 @@ namespace Nop.Admin.Models.Catalog
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.Fields.Description")]
-        [AllowHtml]
         public string Description {get;set;}
     }
 
@@ -66,7 +62,6 @@ namespace Nop.Admin.Models.Catalog
         public int ProductAttributeId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.PredefinedValues.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.PredefinedValues.Fields.PriceAdjustment")]
@@ -97,7 +92,6 @@ namespace Nop.Admin.Models.Catalog
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.ProductAttributes.PredefinedValues.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
     }
 }

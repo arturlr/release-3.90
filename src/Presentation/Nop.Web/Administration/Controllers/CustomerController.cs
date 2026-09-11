@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Helpers;
 using Nop.Admin.Models.Common;
@@ -43,6 +43,9 @@ using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Net;
 
 namespace Nop.Admin.Controllers
 {
@@ -403,7 +406,7 @@ namespace Nop.Admin.Controllers
         }
 
         [NonAction]
-        protected virtual string ParseCustomCustomerAttributes( FormCollection form)
+        protected virtual string ParseCustomCustomerAttributes( IFormCollection form)
         {
             if (form == null)
                 throw new ArgumentNullException("form");
@@ -418,7 +421,7 @@ namespace Nop.Admin.Controllers
                     case AttributeControlType.DropdownList:
                     case AttributeControlType.RadioList:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 int selectedAttributeId = int.Parse(ctrlAttributes);
@@ -430,7 +433,7 @@ namespace Nop.Admin.Controllers
                         break;
                     case AttributeControlType.Checkboxes:
                         {
-                            var cblAttributes = form[controlId];
+                            string cblAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(cblAttributes))
                             {
                                 foreach (var item in cblAttributes.Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -460,7 +463,7 @@ namespace Nop.Admin.Controllers
                     case AttributeControlType.TextBox:
                     case AttributeControlType.MultilineTextbox:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 string enteredText = ctrlAttributes.Trim();
@@ -847,8 +850,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
-        [ValidateInput(false)]
-        public virtual ActionResult Create(CustomerModel model, bool continueEditing, FormCollection form)
+        public virtual ActionResult Create(CustomerModel model, bool continueEditing, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCustomers))
                 return AccessDeniedView();
@@ -1064,8 +1066,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
-        [ValidateInput(false)]
-        public virtual ActionResult Edit(CustomerModel model, bool continueEditing, FormCollection form)
+        public virtual ActionResult Edit(CustomerModel model, bool continueEditing, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCustomers))
                 return AccessDeniedView();
@@ -1663,7 +1664,6 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        [ValidateInput(false)]
         public virtual ActionResult RewardPointsHistoryAdd(int customerId, int storeId, int addRewardPointsValue, string addRewardPointsMessage)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCustomers))
@@ -1671,12 +1671,12 @@ namespace Nop.Admin.Controllers
 
             var customer = _customerService.GetCustomerById(customerId);
             if (customer == null)
-                return Json(new { Result = false }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = false });
 
             _rewardPointService.AddRewardPointsHistoryEntry(customer,
                 addRewardPointsValue, storeId, addRewardPointsMessage);
 
-            return Json(new { Result = true }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = true });
         }
         
         #endregion
@@ -1701,19 +1701,19 @@ namespace Nop.Admin.Controllers
                     var model = x.ToModel();
                     var addressHtmlSb = new StringBuilder("<div>");
                     if (_addressSettings.CompanyEnabled && !String.IsNullOrEmpty(model.Company))
-                        addressHtmlSb.AppendFormat("{0}<br />", Server.HtmlEncode(model.Company));
+                        addressHtmlSb.AppendFormat("{0}<br />", WebUtility.HtmlEncode(model.Company));
                     if (_addressSettings.StreetAddressEnabled && !String.IsNullOrEmpty(model.Address1))
-                        addressHtmlSb.AppendFormat("{0}<br />", Server.HtmlEncode(model.Address1));
+                        addressHtmlSb.AppendFormat("{0}<br />", WebUtility.HtmlEncode(model.Address1));
                     if (_addressSettings.StreetAddress2Enabled && !String.IsNullOrEmpty(model.Address2))
-                        addressHtmlSb.AppendFormat("{0}<br />", Server.HtmlEncode(model.Address2));
+                        addressHtmlSb.AppendFormat("{0}<br />", WebUtility.HtmlEncode(model.Address2));
                     if (_addressSettings.CityEnabled && !String.IsNullOrEmpty(model.City))
-                        addressHtmlSb.AppendFormat("{0},", Server.HtmlEncode(model.City));
+                        addressHtmlSb.AppendFormat("{0},", WebUtility.HtmlEncode(model.City));
                     if (_addressSettings.StateProvinceEnabled && !String.IsNullOrEmpty(model.StateProvinceName))
-                        addressHtmlSb.AppendFormat("{0},", Server.HtmlEncode(model.StateProvinceName));
+                        addressHtmlSb.AppendFormat("{0},", WebUtility.HtmlEncode(model.StateProvinceName));
                     if (_addressSettings.ZipPostalCodeEnabled && !String.IsNullOrEmpty(model.ZipPostalCode))
-                        addressHtmlSb.AppendFormat("{0}<br />", Server.HtmlEncode(model.ZipPostalCode));
+                        addressHtmlSb.AppendFormat("{0}<br />", WebUtility.HtmlEncode(model.ZipPostalCode));
                     if (_addressSettings.CountryEnabled && !String.IsNullOrEmpty(model.CountryName))
-                        addressHtmlSb.AppendFormat("{0}", Server.HtmlEncode(model.CountryName));
+                        addressHtmlSb.AppendFormat("{0}", WebUtility.HtmlEncode(model.CountryName));
                     var customAttributesFormatted = _addressAttributeFormatter.FormatAttributes(x.CustomAttributes);
                     if (!String.IsNullOrEmpty(customAttributesFormatted))
                     {
@@ -1769,8 +1769,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        [ValidateInput(false)]
-        public virtual ActionResult AddressCreate(CustomerAddressModel model, FormCollection form)
+        public virtual ActionResult AddressCreate(CustomerAddressModel model, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCustomers))
                 return AccessDeniedView();
@@ -1831,8 +1830,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        [ValidateInput(false)]
-        public virtual ActionResult AddressEdit(CustomerAddressModel model, FormCollection form)
+        public virtual ActionResult AddressEdit(CustomerAddressModel model, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCustomers))
                 return AccessDeniedView();
@@ -2024,7 +2022,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult ReportRegisteredCustomers()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCustomers))
@@ -2049,7 +2047,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
 	    public virtual ActionResult CustomerStatistics()
 	    {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
@@ -2062,7 +2060,7 @@ namespace Nop.Admin.Controllers
             return PartialView();
 	    }
 
-        [AcceptVerbs(HttpVerbs.Get)]
+        [HttpGet]
         public virtual ActionResult LoadCustomerStatistics(string period)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCustomers))
@@ -2152,7 +2150,7 @@ namespace Nop.Admin.Controllers
                     break;
             }
 
-            return Json(result, JsonRequestBehavior.AllowGet);
+            return Json(result);
         }
 
         #endregion

@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Templates;
 using Nop.Core.Domain.Catalog;
@@ -91,8 +91,16 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult CategoryTemplateAdd([Bind(Exclude = "Id")] CategoryTemplateModel model)
+        public virtual ActionResult CategoryTemplateAdd(CategoryTemplateModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "Id")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.Id.
+            model.Id = 0;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
 
@@ -174,8 +182,16 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ManufacturerTemplateAdd([Bind(Exclude = "Id")] ManufacturerTemplateModel model)
+        public virtual ActionResult ManufacturerTemplateAdd(ManufacturerTemplateModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "Id")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.Id.
+            model.Id = 0;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
 
@@ -257,8 +273,16 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ProductTemplateAdd([Bind(Exclude = "Id")] ProductTemplateModel model)
+        public virtual ActionResult ProductTemplateAdd(ProductTemplateModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "Id")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.Id.
+            model.Id = 0;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
 
@@ -340,8 +364,16 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult TopicTemplateAdd([Bind(Exclude = "Id")] TopicTemplateModel model)
+        public virtual ActionResult TopicTemplateAdd(TopicTemplateModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "Id")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.Id.
+            model.Id = 0;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
                 return AccessDeniedView();
 

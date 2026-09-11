@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Models.Plugins
 {
@@ -15,7 +16,6 @@ namespace Nop.Admin.Models.Plugins
         }
 
         [NopResourceDisplayName("Admin.Configuration.Plugins.OfficialFeed.Name")]
-        [AllowHtml]
         public string SearchName { get; set; }
         [NopResourceDisplayName("Admin.Configuration.Plugins.OfficialFeed.Version")]
         public int SearchVersionId { get; set; }

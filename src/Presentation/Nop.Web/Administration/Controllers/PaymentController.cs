@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Payments;
 using Nop.Core;
@@ -15,6 +15,7 @@ using Nop.Services.Payments;
 using Nop.Services.Security;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace Nop.Admin.Controllers
 {
@@ -92,8 +93,16 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult MethodUpdate([Bind(Exclude = "ConfigurationRouteValues")] PaymentMethodModel model)
+        public virtual ActionResult MethodUpdate(PaymentMethodModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "ConfigurationRouteValues")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.ConfigurationRouteValues.
+            model.ConfigurationRouteValues = null;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
                 return AccessDeniedView();
 
@@ -179,7 +188,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ActionName("MethodRestrictions")]
-        public virtual ActionResult MethodRestrictionsSave(FormCollection form)
+        public virtual ActionResult MethodRestrictionsSave(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
                 return AccessDeniedView();
@@ -190,7 +199,9 @@ namespace Nop.Admin.Controllers
             foreach (var pm in paymentMethods)
             {
                 string formKey = "restrict_" + pm.PluginDescriptor.SystemName;
-                var countryIdsToRestrict = (form[formKey] != null ? form[formKey].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>())
+                //TASK 8.3 - explicit `string` local; see BaseAdminController.GetRequestValue.
+                string restrictValue = form[formKey];
+                var countryIdsToRestrict = (restrictValue != null ? restrictValue.Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>())
                     .Select(x => Convert.ToInt32(x)).ToList();
 
                 var newCountryIds = new List<int>();

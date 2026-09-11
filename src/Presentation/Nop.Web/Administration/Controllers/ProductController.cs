@@ -1,11 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Helpers;
 using Nop.Admin.Infrastructure.Cache;
@@ -44,6 +43,9 @@ using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Net;
 
 namespace Nop.Admin.Controllers
 {
@@ -828,7 +830,7 @@ namespace Nop.Admin.Controllers
             {
                 //parse stock quantity
                 int stockQuantity = 0;
-                foreach (string formKey in this.Request.Form.AllKeys)
+                foreach (string formKey in this.Request.Form.Keys)
                     if (formKey.Equals(string.Format("warehouse_qty_{0}", warehouse.Id), StringComparison.InvariantCultureIgnoreCase))
                     {
                         int.TryParse(this.Request.Form[formKey], out stockQuantity);
@@ -836,7 +838,7 @@ namespace Nop.Admin.Controllers
                     }
                 //parse reserved quantity
                 int reservedQuantity = 0;
-                foreach (string formKey in this.Request.Form.AllKeys)
+                foreach (string formKey in this.Request.Form.Keys)
                     if (formKey.Equals(string.Format("warehouse_reserved_{0}", warehouse.Id), StringComparison.InvariantCultureIgnoreCase))
                     {
                         int.TryParse(this.Request.Form[formKey], out reservedQuantity);
@@ -844,7 +846,7 @@ namespace Nop.Admin.Controllers
                     }
                 //parse "used" field
                 bool used = false;
-                foreach (string formKey in this.Request.Form.AllKeys)
+                foreach (string formKey in this.Request.Form.Keys)
                     if (formKey.Equals(string.Format("warehouse_used_{0}", warehouse.Id), StringComparison.InvariantCultureIgnoreCase))
                     {
                         int tmp;
@@ -1436,7 +1438,6 @@ namespace Nop.Admin.Controllers
         #region Required products
 
         [HttpPost]
-        [ValidateInput(false)]
         public virtual ActionResult LoadProductFriendlyNames(string productIds)
         {
             var result = "";
@@ -2130,7 +2131,6 @@ namespace Nop.Admin.Controllers
 
         #region Product pictures
 
-        [ValidateInput(false)]
         public virtual ActionResult ProductPictureAdd(int pictureId, int displayOrder,
             string overrideAltAttribute, string overrideTitleAttribute,
             int productId)
@@ -2169,7 +2169,7 @@ namespace Nop.Admin.Controllers
                 DisplayOrder = displayOrder,
             });
 
-            return Json(new { Result = true }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = true });
         }
 
         [HttpPost]
@@ -2291,7 +2291,6 @@ namespace Nop.Admin.Controllers
 
         #region Product specification attributes
 
-        [ValidateInput(false)]
         public virtual ActionResult ProductSpecificationAttributeAdd(int attributeTypeId, int specificationAttributeOptionId,
             string customValue, bool allowFiltering, bool showOnProductPage,
             int displayOrder, int productId)
@@ -2332,7 +2331,7 @@ namespace Nop.Admin.Controllers
             };
             _specificationAttributeService.InsertProductSpecificationAttribute(psa);
 
-            return Json(new { Result = true }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = true });
         }
 
         [HttpPost]
@@ -2370,16 +2369,16 @@ namespace Nop.Admin.Controllers
                     switch (x.AttributeType)
                     {
                         case SpecificationAttributeType.Option:
-                            psaModel.ValueRaw = HttpUtility.HtmlEncode(x.SpecificationAttributeOption.Name);
+                            psaModel.ValueRaw = WebUtility.HtmlEncode(x.SpecificationAttributeOption.Name);
                             psaModel.SpecificationAttributeOptionId = x.SpecificationAttributeOptionId;
                             break;
                         case SpecificationAttributeType.CustomText:
-                            psaModel.ValueRaw = HttpUtility.HtmlEncode(x.CustomValue);
+                            psaModel.ValueRaw = WebUtility.HtmlEncode(x.CustomValue);
                             break;
                         case SpecificationAttributeType.CustomHtmlText:
                             //do not encode?
                             //psaModel.ValueRaw = x.CustomValue;
-                            psaModel.ValueRaw = HttpUtility.HtmlEncode(x.CustomValue);
+                            psaModel.ValueRaw = WebUtility.HtmlEncode(x.CustomValue);
                             break;
                         case SpecificationAttributeType.Hyperlink:
                             psaModel.ValueRaw = x.CustomValue;
@@ -2843,10 +2842,10 @@ namespace Nop.Admin.Controllers
 
             try
             {
-                var file = Request.Files["importexcelfile"];
-                if (file != null && file.ContentLength > 0)
+                var file = GetRequestFiles()["importexcelfile"];
+                if (file != null && file.Length > 0)
                 {
-                    _importManager.ImportProductsFromXlsx(file.InputStream);
+                    _importManager.ImportProductsFromXlsx(file.OpenReadStream());
                 }
                 else
                 {
@@ -3382,7 +3381,7 @@ namespace Nop.Admin.Controllers
                         if (!string.IsNullOrEmpty(x.ValidationFileAllowedExtensions))
                             validationRules.AppendFormat("{0}: {1}<br />",
                                 _localizationService.GetResource("Admin.Catalog.Products.ProductAttributes.Attributes.ValidationRules.FileAllowedExtensions"),
-                                HttpUtility.HtmlEncode(x.ValidationFileAllowedExtensions));
+                                WebUtility.HtmlEncode(x.ValidationFileAllowedExtensions));
                         if (x.ValidationFileMaximumSize != null)
                             validationRules.AppendFormat("{0}: {1}<br />",
                                 _localizationService.GetResource("Admin.Catalog.Products.ProductAttributes.Attributes.ValidationRules.FileMaximumSize"),
@@ -3390,7 +3389,7 @@ namespace Nop.Admin.Controllers
                         if (!string.IsNullOrEmpty(x.DefaultValue))
                             validationRules.AppendFormat("{0}: {1}<br />",
                                 _localizationService.GetResource("Admin.Catalog.Products.ProductAttributes.Attributes.ValidationRules.DefaultValue"),
-                                HttpUtility.HtmlEncode(x.DefaultValue));
+                                WebUtility.HtmlEncode(x.DefaultValue));
                         attributeModel.ValidationRulesString = validationRules.ToString();
                     }
 
@@ -3401,8 +3400,8 @@ namespace Nop.Admin.Controllers
                     var conditionValue = _productAttributeParser.ParseProductAttributeValues(x.ConditionAttributeXml).FirstOrDefault();
                     if (conditionAttribute != null && conditionValue != null)
                         attributeModel.ConditionString = string.Format("{0}: {1}",
-                            HttpUtility.HtmlEncode(conditionAttribute.ProductAttribute.Name),
-                            HttpUtility.HtmlEncode(conditionValue.Name));
+                            WebUtility.HtmlEncode(conditionAttribute.ProductAttribute.Name),
+                            WebUtility.HtmlEncode(conditionValue.Name));
                     else
                         attributeModel.ConditionString = string.Empty;
                     return attributeModel;
@@ -3729,7 +3728,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost]
         public virtual ActionResult ProductAttributeConditionPopup(string btnId, string formId,
-            ProductAttributeConditionModel model, FormCollection form)
+            ProductAttributeConditionModel model, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return AccessDeniedView();
@@ -3762,7 +3761,7 @@ namespace Nop.Admin.Controllers
                         case AttributeControlType.ColorSquares:
                         case AttributeControlType.ImageSquares:
                             {
-                                var ctrlAttributes = form[controlId];
+                                string ctrlAttributes = form[controlId];
                                 if (!String.IsNullOrEmpty(ctrlAttributes))
                                 {
                                     int selectedAttributeId = int.Parse(ctrlAttributes);
@@ -3792,7 +3791,7 @@ namespace Nop.Admin.Controllers
                             break;
                         case AttributeControlType.Checkboxes:
                             {
-                                var cblAttributes = form[controlId];
+                                string cblAttributes = form[controlId];
                                 if (!String.IsNullOrEmpty(cblAttributes))
                                 {
                                     bool anyValueSelected = false;
@@ -4355,7 +4354,6 @@ namespace Nop.Admin.Controllers
         }
 
         //action displaying notification (warning) to a store owner when associating some product
-        [ValidateInput(false)]
         public virtual ActionResult AssociatedProductGetWarnings(int productId)
         {
             var associatedProduct = _productService.GetProductById(productId);
@@ -4365,25 +4363,25 @@ namespace Nop.Admin.Controllers
                 if (associatedProduct.ProductAttributeMappings.Any())
                 {
                     if (associatedProduct.ProductAttributeMappings.Any(attribute => attribute.IsRequired))
-                        return Json(new { Result = _localizationService.GetResource("Admin.Catalog.Products.ProductAttributes.Attributes.Values.Fields.AssociatedProduct.HasRequiredAttributes") }, JsonRequestBehavior.AllowGet);
+                        return Json(new { Result = _localizationService.GetResource("Admin.Catalog.Products.ProductAttributes.Attributes.Values.Fields.AssociatedProduct.HasRequiredAttributes") });
 
-                    return Json(new { Result = _localizationService.GetResource("Admin.Catalog.Products.ProductAttributes.Attributes.Values.Fields.AssociatedProduct.HasAttributes") }, JsonRequestBehavior.AllowGet);
+                    return Json(new { Result = _localizationService.GetResource("Admin.Catalog.Products.ProductAttributes.Attributes.Values.Fields.AssociatedProduct.HasAttributes") });
                 }
                 
                 //gift card
                 if (associatedProduct.IsGiftCard)
                 {
-                    return Json(new { Result = _localizationService.GetResource("Admin.Catalog.Products.ProductAttributes.Attributes.Values.Fields.AssociatedProduct.GiftCard") }, JsonRequestBehavior.AllowGet);
+                    return Json(new { Result = _localizationService.GetResource("Admin.Catalog.Products.ProductAttributes.Attributes.Values.Fields.AssociatedProduct.GiftCard") });
                 }
 
                 //downloaable product
                 if (associatedProduct.IsDownload)
                 {
-                    return Json(new { Result = _localizationService.GetResource("Admin.Catalog.Products.ProductAttributes.Attributes.Values.Fields.AssociatedProduct.Downloadable") }, JsonRequestBehavior.AllowGet);
+                    return Json(new { Result = _localizationService.GetResource("Admin.Catalog.Products.ProductAttributes.Attributes.Values.Fields.AssociatedProduct.Downloadable") });
                 }
             }
 
-            return Json(new { Result = string.Empty }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = string.Empty });
         }
 
         #endregion
@@ -4524,9 +4522,8 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
         [HttpPost]
-        [ValidateInput(false)]
         public virtual ActionResult AddAttributeCombinationPopup(string btnId, string formId, int productId,
-            AddProductAttributeCombinationModel model, FormCollection form)
+            AddProductAttributeCombinationModel model, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return AccessDeniedView();
@@ -4563,7 +4560,7 @@ namespace Nop.Admin.Controllers
                     case AttributeControlType.ColorSquares:
                     case AttributeControlType.ImageSquares:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 int selectedAttributeId = int.Parse(ctrlAttributes);
@@ -4575,7 +4572,7 @@ namespace Nop.Admin.Controllers
                         break;
                     case AttributeControlType.Checkboxes:
                         {
-                            var cblAttributes = form[controlId];
+                            string cblAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(cblAttributes))
                             {
                                 foreach (var item in cblAttributes.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -4605,7 +4602,7 @@ namespace Nop.Admin.Controllers
                     case AttributeControlType.TextBox:
                     case AttributeControlType.MultilineTextbox:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 string enteredText = ctrlAttributes.Trim();
@@ -4616,9 +4613,9 @@ namespace Nop.Admin.Controllers
                         break;
                     case AttributeControlType.Datepicker:
                         {
-                            var date = form[controlId + "_day"];
-                            var month = form[controlId + "_month"];
-                            var year = form[controlId + "_year"];
+                            string date = form[controlId + "_day"];
+                            string month = form[controlId + "_month"];
+                            string year = form[controlId + "_year"];
                             DateTime? selectedDate = null;
                             try
                             {
@@ -4634,7 +4631,7 @@ namespace Nop.Admin.Controllers
                         break;
                     case AttributeControlType.FileUpload:
                         {
-                            var httpPostedFile = this.Request.Files[controlId];
+                            var httpPostedFile = this.GetRequestFiles()[controlId];
                             if ((httpPostedFile != null) && (!String.IsNullOrEmpty(httpPostedFile.FileName)))
                             {
                                 var fileSizeOk = true;
@@ -4642,7 +4639,7 @@ namespace Nop.Admin.Controllers
                                 {
                                     //compare in bytes
                                     var maxFileSizeBytes = attribute.ValidationFileMaximumSize.Value * 1024;
-                                    if (httpPostedFile.ContentLength > maxFileSizeBytes)
+                                    if (httpPostedFile.Length > maxFileSizeBytes)
                                     {
                                         warnings.Add(string.Format(_localizationService.GetResource("ShoppingCart.MaximumUploadedFileSize"), attribute.ValidationFileMaximumSize.Value));
                                         fileSizeOk = false;

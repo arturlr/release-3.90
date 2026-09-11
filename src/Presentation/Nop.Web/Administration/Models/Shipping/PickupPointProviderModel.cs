@@ -1,5 +1,5 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -8,11 +8,9 @@ namespace Nop.Admin.Models.Shipping
     public partial class PickupPointProviderModel : BaseNopModel
     {
         [NopResourceDisplayName("Admin.Configuration.Shipping.PickupPointProviders.Fields.FriendlyName")]
-        [AllowHtml]
         public string FriendlyName { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Shipping.PickupPointProviders.Fields.SystemName")]
-        [AllowHtml]
         public string SystemName { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Shipping.PickupPointProviders.Fields.DisplayOrder")]

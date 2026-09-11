@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
@@ -10,7 +10,6 @@ namespace Nop.Admin.Models.Blogs
         [NopResourceDisplayName("Admin.ContentManagement.Blog.Comments.Fields.BlogPost")]
         public int BlogPostId { get; set; }
         [NopResourceDisplayName("Admin.ContentManagement.Blog.Comments.Fields.BlogPost")]
-        [AllowHtml]
         public string BlogPostTitle { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Blog.Comments.Fields.Customer")]
@@ -18,7 +17,6 @@ namespace Nop.Admin.Models.Blogs
         [NopResourceDisplayName("Admin.ContentManagement.Blog.Comments.Fields.Customer")]
         public string CustomerInfo { get; set; }
 
-        [AllowHtml]
         [NopResourceDisplayName("Admin.ContentManagement.Blog.Comments.Fields.Comment")]
         public string Comment { get; set; }
 

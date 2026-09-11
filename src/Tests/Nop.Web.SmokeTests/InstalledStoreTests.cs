@@ -92,7 +92,7 @@ namespace Nop.Web.SmokeTests
         public void Priority_1_the_home_page_child_action_fan_out_actually_rendered()
         {
             //Task 7.3 named this "the single most important thing for 7.7 to exercise": the
-            //Html.Action bridge in Nop.Web/Extensions/ChildActionExtensions.cs was verified only
+            //Html.Action bridge in Nop.Web.Framework/ChildActionExtensions.cs was verified only
             //against a standalone probe app with synthetic controllers, never against
             //nopCommerce's real ones. The home page fans out to ~15 child actions.
             //

@@ -1,11 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Polls;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Models.Polls
 {
@@ -21,15 +22,12 @@ namespace Nop.Admin.Models.Polls
         public IList<SelectListItem> AvailableLanguages { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Polls.Fields.Language")]
-        [AllowHtml]
         public string LanguageName { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Polls.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Polls.Fields.SystemKeyword")]
-        [AllowHtml]
         public string SystemKeyword { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Polls.Fields.Published")]

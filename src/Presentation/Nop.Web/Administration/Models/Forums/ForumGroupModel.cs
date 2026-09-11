@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Forums;
 using Nop.Web.Framework;
@@ -11,7 +11,6 @@ namespace Nop.Admin.Models.Forums
     public partial class ForumGroupModel : BaseNopEntityModel
     {
         [NopResourceDisplayName("Admin.ContentManagement.Forums.ForumGroup.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Forums.ForumGroup.Fields.DisplayOrder")]

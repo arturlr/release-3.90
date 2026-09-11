@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Services.Security;
 using Nop.Web.Framework.Security;
@@ -38,10 +38,10 @@ namespace Nop.Admin.Controllers
                 return View();
             }
 
-            if (Request.Files.Count == 0)
+            if (GetRequestFiles().Count == 0)
                 throw new Exception("No file uploaded");
 
-            var uploadFile = Request.Files[0];
+            var uploadFile = GetRequestFiles()[0];
             if (uploadFile == null)
             {
                 ViewData["resultCode"] = "failed";
@@ -68,7 +68,10 @@ namespace Nop.Admin.Controllers
                 return View();
             }
 
-            uploadFile.SaveAs(filePath);
+            //TASK 8.3 - HttpPostedFileBase.SaveAs -> IFormFile.CopyTo over a FileStream.
+            //IFormFile has no SaveAs.
+            using (var destStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+                uploadFile.CopyTo(destStream);
 
             ViewData["resultCode"] = "success";
             ViewData["result"] = "success";

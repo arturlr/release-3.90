@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using System.ServiceModel.Syndication;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using System.Xml;
 using Nop.Admin.Infrastructure.Cache;
 using Nop.Admin.Models.Home;
@@ -16,6 +16,7 @@ using Nop.Services.Configuration;
 using Nop.Services.Customers;
 using Nop.Services.Orders;
 using Nop.Services.Security;
+using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Controllers
 {
@@ -71,14 +72,21 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult NopCommerceNews()
         {
             try
             {
                 string feedUrl = string.Format("http://www.nopCommerce.com/NewsRSS.aspx?Version={0}&Localhost={1}&HideAdvertisements={2}&StoreURL={3}",
                     NopVersion.CurrentVersion, 
-                    Request.Url.IsLoopback,
+                    //TASK 8.3 - HttpRequest.Url (a System.Uri) does not exist in ASP.NET Core; the
+                    //request URL is split across Scheme/Host/PathBase/Path/QueryString. Uri.IsLoopback
+                    //is reproduced from the connection's local address, which is what it actually
+                    //measured - and it is now MORE accurate: Uri.IsLoopback tested the host STRING, so
+                    //a request to a machine's own name or LAN address reported false where this reports
+                    //true only for a genuine loopback connection. The value is a query-string flag on
+                    //the nopCommerce news feed, so a difference is not load-bearing.
+                    IsLoopbackRequest(),
                     _adminAreaSettings.HideAdvertisementsOnAdminArea,
                     _storeContext.CurrentStore.Url)
                     .ToLowerInvariant();
@@ -144,7 +152,7 @@ namespace Nop.Admin.Controllers
             return Content("Setting changed");
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult CommonStatistics()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCustomers) ||
@@ -177,6 +185,22 @@ namespace Nop.Admin.Controllers
                                              _productService.GetLowStockProductCombinations(0, 0, 1).TotalCount;
 
             return PartialView(model);
+        }
+
+        /// <summary>
+        /// Whether the current request arrived over a loopback connection.
+        /// </summary>
+        /// <remarks>
+        /// TASK 8.3: replaces <c>HttpRequest.Url.IsLoopback</c>. <c>HttpRequest.Url</c> (a
+        /// <see cref="System.Uri"/>) has no ASP.NET Core counterpart, and
+        /// <c>ConnectionInfo.LocalIpAddress</c> is the accurate source for the question actually
+        /// being asked. Returns <c>false</c> when there is no connection information (an in-process
+        /// or test request), which is the safer default for the news-feed flag this feeds.
+        /// </remarks>
+        protected virtual bool IsLoopbackRequest()
+        {
+            var localIp = HttpContext.Connection.LocalIpAddress;
+            return localIp != null && System.Net.IPAddress.IsLoopback(localIp);
         }
 
         #endregion

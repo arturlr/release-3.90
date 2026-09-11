@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Orders;
 using Nop.Core;
@@ -18,6 +18,7 @@ using Nop.Services.Security;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Controllers
 {
@@ -225,7 +226,7 @@ namespace Nop.Admin.Controllers
         [HttpPost]
         public virtual ActionResult GenerateCouponCode()
         {
-            return Json(new { CouponCode = _giftCardService.GenerateGiftCardCode() }, JsonRequestBehavior.AllowGet);
+            return Json(new { CouponCode = _giftCardService.GenerateGiftCardCode() });
         }
 
         [HttpPost, ActionName("Edit")]

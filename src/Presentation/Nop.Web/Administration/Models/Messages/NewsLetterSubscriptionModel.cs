@@ -1,5 +1,5 @@
-﻿using System;
-using System.Web.Mvc;
+using System;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Messages;
 using Nop.Web.Framework;
@@ -11,7 +11,6 @@ namespace Nop.Admin.Models.Messages
     public partial class NewsLetterSubscriptionModel : BaseNopEntityModel
     {
         [NopResourceDisplayName("Admin.Promotions.NewsLetterSubscriptions.Fields.Email")]
-        [AllowHtml]
         public string Email { get; set; }
 
         [NopResourceDisplayName("Admin.Promotions.NewsLetterSubscriptions.Fields.Active")]

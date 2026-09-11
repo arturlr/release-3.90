@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Messages;
 using Nop.Core;
@@ -15,6 +15,8 @@ using Nop.Services.Stores;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Controllers
 {
@@ -128,8 +130,16 @@ namespace Nop.Admin.Controllers
 		}
 
         [HttpPost]
-        public virtual ActionResult SubscriptionUpdate([Bind(Exclude = "CreatedOn")] NewsLetterSubscriptionModel model)
+        public virtual ActionResult SubscriptionUpdate(NewsLetterSubscriptionModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "CreatedOn")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.CreatedOn.
+            model.CreatedOn = default(DateTime);
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageNewsletterSubscribers))
                 return AccessDeniedView();
 
@@ -188,17 +198,17 @@ namespace Nop.Admin.Controllers
 		}
 
         [HttpPost]
-        public virtual ActionResult ImportCsv(FormCollection form)
+        public virtual ActionResult ImportCsv(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageNewsletterSubscribers))
                 return AccessDeniedView();
 
             try
             {
-                var file = Request.Files["importcsvfile"];
-                if (file != null && file.ContentLength > 0)
+                var file = GetRequestFiles()["importcsvfile"];
+                if (file != null && file.Length > 0)
                 {
-                    int count = _importManager.ImportNewsletterSubscribersFromTxt(file.InputStream);
+                    int count = _importManager.ImportNewsletterSubscribersFromTxt(file.OpenReadStream());
                     SuccessNotification(String.Format(_localizationService.GetResource("Admin.Promotions.NewsLetterSubscriptions.ImportEmailsSuccess"), count));
                     return RedirectToAction("List");
                 }

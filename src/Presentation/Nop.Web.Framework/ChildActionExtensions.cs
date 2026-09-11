@@ -20,12 +20,27 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
 
-namespace Nop.Web.Extensions
+namespace Nop.Web.Framework
 {
     /// <summary>
     /// <c>@Html.Action(...)</c> — renders a controller action inline in a view.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// <b>TASK 8.3 — PROMOTED FROM <c>Nop.Web</c> (deferral 7.3-1).</b> This file was created by
+    /// task 7.3 as <c>Nop.Web/Extensions/ChildActionExtensions.cs</c>. <c>Nop.Admin</c> has its own
+    /// <c>@Html.Action</c> call sites, and the three plugin contracts named below are implemented
+    /// by every one of the 20 plugin projects, so the bridge belongs in the shared framework
+    /// rather than being duplicated per presentation project. It is a <b>move, not a rewrite</b>:
+    /// the body is unchanged apart from the namespace, and task 7.7 had already verified it
+    /// against nopCommerce's real controllers (the home page's ~15 child actions all render).
+    /// </para>
+    /// <para>
+    /// The namespace is <c>Nop.Web.Framework</c> rather than <c>Nop.Web.Framework.Mvc</c>,
+    /// matching the sibling <c>HtmlExtensions.cs</c> in this folder, because
+    /// <c>@using Nop.Web.Framework</c> is already present in every <c>_ViewImports.cshtml</c> in
+    /// the solution — so <b>no view call site had to change</b>.
+    /// </para>
     /// <para>
     /// <b>TASK 7.3 — WHY THIS EXISTS.</b> ASP.NET Core removed child actions:
     /// <c>System.Web.Mvc.ChildActionExtensions.Action</c>, <c>RenderAction</c> and
@@ -79,9 +94,10 @@ namespace Nop.Web.Extensions
     /// Tasks 4.2 and 6.2 recorded the first six.
     /// </para>
     /// <para>
-    /// <b>Note for task 8.x and the plugin tasks.</b> <c>Nop.Admin</c> has its own
-    /// <c>@Html.Action</c> call sites and will need the same bridge. Rather than duplicating this
-    /// file, consider promoting it to <c>Nop.Web.Framework</c> — see deferral 7.3-1.
+    /// <b>Note for the plugin tasks (10.x–15.x).</b> The five dynamically-named call sites listed
+    /// above are the reason this bridge cannot be replaced wholesale by view components. If those
+    /// three plugin contracts are ever changed to return a view-component name instead of an
+    /// action/controller/<c>RouteValueDictionary</c> triple, this class can go.
     /// </para>
     /// </remarks>
     public static class ChildActionExtensions

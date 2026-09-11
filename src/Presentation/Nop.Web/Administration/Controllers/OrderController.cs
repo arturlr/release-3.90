@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Helpers;
 using Nop.Admin.Models.Orders;
@@ -40,6 +40,9 @@ using Nop.Services.Vendors;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Net;
 
 namespace Nop.Admin.Controllers
 {
@@ -282,7 +285,7 @@ namespace Nop.Admin.Controllers
         /// <param name="errors">Errors</param>
         /// <returns>Parsed attributes</returns>
 	    [NonAction]
-        protected virtual string ParseProductAttributes(Product product, FormCollection form, List<string> errors)
+        protected virtual string ParseProductAttributes(Product product, IFormCollection form, List<string> errors)
         {
             var attributesXml = string.Empty;
 
@@ -299,7 +302,7 @@ namespace Nop.Admin.Controllers
                     case AttributeControlType.ColorSquares:
                     case AttributeControlType.ImageSquares:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 int selectedAttributeId = int.Parse(ctrlAttributes);
@@ -307,7 +310,7 @@ namespace Nop.Admin.Controllers
                                 {
                                     //get quantity entered by customer
                                     var quantity = 1;
-                                    var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)];
+                                    string quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)];
                                     if (quantityStr != null && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
                                         errors.Add(_localizationService.GetResource("ShoppingCart.QuantityShouldPositive"));
 
@@ -319,7 +322,7 @@ namespace Nop.Admin.Controllers
                         break;
                     case AttributeControlType.Checkboxes:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 foreach (var item in ctrlAttributes.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -329,7 +332,7 @@ namespace Nop.Admin.Controllers
                                     {
                                         //get quantity entered by customer
                                         var quantity = 1;
-                                        var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, item)];
+                                        string quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, item)];
                                         if (quantityStr != null && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
                                             errors.Add(_localizationService.GetResource("ShoppingCart.QuantityShouldPositive"));
 
@@ -351,7 +354,7 @@ namespace Nop.Admin.Controllers
                             {
                                 //get quantity entered by customer
                                 var quantity = 1;
-                                var quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)];
+                                string quantityStr = form[string.Format("product_attribute_{0}_{1}_qty", attribute.Id, selectedAttributeId)];
                                 if (quantityStr != null && (!int.TryParse(quantityStr, out quantity) || quantity < 1))
                                     errors.Add(_localizationService.GetResource("ShoppingCart.QuantityShouldPositive"));
 
@@ -363,7 +366,7 @@ namespace Nop.Admin.Controllers
                     case AttributeControlType.TextBox:
                     case AttributeControlType.MultilineTextbox:
                         {
-                            var ctrlAttributes = form[controlId];
+                            string ctrlAttributes = form[controlId];
                             if (!String.IsNullOrEmpty(ctrlAttributes))
                             {
                                 string enteredText = ctrlAttributes.Trim();
@@ -374,9 +377,9 @@ namespace Nop.Admin.Controllers
                         break;
                     case AttributeControlType.Datepicker:
                         {
-                            var day = form[controlId + "_day"];
-                            var month = form[controlId + "_month"];
-                            var year = form[controlId + "_year"];
+                            string day = form[controlId + "_day"];
+                            string month = form[controlId + "_month"];
+                            string year = form[controlId + "_year"];
                             DateTime? selectedDate = null;
                             try
                             {
@@ -428,14 +431,14 @@ namespace Nop.Admin.Controllers
         /// <param name="startDate">Start date</param>
         /// <param name="endDate">End date</param>
         [NonAction]
-        protected virtual void ParseRentalDates(FormCollection form,
+        protected virtual void ParseRentalDates(IFormCollection form,
             out DateTime? startDate, out DateTime? endDate)
         {
             startDate = null;
             endDate = null;
 
-            var ctrlStartDate = form["rental_start_date"];
-            var ctrlEndDate = form["rental_end_date"];
+            string ctrlStartDate = form["rental_start_date"];
+            string ctrlEndDate = form["rental_end_date"];
             try
             {
                 const string datePickerFormat = "MM/dd/yyyy";
@@ -713,7 +716,7 @@ namespace Nop.Admin.Controllers
                     model.ShippingAddress.FaxEnabled = _addressSettings.FaxEnabled;
                     model.ShippingAddress.FaxRequired = _addressSettings.FaxRequired;
 
-                    model.ShippingAddressGoogleMapsUrl = string.Format("http://maps.google.com/maps?f=q&hl=en&ie=UTF8&oe=UTF8&geocode=&q={0}", Server.UrlEncode(order.ShippingAddress.Address1 + " " + order.ShippingAddress.ZipPostalCode + " " + order.ShippingAddress.City + " " + (order.ShippingAddress.Country != null ? order.ShippingAddress.Country.Name : "")));
+                    model.ShippingAddressGoogleMapsUrl = string.Format("http://maps.google.com/maps?f=q&hl=en&ie=UTF8&oe=UTF8&geocode=&q={0}", WebUtility.UrlEncode(order.ShippingAddress.Address1 + " " + order.ShippingAddress.ZipPostalCode + " " + order.ShippingAddress.City + " " + (order.ShippingAddress.Country != null ? order.ShippingAddress.Country.Name : "")));
                 }
                 else
                 {
@@ -721,7 +724,7 @@ namespace Nop.Admin.Controllers
                     {
                         model.PickupAddress = order.PickupAddress.ToModel();
                         model.PickupAddressGoogleMapsUrl = string.Format("http://maps.google.com/maps?f=q&hl=en&ie=UTF8&oe=UTF8&geocode=&q={0}",
-                            Server.UrlEncode(string.Format("{0} {1} {2} {3}", order.PickupAddress.Address1, order.PickupAddress.ZipPostalCode, order.PickupAddress.City,
+                            WebUtility.UrlEncode(string.Format("{0} {1} {2} {3}", order.PickupAddress.Address1, order.PickupAddress.ZipPostalCode, order.PickupAddress.City,
                                 order.PickupAddress.Country != null ? order.PickupAddress.Country.Name : string.Empty)));
                     }
                 }
@@ -1253,7 +1256,7 @@ namespace Nop.Admin.Controllers
                               productid = p.Id
                           })
                           .ToList();
-            return Json(result, JsonRequestBehavior.AllowGet);
+            return Json(result);
         }
 
         #endregion
@@ -1966,9 +1969,8 @@ namespace Nop.Admin.Controllers
 
         //currently we use this method on the add product to order details pages
         [HttpPost]
-        [ValidateInput(false)]
         public virtual ActionResult ProductDetails_AttributeChange(int productId, bool validateAttributeConditions,
-	        FormCollection form)
+	        IFormCollection form)
 	    {
             var product = _productService.GetProductById(productId);
             if (product == null)
@@ -2136,8 +2138,7 @@ namespace Nop.Admin.Controllers
         
         [HttpPost, ActionName("Edit")]
         [FormValueRequired(FormValueRequirement.StartsWith, "btnSaveOrderItem")]
-        [ValidateInput(false)]
-        public virtual ActionResult EditOrderItem(int id, FormCollection form)
+        public virtual ActionResult EditOrderItem(int id, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2153,7 +2154,7 @@ namespace Nop.Admin.Controllers
 
             //get order item identifier
             int orderItemId = 0;
-            foreach (var formValue in form.AllKeys)
+            foreach (var formValue in form.Keys)
                 if (formValue.StartsWith("btnSaveOrderItem", StringComparison.InvariantCultureIgnoreCase))
                     orderItemId = Convert.ToInt32(formValue.Substring("btnSaveOrderItem".Length));
 
@@ -2247,8 +2248,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired(FormValueRequirement.StartsWith, "btnDeleteOrderItem")]
-        [ValidateInput(false)]
-        public virtual ActionResult DeleteOrderItem(int id, FormCollection form)
+        public virtual ActionResult DeleteOrderItem(int id, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2264,7 +2264,7 @@ namespace Nop.Admin.Controllers
 
             //get order item identifier
             int orderItemId = 0;
-            foreach (var formValue in form.AllKeys)
+            foreach (var formValue in form.Keys)
                 if (formValue.StartsWith("btnDeleteOrderItem", StringComparison.InvariantCultureIgnoreCase))
                     orderItemId = Convert.ToInt32(formValue.Substring("btnDeleteOrderItem".Length));
 
@@ -2330,8 +2330,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired(FormValueRequirement.StartsWith, "btnResetDownloadCount")]
-        [ValidateInput(false)]
-        public virtual ActionResult ResetDownloadCount(int id, FormCollection form)
+        public virtual ActionResult ResetDownloadCount(int id, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2343,7 +2342,7 @@ namespace Nop.Admin.Controllers
 
             //get order item identifier
             int orderItemId = 0;
-            foreach (var formValue in form.AllKeys)
+            foreach (var formValue in form.Keys)
                 if (formValue.StartsWith("btnResetDownloadCount", StringComparison.InvariantCultureIgnoreCase))
                     orderItemId = Convert.ToInt32(formValue.Substring("btnResetDownloadCount".Length));
 
@@ -2370,8 +2369,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ActionName("Edit")]
         [FormValueRequired(FormValueRequirement.StartsWith, "btnPvActivateDownload")]
-        [ValidateInput(false)]
-        public virtual ActionResult ActivateDownloadItem(int id, FormCollection form)
+        public virtual ActionResult ActivateDownloadItem(int id, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2383,7 +2381,7 @@ namespace Nop.Admin.Controllers
 
             //get order item identifier
             int orderItemId = 0;
-            foreach (var formValue in form.AllKeys)
+            foreach (var formValue in form.Keys)
                 if (formValue.StartsWith("btnPvActivateDownload", StringComparison.InvariantCultureIgnoreCase))
                     orderItemId = Convert.ToInt32(formValue.Substring("btnPvActivateDownload".Length));
 
@@ -2586,7 +2584,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult AddProductToOrderDetails(int orderId, int productId, FormCollection form)
+        public virtual ActionResult AddProductToOrderDetails(int orderId, int productId, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -2626,7 +2624,7 @@ namespace Nop.Admin.Controllers
             string giftCardMessage = "";
             if (product.IsGiftCard)
             {
-                foreach (string formKey in form.AllKeys)
+                foreach (string formKey in form.Keys)
                 {
                     if (formKey.Equals("giftcard.RecipientName", StringComparison.InvariantCultureIgnoreCase))
                     {
@@ -2841,8 +2839,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        [ValidateInput(false)]
-        public virtual ActionResult AddressEdit(OrderAddressModel model, FormCollection form)
+        public virtual ActionResult AddressEdit(OrderAddressModel model, IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3180,7 +3177,7 @@ namespace Nop.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
-        public virtual ActionResult AddShipment(int orderId, FormCollection form, bool continueEditing)
+        public virtual ActionResult AddShipment(int orderId, IFormCollection form, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedView();
@@ -3215,7 +3212,7 @@ namespace Nop.Admin.Controllers
                     continue;
 
                 int qtyToAdd = 0; //parse quantity
-                foreach (string formKey in form.AllKeys)
+                foreach (string formKey in form.Keys)
                     if (formKey.Equals(string.Format("qtyToAdd{0}", orderItem.Id), StringComparison.InvariantCultureIgnoreCase))
                     {
                         int.TryParse(form[formKey], out qtyToAdd);
@@ -3228,7 +3225,7 @@ namespace Nop.Admin.Controllers
                 {
                     //multiple warehouses supported
                     //warehouse is chosen by a store owner
-                    foreach (string formKey in form.AllKeys)
+                    foreach (string formKey in form.Keys)
                         if (formKey.Equals(string.Format("warehouse_{0}", orderItem.Id), StringComparison.InvariantCultureIgnoreCase))
                         {
                             int.TryParse(form[formKey], out warehouseId);
@@ -3241,7 +3238,7 @@ namespace Nop.Admin.Controllers
                     warehouseId = orderItem.Product.WarehouseId;
                 }
 
-                foreach (string formKey in form.AllKeys)
+                foreach (string formKey in form.Keys)
                     if (formKey.Equals(string.Format("qtyToAdd{0}", orderItem.Id), StringComparison.InvariantCultureIgnoreCase))
                     {
                         int.TryParse(form[formKey], out qtyToAdd);
@@ -3265,8 +3262,8 @@ namespace Nop.Admin.Controllers
                 }
                 if (shipment == null)
                 {
-                    var trackingNumber = form["TrackingNumber"];
-                    var adminComment = form["AdminComment"];
+                    string trackingNumber = form["TrackingNumber"];
+                    string adminComment = form["AdminComment"];
                     shipment = new Shipment
                     {
                         OrderId = order.Id,
@@ -3765,7 +3762,6 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
         
-        [ValidateInput(false)]
         public virtual ActionResult OrderNoteAdd(int orderId, int downloadId, bool displayToCustomer, string message)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
@@ -3773,11 +3769,11 @@ namespace Nop.Admin.Controllers
 
             var order = _orderService.GetOrderById(orderId);
             if (order == null)
-                return Json(new { Result = false }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = false });
 
             //a vendor does not have access to this functionality
             if (_workContext.CurrentVendor != null)
-                return Json(new { Result = false }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = false });
 
             var orderNote = new OrderNote
             {
@@ -3798,7 +3794,7 @@ namespace Nop.Admin.Controllers
 
             }
 
-            return Json(new { Result = true }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = true });
         }
 
         [HttpPost]
@@ -4083,7 +4079,7 @@ namespace Nop.Admin.Controllers
         }
 
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult OrderAverageReport()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
@@ -4125,7 +4121,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult OrderIncompleteReport()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
@@ -4247,7 +4243,7 @@ namespace Nop.Admin.Controllers
             return Json(gridModel);
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
 	    public virtual ActionResult OrderStatistics()
 	    {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
@@ -4260,7 +4256,7 @@ namespace Nop.Admin.Controllers
             return PartialView();
 	    }
 
-        [AcceptVerbs(HttpVerbs.Get)]
+        [HttpGet]
         public virtual ActionResult LoadOrderStatistics(string period)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
@@ -4350,10 +4346,10 @@ namespace Nop.Admin.Controllers
                     break;
             }
 
-            return Json(result, JsonRequestBehavior.AllowGet);
+            return Json(result);
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult LatestOrders()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))

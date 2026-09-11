@@ -722,7 +722,7 @@ namespace Nop.Web.SmokeTests
             StringAssert.Contains("visibleToChildActionBridge=True", body,
                 controller + "." + action + " has vanished from IActionDescriptorCollectionProvider. " +
                 "@Html.Action would now throw \"could not find an action\" - see " +
-                "Nop.Web/Extensions/ChildActionExtensions.cs.");
+                "Nop.Web.Framework/ChildActionExtensions.cs.");
         }
 
         [Test]

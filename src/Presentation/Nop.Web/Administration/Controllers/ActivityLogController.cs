@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Logging;
 using Nop.Services.Helpers;
@@ -10,6 +10,8 @@ using Nop.Services.Logging;
 using Nop.Services.Security;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Controllers
 {
@@ -53,7 +55,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult SaveTypes(FormCollection form)
+        public virtual ActionResult SaveTypes(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageActivityLog))
                 return AccessDeniedView();
@@ -62,7 +64,12 @@ namespace Nop.Admin.Controllers
             _customerActivityService.InsertActivity("EditActivityLogTypes", _localizationService.GetResource("ActivityLog.EditActivityLogTypes"));
 
             string formKey = "checkbox_activity_types";
-            var checkedActivityTypes = form[formKey] != null ? form[formKey].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => Convert.ToInt32(x)).ToList() : new List<int>();
+            //TASK 8.3 - explicit `string` local: IFormCollection's indexer yields StringValues,
+            //which has neither Split nor an unambiguous != null. The implicit conversion matches
+            //NameValueCollection exactly (single value as-is, several joined with ",", missing key
+            //null), so the test and the Split below behave as they did.
+            string checkedActivityTypesValue = form[formKey];
+            var checkedActivityTypes = checkedActivityTypesValue != null ? checkedActivityTypesValue.Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => Convert.ToInt32(x)).ToList() : new List<int>();
             
             var activityTypes = _customerActivityService.GetAllActivityTypes();
             foreach (var activityType in activityTypes)

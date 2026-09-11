@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Catalog;
 using Nop.Core.Domain.Catalog;
@@ -379,7 +379,7 @@ namespace Nop.Admin.Controllers
 
 
         //ajax
-        [AcceptVerbs(HttpVerbs.Get)]
+        [HttpGet]
         public virtual ActionResult GetOptionsByAttributeId(string attributeId)
         {
             //do not make any permission validation here 
@@ -394,7 +394,7 @@ namespace Nop.Admin.Controllers
             var options = _specificationAttributeService.GetSpecificationAttributeOptionsBySpecificationAttribute(Convert.ToInt32(attributeId));
             var result = (from o in options
                           select new { id = o.Id, name = o.Name }).ToList();
-            return Json(result, JsonRequestBehavior.AllowGet);
+            return Json(result);
         }
 
         #endregion

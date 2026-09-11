@@ -1,4 +1,4 @@
-﻿using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Tax;
 using Nop.Web.Framework;
@@ -10,7 +10,6 @@ namespace Nop.Admin.Models.Tax
     public partial class TaxCategoryModel : BaseNopEntityModel
     {
         [NopResourceDisplayName("Admin.Configuration.Tax.Categories.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Tax.Categories.Fields.DisplayOrder")]

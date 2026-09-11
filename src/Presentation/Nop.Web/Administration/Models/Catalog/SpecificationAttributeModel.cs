@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Catalog;
 using Nop.Web.Framework;
@@ -17,7 +17,6 @@ namespace Nop.Admin.Models.Catalog
         }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.SpecificationAttributes.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.SpecificationAttributes.Fields.DisplayOrder")]
@@ -33,7 +32,6 @@ namespace Nop.Admin.Models.Catalog
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.SpecificationAttributes.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
     }
 }

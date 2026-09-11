@@ -1,14 +1,14 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Security.Principal;
-using System.Web;
-using System.Web.Configuration;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Common;
 using Nop.Core;
@@ -32,6 +32,7 @@ using Nop.Services.Stores;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Security;
+using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Controllers
 {
@@ -59,7 +60,7 @@ namespace Nop.Admin.Controllers
         private readonly ISettingService _settingService;
         private readonly IStoreService _storeService;
         private readonly CatalogSettings _catalogSettings;
-        private readonly HttpContextBase _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMaintenanceService _maintenanceService;
 
         #endregion
@@ -86,7 +87,7 @@ namespace Nop.Admin.Controllers
             ISettingService settingService,
             IStoreService storeService,
             CatalogSettings catalogSettings,
-            HttpContextBase httpContext,
+            IHttpContextAccessor httpContextAccessor,
             IMaintenanceService maintenanceService)
         {
             this._paymentService = paymentService;
@@ -109,7 +110,7 @@ namespace Nop.Admin.Controllers
             this._settingService = settingService;
             this._storeService = storeService;
             this._catalogSettings = catalogSettings;
-            this._httpContext = httpContext;
+            this._httpContextAccessor = httpContextAccessor;
             this._maintenanceService = maintenanceService;
         }
 
@@ -144,7 +145,11 @@ namespace Nop.Admin.Controllers
 
             using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
             {
-                stream.Read(buffer, 0, 2048);
+                //TASK 8.3 - a single Stream.Read is not guaranteed to fill the buffer, so the PE
+                //header offsets read below could be computed from a partially-filled buffer.
+                //ReadAtLeast loops; throwOnEndOfStream:false preserves 3.90's behaviour for an
+                //assembly file shorter than 2048 bytes (buffer stays zero-filled from that point).
+                stream.ReadAtLeast(buffer, 2048, throwOnEndOfStream: false);
             }
 
             var offset = BitConverter.ToInt32(buffer, cPeHeaderOffset);
@@ -180,29 +185,54 @@ namespace Nop.Admin.Controllers
                 model.AspNetInfo = RuntimeEnvironment.GetSystemVersion();
             }
             catch (Exception) { }
-            try
-            {
-                model.IsFullTrust = AppDomain.CurrentDomain.IsFullyTrusted.ToString();
-            }
-            catch (Exception) { }
+            //TASK 8.3 - AppDomain.CurrentDomain.IsFullyTrusted always returns true on .NET (there
+            //is no Code Access Security), so this try/catch could only ever produce "True". The
+            //value is now set below, alongside the removal of CommonHelper.GetTrustLevel(), so the
+            //page has one authoritative answer instead of two.
             model.ServerTimeZone = TimeZone.CurrentTimeZone.StandardName;
             model.ServerLocalTime = DateTime.Now;
             model.UtcTime = DateTime.UtcNow;
             model.CurrentUserTime = _dateTimeHelper.ConvertToUserTime(DateTime.Now);
             model.HttpHost = _webHelper.ServerVariables("HTTP_HOST");
-            foreach (var key in _httpContext.Request.ServerVariables.AllKeys)
-            {
-                if (key.StartsWith("ALL_")) continue;
 
-                model.ServerVariables.Add(new SystemInfoModel.ServerVariableModel
+            //TASK 8.3 - HttpRequest.ServerVariables has no ASP.NET Core counterpart and is not
+            //recoverable: System.Web's server-variable collection was populated by IIS/ISAPI and
+            //held both request headers AND non-header values (SERVER_SOFTWARE, LOCAL_ADDR,
+            //APPL_PHYSICAL_PATH, ...). ASP.NET Core exposes only what the protocol actually
+            //carried. Task 2.4 already recorded the same loss for IWebHelper.ServerVariables
+            //(runtime-deferrals.md section 2): HTTP_* names map back to the originating header and
+            //everything else returns "".
+            //
+            //This page therefore now lists the REQUEST HEADERS, which is the honest subset. The
+            //3.90 "ALL_" filter is preserved (ALL_HTTP / ALL_RAW were synthesised aggregate
+            //variables and are simply never present now), and each header's values are joined the
+            //same way StringValues renders them, so a multi-valued header reads as it did.
+            var request = _httpContextAccessor.HttpContext != null
+                ? _httpContextAccessor.HttpContext.Request
+                : null;
+            if (request != null)
+            {
+                foreach (var header in request.Headers)
                 {
-                    Name = key,
-                    Value = _httpContext.Request.ServerVariables[key]
-                });
+                    if (header.Key.StartsWith("ALL_")) continue;
+
+                    model.ServerVariables.Add(new SystemInfoModel.ServerVariableModel
+                    {
+                        Name = header.Key,
+                        Value = header.Value.ToString()
+                    });
+                }
             }
             //Environment.GetEnvironmentVariable("USERNAME");
 
-            var trustLevel = CommonHelper.GetTrustLevel();
+            //TASK 8.3 - CommonHelper.GetTrustLevel() and AspNetHostingPermissionLevel were DELETED
+            //at task 2.4: there is no Code Access Security and no medium trust on .NET, so there is
+            //no trust level to query and nothing can be partially trusted. Per runtime-deferrals.md
+            //section 2 this page reports "Full" unconditionally, and the guard below - which existed
+            //only because Assembly.Location threw under partial trust - collapses to the
+            //!IsDynamic test, which is the part that is still real (a dynamic assembly has no
+            //Location).
+            model.IsFullTrust = "Full";
 
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -214,7 +244,7 @@ namespace Nop.Admin.Controllers
                 //ensure no exception is thrown
                 try
                 {
-                    var canGetLocation = trustLevel >= AspNetHostingPermissionLevel.High && !assembly.IsDynamic;
+                    var canGetLocation = !assembly.IsDynamic;
                     loadedAssembly.Location = canGetLocation ? assembly.Location : null;
                     loadedAssembly.IsDebug = IsDebugAssembly(assembly);
                     loadedAssembly.BuildDate = canGetLocation ? (DateTime?)GetBuildDate(assembly, TimeZoneInfo.Local) : null;
@@ -414,73 +444,77 @@ namespace Nop.Admin.Controllers
             }
 
             //validate write permissions (the same procedure like during installation)
+            //TASK 8.3 - OperatingSystem.IsWindows() guard. This is the fix task 6.5 recommended
+            //(runtime-deferrals.md section 18.4) and task 7.3 applied at the two equivalent
+            //InstallController sites, and it is a real correction rather than warning suppression:
+            //FilePermissionHelper.CheckPermissions is annotated [SupportedOSPlatform("windows")]
+            //because it reads NTFS ACLs, and WindowsIdentity.GetCurrent() below sits OUTSIDE that
+            //method's swallowing try/catch, so on Linux this page THREW instead of rendering. The
+            //analyser recognises the guard, so the CA1416 warnings clear as a side effect.
             var dirPermissionsOk = true;
-            var dirsToCheck = FilePermissionHelper.GetDirectoriesWrite();
-            foreach (string dir in dirsToCheck)
-                if (!FilePermissionHelper.CheckPermissions(dir, false, true, true, false))
-                {
-                    model.Add(new SystemWarningModel
-                    {
-                        Level = SystemWarningLevel.Warning,
-                        Text = string.Format(_localizationService.GetResource("Admin.System.Warnings.DirectoryPermission.Wrong"), WindowsIdentity.GetCurrent().Name, dir)
-                    });
-                    dirPermissionsOk = false;
-                }
-            if (dirPermissionsOk)
-                model.Add(new SystemWarningModel
-                {
-                    Level = SystemWarningLevel.Pass,
-                    Text = _localizationService.GetResource("Admin.System.Warnings.DirectoryPermission.OK")
-                });
-
-            var filePermissionsOk = true;
-            var filesToCheck = FilePermissionHelper.GetFilesWrite();
-            foreach (string file in filesToCheck)
-                if (!FilePermissionHelper.CheckPermissions(file, false, true, true, true))
-                {
-                    model.Add(new SystemWarningModel
-                    {
-                        Level = SystemWarningLevel.Warning,
-                        Text = string.Format(_localizationService.GetResource("Admin.System.Warnings.FilePermission.Wrong"), WindowsIdentity.GetCurrent().Name, file)
-                    });
-                    filePermissionsOk = false;
-                }
-            if (filePermissionsOk)
-                model.Add(new SystemWarningModel
-                {
-                    Level = SystemWarningLevel.Pass,
-                    Text = _localizationService.GetResource("Admin.System.Warnings.FilePermission.OK")
-                });
-
-            //machine key
-            try
+            if (OperatingSystem.IsWindows())
             {
-                var machineKeySection = ConfigurationManager.GetSection("system.web/machineKey") as MachineKeySection;
-                var machineKeySpecified = machineKeySection != null &&
-                    !String.IsNullOrEmpty(machineKeySection.DecryptionKey) &&
-                    !machineKeySection.DecryptionKey.StartsWith("AutoGenerate", StringComparison.InvariantCultureIgnoreCase);
-
-                if (!machineKeySpecified)
-                {
-                    model.Add(new SystemWarningModel
+                var dirsToCheck = FilePermissionHelper.GetDirectoriesWrite();
+                foreach (string dir in dirsToCheck)
+                    if (!FilePermissionHelper.CheckPermissions(dir, false, true, true, false))
                     {
-                        Level = SystemWarningLevel.Warning,
-                        Text = _localizationService.GetResource("Admin.System.Warnings.MachineKey.NotSpecified")
-                    });
-                }
-                else
-                {
+                        model.Add(new SystemWarningModel
+                        {
+                            Level = SystemWarningLevel.Warning,
+                            Text = string.Format(_localizationService.GetResource("Admin.System.Warnings.DirectoryPermission.Wrong"), WindowsIdentity.GetCurrent().Name, dir)
+                        });
+                        dirPermissionsOk = false;
+                    }
+                if (dirPermissionsOk)
                     model.Add(new SystemWarningModel
                     {
                         Level = SystemWarningLevel.Pass,
-                        Text = _localizationService.GetResource("Admin.System.Warnings.MachineKey.Specified")
+                        Text = _localizationService.GetResource("Admin.System.Warnings.DirectoryPermission.OK")
                     });
-                }
+
+                var filePermissionsOk = true;
+                var filesToCheck = FilePermissionHelper.GetFilesWrite();
+                foreach (string file in filesToCheck)
+                    if (!FilePermissionHelper.CheckPermissions(file, false, true, true, true))
+                    {
+                        model.Add(new SystemWarningModel
+                        {
+                            Level = SystemWarningLevel.Warning,
+                            Text = string.Format(_localizationService.GetResource("Admin.System.Warnings.FilePermission.Wrong"), WindowsIdentity.GetCurrent().Name, file)
+                        });
+                        filePermissionsOk = false;
+                    }
+                if (filePermissionsOk)
+                    model.Add(new SystemWarningModel
+                    {
+                        Level = SystemWarningLevel.Pass,
+                        Text = _localizationService.GetResource("Admin.System.Warnings.FilePermission.OK")
+                    });
             }
-            catch (Exception exc)
-            {
-                LogException(exc);
-            }
+
+            //TASK 8.3 - THE <machineKey> WARNING WAS REMOVED. This is a REMOVAL, not a
+            //configuration migration, and appsettings.json must NOT grow a machineKey key.
+            //
+            //3.90 read ConfigurationManager.GetSection("system.web/machineKey") as
+            //System.Web.Configuration.MachineKeySection and warned when the decryption key was
+            //auto-generated, because an auto-generated key is per-machine and therefore breaks
+            //forms-authentication tickets and view state across a web farm.
+            //
+            //MachineKeySection does not exist on .NET in any form, and <machineKey> has no
+            //successor setting: ASP.NET Core replaced the whole mechanism with Data Protection,
+            //whose key ring is a file/registry/blob store configured in code
+            //(PersistKeysToFileSystem / ...ToAzureBlobStorage / ...), not a config section with a
+            //literal key in it. There is nothing to read and nothing to translate.
+            //
+            //The underlying operational risk is REAL and is already recorded as part of deferral
+            //7.13: a multi-instance deployment must share the Data Protection key ring or auth
+            //cookies stop validating across instances - the same class of problem <machineKey>
+            //existed to solve. Surfacing that here would mean asking Data Protection which
+            //IXmlRepository is in use and whether it is machine-local, which is a genuinely
+            //different diagnostic and a new feature. Recorded as deferral 8.3-1 and left to the
+            //owner of this page's configuration story (task 8.7) rather than invented here.
+            //The Admin.System.Warnings.MachineKey.NotSpecified / .Specified localization
+            //resources become orphaned, which is harmless.
 
             return View(model);
         }
@@ -543,7 +577,16 @@ namespace Nop.Admin.Controllers
 
 
             model.DeleteExportedFiles.NumberOfDeletedFiles = 0;
-            string path = Path.Combine(this.Request.PhysicalApplicationPath, "content\\files\\exportimport");
+            //TASK 8.3 - HttpRequest.PhysicalApplicationPath -> CommonHelper.MapPath("~/"), which
+            //resolves against CommonHelper.BaseDirectory (the content root, assigned by task 7.2 -
+            //deferral 1.5). Same substitution task 4.2 made in MaintenanceService and task 7.3 made
+            //in CommonModelFactory's favicon lookup.
+            //THE PATH CASING IS ALSO CORRECTED: the directory on disk is Content/files/ExportImport,
+            //and the "content\\files\\exportimport" spelling here resolved only on a
+            //case-INsensitive filesystem. This is the class of defect task 7.7 found 8 instances of
+            //(runtime-deferrals.md section 42.4); the backslash separators are replaced by
+            //Path.Combine segments for the same reason.
+            string path = Path.Combine(CommonHelper.MapPath("~/"), "Content", "files", "ExportImport");
             foreach (var fullPath in Directory.GetFiles(path))
             {
                 try
@@ -579,13 +622,74 @@ namespace Nop.Admin.Controllers
             
             var gridModel = new DataSourceResult
             {
+                //TASK 8.3 - the download link now points at the BackupFileDownload action below
+                //rather than at a static-file URL. See that action's remarks for why.
                 Data = backupFiles.Select(p=>new {p.Name,
                     Length = string.Format("{0:F2} Mb", p.Length / 1024f / 1024f),
-                    Link = _webHelper.GetStoreLocation(false) + "Administration/db_backups/" + p.Name
+                    Link = Url.Action("BackupFileDownload", "Common", new { area = "Admin", fileName = p.Name })
                 }),
                 Total = backupFiles.Count
             };
             return Json(gridModel);
+        }
+
+        /// <summary>
+        /// Stream a database backup file to the caller.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>TASK 8.3 — NEW ACTION, replacing a static-file URL that is now dead by design.</b>
+        /// 3.90 built the grid link as
+        /// <c>_webHelper.GetStoreLocation(false) + "Administration/db_backups/" + p.Name</c> and
+        /// relied on <c>System.Web</c>'s static handler to serve it — which is why
+        /// <c>Nop.Web/Web.config</c> carried
+        /// <c>&lt;mimeMap fileExtension=".bak" mimeType="application/octet-stream"/&gt;</c> with the
+        /// comment "Allow database backup (.bak) file loading".
+        /// </para>
+        /// <para>
+        /// That URL cannot work now, and deliberately so — it is refused three times over:
+        /// task 7.4 did not reproduce the <c>.bak</c> mimeMap (runtime-deferrals.md §33.2),
+        /// <c>NopStaticFileProvider</c>'s allow-list excludes <c>Administration/</c> entirely, and
+        /// it additionally denies the <c>.bak</c> extension. <b>Serving database backups as
+        /// unauthenticated static files was the real defect</b>: in 3.90 anyone who could guess a
+        /// backup filename could download the entire database without being signed in, because
+        /// static files never entered the MVC pipeline and so never met <c>[AdminAuthorize]</c>.
+        /// </para>
+        /// <para>
+        /// This action therefore inherits the class-level <c>[AdminAuthorize]</c>,
+        /// <c>[AdminValidateIpAddress]</c> and <c>[AdminVendorValidation]</c> filters and re-checks
+        /// <c>ManageMaintenance</c> explicitly, exactly as every other action on this page does.
+        /// The filename is resolved through <c>IMaintenanceService.GetBackupPath</c> and then
+        /// checked against the backup directory with a canonicalised prefix test, so a
+        /// <c>../</c> traversal cannot escape it.
+        /// </para>
+        /// </remarks>
+        public virtual ActionResult BackupFileDownload(string fileName)
+        {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManageMaintenance))
+                return AccessDeniedView();
+
+            if (string.IsNullOrWhiteSpace(fileName))
+                return NotFound();
+
+            //refuse anything that is not a bare file name before it reaches the filesystem
+            if (fileName.IndexOfAny(new[] { '/', '\\' }) >= 0 ||
+                fileName.IndexOf("..", StringComparison.Ordinal) >= 0 ||
+                fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                return NotFound();
+
+            var backupPath = _maintenanceService.GetBackupPath(fileName);
+
+            //belt and braces: confirm the resolved path is still inside the backup directory
+            var backupDirectory = Path.GetFullPath(Path.GetDirectoryName(_maintenanceService.GetBackupPath("x")) ?? string.Empty);
+            var fullPath = Path.GetFullPath(backupPath);
+            if (!fullPath.StartsWith(backupDirectory + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                return NotFound();
+
+            if (!System.IO.File.Exists(fullPath))
+                return NotFound();
+
+            return PhysicalFile(fullPath, MimeTypes.ApplicationOctetStream, fileName);
         }
 
         [HttpPost, ActionName("Maintenance")]
@@ -646,7 +750,7 @@ namespace Nop.Admin.Controllers
             return View(model);
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult LanguageSelector()
         {
             var model = new LanguageSelectorModel();
@@ -802,7 +906,7 @@ namespace Nop.Admin.Controllers
         }
 
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult PopularSearchTermsReport()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
@@ -831,7 +935,7 @@ namespace Nop.Admin.Controllers
 
 
         //action displaying notification (warning) to a store owner that "limit per store" feature is ignored
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult MultistoreDisabledWarning()
         {
             //default setting
@@ -857,7 +961,7 @@ namespace Nop.Admin.Controllers
             return PartialView();
         }
         //action displaying notification (warning) to a store owner that "ACL rules" feature is ignored
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult AclDisabledWarning()
         {
             //default setting
@@ -884,20 +988,19 @@ namespace Nop.Admin.Controllers
         }
 
         //action displaying notification (warning) to a store owner that entered SE URL already exists
-        [ValidateInput(false)]
         public virtual ActionResult UrlReservedWarning(string entityId, string entityName, string seName)
         {
             if (string.IsNullOrEmpty(seName))
-                return Json(new { Result = string.Empty }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = string.Empty });
 
             int parsedEntityId;
             int.TryParse(entityId, out parsedEntityId);
             var validatedSeName = SeoExtensions.ValidateSeName(parsedEntityId, entityName, seName, null, false);
 
             if (seName.Equals(validatedSeName, StringComparison.InvariantCultureIgnoreCase))
-                return Json(new { Result = string.Empty }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = string.Empty });
 
-            return Json(new { Result = string.Format(_localizationService.GetResource("Admin.System.Warnings.URL.Reserved"), validatedSeName) }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = string.Format(_localizationService.GetResource("Admin.System.Warnings.URL.Reserved"), validatedSeName) });
         }
 
         #endregion

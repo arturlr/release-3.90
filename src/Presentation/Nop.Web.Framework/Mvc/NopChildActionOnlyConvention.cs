@@ -30,7 +30,7 @@ namespace Nop.Web.Framework.Mvc
     /// <para>
     /// <b>The critical property, verified by execution rather than assumed.</b> These actions are
     /// still invoked through task 7.3's <c>Html.Action</c> bridge
-    /// (<c>Nop.Web/Extensions/ChildActionExtensions.cs</c>), which looks the action up in
+    /// (<c>Nop.Web.Framework/ChildActionExtensions.cs</c>), which looks the action up in
     /// <c>IActionDescriptorCollectionProvider.ActionDescriptors</c> and invokes the method by
     /// reflection — it never goes near the matcher. Suppressing matching therefore cannot hide an
     /// action from the bridge. That reasoning is sound but it is exactly the kind of claim this

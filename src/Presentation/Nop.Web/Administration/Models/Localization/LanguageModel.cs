@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Localization;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Models.Localization
 {
@@ -19,15 +20,12 @@ namespace Nop.Admin.Models.Localization
         }
 
         [NopResourceDisplayName("Admin.Configuration.Languages.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Languages.Fields.LanguageCulture")]
-        [AllowHtml]
         public string LanguageCulture { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Languages.Fields.UniqueSeoCode")]
-        [AllowHtml]
         public string UniqueSeoCode { get; set; }
         
         //flags
@@ -40,7 +38,6 @@ namespace Nop.Admin.Models.Localization
 
         //default currency
         [NopResourceDisplayName("Admin.Configuration.Languages.Fields.DefaultCurrency")]
-        [AllowHtml]
         public int DefaultCurrencyId { get; set; }
         public IList<SelectListItem> AvailableCurrencies { get; set; }
 

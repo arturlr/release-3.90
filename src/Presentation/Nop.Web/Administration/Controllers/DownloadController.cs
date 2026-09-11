@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.IO;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Media;
 using Nop.Services.Media;
 using Nop.Web.Framework.Security;
+using Microsoft.AspNetCore.Http;
 
 namespace Nop.Admin.Controllers
 {
@@ -42,7 +42,6 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        [ValidateInput(false)]
         //do not validate request token (XSRF)
         [AdminAntiForgery(true)] 
         public virtual ActionResult SaveDownloadUrl(string downloadUrl)
@@ -57,7 +56,7 @@ namespace Nop.Admin.Controllers
               };
             _downloadService.InsertDownload(download);
 
-            return Json(new { downloadId = download.Id }, JsonRequestBehavior.AllowGet);
+            return Json(new { downloadId = download.Id });
         }
 
         [HttpPost]
@@ -70,25 +69,39 @@ namespace Nop.Admin.Controllers
             Stream stream = null;
             var fileName = "";
             var contentType = "";
-            if (String.IsNullOrEmpty(Request["qqfile"]))
+            if (String.IsNullOrEmpty(GetRequestValue("qqfile")))
             {
                 // IE
-                HttpPostedFileBase httpPostedFile = Request.Files[0];
+                IFormFile httpPostedFile = GetRequestFiles()[0];
                 if (httpPostedFile == null)
                     throw new ArgumentException("No file uploaded");
-                stream = httpPostedFile.InputStream;
+                stream = httpPostedFile.OpenReadStream();
                 fileName = Path.GetFileName(httpPostedFile.FileName);
                 contentType = httpPostedFile.ContentType;
             }
             else
             {
                 //Webkit, Mozilla
-                stream = Request.InputStream;
-                fileName = Request["qqfile"];
+                stream = Request.Body;
+                fileName = GetRequestValue("qqfile");
             }
 
-            var fileBinary = new byte[stream.Length];
-            stream.Read(fileBinary, 0, fileBinary.Length);
+            //TASK 8.3 - LATENT TRUNCATION BUG, FIXED. 3.90 did
+            //  var fileBinary = new byte[stream.Length];
+            //  stream.Read(fileBinary, 0, fileBinary.Length);
+            //which is wrong twice over on ASP.NET Core. Request.Body is NOT SEEKABLE, so
+            //stream.Length THROWS NotSupportedException on the Webkit/Mozilla branch above; and a
+            //single Stream.Read is not guaranteed to fill the buffer even on a seekable stream, so
+            //the IE branch could silently store a truncated file. CopyTo loops until the stream is
+            //drained. This is the FOURTH time this exact bug has been found in this migration -
+            //task 4.2 fixed it in Nop.Services' Media.Extensions.GetPictureBits/GetDownloadBits and
+            //task 7.3 fixed it in Nop.Web's three valums-uploader blocks.
+            byte[] fileBinary;
+            using (var ms = new MemoryStream())
+            {
+                stream.CopyTo(ms);
+                fileBinary = ms.ToArray();
+            }
 
             var fileExtension = Path.GetExtension(fileName);
             if (!String.IsNullOrEmpty(fileExtension))

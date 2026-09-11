@@ -1,4 +1,4 @@
-﻿using System.Web.Routing;
+using Microsoft.AspNetCore.Routing;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Plugins

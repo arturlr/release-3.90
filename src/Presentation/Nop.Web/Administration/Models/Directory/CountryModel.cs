@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Directory;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Models.Directory
 {
@@ -20,7 +21,6 @@ namespace Nop.Admin.Models.Directory
             AvailableStores = new List<SelectListItem>();
         }
         [NopResourceDisplayName("Admin.Configuration.Countries.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Countries.Fields.AllowsBilling")]
@@ -30,11 +30,9 @@ namespace Nop.Admin.Models.Directory
         public bool AllowsShipping { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Countries.Fields.TwoLetterIsoCode")]
-        [AllowHtml]
         public string TwoLetterIsoCode { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Countries.Fields.ThreeLetterIsoCode")]
-        [AllowHtml]
         public string ThreeLetterIsoCode { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Countries.Fields.NumericIsoCode")]
@@ -70,7 +68,6 @@ namespace Nop.Admin.Models.Directory
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Countries.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
     }
 }

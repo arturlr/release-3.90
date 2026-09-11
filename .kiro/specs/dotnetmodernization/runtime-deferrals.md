@@ -5934,3 +5934,491 @@ chain.
 | **35** | minification gone; and the two inert bundling checkboxes in `Areas/Admin/Views/Setting/GeneralCommon.cshtml` | post-migration / 8.4 |
 | **7.7-2** | the smoke project is not in `NopCommerce.sln` | 18.1 |
 | **7.2-3** · **7.4-1** · **7.7-3** · **11.27** · **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** · **4.10** · **4.11** · **9/4.9** · **18/7.18** | unchanged | as previously recorded |
+
+
+
+---
+
+# Nop.Admin — controllers, model binding, JSON and authorization (task 8.3)
+
+Task 8.3 took `Nop.Admin` from **2953** unique `CS*`/`RZ*` diagnostics across 672 files to **590**
+across 505 files, and — the number that actually matters — **from 1651 diagnostics in
+`Controllers/`, 706 in `Models/`, 8 in `Helpers/` and 4 in `Extensions/` to ZERO in all four.**
+Every one of the 590 residuals is inside a Razor view or the Razor source generator's output for
+one, and **every residual `CS0246` names a `*Model` type** — the single `_ViewImports.cshtml`
+cluster task 8.1 predicted, owned by task 8.4.
+
+It also **closes three deferrals** (7.3-1, the admin half of 7.3-4, the admin half of 18.4),
+opens three, and — because the probe below bound method bodies for the first time — found and
+fixed the **upload truncation bug for the fourth time in this migration**.
+
+| Measurement | Value |
+|---|---|
+| `Nop.Admin` errors, start → end | **2953 → 590** unique; `Controllers`/`Models`/`Extensions`/`Helpers` **→ 0** |
+| residual composition | 504 `CS0246` (all `*Model`, views only) + 78 `RZ1002` (`@helper`) + 4 `RZ2005` + 4 `RZ1011` |
+| residual location | `Areas/` 338 · `obj/` 252 (the generator's `*_cshtml.g.cs`) · everything else **0** |
+| **probe** (compiles the 277 admin `.cs` files with **no Razor**, so bodies bind) | **0 errors** |
+| probe warnings | 5 unique — 4 `CS0618` in untouched `Validators/` (design §9's FluentValidation pin) + 1 `CS0618` `TimeZone` and 1 `SYSLIB0014` `WebRequest.Create`, both pre-existing 3.90 code newly unmasked |
+| upstream re-gate, `--no-incremental` after `rm -rf obj bin` | `Nop.Core` **0**/3 · `Nop.Data` **0**/3 · `Nop.Services` **0**/10 · `Nop.Web.Framework` **0**/10 · `Nop.Web` **0**/15 — every baseline exact, **no warning added** |
+| `Nop.Web.SmokeTests` | **54 passed / 0 failed / 18 skipped** — unchanged. `HarnessCanaryTests` still **5 failed / 0 passed** |
+| `Nop.Tests` | **4 passed / 0 failed** — unchanged |
+| swallowed-diagnostics check (`-v:normal`) | `"converted to a warning"` **0** · `ContinueOnError` **0** · `NU1901`–`NU1904` **0** · Six Labors licence lines **0** · `error MSB*` **0** |
+| residual `System.Web*` in the 276 `.cs` files touched | **0 real hits**, comment-blanking scan with a proven canary (§56) |
+| files touched | 167 under `Administration/` (55 controllers, 110 models, `Extensions`, `Helpers`) + the Phase-1 move. `Validators/` and `Infrastructure/` **untouched** |
+
+## 53. Verification — the probe, and what it exposed
+
+### 53.1 Roslyn masking is total here, and it was measured both ways
+
+`Nop.Admin` reached 0 declaration errors in `Controllers/` early, and that reading was worth
+nothing on its own: 590 declaration errors remain in the Razor-generated `*_cshtml.g.cs` files, so
+Roslyn never binds a single controller method body during a `Nop.Admin.csproj` build. A throwaway
+`Microsoft.NET.Sdk` (deliberately **not** `.Web`, so no Razor) probe at `src/.probe83` compiled the
+same 277 `.cs` files against the four upstream projects — **no stubs were needed**, because nothing
+under `Administration/` references a type declared in a view.
+
+Proven able to fail, and proven to be measuring something the main build cannot:
+
+| Build | Sees the planted `DeliberateProbe83CanaryDoesNotExist()` |
+|---|---|
+| `Nop.Admin.csproj` | **NO** — 0 occurrences in the log |
+| probe | **YES** — reported, error count 71 → 72 |
+
+Canary reverted, probe deleted; `git status` verified clean of both.
+
+**The probe's first run reported 71 body-level errors in 21 files** that the main build could not
+see. That is the real measure of what task 8.3 had to do, and it is why a falling headline count is
+not evidence. Categories: `IFormCollection.AllKeys` (14), `Request.Files` (12),
+`StringValues` ambiguity/`Split`/`Trim` (20), `Request["x"]` (4), `IFormFile.InputStream`/
+`ContentLength`/`SaveAs` (16), `Server.HtmlEncode`/`UrlEncode`/`ScriptTimeout` (13),
+`Request.Url` (1), `Request.PhysicalApplicationPath` (1), `System.Web.Routing.RouteTable` (1).
+
+### 53.2 A one-file syntax error hides the entire project's diagnostics
+
+Worth recording because it briefly looked like spectacular progress: a mangled string literal in
+`RoxyFilemanController.cs` produced 6 `CS1002`/`CS1026`/`CS1513` **and suppressed all 584 other
+errors in the project**, including every Razor one. A build reporting "6 errors" was a *parse
+failure*, not a nearly-finished port. Any future task reading an implausibly low count should check
+for `CS1xxx` before believing it.
+
+---
+
+## 54. Deferrals RESOLVED by task 8.3
+
+### 54.1 Deferral 7.3-1 — the `Html.Action` bridge is promoted, not duplicated
+
+**`Nop.Web/Extensions/ChildActionExtensions.cs` → `Nop.Web.Framework/ChildActionExtensions.cs`**
+(`git mv`, recorded as a rename). Namespace `Nop.Web.Extensions` → **`Nop.Web.Framework`**.
+
+- **A move, not a rewrite.** The body is unchanged apart from the namespace and the class remarks.
+  Task 7.7 had already verified the bridge against nopCommerce's real controllers (the home page's
+  ~15 child actions all render), so re-verification was not required — but both gated projects were
+  re-gated and both test suites re-run, all exact (§53 table).
+- **Namespace choice is load-bearing and deliberate.** `Nop.Web.Framework`, matching the sibling
+  `HtmlExtensions.cs` in the same folder, rather than `Nop.Web.Framework.Mvc`. Every
+  `_ViewImports.cshtml` in the solution already carries `@using Nop.Web.Framework`, so **zero view
+  call sites changed** — in `Nop.Web` today, and in the `Areas/Admin/Views/_ViewImports.cshtml`
+  task 8.4 will author. The 20 plugin projects get the bridge for free.
+- Doc cross-references updated in `NopChildActionOnlyConvention.cs`,
+  `Nop.Web/Views/Shared/Components/Widget/Default.cshtml`, `HostAndContainerTests.cs` and
+  `InstalledStoreTests.cs`. No behavioural change anywhere.
+
+### 54.2 Deferral 7.3-4 — the admin half: 16 actions marked, identified from the pre-migration tree
+
+`[ChildActionOnly]` → **`[NopChildActionOnly]`** on **16** actions. The mechanism (§45.1) was not
+touched and the convention was not re-registered.
+
+**Identified from git history, never by name or by guessing**, because marking an action that was
+never `[ChildActionOnly]` deletes a legitimate URL endpoint (7.3-4 records
+`ProfileController.Info` vs `CustomerController.Info` as exactly that trap):
+
+```
+git grep -c ChildActionOnly 9cb503f -- 'src/Presentation/Nop.Web/Administration/*'
+  Controllers/AffiliateController.cs 1   Controllers/CommonController.cs   4
+  Controllers/CustomerController.cs  2   Controllers/HomeController.cs     2
+  Controllers/OrderController.cs     4   Controllers/SettingController.cs  2
+  Controllers/WidgetController.cs    1                            total = 16
+```
+
+16 in the pre-migration commit, 16 in the working tree before the edit, 16 after — so the rewrite is
+provably a pure in-place substitution with no set change. (8.1's inventory said "32 `ChildActionOnly`
+`CS0246` sites"; MSBuild double-prints, so that is the same 16.)
+
+### 54.3 Deferral 18.4 — the two admin `CA1416` sites, fixed the way 6.5 recommended
+
+`CommonController.Warnings()`'s two `FilePermissionHelper.CheckPermissions` loops are now inside
+`if (OperatingSystem.IsWindows())`. This is the fix task 6.5 proposed (§18.4) and task 7.3 applied
+at the two equivalent `InstallController` sites, and it is a **real correction, not warning
+suppression**: `WindowsIdentity.GetCurrent()` sits **outside** `CheckPermissions`'s swallowing
+`try/catch`, so on Linux the admin System Info page **threw** rather than rendering. The analyser
+recognises the guard, so the `CA1416` warnings clear as a side effect.
+
+### 54.4 The authorization port — there was nothing left to do, and that is a finding
+
+The task text asks for admin permission filters and `AuthorizeAttribute` usages to be ported to
+ASP.NET Core filters with policy-based authorization. **Measured:
+`[AdminAuthorize]` on `BaseAdminController` is the only authorization attribute anywhere under
+`Administration/`** — no admin controller or action carries `[Authorize]`, a custom
+`AuthorizeAttribute`, an `OnAuthorization` override or an `IAuthorizationFilter` implementation. All
+five class-level filters (`NopHttpsRequirement`, `AdminValidateIpAddress`, `AdminAuthorize`,
+`AdminAntiForgery`, `AdminVendorValidation`) were ported by task 6.2 in `Nop.Web.Framework` and are
+**unchanged by this task**.
+
+`AdminAuthorizeAttribute`'s own remarks record why it is deliberately **not** a policy-based
+`[Authorize]`, and that reasoning is unchanged and is repeated on `BaseAdminController` so it is not
+re-litigated: it performs no principal or role test at all — it queries nopCommerce's
+database-backed `IPermissionService` keyed off `IWorkContext.CurrentCustomer`, not `HttpContext.User`.
+Expressing that as a named policy would require the **host** to register the policy, which a class
+library cannot do, and would fail **open** if a host forgot. A policy wrapper can be layered on
+later without weakening it.
+
+---
+
+## 55. Breaking and behavioural changes — task 8.3
+
+### 55.1 `BaseAdminController` — four MVC 5 lifecycle members with no counterpart
+
+| 3.90 member | Now |
+|---|---|
+| `Initialize(System.Web.Routing.RequestContext)` — set `IWorkContext.IsAdmin = true` | `override OnActionExecuting(ActionExecutingContext)`. ASP.NET Core has **no** controller `Initialize`, no `RequestContext`, and `ControllerContext` is property-injected rather than passed to a virtual. `Microsoft.AspNetCore.Mvc.Controller` already implements `IActionFilter`, so this fires for every action on every derived controller with no registration. |
+| `OnException(ExceptionContext)` — `LogException` then no-op base | **REMOVED**, see §55.2 |
+| `AccessDeniedView()` — `Request.RawUrl` | `Request.GetEncodedPathAndQuery()` (yields `PathBase + Path + QueryString`, the shape `RawUrl` produced — task 6.2's substitution) |
+| `Json(object, string, Encoding, JsonRequestBehavior)` | `override Json(object)`, see §55.3 |
+
+**`IsAdmin` is now set slightly later, and that was checked rather than assumed.**
+Controller-implemented action filters run after authorization filters, so `[AdminAuthorize]`,
+`[AdminValidateIpAddress]` and `[AdminVendorValidation]` now see `IsAdmin == false` where 3.90 set
+it in `Initialize`. Verified harmless: none of the three reads `IWorkContext.IsAdmin` — they read
+`CurrentCustomer`, `CurrentVendor` and `IPermissionService`. `IsAdmin` is consumed by
+`WebWorkContext.CurrentCustomer`/`WorkingLanguage` and by the admin views, all of which run later.
+
+### 55.2 `OnException` removed — and 3.90 was double-logging
+
+`Microsoft.AspNetCore.Mvc.Controller` implements `IActionFilter`, `IAsyncActionFilter` and
+`IResultFilter` but **not** `IExceptionFilter`, and MVC's controller-as-filter plumbing
+(`ControllerActionFilter` / `ControllerResultFilter`) has no exception counterpart. Implementing
+`IExceptionFilter` on `BaseAdminController` would therefore **compile and never be invoked** — a
+silent no-op, which is the failure class this register exists to prevent.
+
+Nothing is lost, and a 3.90 defect is fixed. 3.90's override called `LogException` and then
+`base.OnException`, whose default implementation does nothing — so its only effect was to log, and
+it never marked the exception handled, so the exception went on to `Global.asax`'s
+`Application_Error`, **which logged it again**. 3.90 wrote two `Log` rows per admin exception. Task
+7.2's `NopErrorLoggingMiddleware` (§23) observes every unhandled exception, logs it through the same
+`Nop.Services.Logging` path and rethrows, so an admin exception is still logged — **once**.
+`BaseController.LogException` remains available for actions that handle their own.
+
+### 55.3 JSON — the four-argument override collapses onto `Json(object)`, and the decision is unchanged
+
+The recorded decisions were followed, not revisited: task 6.2 keeps `ConverterJsonResult` on
+explicit Newtonsoft serialization so the payload stays byte-identical to 3.90 (§11.23), and task 6.4
+sets `JsonSerializerOptions.PropertyNamingPolicy = null` because every Kendo grid script and
+`DataSourceResult`'s `Data`/`Total`/`Errors`/`ExtraData` read **PascalCase**.
+
+`ControllerBase.Json(object)` is `virtual`, and in MVC 5 the four-argument overload was the one every
+other `Json(...)` funnelled through — so overriding `Json(object)` preserves the important property:
+**every `return Json(x)` in the 54 controllers still goes through the ISO-date converter**, with no
+per-call-site change. The `AdminAreaSettings.UseIsoDateTimeConverterInJson` branch and the
+`IsoDateTimeConverter` it selects are byte-for-byte 3.90's.
+
+Dropped, each a no-op:
+
+- **`MaxJsonLength = int.MaxValue`** — this raised `JavaScriptSerializer`'s 4 MB cap, MVC 5's
+  default. Neither System.Text.Json nor Newtonsoft imposes a length cap, so the concern 3.90's
+  comment names ("avoid exceptions for entities that return a large text value") is satisfied by the
+  platform. There is no ceiling left to raise.
+- **`contentType`** — no caller passed one; `JsonResult.ContentType` still exists.
+- **`contentEncoding`** — there is no `Response.ContentEncoding` in ASP.NET Core; bodies are UTF-8.
+  Recorded by task 6.2 on `ConverterJsonResult`.
+- **`JsonRequestBehavior`** — **32 `JsonRequestBehavior.AllowGet` arguments deleted**. ASP.NET Core
+  has no JSON-hijacking guard and no `DenyGet` default; task 6.2 (§11.23) already recorded this as a
+  relaxation relative to 3.90, and the mitigation is obsolete for modern browsers.
+
+### 55.4 `[Bind(Exclude = "…")]` — 16 sites, replaced by an explicit reset
+
+**ASP.NET Core's `BindAttribute` has an `Include` whitelist but no `Exclude`**: the blacklist form
+was dropped from the platform deliberately. Translating to `Include` would mean enumerating every
+*other* property of each model — brittle, and it silently breaks when a model gains a property.
+
+Each site instead drops the attribute and resets the excluded member as the **first statement of the
+action body**, with the substitution recorded inline:
+
+| Excluded member | Sites | Reset to |
+|---|---|---|
+| `Id` | 11 — the Kendo grid `*Add` actions in `LanguageController`, `MeasureController` ×2, `PollController`, `SettingController`, `TaxController`, `TemplateController` ×4 | `0` |
+| `ConfigurationRouteValues` | 5 — `ExternalAuthenticationController`, `PaymentController`, `ShippingController` ×2, `WidgetController` | `null` |
+| `CreatedOn` | 1 — `NewsLetterSubscriptionController.SubscriptionUpdate` | `default(DateTime)` |
+
+This reproduces the exclusion's observable effect exactly (the member holds its default rather than
+a posted value) and, unlike simply deleting the attribute — which is what upstream nopCommerce 4.x
+did — **it keeps a client from dictating the value**. That matters for the `Id` group: those actions
+do `model.ToEntity(new X())`, AutoMapper maps `Id`, and `Insert` on an identity column with an
+explicit `Id` is a behaviour change. Verified for all 16: **no action reads the excluded member.**
+
+### 55.5 `IFormCollection`'s indexer yields `StringValues` — 20 sites, two shapes
+
+`IFormCollection`'s indexer returns `StringValues`, which has neither `Split` nor `Trim` and whose
+`!= null` is **ambiguous** between two operator overloads (`CS9342`). Both shapes force the implicit
+`StringValues` → `string` conversion, which is behaviourally identical to
+`NameValueCollection`'s indexer: a single value comes back as-is, several are joined with `","`
+(which the `Split(',')` logic depends on), and a missing key yields `null`.
+
+- **`var x = form[k];` → `string x = form[k];`** — 28 sites (a superset: some were already
+  error-free but are now explicit rather than accidentally-`StringValues`).
+- **inline `form[k] != null ? form[k].Split(…)`** — 4 sites (`ActivityLogController`,
+  `PaymentController`, `SecurityController`, `ShippingController`) get a named `string` local first.
+
+`IFormCollection.AllKeys` → **`.Keys`**, 14 sites (`MessageTemplateController`, `OrderController` ×8,
+`PluginController` ×2, `ProductController` ×3).
+
+### 55.6 Uploads — the truncation bug, found for the FOURTH time
+
+`PictureController.AsyncUpload` and `DownloadController.AsyncUpload` both did
+
+```csharp
+var fileBinary = new byte[stream.Length];
+stream.Read(fileBinary, 0, fileBinary.Length);
+```
+
+which is wrong **twice** on ASP.NET Core: `Request.Body` is **not seekable**, so `stream.Length`
+throws `NotSupportedException` on the Webkit/Mozilla branch; and a single `Stream.Read` is not
+guaranteed to fill the buffer even on a seekable stream, so the IE branch could silently store a
+truncated file. Both replaced with `CopyTo` over a `MemoryStream`. Task 4.2 fixed this in
+`Nop.Services`' `Media.Extensions.GetPictureBits`/`GetDownloadBits`; task 7.3 fixed it in `Nop.Web`'s
+three valums-uploader blocks; this is the fourth and fifth instance.
+
+`CommonController.GetBuildDate`'s `stream.Read(buffer, 0, 2048)` over an assembly file has the same
+shape — a partial read would make the PE-header offsets below garbage — and became
+`stream.ReadAtLeast(buffer, 2048, throwOnEndOfStream: false)`, which loops and preserves 3.90's
+behaviour for an assembly shorter than 2048 bytes.
+
+Also in this family:
+- **`Request.Files` → `BaseAdminController.GetRequestFiles()`**, 12 sites. The helper is
+  `HasFormContentType`-guarded and returns an empty `FormFileCollection` for a non-form request,
+  because ASP.NET Core **throws** on `Request.Form` where System.Web returned an empty collection —
+  so the `.Count == 0` and `[0] == null` tests the controllers already perform keep working.
+- **`Request["x"]` → `BaseAdminController.GetRequestValue("x")`**, 4 sites. System.Web's indexer
+  searched QueryString → Form → Cookies → ServerVariables; this searches Query then Form, which is
+  the only part the admin uses, and preserves the `null` return. Same `GetRequestValue` shape task
+  7.3 introduced in `Nop.Web`.
+- `HttpPostedFileBase` → **`IFormFile`**; `.InputStream` → `.OpenReadStream()` (8);
+  `.ContentLength` → `.Length` (7); `.SaveAs(path)` → `CopyTo` over a `FileStream` (1, in
+  `JbimagesController` — `IFormFile` has no `SaveAs`).
+
+### 55.7 `[AllowHtml]` ×395 and `[ValidateInput(false)]` ×24 deleted — SECURITY-RELEVANT RELAXATION
+
+**This is by far the largest single change in the task and it is a relaxation relative to 3.90 that
+cannot be restored, because the feature it opted out of no longer exists.** Task 7.3 recorded the
+same thing for `Nop.Web`'s 99 and 42 (deferral 7.3-3); the admin numbers are **four times larger**.
+
+Both attributes existed **only** to opt *out* of ASP.NET **request validation** — the
+framework-level *"A potentially dangerous Request.Form value was detected from the client"* guard.
+ASP.NET Core has no request validation at all and no successor.
+
+- **Net effect:** 3.90 blocked HTML-looking input on every model property *except* the 395 marked
+  `[AllowHtml]`. Every admin model property now behaves as if it carried `[AllowHtml]`.
+- **Why it is accepted rather than reimplemented:** request validation was always defence in depth;
+  the primary control is output encoding, and Razor encodes by default. nopCommerce also
+  deliberately turned it off wherever it mattered — the 24 `[ValidateInput(false)]` actions are the
+  ones that accept rich text and HTML (message templates, product/category descriptions, topics,
+  blog and news bodies).
+- **What reviewers should know:** the *previously-marked* properties are unchanged in risk. The
+  change is that previously-*screened* fields are no longer screened. Every place an admin model
+  value is rendered with `@Html.Raw(...)` is where this matters, and
+  `Nop.Core.Html.HtmlHelper.FormatText` remains the sanitiser on the rich-text paths. Admin access
+  already requires the `AccessAdminPanel` permission, so the population able to exercise this is
+  the store's own staff — which is why this is rated the same Low–Medium as 7.3-3 rather than higher.
+
+### 55.8 Other final behavioural changes
+
+- **`HttpServerUtility` is gone entirely.** `Server.HtmlEncode` → `WebUtility.HtmlEncode` (7 sites,
+  `CustomerController`'s address-HTML builder) and `Server.UrlEncode` → `WebUtility.UrlEncode`
+  (2 sites, `OrderController`'s Google Maps links) — the swap already made across `Nop.Core` (2.4),
+  `Nop.Services` (4.2), `Nop.Web.Framework` (6.2) and `Nop.Web` (7.3). `WebUtility.UrlEncode`
+  encodes a space as `%20` where `HttpUtility` used `+`; both decode to a space server-side, and
+  Google Maps accepts either.
+- **`Server.ScriptTimeout = 300` REMOVED, 4 sites** (`LanguageController` ×2, `SettingController`
+  ×2). It raised System.Web's per-request execution timeout; **ASP.NET Core and Kestrel impose no
+  per-request execution timeout at all**, so there is nothing left to raise and these long
+  operations (language XML import/export, setting import) now run untimed — strictly more
+  permissive. The nearest modern equivalents are host configuration (Kestrel limits, IIS
+  `requestTimeout`), not a per-action call. Same removal task 7.3 made at the two
+  `InstallController` sites.
+- **`[AcceptVerbs(HttpVerbs.Get)]` → `[HttpGet]`**, 5 sites. `HttpVerbs` does not exist.
+- **`Request.PhysicalApplicationPath` → `CommonHelper.MapPath("~/")`** in
+  `CommonController.DeleteExportedFiles`, resolving against the content root task 7.2 assigns
+  (deferral 1.5). **The path casing was also corrected in the same edit**:
+  `"content\\files\\exportimport"` resolved only on a case-insensitive filesystem, and the directory
+  on disk is `Content/files/ExportImport`. This is the class of defect task 7.7 found eight
+  instances of (§42.4); the `\\` separators became `Path.Combine` segments for the same reason.
+- **`Request.Url.IsLoopback` → a new `HomeController.IsLoopbackRequest()`** over
+  `HttpContext.Connection.LocalIpAddress`. `HttpRequest.Url` (a `System.Uri`) has no ASP.NET Core
+  counterpart. The replacement is **more** accurate: `Uri.IsLoopback` tested the host *string*, so a
+  request to the machine's own name or LAN address reported `false` where this reports `true` only
+  for a genuine loopback connection. It is a query-string flag on the admin dashboard's nopCommerce
+  news feed, so the difference is not load-bearing.
+- **`System.Web.Routing.RouteTable.Routes.ClearSeoFriendlyUrlsCachedValueForRoutes()` →
+  `LocalizedRoute.ClearSeoFriendlyUrlsCachedValue()`** in `SettingController` — the replacement
+  §17.4b names. There is no global static route collection in ASP.NET Core, and route *instances*
+  are gone (task 6.4 moved `LocalizedRoute`'s matching into `SeoFriendlyUrlsMiddleware` and reduced
+  the class to an endpoint-metadata marker). The call is a **deliberate no-op**: the middleware
+  resolves `LocalizationSettings` per request from nopCommerce's static settings cache, which the
+  `SaveSetting` immediately above has already invalidated. It is kept rather than deleted so the
+  intent stays visible at the site that changes the setting.
+- **`CommonController`'s System Info page: trust level reports `"Full"` unconditionally**, as §2
+  requires. `CommonHelper.GetTrustLevel()` and `AspNetHostingPermissionLevel` were deleted at task
+  2.4 — there is no Code Access Security and no medium trust on .NET — so the
+  `trustLevel >= AspNetHostingPermissionLevel.High` guard on `Assembly.Location` collapses to
+  `!assembly.IsDynamic`, which is the part that is still real. The earlier
+  `AppDomain.CurrentDomain.IsFullyTrusted.ToString()` assignment was removed too: it could only ever
+  produce `"True"`, and the page now has one authoritative answer instead of two.
+- **`HttpRequest.ServerVariables` is not recoverable, and the System Info page now lists request
+  headers.** System.Web's collection was populated by IIS/ISAPI and held both headers *and*
+  non-header values (`SERVER_SOFTWARE`, `LOCAL_ADDR`, `APPL_PHYSICAL_PATH`, …). §2 already recorded
+  the same loss for `IWebHelper.ServerVariables`. Listing `Request.Headers` is the honest subset;
+  3.90's `ALL_`-prefix filter is preserved (`ALL_HTTP`/`ALL_RAW` were synthesised aggregates and are
+  simply never present now) and each header's values are joined as `StringValues` renders them, so a
+  multi-valued header reads as it did. The `HttpContextBase` constructor parameter became
+  `IHttpContextAccessor` — a **breaking constructor change**, but the controller is registered
+  reflectively (task 6.4 §17.5), so no DI edit is needed.
+- **`RoxyFilemanController` — its whole HTTP surface, and its `HttpContextBase` parameter is gone.**
+  `_context`/`_r` are retained as *names* (so ~90 call sites read as they did) but are now the
+  controller's own ambient `HttpContext`/`Response`. `Request["x"]` → a local `GetRequestValue`
+  override; `Response.Write` → a `WriteResponse` helper (`WriteAsync` blocked, the accepted
+  sync-over-async trade-off); `Response.AddHeader` → `Headers[…]`; `Response.TransmitFile` →
+  `SendFileAsync` — **and the temp-zip delete moved to after the send**, because `SendFileAsync`
+  streams where 3.90's `Flush()` did not; `Response.End()` **removed** (no counterpart, and a
+  handler returns to the pipeline instead of aborting — task 6.2 recorded this); `Response.OutputStream`
+  → `Response.Body`; `HttpSessionState`'s object indexer → `ISession.GetString` (the value is a path
+  string; `SESSION_PATH_KEY` is `""` in the shipped `conf.json`, so this branch is unreached by
+  default); `Request.Url.LocalPath` → `Request.Path`; `Request.Files[i].SaveAs` → `CopyTo` over a
+  `FileStream`, guarded by `HasFormContentType`.
+  Also `catch (Exception ex) { throw ex; }` → `catch (Exception) { throw; }` — a pre-existing 3.90
+  defect (`throw ex` resets the stack trace) fixed in passing because it was masked until now and
+  would otherwise land as a new `CA2200`.
+- **`System.Web.Configuration` / `MachineKeySection` — REMOVED, see deferral 8.3-1.**
+- **`System.Drawing` and the four `ColorTranslator.FromHtml` sites are UNTOUCHED** and remain task
+  **8.6**'s, per the task brief. They do not error today: `System.Drawing.Common` reaches the compile
+  graph transitively (pinned to 4.7.2 by task 4.2 §10 to clear `NU1904`/CVE-2021-24112), so
+  `Bitmap`/`Graphics`/`ImageFormat` bind — on Linux they would throw
+  `PlatformNotSupportedException` at runtime. `RoxyFilemanController`'s two **relative**
+  `Server.MapPath` sites are likewise 8.6's; see deferral 8.3-3 for what was done in the meantime.
+
+### 55.9 Two pre-existing warnings newly unmasked, deliberately left
+
+Both are 3.90 code in files this task edited, and both are non-blocking (Req 3.3). They were
+invisible until bodies bound and are recorded so they are not mistaken for regressions:
+`CommonController.cs` `TimeZone.CurrentTimeZone` (`CS0618`, deprecated in favour of `TimeZoneInfo`)
+and `HomeController.cs` `WebRequest.Create` (`SYSLIB0014`, obsolete in favour of `HttpClient`).
+Neither is a `System.Web` dependency, both work correctly, and changing either alters observable
+behaviour or introduces an async boundary for no migration benefit. **Task 8.7** owns this file's
+cleanup.
+
+---
+
+## 56. The residual-`System.Web` scan, and proof it works
+
+A naive `grep` is meaningless in this tree: the migration deliberately leaves explanatory prose
+naming the legacy types it replaced, and the files this task edited now contain a great deal of it.
+The scan blanks `//`, `/* */` and `@* *@` comments first — while tracking string, char and
+verbatim-string literals so a `//` inside a URL is not mistaken for a comment — and then searches
+the residue for 40 tokens (`System.Web.*`, bare `System.Web`, `HttpContext.Current`,
+`HttpContextBase`, `HttpPostedFileBase`, `MvcHtmlString`, `JsonRequestBehavior`, `AllowHtml`,
+`ValidateInput`, `ChildActionOnly`, `HttpVerbs`, `AcceptVerbs`, `DependencyResolver`, `RouteTable`,
+`AreaRegistration`, `HttpUtility`, `MachineKeySection`, `ConfigurationManager`,
+`AspNetHostingPermissionLevel`, `System.Runtime.Caching`, `ImageResizer`, `WebGrease`, …).
+
+**Proven able to fail** before its clean result was believed: a `_ScanCanary.cs` containing
+`using System.Web.Mvc;` was planted and reported (2 hits), then removed.
+
+Result on the real tree: **276 `.cs` files scanned across `Controllers`, `Models`, `Extensions`,
+`Helpers`, `Infrastructure` and `Validators` — 0 real hits.** (`ChildActionOnly` matches inside
+`NopChildActionOnly` are excluded by an explicit allow-list, not by luck.) One earlier hit was a
+`#region` name in `RoxyFilemanController.cs`; the region was renamed so the scan is clean for future
+automated checks rather than needing a hand-maintained exception.
+
+---
+
+## 57. NEW deferrals opened by task 8.3
+
+| # | Item | Owner task(s) | Severity |
+|---|------|---------------|----------|
+| 8.3-1 | The admin System Info `<machineKey>` warning is gone with nothing in its place | 8.7 (decision) | Low — but it stands in for a real multi-instance risk |
+| 8.3-2 | The admin `[NopChildActionOnly]` and area-route smoke assertions cannot be written until `Nop.Admin` compiles | 8.8 | Medium — bookkeeping, but 8.8 must not skip it |
+| 8.3-3 | `RoxyFilemanController.MapPath` now **throws** for a relative path instead of resolving one | 8.6 | Medium |
+
+### 8.3-1 The `<machineKey>` warning was removed with no replacement
+
+`CommonController.Warnings()` read
+`ConfigurationManager.GetSection("system.web/machineKey") as MachineKeySection` and warned when the
+decryption key was auto-generated — because an auto-generated key is per-machine and therefore
+breaks forms-authentication tickets and view state across a web farm.
+
+`MachineKeySection` **does not exist on .NET in any form**, and `<machineKey>` has no successor
+*setting*: ASP.NET Core replaced the whole mechanism with Data Protection, whose key ring is a
+file/registry/blob store configured in code (`PersistKeysToFileSystem`, `…ToAzureBlobStorage`, …),
+not a config section containing a literal key. So this is a **removal, not a configuration
+migration, and `appsettings.json` must NOT grow a `machineKey` key.** The two
+`Admin.System.Warnings.MachineKey.NotSpecified` / `.Specified` localization resources become
+orphaned, which is harmless.
+
+- **The underlying operational risk is real and is already recorded** as part of deferral 7.13: a
+  multi-instance deployment must share the Data Protection key ring or auth cookies stop validating
+  across instances — the same class of problem `<machineKey>` existed to solve. Task 7.4 §32.1 notes
+  it beside `MultipleInstancesEnabled` in `appsettings.json`.
+- **Why it was not reimplemented here:** surfacing it means asking Data Protection which
+  `IXmlRepository` is in use and whether it is machine-local. That is a genuinely different
+  diagnostic and a new feature, not a port — so it is a decision for the owner of this page's
+  configuration story rather than something to invent inside a controller sweep.
+
+### 8.3-2 The admin smoke assertions are not writable yet
+
+`tasks.md` step 8.3 asks for the admin cases to be added to `Nop.Web.SmokeTests`'s parameterised
+`Deferral_7_3_4_*` tests. **They cannot be written honestly today:** those tests read the live
+endpoint table and `IActionDescriptorCollectionProvider` of the real `Nop.Web` host, and
+`Nop.Admin.dll` is not loadable because its 325 views do not compile (task 8.4). An admin case added
+now would either fail or — worse — be written to skip, which is how a suite ends up asserting the
+bug. This is the same situation 8.2 recorded for
+`Task_8_2_the_Admin_area_route_is_absent_until_Nop_Admin_compiles_KNOWN_GAP`.
+
+**Task 8.8 must, in one pass:** invert that 8.2 test; add admin cases to all three
+`Deferral_7_3_4_*` invariants (no matchable endpoint · still visible to the `Html.Action` bridge ·
+an unmarked action is still matchable), choosing at least one of the 16 marked actions that shares
+its name with an unmarked one; and assert `GET /Admin/Common/BackupFileDownload` requires
+authorization (§55 / the `.bak` action). The three invariants are already proven mechanisms (§45.1),
+so this is coverage, not design.
+
+### 8.3-3 `RoxyFilemanController.MapPath` throws for a relative path
+
+`HttpServerUtility.MapPath` resolved a **relative** path against the *current request's* virtual
+directory, and nothing in ASP.NET Core has that notion — deferral **8.1-3**, owned by task 8.6. The
+new `MapPath` handles `~/`-rooted paths through `CommonHelper.MapPath` and, for a relative path,
+**throws `NopException` naming deferral 8.1-3** rather than silently guessing a target.
+
+This is deliberately loud rather than papered over, and it is not a regression in practice — both
+live callers are already inoperative for unrelated reasons:
+
+- `"../Uploads"` is the fallback for an empty `FILES_ROOT`, and the shipped `conf.json` sets
+  `FILES_ROOT` to `~/Content/Images/uploaded`, so the branch is unreached;
+- `"../tmp/" + dirName + ".zip"` (DOWNLOADDIR) already fails with `DirectoryNotFoundException`
+  because that directory is absent from source control — **deferral 8.1-1**;
+- `VerifyAction` is the third caller and its only call site is commented out in 3.90.
+
+Note `~/Administration/Content/Roxy_Fileman/../Uploads` is `~/Administration/Content/Uploads`, which
+does not exist on disk either — so 8.6 must establish the *intended* target rather than
+mechanically translating the `..`, exactly as deferral 8.1-3 says.
+
+---
+
+## 58. Deferrals explicitly NOT closed by 8.3, with the reason
+
+| # | Item | Why not here |
+|---|------|---|
+| **7.4-2** (admin static assets half) | admin `Content/`/`Scripts/` still do not **serve** | **8.5**. Unchanged by this task |
+| **8.1-1** | `Content/Roxy_Fileman/tmp/` does not exist | **8.5 / 8.6**. Now additionally reachable through deferral 8.3-3's throw |
+| **8.1-2** | two casing defects in `Areas/Admin/Views/Shared/_AdminLayout.cshtml` | **8.4** — a view |
+| **8.1-3** | `Server.MapPath` with a relative path | **8.6**. Not papered over; see deferral 8.3-3 |
+| **7.7-4** (admin half) | case-sensitivity audit over `Administration/` | **8.4 / 8.5** for views and assets. 8.3 audited and **fixed one instance in controller code** — `CommonController`'s `"content\\files\\exportimport"` (§55.8) — and 8.1 had already run the `MapPath` literal audit clean (5 literals) |
+| **35** | minification gone; the two inert bundling checkboxes in `Areas/Admin/Views/Setting/GeneralCommon.cshtml` | post-migration / **8.4** |
+| **18 / 7.18** | ImageSharp licence diagnostic | business decision — and §46.4 measured that it does **not** affect this project at the pinned 2.1.13 |
+| **7.2-1** · **7.2-3** · **7.3-2** · **7.3-3** · **7.3-5** · **7.3-6** · **7.4-1** · **7.5-1** · **7.7-2** · **7.7-3** · **4.10** · **4.11** · **9/4.9** · **11.27** · **8.2-1** · **8.2-2** · **8.2-3** | unchanged | as previously recorded. Note **8.2-1** (plugin assemblies loaded by name) is still HIGH and still blocks group 10 |

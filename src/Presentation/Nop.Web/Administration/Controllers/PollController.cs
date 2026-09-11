@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Polls;
 using Nop.Core.Domain.Polls;
@@ -11,6 +11,7 @@ using Nop.Services.Security;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Controllers
 {
@@ -273,8 +274,16 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult PollAnswerAdd(int pollId, [Bind(Exclude = "Id")] PollAnswerModel model)
+        public virtual ActionResult PollAnswerAdd(int pollId, PollAnswerModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "Id")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.Id.
+            model.Id = 0;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePolls))
                 return AccessDeniedView();
            

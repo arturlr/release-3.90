@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Orders;
 using Nop.Web.Framework;
@@ -19,11 +19,9 @@ namespace Nop.Admin.Models.Orders
         public int CheckoutAttributeId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.CheckoutAttributes.Values.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.CheckoutAttributes.Values.Fields.ColorSquaresRgb")]
-        [AllowHtml]
         public string ColorSquaresRgb { get; set; }
         public bool DisplayColorSquaresRgb { get; set; }
 
@@ -50,7 +48,6 @@ namespace Nop.Admin.Models.Orders
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.Catalog.Attributes.CheckoutAttributes.Values.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
     }
 }

@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Directory;
 using Nop.Admin.Models.Shipping;
@@ -21,6 +21,8 @@ using Nop.Services.Shipping.Date;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Controllers
 {
@@ -148,8 +150,16 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult ProviderUpdate([Bind(Exclude = "ConfigurationRouteValues")] ShippingRateComputationMethodModel model)
+        public virtual ActionResult ProviderUpdate(ShippingRateComputationMethodModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "ConfigurationRouteValues")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.ConfigurationRouteValues.
+            model.ConfigurationRouteValues = null;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
 
@@ -240,8 +250,16 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult PickupPointProviderUpdate([Bind(Exclude = "ConfigurationRouteValues")] PickupPointProviderModel model)
+        public virtual ActionResult PickupPointProviderUpdate(PickupPointProviderModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "ConfigurationRouteValues")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.ConfigurationRouteValues.
+            model.ConfigurationRouteValues = null;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
 
@@ -951,7 +969,7 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost, ActionName("Restrictions")]
-        public virtual ActionResult RestrictionSave(FormCollection form)
+        public virtual ActionResult RestrictionSave(IFormCollection form)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -963,8 +981,10 @@ namespace Nop.Admin.Controllers
             foreach (var shippingMethod in shippingMethods)
             {
                 string formKey = "restrict_" + shippingMethod.Id;
-                var countryIdsToRestrict = form[formKey] != null 
-                    ? form[formKey].Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                //TASK 8.3 - explicit `string` local; see BaseAdminController.GetRequestValue.
+                string restrictValue = form[formKey];
+                var countryIdsToRestrict = restrictValue != null 
+                    ? restrictValue.Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(int.Parse)
                     .ToList() 
                     : new List<int>();

@@ -1,11 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Infrastructure.Cache;
 using Nop.Core.Caching;
 using Nop.Services.Catalog;
 using Nop.Services.Vendors;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Helpers
 {

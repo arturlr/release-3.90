@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Common;
 using Nop.Admin.Models.Settings;
@@ -45,6 +45,7 @@ using Nop.Web.Framework.Mvc;
 using Nop.Web.Framework.Security;
 using Nop.Web.Framework.Security.Captcha;
 using Nop.Web.Framework.Themes;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Controllers
 {
@@ -163,7 +164,7 @@ namespace Nop.Admin.Controllers
 
         #region Methods
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult Mode(string modeName = "settings-advanced-mode")
         {
             var model = new ModeModel()
@@ -174,7 +175,7 @@ namespace Nop.Admin.Controllers
             return PartialView(model);
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult StoreScopeConfiguration()
         {
             var allStores = _storeService.GetAllStores();
@@ -1695,8 +1696,13 @@ namespace Nop.Admin.Controllers
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageSettings))
                 return AccessDeniedView();
 
-            //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
+            //TASK 8.3 - HttpServerUtility.ScriptTimeout is GONE and has no replacement.
+            //It raised System.Web's per-request execution timeout (httpRuntime/executionTimeout);
+            //ASP.NET Core and Kestrel impose no per-request execution timeout at all, so there is
+            //nothing left to raise and the operation now runs untimed - strictly more permissive.
+            //The nearest modern equivalents are host configuration (Kestrel limits / IIS
+            //requestTimeout), not a per-action call. Same removal task 7.3 made at the two
+            //InstallController sites.
 
             var model = new GeneralCommonSettingsModel();
             var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
@@ -2021,7 +2027,16 @@ namespace Nop.Admin.Controllers
             {
                 localizationSettings.SeoFriendlyUrlsForLanguagesEnabled = model.LocalizationSettings.SeoFriendlyUrlsForLanguagesEnabled;
                 //clear cached values of routes
-                System.Web.Routing.RouteTable.Routes.ClearSeoFriendlyUrlsCachedValueForRoutes();
+                //TASK 8.3 - System.Web.Routing.RouteTable does not exist: there is no global static
+                //route collection in ASP.NET Core, and route instances are gone entirely (task 6.4
+                //replaced LocalizedRoute's matching with SeoFriendlyUrlsMiddleware and reduced the
+                //class to an endpoint-metadata marker). LocalizedRoute.ClearSeoFriendlyUrlsCachedValue()
+                //is the documented replacement, named in runtime-deferrals.md section 17.4b. It is a
+                //deliberate NO-OP: the middleware now resolves LocalizationSettings per request from
+                //nopCommerce's static settings cache, which SaveSetting above has already
+                //invalidated, so there is no separate per-route copy left to clear. The call is kept
+                //rather than deleted so the intent stays visible at the site that changes the setting.
+                LocalizedRoute.ClearSeoFriendlyUrlsCachedValue();
             }
             localizationSettings.AutomaticallyDetectLanguage = model.LocalizationSettings.AutomaticallyDetectLanguage;
             localizationSettings.LoadAllLocaleRecordsOnStartup = model.LocalizationSettings.LoadAllLocaleRecordsOnStartup;
@@ -2072,8 +2087,13 @@ namespace Nop.Admin.Controllers
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageSettings))
                 return AccessDeniedView();
 
-            //set page timeout to 5 minutes
-            this.Server.ScriptTimeout = 300;
+            //TASK 8.3 - HttpServerUtility.ScriptTimeout is GONE and has no replacement.
+            //It raised System.Web's per-request execution timeout (httpRuntime/executionTimeout);
+            //ASP.NET Core and Kestrel impose no per-request execution timeout at all, so there is
+            //nothing left to raise and the operation now runs untimed - strictly more permissive.
+            //The nearest modern equivalents are host configuration (Kestrel limits / IIS
+            //requestTimeout), not a per-action call. Same removal task 7.3 made at the two
+            //InstallController sites.
 
             var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
             var securitySettings = _settingService.LoadSetting<SecuritySettings>(storeScope);
@@ -2283,8 +2303,16 @@ namespace Nop.Admin.Controllers
             return new NullJsonResult();
         }
         [HttpPost]
-        public virtual ActionResult SettingAdd([Bind(Exclude = "Id")] SettingModel model)
+        public virtual ActionResult SettingAdd(SettingModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "Id")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.Id.
+            model.Id = 0;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageSettings))
                 return AccessDeniedView();
 
@@ -2324,14 +2352,13 @@ namespace Nop.Admin.Controllers
 
         //action displaying notification (warning) to a store owner about a lot of traffic 
         //between the Redis server and the application when LoadAllLocaleRecordsOnStartup seetting is set
-        [ValidateInput(false)]
         public ActionResult RedisCacheHighTrafficWarning(bool loadAllLocaleRecordsOnStartup)
         {
             //LoadAllLocaleRecordsOnStartup is set and Redis cache is used, so display warning
             if (_config.RedisCachingEnabled && loadAllLocaleRecordsOnStartup)
-                return Json(new { Result = _localizationService.GetResource("Admin.Configuration.Settings.GeneralCommon.LoadAllLocaleRecordsOnStartup.Warning") }, JsonRequestBehavior.AllowGet);
+                return Json(new { Result = _localizationService.GetResource("Admin.Configuration.Settings.GeneralCommon.LoadAllLocaleRecordsOnStartup.Warning") });
 
-            return Json(new { Result = string.Empty }, JsonRequestBehavior.AllowGet);
+            return Json(new { Result = string.Empty });
         }
 
         #endregion

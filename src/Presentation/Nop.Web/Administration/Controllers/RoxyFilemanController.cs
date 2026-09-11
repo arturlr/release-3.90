@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
@@ -6,7 +6,8 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
-using System.Web;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Services.Security;
 using Nop.Web.Framework.Security;
@@ -30,19 +31,78 @@ namespace Nop.Admin.Controllers
         
         //custom code by nopCommerce team
         private readonly IPermissionService _permissionService;
-        private readonly HttpContextBase _context;
-        private readonly HttpResponseBase _r;
 
         #endregion
 
         #region Ctor
 
         //custom code by nopCommerce team
-        public RoxyFilemanController(IPermissionService permissionService, HttpContextBase context)
+        //TASK 8.3 - the HttpContextBase constructor parameter is GONE. Task 6.4 deleted the five
+        //HttpContextBase/HttpRequestBase/HttpResponseBase/HttpServerUtilityBase/HttpSessionStateBase
+        //registrations from Nop.Web.Framework/DependencyRegistrar.cs (runtime-deferrals.md section
+        //9a), so nothing resolves it any more - and a controller never needed it: ControllerBase
+        //exposes the ambient HttpContext directly. This is a breaking constructor change, but the
+        //controller is registered reflectively (RegisterAssemblyTypes over ControllerBase, task
+        //6.4 section 17.5), so no DI edit is required.
+        public RoxyFilemanController(IPermissionService permissionService)
         {
             this._permissionService = permissionService;
-            this._context = context;
-            this._r = this._context.Response;
+        }
+
+        #endregion
+
+        #region ASP.NET Core seams replacing the legacy hosting members this file was written against
+
+        //_context/_r are kept as names so the ~90 call sites below read as they did in 3.90. They
+        //are now the controller's own ambient context rather than injected wrappers.
+        private HttpContext _context { get { return HttpContext; } }
+
+        private HttpResponse _r { get { return Response; } }
+
+        /// <summary>
+        /// Replaces <c>HttpResponse.Write(string)</c>, which became the asynchronous
+        /// <c>WriteAsync</c>. Every caller here is a synchronous <c>void</c> helper reached from a
+        /// synchronous action, so the wait is blocking - the trade-off tasks 4.2, 6.2 and 7.3
+        /// already accepted (ASP.NET Core installs no SynchronizationContext, so it cannot
+        /// deadlock).
+        /// </summary>
+        protected virtual void WriteResponse(string value)
+        {
+            Response.WriteAsync(value).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Replaces <c>HttpServerUtility.MapPath</c>.
+        /// </summary>
+        /// <remarks>
+        /// A <c>~/</c>-rooted path maps cleanly onto <c>CommonHelper.MapPath</c>, which resolves
+        /// against <c>CommonHelper.BaseDirectory</c> - the content root, assigned by task 7.2
+        /// (deferral 1.5).
+        /// <para>
+        /// A <b>relative</b> path has no ASP.NET Core equivalent at all and is <b>deferral 8.1-3,
+        /// owned by task 8.6</b>: <c>HttpServerUtility.MapPath</c> resolved a relative path against
+        /// the <i>current request's</i> virtual directory, and nothing in ASP.NET Core has that
+        /// notion. Rather than silently guessing a target - the two call sites are
+        /// <c>"../Uploads"</c> and <c>"../tmp/"</c>, and
+        /// <c>~/Administration/Content/Roxy_Fileman/../Uploads</c> is
+        /// <c>~/Administration/Content/Uploads</c>, which does not exist on disk - this throws with
+        /// the deferral named. Both live callers are already inoperative for unrelated reasons: the
+        /// <c>"../Uploads"</c> one is the fallback for an empty <c>FILES_ROOT</c> and the shipped
+        /// <c>conf.json</c> sets <c>FILES_ROOT</c> to <c>~/Content/Images/uploaded</c>, and the
+        /// <c>"../tmp/"</c> one already fails with <c>DirectoryNotFoundException</c> because that
+        /// directory does not exist in source control (deferral 8.1-1). A named throw is therefore
+        /// strictly more informative than what happens today.
+        /// </para>
+        /// </remarks>
+        protected virtual string MapPath(string path)
+        {
+            if (path != null && path.StartsWith("~"))
+                return CommonHelper.MapPath(path);
+
+            throw new NopException(string.Format(
+                "RoxyFileman: Server.MapPath('{0}') - a RELATIVE path has no ASP.NET Core equivalent. " +
+                "See deferral 8.1-3; task 8.6 owns resolving this to an explicit content-root-relative path.",
+                path));
         }
 
         #endregion
@@ -54,66 +114,66 @@ namespace Nop.Admin.Controllers
 
             //custom code by nopCommerce team
             if (!_permissionService.Authorize(StandardPermissionProvider.HtmlEditorManagePictures))
-                _r.Write(GetErrorRes("You don't have required permission"));
+                WriteResponse(GetErrorRes("You don't have required permission"));
 
             try{
-                if (_context.Request["a"] != null)
-                    action = (string)_context.Request["a"];
+                if (GetRequestValue("a") != null)
+                    action = (string)GetRequestValue("a");
 
                 //custom code by nopCommerce team
                 //VerifyAction(action);
                 switch (action.ToUpper())
                 {
                     case "DIRLIST":
-                        ListDirTree(_context.Request["type"]);
+                        ListDirTree(GetRequestValue("type"));
                         break;
                     case "FILESLIST":
-                        ListFiles(_context.Request["d"], _context.Request["type"]);
+                        ListFiles(GetRequestValue("d"), GetRequestValue("type"));
                         break;
                     case "COPYDIR":
-                        CopyDir(_context.Request["d"], _context.Request["n"]);
+                        CopyDir(GetRequestValue("d"), GetRequestValue("n"));
                         break;
                     case "COPYFILE":
-                        CopyFile(_context.Request["f"], _context.Request["n"]);
+                        CopyFile(GetRequestValue("f"), GetRequestValue("n"));
                         break;
                     case "CREATEDIR":
-                        CreateDir(_context.Request["d"], _context.Request["n"]);
+                        CreateDir(GetRequestValue("d"), GetRequestValue("n"));
                         break;
                     case "DELETEDIR":
-                        DeleteDir(_context.Request["d"]);
+                        DeleteDir(GetRequestValue("d"));
                         break;
                     case "DELETEFILE":
-                        DeleteFile(_context.Request["f"]);
+                        DeleteFile(GetRequestValue("f"));
                         break;
                     case "DOWNLOAD":
-                        DownloadFile(_context.Request["f"]);
+                        DownloadFile(GetRequestValue("f"));
                         break;
                     case "DOWNLOADDIR":
-                        DownloadDir(_context.Request["d"]);
+                        DownloadDir(GetRequestValue("d"));
                         break;
                     case "MOVEDIR":
-                        MoveDir(_context.Request["d"], _context.Request["n"]);
+                        MoveDir(GetRequestValue("d"), GetRequestValue("n"));
                         break;
                     case "MOVEFILE":
-                        MoveFile(_context.Request["f"], _context.Request["n"]);
+                        MoveFile(GetRequestValue("f"), GetRequestValue("n"));
                         break;
                     case "RENAMEDIR":
-                        RenameDir(_context.Request["d"], _context.Request["n"]);
+                        RenameDir(GetRequestValue("d"), GetRequestValue("n"));
                         break;
                     case "RENAMEFILE":
-                        RenameFile(_context.Request["f"], _context.Request["n"]);
+                        RenameFile(GetRequestValue("f"), GetRequestValue("n"));
                         break;
                     case "GENERATETHUMB":
                         int w = 140, h = 0;
-                        int.TryParse(_context.Request["width"].Replace("px", ""), out w);
-                        int.TryParse(_context.Request["height"].Replace("px", ""), out h);
-                        ShowThumbnail(_context.Request["f"], w, h);
+                        int.TryParse(GetRequestValue("width").Replace("px", ""), out w);
+                        int.TryParse(GetRequestValue("height").Replace("px", ""), out h);
+                        ShowThumbnail(GetRequestValue("f"), w, h);
                         break;
                     case "UPLOAD":
-                        Upload(_context.Request["d"]);
+                        Upload(GetRequestValue("d"));
                         break;
                     default:
-                        _r.Write(GetErrorRes("This action is not implemented."));
+                        WriteResponse(GetErrorRes("This action is not implemented."));
                         break;
                 }
         
@@ -121,12 +181,12 @@ namespace Nop.Admin.Controllers
             catch(Exception ex){
                 if (action == "UPLOAD" && !IsAjaxUpload())
                 {
-                    _r.Write("<script>");
-                    _r.Write("parent.fileUploaded(" + GetErrorRes(LangRes("E_UploadNoFiles")) + ");");
-                    _r.Write("</script>");
+                    WriteResponse("<script>");
+                    WriteResponse("parent.fileUploaded(" + GetErrorRes(LangRes("E_UploadNoFiles")) + ");");
+                    WriteResponse("</script>");
                 }
                 else{
-                    _r.Write(GetErrorRes(ex.Message));
+                    WriteResponse(GetErrorRes(ex.Message));
                 }
             }
         
@@ -153,11 +213,11 @@ namespace Nop.Admin.Controllers
             if (!path.ToLowerInvariant().Contains(rootDirectory.ToLowerInvariant()))
                 path = rootDirectory;
 
-            return _context.Server.MapPath(path);
+            return MapPath(path);
         }
         private string GetLangFile(){
             string filename = "../lang/" + GetSetting("LANG") + ".json";
-            if (!System.IO.File.Exists(_context.Server.MapPath(filename)))
+            if (!System.IO.File.Exists(MapPath(filename)))
                 filename = "../lang/en.json";
             return filename;
         }
@@ -208,7 +268,7 @@ namespace Nop.Admin.Controllers
             Dictionary<string, string> ret = new Dictionary<string,string>();
             string json = "";
             try{
-                json = System.IO.File.ReadAllText(_context.Server.MapPath(file), System.Text.Encoding.UTF8);
+                json = System.IO.File.ReadAllText(MapPath(file), System.Text.Encoding.UTF8);
             }
             catch{}
 
@@ -234,11 +294,20 @@ namespace Nop.Admin.Controllers
         }
         protected virtual string GetFilesRoot(){
             string ret = GetSetting("FILES_ROOT");
-            if (GetSetting("SESSION_PATH_KEY") != "" && _context.Session[GetSetting("SESSION_PATH_KEY")] != null)
-                ret = (string)_context.Session[GetSetting("SESSION_PATH_KEY")];
+            //TASK 8.3 - System.Web's HttpSessionState had an object indexer; ASP.NET Core's
+            //ISession is a byte-array store with typed accessors and no implicit serialization
+            //(same change task 4.2 made in ExternalAuthorizerHelper). The stored value is a path
+            //string, so GetString is an exact fit. SESSION_PATH_KEY is "" in the shipped
+            //conf.json, so this branch is not reached by default.
+            if (GetSetting("SESSION_PATH_KEY") != "")
+            {
+                var sessionPath = _context.Session.GetString(GetSetting("SESSION_PATH_KEY"));
+                if (sessionPath != null)
+                    ret = sessionPath;
+            }
         
             if(ret == "")
-                ret = _context.Server.MapPath("../Uploads");
+                ret = MapPath("../Uploads");
             else
                 ret = FixPath(ret);
             return ret;
@@ -271,7 +340,7 @@ namespace Nop.Admin.Controllers
                 setting = "/" + setting;
             setting = ".." + setting;
         
-            if (_context.Server.MapPath(setting) != _context.Server.MapPath(_context.Request.Url.LocalPath))
+            if (MapPath(setting) != MapPath("~" + _context.Request.Path.ToString()))
                 throw new Exception(LangRes("E_ActionDisabled"));
         }
         protected virtual string GetResultStr(string type, string msg)
@@ -324,7 +393,7 @@ namespace Nop.Admin.Controllers
             else{
                 _copyDir(dir.FullName, newDir.FullName);
             }
-            _r.Write(GetSuccessRes());
+            WriteResponse(GetSuccessRes());
         }
         protected virtual string MakeUniqueFilename(string dir, string filename){
             string ret = filename;
@@ -347,7 +416,7 @@ namespace Nop.Admin.Controllers
                 string newName = MakeUniqueFilename(newPath, file.Name);
                 try{
                     System.IO.File.Copy(file.FullName, Path.Combine(newPath, newName));
-                    _r.Write(GetSuccessRes());
+                    WriteResponse(GetSuccessRes());
                 }
                 catch{
                     throw new Exception(LangRes("E_CopyFile"));
@@ -366,7 +435,7 @@ namespace Nop.Admin.Controllers
                     path = Path.Combine(path, name);
                     if(!Directory.Exists(path))
                         Directory.CreateDirectory(path);
-                    _r.Write(GetSuccessRes());
+                    WriteResponse(GetSuccessRes());
                 }
                 catch
                 {
@@ -389,7 +458,7 @@ namespace Nop.Admin.Controllers
                 try
                 {
                     Directory.Delete(path);
-                    _r.Write(GetSuccessRes());
+                    WriteResponse(GetSuccessRes());
                 }
                 catch
                 {
@@ -408,7 +477,7 @@ namespace Nop.Admin.Controllers
                 try
                 {
                     System.IO.File.Delete(path);
-                    _r.Write(GetSuccessRes());
+                    WriteResponse(GetSuccessRes());
                 }
                 catch
                 {
@@ -445,15 +514,15 @@ namespace Nop.Admin.Controllers
             ArrayList dirs = ListDirs(d.FullName);
             dirs.Insert(0, d.FullName);
         
-            string localPath = _context.Server.MapPath("~/");
-            _r.Write("[");
+            string localPath = MapPath("~/");
+            WriteResponse("[");
             for(int i = 0; i <dirs.Count; i++){
                 string dir = (string) dirs[i];
-                _r.Write("{\"p\":\"/" + dir.Replace(localPath, "").Replace("\\", "/") + "\",\"f\":\"" + GetFiles(dir, type).Count.ToString() + "\",\"d\":\"" + Directory.GetDirectories(dir).Length.ToString() + "\"}");
+                WriteResponse("{\"p\":\"/" + dir.Replace(localPath, "").Replace("\\", "/") + "\",\"f\":\"" + GetFiles(dir, type).Count.ToString() + "\",\"d\":\"" + Directory.GetDirectories(dir).Length.ToString() + "\"}");
                 if(i < dirs.Count -1)
-                    _r.Write(",");
+                    WriteResponse(",");
             }
-            _r.Write("]");
+            WriteResponse("]");
         }
         protected virtual double LinuxTimestamp(DateTime d){
             DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0).ToLocalTime();
@@ -467,7 +536,7 @@ namespace Nop.Admin.Controllers
             CheckPath(path);
             string fullPath = FixPath(path);
             List<string> files = GetFiles(fullPath, type);
-            _r.Write("[");
+            WriteResponse("[");
             for(int i = 0; i < files.Count; i++){
                 FileInfo f = new FileInfo(files[i]);
                 int w = 0, h = 0;
@@ -482,19 +551,22 @@ namespace Nop.Admin.Controllers
                             }
                         }                        
                     }
-                    catch(Exception ex){throw ex;}
+                    //TASK 8.3 - `throw ex` reset the stack trace (CA2200); `throw` preserves it.
+                    //Pre-existing 3.90 defect, fixed in passing because it was previously masked by
+                    //the declaration errors in this file and would otherwise land as a new warning.
+                    catch(Exception){throw;}
                 }
-                _r.Write("{");
-                _r.Write("\"p\":\""+path + "/" + f.Name+"\"");
-                _r.Write(",\"t\":\"" + Math.Ceiling(LinuxTimestamp(f.LastWriteTime)).ToString() + "\"");
-                _r.Write(",\"s\":\""+f.Length.ToString()+"\"");
-                _r.Write(",\"w\":\""+w.ToString()+"\"");
-                _r.Write(",\"h\":\""+h.ToString()+"\"");
-                _r.Write("}");
+                WriteResponse("{");
+                WriteResponse("\"p\":\""+path + "/" + f.Name+"\"");
+                WriteResponse(",\"t\":\"" + Math.Ceiling(LinuxTimestamp(f.LastWriteTime)).ToString() + "\"");
+                WriteResponse(",\"s\":\""+f.Length.ToString()+"\"");
+                WriteResponse(",\"w\":\""+w.ToString()+"\"");
+                WriteResponse(",\"h\":\""+h.ToString()+"\"");
+                WriteResponse("}");
                 if (i < files.Count - 1)
-                    _r.Write(",");
+                    WriteResponse(",");
             }
-            _r.Write("]");
+            WriteResponse("]");
         }
         public virtual void DownloadDir(string path)
         {
@@ -502,17 +574,22 @@ namespace Nop.Admin.Controllers
             if(!Directory.Exists(path))
                 throw new Exception(LangRes("E_CreateArchive"));
             string dirName = new FileInfo(path).Name;
-            string tmpZip = _context.Server.MapPath("../tmp/" + dirName + ".zip");
+            string tmpZip = MapPath("../tmp/" + dirName + ".zip");
             if (System.IO.File.Exists(tmpZip))
                 System.IO.File.Delete(tmpZip);
             ZipFile.CreateFromDirectory(path, tmpZip,CompressionLevel.Fastest, true);
+            //TASK 8.3 - HttpResponse.TransmitFile/Flush/End have no ASP.NET Core counterparts.
+            //SendFileAsync is the replacement for TransmitFile (and, like it, can use the host's
+            //sendfile fast path). Response.End() is simply gone - a handler returns to the
+            //pipeline instead of aborting the request (task 6.2 recorded this for
+            //XmlDownloadResult/RemotePost); nothing is written after these calls.
+            //NOTE the file must be deleted AFTER the body has been sent, not after a synchronous
+            //Flush() as 3.90 did - SendFileAsync streams it.
             _r.Clear();
-            _r.Headers.Add("Content-Disposition", "attachment; filename=\"" + dirName + ".zip\"");
+            _r.Headers["Content-Disposition"] = "attachment; filename=\"" + dirName + ".zip\"";
             _r.ContentType = MimeTypes.ApplicationForceDownload;
-            _r.TransmitFile(tmpZip);
-            _r.Flush();
+            _r.SendFileAsync(tmpZip).GetAwaiter().GetResult();
             System.IO.File.Delete(tmpZip);
-            _r.End();
         }
         protected virtual void DownloadFile(string path)
         {
@@ -520,11 +597,9 @@ namespace Nop.Admin.Controllers
             FileInfo file = new FileInfo(FixPath(path));
             if(file.Exists){
                 _r.Clear();
-                _r.Headers.Add("Content-Disposition", "attachment; filename=\"" + file.Name + "\"");
+                _r.Headers["Content-Disposition"] = "attachment; filename=\"" + file.Name + "\"";
                 _r.ContentType = MimeTypes.ApplicationForceDownload;
-                _r.TransmitFile(file.FullName);
-                _r.Flush();
-                _r.End();
+                _r.SendFileAsync(file.FullName).GetAwaiter().GetResult();
             }
         }
         protected virtual void MoveDir(string path, string newPath)
@@ -542,7 +617,7 @@ namespace Nop.Admin.Controllers
             else{
                 try{
                     source.MoveTo(dest.FullName);
-                    _r.Write(GetSuccessRes());
+                    WriteResponse(GetSuccessRes());
                 }
                 catch{
                     throw new Exception(LangRes("E_MoveDir") + " \"" + path + "\"");
@@ -565,7 +640,7 @@ namespace Nop.Admin.Controllers
                 try
                 {
                     source.MoveTo(dest.FullName);
-                    _r.Write(GetSuccessRes());
+                    WriteResponse(GetSuccessRes());
                 }
                 catch
                 {
@@ -589,7 +664,7 @@ namespace Nop.Admin.Controllers
                 try
                 {
                     source.MoveTo(dest.FullName);
-                    _r.Write(GetSuccessRes());
+                    WriteResponse(GetSuccessRes());
                 }
                 catch
                 {
@@ -611,7 +686,7 @@ namespace Nop.Admin.Controllers
                 try
                 {
                     source.MoveTo(dest.FullName);
-                    _r.Write(GetSuccessRes());
+                    WriteResponse(GetSuccessRes());
                 }
                 catch (Exception ex)
                 {
@@ -668,9 +743,8 @@ namespace Nop.Admin.Controllers
             img.Dispose();
             Image.GetThumbnailImageAbort imgCallback = new Image.GetThumbnailImageAbort(ThumbnailCallback);
 
-            _r.AddHeader("Content-Type", MimeTypes.ImagePng);
-            cropImg.GetThumbnailImage(width, height, imgCallback, IntPtr.Zero).Save(_r.OutputStream, ImageFormat.Png);
-            _r.OutputStream.Close();
+            _r.Headers["Content-Type"] = MimeTypes.ImagePng;
+            cropImg.GetThumbnailImage(width, height, imgCallback, IntPtr.Zero).Save(_r.Body, ImageFormat.Png);
             cropImg.Dispose();
         }
         private ImageFormat GetImageFormat(string filename){
@@ -711,7 +785,7 @@ namespace Nop.Admin.Controllers
         }
         protected virtual bool IsAjaxUpload()
         {
-            return (_context.Request["method"] != null && _context.Request["method"].ToString() == "ajax");
+            return (GetRequestValue("method") != null && GetRequestValue("method").ToString() == "ajax");
         }
         protected virtual void Upload(string path)
         {
@@ -720,13 +794,20 @@ namespace Nop.Admin.Controllers
             string res = GetSuccessRes();
             bool hasErrors = false;
             try{
-                for(int i = 0; i < Request.Files.Count; i++){
-                    if (CanHandleFile(Request.Files[i].FileName))
+                //TASK 8.3 - Request.Files -> Request.Form.Files (guarded, because ASP.NET Core
+                //throws on Request.Form for a non-form request), and HttpPostedFileBase.SaveAs ->
+                //IFormFile.CopyTo over a FileStream. IFormFile has no SaveAs.
+                var uploadedFiles = Request.HasFormContentType
+                    ? (IList<IFormFile>)Request.Form.Files
+                    : new List<IFormFile>();
+                for(int i = 0; i < uploadedFiles.Count; i++){
+                    if (CanHandleFile(uploadedFiles[i].FileName))
                     {
-                        FileInfo f = new FileInfo(Request.Files[i].FileName);
+                        FileInfo f = new FileInfo(uploadedFiles[i].FileName);
                         string filename = MakeUniqueFilename(path, f.Name);
                         string dest = Path.Combine(path, filename);
-                        Request.Files[i].SaveAs(dest);
+                        using (var destStream = new FileStream(dest, FileMode.Create, FileAccess.Write))
+                            uploadedFiles[i].CopyTo(destStream);
                         if (GetFileType(new FileInfo(filename).Extension) == "image")
                         {
                             int w = 0;
@@ -750,13 +831,13 @@ namespace Nop.Admin.Controllers
             {
                 if(hasErrors)
                     res = GetErrorRes(LangRes("E_UploadNotAll"));
-                _r.Write(res);
+                WriteResponse(res);
             }
             else
             {
-                _r.Write("<script>");
-                _r.Write("parent.fileUploaded(" + res + ");");
-                _r.Write("</script>");
+                WriteResponse("<script>");
+                WriteResponse("parent.fileUploaded(" + res + ");");
+                WriteResponse("</script>");
             }
         }
         

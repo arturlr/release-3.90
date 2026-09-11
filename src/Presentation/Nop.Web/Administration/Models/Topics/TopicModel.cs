@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Localization;
 using Nop.Web.Framework.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Admin.Models.Topics
 {
@@ -22,7 +23,6 @@ namespace Nop.Admin.Models.Topics
         }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.SystemName")]
-        [AllowHtml]
         public string SystemName { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.IncludeInSitemap")]
@@ -50,15 +50,12 @@ namespace Nop.Admin.Models.Topics
         public string Password { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.URL")]
-        [AllowHtml]
         public string Url { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.Title")]
-        [AllowHtml]
         public string Title { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.Body")]
-        [AllowHtml]
         public string Body { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.Published")]
@@ -69,19 +66,15 @@ namespace Nop.Admin.Models.Topics
         public IList<SelectListItem> AvailableTopicTemplates { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.MetaKeywords")]
-        [AllowHtml]
         public string MetaKeywords { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.MetaDescription")]
-        [AllowHtml]
         public string MetaDescription { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.MetaTitle")]
-        [AllowHtml]
         public string MetaTitle { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.SeName")]
-        [AllowHtml]
         public string SeName { get; set; }
 
         public IList<TopicLocalizedModel> Locales { get; set; }
@@ -105,27 +98,21 @@ namespace Nop.Admin.Models.Topics
         public int LanguageId { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.Title")]
-        [AllowHtml]
         public string Title { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.Body")]
-        [AllowHtml]
         public string Body { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.MetaKeywords")]
-        [AllowHtml]
         public string MetaKeywords { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.MetaDescription")]
-        [AllowHtml]
         public string MetaDescription { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.MetaTitle")]
-        [AllowHtml]
         public string MetaTitle { get; set; }
 
         [NopResourceDisplayName("Admin.ContentManagement.Topics.Fields.SeName")]
-        [AllowHtml]
         public string SeName { get; set; }
     }
 }

@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.ExternalAuthentication;
 using Nop.Core.Domain.Customers;
@@ -78,8 +78,16 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult MethodUpdate([Bind(Exclude = "ConfigurationRouteValues")] AuthenticationMethodModel model)
+        public virtual ActionResult MethodUpdate(AuthenticationMethodModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "ConfigurationRouteValues")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.ConfigurationRouteValues.
+            model.ConfigurationRouteValues = null;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageExternalAuthenticationMethods))
                 return AccessDeniedView();
 

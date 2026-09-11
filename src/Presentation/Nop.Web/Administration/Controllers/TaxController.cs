@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Web.Mvc;
-using System.Web.Routing;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Tax;
 using Nop.Core.Domain.Tax;
@@ -161,8 +161,16 @@ namespace Nop.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual ActionResult CategoryAdd([Bind(Exclude = "Id")] TaxCategoryModel model)
+        public virtual ActionResult CategoryAdd(TaxCategoryModel model)
         {
+            //TASK 8.3 - replaces 3.90's [Bind(Exclude = "Id")] on the parameter above.
+            //ASP.NET Core's BindAttribute has an Include whitelist but NO Exclude: the
+            //blacklist form was dropped from the platform deliberately. Resetting the member
+            //reproduces the exclusion's observable effect exactly - it holds its default rather
+            //than a posted value - and, unlike simply deleting the attribute, it keeps a client
+            //from dictating it. This action does not read model.Id.
+            model.Id = 0;
+
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTaxSettings))
                 return AccessDeniedView();
 

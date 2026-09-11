@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Directory;
 using Nop.Web.Framework;
@@ -18,11 +18,9 @@ namespace Nop.Admin.Models.Directory
         public int CountryId { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Countries.States.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Countries.States.Fields.Abbreviation")]
-        [AllowHtml]
         public string Abbreviation { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Countries.States.Fields.Published")]
@@ -39,7 +37,6 @@ namespace Nop.Admin.Models.Directory
         public int LanguageId { get; set; }
         
         [NopResourceDisplayName("Admin.Configuration.Countries.States.Fields.Name")]
-        [AllowHtml]
         public string Name { get; set; }
     }
 }

@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Affiliates;
 using Nop.Core;
@@ -22,6 +22,8 @@ using Nop.Services.Orders;
 using Nop.Services.Security;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Controllers
 {
@@ -306,7 +308,7 @@ namespace Nop.Admin.Controllers
             return RedirectToAction("List");
         }
 
-        [ChildActionOnly]
+        [NopChildActionOnly]
         public virtual ActionResult AffiliatedOrderList(int affiliateId)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageAffiliates))
